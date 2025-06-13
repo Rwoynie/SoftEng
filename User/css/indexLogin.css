@@ -1,15 +1,14 @@
-
 body {
     font-family: 'Quicksand', sans-serif;
     overflow-x: hidden;
-    overflow-y: hidden;
     margin: 0;
+    margin-bottom: 5vw;
     padding: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     min-height: 100vh;
-    
+    background-color: #f5f5f5;
 }
 
 .Line {
@@ -41,56 +40,173 @@ body {
 }
 
 .sysLogo {
-    width: 5vw;
+    width: 80px;
+    height: auto;
 }
 
 .container1 {
     width: 100%;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    margin-top: 15vh;
 }
 
 .container2 {
-    margin-top: 5vw;
-    width: 100%;
-    background-color: transparent;
-}
-
-.loginContainer {
-    margin-top: 5vw;
-    width: 100%;
-    background-color: transparent;
-}
-
-.loginForm {
     display: flex;
     flex-direction: column;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.container2 h1 {
+    color: black;
+    font-weight: 600;
+    font-size: 2.5rem;
+    margin-top: 1rem;
+}
+
+.form-container {
+    width: 100%;
+    max-width: 40vw;
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+.loginForm, .signupForm {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    transition: all 0.3s ease;
 }
 
 .signupForm {
-
+    display: none;
+    width: 100%;
 }
 
+.loginForm.active {
+    display: flex;
+}
+
+.signupForm.active {
+    display: flex;
+}
+
+.name-fields, .account-fields {
+    display: grid;
+    gap: 1rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #333;
+}
+
+.form-group input {
+    width: 16vw;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+#userID {
+    width: 20vw;
+}
+
+#password {
+    width: 20vw;
+}
+
+.form-group input:focus {
+    border-color: #832a2b;
+    outline: none;
+}
+
+.btn-login, .btn-signup {
+    background-color: #832a2b;
+    color: white;
+    border: none;
+    padding: 0.75rem;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-top: 0.5rem;
+    width: 50%;
+}
+
+.btn-login:hover, .btn-signup:hover {
+    background-color: #b1423c;
+}
 
 .Forg_Pass {
     color: #000000;
-    
-    
-    width: 8vw;
     font-family: "Quicksand", serif;
-    font-size: 0.9vw;
+    font-size: 0.9rem;
     font-weight: 400;
     cursor: pointer;
-    margin-top: 1vw;
-   
-    
-    z-index: 3;
+    margin: 0.5rem 0;
+    text-align: right;
     transition: color 0.2s ease;
 }
 
 .Forg_Pass:hover {
     color: #0a5c97;
     text-decoration: underline;
+}
+
+.toggle-form {
+    text-align: center;
+    margin-top: 1.5rem;
+    color: #555;
+}
+
+.toggle-form span {
+    color: #832a2b;
+    cursor: pointer;
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+.toggle-form span:hover {
+    color: #b1423c;
+}
+
+h2 {
+    color: black;
+    text-align: center;
+    font-weight: 400;
+    margin-bottom: 2rem;
+    font-size: 1.8rem;
+}
+
+@media (min-width: 768px) {
+    .name-fields {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .account-fields {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .btn-signup {
+        grid-column: span 2;
+    }
+    
+    .toggle-form {
+        grid-column: span 2;
+    }
 }
