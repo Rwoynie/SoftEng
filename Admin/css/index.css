@@ -1,0 +1,423 @@
+
+body {
+    font-family: 'Quicksand', sans-serif;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    
+}
+
+h1 {
+    font-size: 2.5vw;
+}
+
+.bg-elements div {
+    position: fixed;
+    opacity: 0.1;
+    z-index: -1;
+}
+
+
+.vector2 {
+    position: absolute;
+    height: 21vw;
+    width: 105vw;
+    margin-left: -1.5vw;
+}
+
+.logo {
+    height: 10vw;
+}
+
+.top {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+    .Header{
+        font-size: 1.8vw;
+        font-weight: 400;
+        color: black;
+    }
+
+
+
+/* Container styles */
+.container {
+    top: 7vw;
+    background-color: #fff;
+    border-radius: 1.5vw;
+    box-shadow: 
+        0 10px 20px rgba(0, 0, 0, 0.1),
+        0 6px 6px rgba(0, 0, 0, 0.05),
+        0 0 0 1px rgba(0, 0, 0, 0.02);
+    position: relative;
+    overflow: hidden;
+    width: 60vw;
+    max-width: 100%;
+    min-height: 30vw;
+    margin: 20px auto;
+}
+
+
+
+
+/* Form container styles */
+.form-container {
+    position: absolute;
+    top: 0;
+    margin-left: 2.5vw;
+    height: 100%;
+    width: 50%;
+    transition: all 0.6s ease-in-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 0 50px;
+    text-align: center;
+}
+
+.sign-in-container {
+    left: -2.8vw;
+    z-index: 2;
+}
+
+.sign-up-container {
+    left: -11.5vw;
+    opacity: 0;
+    z-index: 1;
+    /* Add these to ensure proper separation */
+    background: white;
+    width: 60%;
+    
+}
+
+#teacherLoginForm {
+    width: 70%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#teacherRegisterForm {
+    width: 80%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Form styles */
+.form-group {
+    
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.sign-up-container .form-group-container {
+    display: grid;
+    
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.sign-up-container .form-group {
+    margin-bottom: 0; /* Remove bottom margin since gap handles spacing */
+    width: 100%; /* Ensure full width within grid cell */
+}
+
+.btn {
+    border-radius: 20px;
+    background-color: #b1423c;
+    color: #FFFFFF;
+    font-size: 0.8vw;
+    font-weight: bold;
+    padding: 0.8vw 3vw;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    
+    transition: all 80ms ease-in;
+    border: none;
+    cursor: pointer;
+    
+    width: 100%;
+}
+
+.btn:hover {
+    background-color: #7f2d29;
+    color: #FFFFFF;
+}
+
+#login.btn {
+    width: 10vw;
+    margin-top: 2vw;
+}
+
+/* Overlay styles */
+.overlay-container {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 50%;
+    height: 100%;
+    overflow: hidden;
+    transition: transform 0.6s ease-in-out;
+    z-index: 100;
+}
+
+.overlay {
+    background: linear-gradient(to right, #832a2b, #b1423c, #8c2224);
+    color: #FFFFFF;
+    position: relative;
+    left: -100%;
+    height: 100%;
+    width: 200%;
+    transform: translateX(0);
+    transition: transform 0.6s ease-in-out;
+    display: flex;
+}
+
+.overlay-panel {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 40px;
+    text-align: center;
+    top: 0;
+    height: 100%;
+    width: 50%;
+    transform: translateX(0);
+    transition: transform 0.6s ease-in-out;
+}
+
+.overlay-left {
+    transform: translateX(-20%);
+    left: -0.5vw;
+    padding-right: 20px;
+}
+
+.overlay-right {
+    right: -1vw;
+    transform: translateX(0);
+    padding-left: 20px;
+}
+
+.ghost {
+    border-radius: 20px;
+    background-color: transparent;
+    color: #FFFFFF;
+    font-size: 0.8vw;
+    font-weight: bold;
+    padding: 0.8vw 3vw;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.1s ease;
+    border: 2px solid #FFFFFF;
+    cursor: pointer;
+    margin-top: 2vw;
+    width: auto;
+    min-width: 150px;
+}
+
+.ghost:hover {
+    opacity: 0.7;
+}
+/* Active states */
+.container.right-panel-active .sign-in-container {
+    transform: translateX(100%);
+}
+
+.container.right-panel-active .sign-up-container {
+    transform: translateX(100%);
+    opacity: 1;
+    z-index: 5;
+}
+
+.container.right-panel-active .overlay-container {
+    transform: translateX(-100%);
+}
+
+.container.right-panel-active .overlay {
+    transform: translateX(50%);
+}
+
+.container.right-panel-active .overlay-left {
+    transform: translateX(0);
+}
+
+.container.right-panel-active .overlay-right {
+    transform: translateX(20%);
+}
+
+.sign-up-container .form-group input {
+    width: 100%;
+     /* Increased padding for taller/wider inputs */
+    font-size: 0.8vw; /* Slightly larger font */
+    height: 50px; /* Fixed height for consistency */
+    box-sizing: border-box;
+}
+
+
+
+.sign-up-container .form-group-container {
+    gap: 1vw; /* Increased gap between fields */
+    margin-bottom: 20px;
+}
+
+.sign-up-container .btn {
+    width: 60%;
+    margin-top: 1vw;
+    grid-column: 1 / -1; /* Make button span all columns */
+    justify-self: center; /* Center the button */
+}
+
+.Forg_Pass {
+    color: #000000;
+    
+    
+    width: 8vw;
+    font-family: "Quicksand", serif;
+    font-size: 0.9vw;
+    font-weight: 400;
+    cursor: pointer;
+    margin-top: 1vw;
+   
+    
+    z-index: 3;
+    transition: color 0.2s ease;
+}
+
+.Forg_Pass:hover {
+    color: #0a5c97;
+    text-decoration: underline;
+}
+
+/*Popups*/
+.swal2-container {
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.swal2-popup {
+    z-index: 20;
+    margin: 0 !important;
+    border-radius: 0.8vw !important;
+    font-family: "Quicksand", serif !important;
+    border: none !important;
+    box-shadow: none !important;
+    min-height: auto !important;
+    height: auto !important;
+    padding: 2em !important;
+    animation: none !important;
+    width: 28em !important; 
+    max-width: 80% !important; 
+    overflow-x: hidden !important;
+}
+
+
+#swal2-html-container {
+    /* your styles here */
+    overflow-x: hidden !important;
+    max-width: 100% !important;
+    word-break: break-word !important;
+}
+
+
+.swal2-show {
+    animation: swal2-show 0.3s !important;
+}
+
+
+.swal2-hide {
+    animation: swal2-hide 0.15s forwards !important;
+}
+
+@keyframes swal2-show {
+    0% {
+        transform: scale(0.7);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes swal2-hide {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+}
+
+.swal2-title {
+    margin: 0.5em 0 !important;
+}
+
+.swal2-content {
+    margin: 0.5em 0 !important;
+    padding: 0 !important;
+}
+
+body.swal2-shown:not(.swal2-no-backdrop) {
+    overflow: hidden !important;
+    padding-right: 0 !important;
+}
+
+.swal2-backdrop-show {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    animation: swal2-backdrop-show 0.3s !important;
+}
+
+@keyframes swal2-backdrop-show {
+    0% {
+        background-color: transparent;
+    }
+    100% {
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+}
+
+.swal2-input {
+    margin: 0.5em auto !important;  
+    
+          
+    text-align: center !important;  
+}
+
+.swal2-input:focus {
+    box-shadow: 0 0 0 3px rgba(22, 119, 191, 0.3) !important; 
+}
+
+.swal2-popup .swal2-input-container {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 0.5em !important;
+    width: 100% !important;
+}

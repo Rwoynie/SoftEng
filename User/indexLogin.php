@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User | Login</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Quicksand:wght@300..700&family=Raleway:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="css/indexLogin.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+        <div class="Line">
+            </div>
+            <div class="yellow"></div>
+            <div class="cover" id="cover">
+        </div>
+        <div class="container1">
+            <div class="container2">
+                <img class="sysLogo" src="../images/gradcap.png">
+                <h1>USeP ThesisComp</h1>
+            </div>
+
+            <div class="loginContainer">
+                <form class="loginForm">
+                    <p>Welcome!</p>
+                    <input placeholder="User ID">
+                    <input placeholder="Password">
+                    <p class="Forg_Pass" onclick="forgotPassword()">Forgot password?</p>
+                    <button type="submit">Login</button>
+                    <p>Don't have an account? Sign Up</p>
+                </form>
+
+                <form class="signupForm">
+
+                </form>
+            </div>
+
+
+        </div>
+        
+</body>
+</html>
