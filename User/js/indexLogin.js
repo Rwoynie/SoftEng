@@ -1,17 +1,34 @@
+let isAnimating = false;
+
 function toggleForm() {
+    if (isAnimating) return;
+    isAnimating = true;
+    
     const loginForm = document.querySelector('.loginForm');
     const signupForm = document.querySelector('.signupForm');
     
-    loginForm.classList.toggle('active');
-    signupForm.classList.toggle('active');
-    
-    // Toggle display property
     if (loginForm.classList.contains('active')) {
-        loginForm.style.display = 'flex';
-        signupForm.style.display = 'none';
+        // Switching to signup
+        loginForm.classList.remove('active');
+        setTimeout(() => {
+            loginForm.style.display = 'none';
+            signupForm.style.display = 'flex';
+            setTimeout(() => {
+                signupForm.classList.add('active');
+                isAnimating = false;
+            }, 10);
+        }, 400);
     } else {
-        loginForm.style.display = 'none';
-        signupForm.style.display = 'flex';
+        // Switching to login
+        signupForm.classList.remove('active');
+        setTimeout(() => {
+            signupForm.style.display = 'none';
+            loginForm.style.display = 'flex';
+            setTimeout(() => {
+                loginForm.classList.add('active');
+                isAnimating = false;
+            }, 10);
+        }, 400);
     }
 }
 
