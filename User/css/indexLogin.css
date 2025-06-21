@@ -20,7 +20,7 @@ body {
     background: linear-gradient(to right, #832a2b, #b1423c, #832a2b);
     width: 100%;
     height: 11vh;
-    z-index: 2;
+    z-index: 5;
     margin: 0;
     padding: 0;
 }
@@ -34,7 +34,7 @@ body {
     background-color: #fbcd00;
     width: 100%;
     height: 1vh;
-    z-index: 2;
+    z-index: 5;
     margin: 0;
     padding: 0;
 }
