@@ -11,12 +11,35 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="css/userViewPage.css">
-
+    
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
     <div class="Line"></div>
     <div class="yellow"></div>
-    <div class="cover" id="cover"></div>
+    <div class="top-nav" id="top-nav">
+        <div class="searchBar">
+            <input class="search" placeholder="Search">
+            <i class="fi fi-rr-search"></i>
+        </div>
+        
+        <button class="nav-button start" data-target="uploadContainer">Upload</button>
+        <button class="nav-button" data-target="profileContainer">Profile</button>
+        <button class="nav-button" data-target="notificationContainer">Notifications</button>
+        <button class="nav-button logout">Logout</button>
+    </div>
+
+    <!-- Content Containers -->
+    <div id="uploadContainer" class="content-container" style="display: flex;">
+        <!-- Upload content goes here -->
+    </div>
+    <div id="profileContainer" class="content-container">
+        <!-- Profile content goes here -->
+    </div>
+    <div id="notificationContainer" class="content-container">
+        <!-- Notifications content goes here -->
+    </div>
+
+    <script type="text/javascript" src="js/userViewPage.js"></script>
 </body>
 </html>
