@@ -31,8 +31,43 @@
 
     <!-- Content Containers -->
     <div id="uploadContainer" class="content-container" style="display: flex;">
-        <!-- Upload content goes here -->
+        <div>
+            <p class="icon"><i class="fi fi-rr-upload"></i></p>
+            <img src="../images/add.png" alt="Upload" class="upload-icon">
+            <?php if (!empty($assigned_subjects)): ?>
+                    <?php foreach (array_unique($assigned_subjects, SORT_REGULAR) as $subject): ?>
+                        <div class="info-card">
+                            <h3><?php echo htmlspecialchars($subject['subject_code']); ?></h3>
+                            <p><?php echo htmlspecialchars($subject['subject_description']); ?> ( <?php echo htmlspecialchars($subject['Grade_Level']); ?>)</p>
+                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    
+                        <h5>No Thesis Uploaded</h5>
+                        
+                    
+                <?php endif; ?>
+        </div>    
+        
+        
+
     </div>
+
+    <div class="upload-box">
+            <input type="text" placeholder="Title">
+            <input type="text" placeholder="Description">
+            <input type="text" placeholder="Subject">
+            <input type="text" placeholder="Grade Level">
+            <input type="text" placeholder="Date">
+            <input type="text" placeholder="Time">
+            <input type="text" placeholder="Location">
+            <input type="file" id="fileInput" style="display: none;">
+            <label for="fileInput" class="upload-label">
+                <i class="fi fi-rr-upload"></i>
+                <p>Upload</p>
+            </label>
+        </div>
+        
     <div id="profileContainer" class="content-container">
         <!-- Profile content goes here -->
     </div>

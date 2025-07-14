@@ -50,3 +50,11 @@ document.addEventListener('DOMContentLoaded', function() {
         contentContainers[0].style.display = 'flex';
     }
 });
+
+document.querySelector('.upload-icon').addEventListener('click', function() {
+    document.querySelector('.upload-box').style.display = 'flex';
+});
+
+document.querySelector('.upload-box').addEventListener('click', function() {
+    document.querySelector('.upload-box').style.display = 'none';
+});
