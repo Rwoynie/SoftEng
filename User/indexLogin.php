@@ -65,12 +65,12 @@
                 </div>
                 <div class="account-fields">
                     <div class="form-group">
-                        <label for="email">Email</label>
-                        <input type="email" id="email" placeholder="Enter your email" required>
+                        <label for="email">USeP Email</label>
+                        <input type="email" id="email" placeholder="Enter your USeP email" required>
                     </div>
                     <div class="form-group">
-                        <label for="newUserID">User ID</label>
-                        <input type="text" id="newUserID" placeholder="Create a User ID" required>
+                        <label for="newUserID">Student ID</label>
+                        <input type="text" id="newUserID" placeholder="Enter your Student ID" required>
                     </div>
                     <div class="form-group">
                         <label for="newPassword">Password</label>

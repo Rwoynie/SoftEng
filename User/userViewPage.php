@@ -18,22 +18,79 @@
     <div class="Line"></div>
     <div class="yellow"></div>
     <div class="top-nav" id="top-nav">
-        <div class="searchBar">
+        
+    <div class="searchBar">
+        <div class="search-container">
             <input class="search" placeholder="Search">
-            <i class="fi fi-rr-search"></i>
+            <button class="search-icon-btn" type="submit">
+                <img class="searchIcon" src="../images/search-interface-symbol.png">
+            </button>
         </div>
         
-        <button class="nav-button start" data-target="uploadContainer">Upload</button>
-        <button class="nav-button" data-target="profileContainer">Profile</button>
-        <button class="nav-button" data-target="notificationContainer">Notifications</button>
-        <button class="nav-button logout">Logout</button>
+        <p class="text">Sort By: </p>
+        <select class="sort">
+            <option>Title</option>
+            <option>Author</option>
+            <option>Date Published</option>
+        </select>
     </div>
 
+        
+
+        <button id="navButtons" class="start">Profile</button>
+        <button id="navButtons">Upload</button>  
+        <button id="navButtons">Notifications</button>
+        <button id="navButtons">Logout</button>
+    </div>
+
+
     <!-- Content Containers -->
-    <div id="uploadContainer" class="content-container" style="display: flex;">
+
+    <div id="profileContainer" class="content-container">
+        <div class="mainProfile">
+            <img class="profileIcon" src="../images/profile.png">
+            <div>
+                <h4>Juan Dela Cruz</h4>
+                <p>juancruz@email.com</p>
+            </div>
+            <div>
+                <h6>Recently Published:</h6>
+                <p>How to be Gwapo Thesis</p>
+            </div>
+        </div>
+
+        <div class="subProfile">
+            <div class="personalProfile">
+                <h5>Personal Information</h5>
+                <label>Email: </label>
+                <p>juancruz@email.com<!--<?php echo htmlspecialchars($user_data['Email']); ?>--></p>
+                <label>School ID:</label>
+                <p>12345677<!--<?php echo htmlspecialchars($user_data['Email']); ?>--></p>
+            </div>
+
+            <div class="passProfile">
+
+                <label class="lbl">Current Password</label>
+                <input class="profileInputs" type="text">
+                
+                <label class="lbl">New Password</label>
+                <input class="profileInputs" type="text">
+                
+                <label class="lbl">Confirm New Password</label>
+                <input class="profileInputs" type="text">
+                <button class="changeButton">Change Password</button>
+            </div>
+        </div>
+      
+    </div>
+
+    <div id="uploadContainer" class="content-container">
         <div>
-            <p class="icon"><i class="fi fi-rr-upload"></i></p>
-            <img src="../images/add.png" alt="Upload" class="upload-icon">
+            
+            
+                <img src="../images/add.png" alt="Upload" class="upload-icon">
+            
+            
             <?php if (!empty($assigned_subjects)): ?>
                     <?php foreach (array_unique($assigned_subjects, SORT_REGULAR) as $subject): ?>
                         <div class="info-card">
@@ -68,11 +125,9 @@
             </label>
         </div>
         
-    <div id="profileContainer" class="content-container">
-        <!-- Profile content goes here -->
-    </div>
+    
     <div id="notificationContainer" class="content-container">
-        <!-- Notifications content goes here -->
+        <p>ajshdkjasd</p>
     </div>
 
     <script type="text/javascript" src="js/userViewPage.js"></script>
