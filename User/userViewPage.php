@@ -57,6 +57,10 @@
                 <h6>Recently Published:</h6>
                 <p>How to be Gwapo Thesis</p>
             </div>
+
+            <div>
+                
+            </div>
         </div>
 
         <div class="subProfile">
