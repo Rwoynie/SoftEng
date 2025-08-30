@@ -35,13 +35,17 @@ document.querySelectorAll('#navButtons').forEach(button => {
     
   
 
-document.querySelector('#uploadButton').addEventListener('click', function() {
-    document.querySelector('.upload-box').style.display = 'flex';
-});
+
 
 document.querySelector('.upload-box').addEventListener('click', function() {
     document.querySelector('.upload-box').style.display = 'none';
 });
+
+
+function dropzoneContainer() {
+    const dropzoneContainer = document.getElementById("dropzone-container");
+    dropzoneContainer.style.display = "flex";
+}
 
 
 function upload() {
@@ -67,7 +71,7 @@ function closeUpload() {
 }
 
 
-//cropping
+/* cropping
 const fileUpload = document.getElementById('file_Upload');
 const image = document.getElementById('image');
 const cropButton = document.getElementById('crop-btn');
@@ -363,3 +367,26 @@ function uploadImageToServer(imageData) {
         console.error('Upload error:', error);
     });
 }
+
+const form = document.querySelector('form');
+form.addEventListener('submit', handleSubmit);
+
+function handleSubmit(event) {
+    event.preventDefault();
+  
+    uploadFiles();
+  }
+  
+  function uploadFiles() {
+    const url = 'https://httpbin.org/post';
+    const method = 'post';
+  
+    const xhr = new XMLHttpRequest();
+  
+    const data = new FormData(form);
+  
+    xhr.open(method, url);
+    xhr.send(data);
+  }
+
+  */

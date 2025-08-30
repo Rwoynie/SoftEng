@@ -62,14 +62,14 @@
                 
             </div>
         </div>
-
-        <div class="subProfile">
+<!--
+     <div class="subProfile">
             <div class="personalProfile">
                 <h5>Personal Information</h5>
                 <label>Email: </label>
-                <p>juancruz@email.com<!--<?php echo htmlspecialchars($user_data['Email']); ?>--></p>
+                <p>juancruz@email.com<?php echo htmlspecialchars($user_data['Email']); ?></p>
                 <label>School ID:</label>
-                <p>12345677<!--<?php echo htmlspecialchars($user_data['Email']); ?>--></p>
+                <p>12345677<?php echo htmlspecialchars($user_data['Email']); ?></p>
             </div>
 
             <div class="passProfile">
@@ -84,7 +84,7 @@
                 <input class="profileInputs" type="text">
                 <button class="changeButton">Change Password</button>
             </div>
-        </div>
+        </div> -->
       
     </div>
 
@@ -92,14 +92,24 @@
         <div>
             
             
-                <img src="../images/add.png" alt="Upload" class="upload-icon">
+                <img src="../images/add.png" onclick="dropzoneContainer()" alt="Upload" id="upload-icon" class="upload-icon">
+                <div id="dropzone-container" class="dropzone-container">
+                    <input type="file">
+                        <form action="https://httpbin.org/post" method="post" enctype="multipart/form-data">
+                            <input name="file" type="file" multiple>
+                            <button type="submit">Upload</button>
+                    </form>
+
+                    
+                </div>
             
             
-            <?php if (!empty($assigned_subjects)): ?>
-                    <?php foreach (array_unique($assigned_subjects, SORT_REGULAR) as $subject): ?>
+            <?php if (!empty($published_thesis)): ?>
+                    <?php foreach (array_unique($published_thesis, SORT_REGULAR) as $thesis): ?>
                         <div class="info-card">
-                            <h3><?php echo htmlspecialchars($subject['subject_code']); ?></h3>
-                            <p><?php echo htmlspecialchars($subject['subject_description']); ?> ( <?php echo htmlspecialchars($subject['Grade_Level']); ?>)</p>
+                            <h3><?php echo htmlspecialchars($thesis['title']); ?></h3>
+                            <p>Author: <?php echo htmlspecialchars($thesis['author_name']); ?></p>
+                            <p>Published: <?php echo htmlspecialchars($thesis['date_published']); ?></p>                        
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
