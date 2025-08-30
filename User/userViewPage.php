@@ -21,7 +21,7 @@
         
     <div class="searchBar">
         <div class="search-container">
-            <input class="search" placeholder="Search">
+            <input class="search" placeholder="gwapa">
             <button class="search-icon-btn" type="submit">
                 <img class="searchIcon" src="../images/search-interface-symbol.png">
             </button>
