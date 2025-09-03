@@ -37,7 +37,8 @@ body {
 
 .dashboard-container {
     display: flex;
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
 }
 
 /* Sidebar Styles */
@@ -50,6 +51,7 @@ body {
     padding: 20px 0;
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
     z-index: 100;
+    flex-shrink: 0;
 }
 
 .sidebar .logo {
@@ -110,6 +112,7 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 /* Header Styles */
@@ -120,6 +123,7 @@ body {
     height: 80px;
     display: flex;
     align-items: center;
+    flex-shrink: 0;
 }
 
 .header .title {
@@ -170,7 +174,9 @@ body {
     flex: 1;
     padding: 30px;
     background: #f0f2f5;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .app-content-header {
@@ -178,6 +184,7 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 25px;
+    flex-shrink: 0;
 }
 
 .searchbox {
@@ -237,6 +244,32 @@ body {
 
 .app-list-options .display-group .icon:last-child {
     border-radius: 0 8px 8px 0;
+}
+
+/* Projects Container for scrolling */
+.projects-container {
+    overflow-y: auto;
+    flex: 1;
+    padding-right: 5px;
+}
+
+/* Custom scrollbar for projects container */
+.projects-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.projects-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.projects-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.projects-container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
 }
 
 /* Projects Grid */
@@ -438,6 +471,7 @@ body {
 .all-projects {
     display: none;
 }
+
 /* Filter Dropdown Styles */
 .select {
     width: 13vw;
@@ -506,13 +540,10 @@ body {
     background-color: #f5f5f5;
 }
 
-
 .options input[type="radio"],
 .options label {
     display: none;
 }
-
-
 
 /* Responsive Design */
 @media (max-width: 1200px) {
@@ -546,6 +577,8 @@ body {
 @media (max-width: 768px) {
     .dashboard-container {
         flex-direction: column;
+        height: auto;
+        overflow: visible;
     }
 
     .sidebar {
@@ -592,6 +625,11 @@ body {
 
     .app-content {
         padding: 20px;
+        overflow: visible;
+    }
+    
+    .projects-container {
+        overflow: visible;
     }
 
     .projects {
