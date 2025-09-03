@@ -3,7 +3,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const recentButton = document.getElementById('recentButton');
     const allView = document.getElementById('allView');
     const recentView = document.getElementById('recentView');
-    const menuItems = document.querySelectorAll('.header .menu li');
+
+    // Changed to select buttons instead of li elements
+    const menuButtons = document.querySelectorAll('.header .menu button');
 
     // Function to switch views
     function switchView(viewToShow, buttonToSelect) {
@@ -15,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
         viewToShow.style.display = 'grid';
 
         // Update button states
-        menuItems.forEach(item => item.classList.remove('selected'));
+        menuButtons.forEach(button => button.classList.remove('selected'));
         buttonToSelect.classList.add('selected');
     }
 

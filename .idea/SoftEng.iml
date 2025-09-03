@@ -8,6 +8,7 @@
       <sourceFolder url="file://$MODULE_DIR$/CapstoneTracker/tests" isTestSource="true" packagePrefix="Tests\" />
       <sourceFolder url="file://$MODULE_DIR$/CapstoneTracker/tests/Feature" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/CapstoneTracker/tests/Unit" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/CompendiumSystem/CompendiumSystem" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/vendor/composer" />
       <excludeFolder url="file://$MODULE_DIR$/vendor/graham-campbell/result-type" />
       <excludeFolder url="file://$MODULE_DIR$/vendor/phpoption/phpoption" />
