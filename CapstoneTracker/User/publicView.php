@@ -5,8 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Project Management Dashboard</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Quicksand">
+    
+    
+    
     <link rel="stylesheet" href="publicView.css">
 
 </head>
@@ -46,11 +51,26 @@
                 </div>
 
                 <div class="app-list-options">
-                    <div class="sort-dropdown">
-                        Sort by <span class="by"> Date </span> <i class="fa fa-sort-amount-desc" aria-hidden="true"></i>
-                        <div class="drop"> <i class="fa fa-caret-down" aria-hidden="true"></i> </div>
+                    <!-- From Uiverse.io by 3bdel3ziz-T --> 
+                    <div class="select" id="filterDropdown">
+                        <div class="selected">
+                            <span>All</span>
+                            <i class="fa fa-filter" style="margin-left: 3vw; position: absolute; right: 2.5vw;" aria-hidden="true"></i>
+                            <svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 512 512" class="arrow">
+                                <path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path>
+                            </svg>
+                        </div>
+                        <div class="options">
+                            <div data-value="all">All</div>
+                            <div data-value="important">Important</div>
+                            <div data-value="enhancement">Enhancement</div>
+                            <div data-value="announcement">Announcement</div>
+                            <div data-value="news">News</div>
+                            <div data-value="discussion">Discussion</div>
+                        </div>
                     </div>
-                    <div class="icon"> <i class="fa fa-filter" aria-hidden="true"></i> </div>
+
+
                     <div class="display-group">
                         <div class="icon"> <i class="fa fa-bars" aria-hidden="true"></i> </div>
                         <div class="icon selected"> <i class="fa fa-th" aria-hidden="true"></i> </div>
@@ -60,7 +80,7 @@
 
             <!-- Recent Projects View -->
             <ul class="projects" id="recentView">
-                <li class="project-item">
+                <li class="project-item" data-tags="important enhancement">
                     <div class="logo-row">
                         <img src="https://source.unsplash.com/50x50/?technology" alt="Logo" />
                         <div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>
@@ -90,10 +110,10 @@
                     </div>
                 </li>
 
-                <li class="project-item">
+                <li class="project-item" data-tags="announcement news">
                     <div class="logo-row">
                         <img src="https://source.unsplash.com/50x50/?blockchain" alt="Logo" />
-                        <div class="icon"> <i class="fa极速飞艇 fa-ellipsis-h" aria-hidden="true"></i> </div>
+                        <div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>
                     </div>
                     <div class="title-row">
                         <h3> Blockchain Security </h3>
@@ -120,7 +140,7 @@
                     </div>
                 </li>
 
-                <li class="project-item">
+                <li class="project-item" data-tags="discussion interesting">
                     <div class="logo-row">
                         <img src="https://source.unsplash.com/50x50/?health" alt="Logo" />
                         <div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>
@@ -153,7 +173,7 @@
 
             <!-- All Projects View (initially hidden) -->
             <ul class="projects all-projects" id="allView">
-                <li class="project-item">
+                <li class="project-item" data-tags="cannot-fix off-topic">
                     <div class="logo-row">
                         <img src="https://source.unsplash.com/50x50/?network" alt="Logo" />
                         <div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>
@@ -183,7 +203,7 @@
                     </div>
                 </li>
 
-                <li class="project-item">
+                <li class="project-item" data-tags="enhancement change-declined">
                     <div class="logo-row">
                         <img src="https://source.unsplash.com/50x50/?robot" alt="Logo" />
                         <div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>
@@ -213,9 +233,9 @@
                     </div>
                 </li>
 
-                <li class="project-item">
+                <li class="project-item" data-tags="news discussion">
                     <div class="logo-row">
-                        <img src="https://source.unsplash.com/50极速飞艇50/?data" alt="Logo" />
+                        <img src="https://source.unsplash.com/50x50/?data" alt="Logo" />
                         <div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>
                     </div>
                     <div class="title-row">
@@ -246,6 +266,11 @@
         </section>
     </section>
 </div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.js"></script>
+
+
 </body>
 <script type="text/javascript" src="publicView.js"></script>
 </html>
