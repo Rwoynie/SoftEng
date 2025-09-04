@@ -22,6 +22,19 @@
     --size-xxlarge: 3em;
 }
 
+.subhead {
+    font-weight: 600;
+    font-size: 1vw;
+}
+
+.fa {
+    display: inline-block;
+    font-style: normal;
+    font-variant: normal;
+    text-rendering: auto;
+    line-height: 1;
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -224,11 +237,15 @@ body {
     color: var(--color-lite);
     background: var(--color-white);
     cursor: pointer;
+    transition: 0.10s ease;
 }
 
 .app-list-options .icon.selected {
     background: var(--primary-color);
     color: var(--color-white);
+    animation: pulse;
+    animation-duration: 0.5s;
+    animation-timing-function: cubic-bezier(0.075, 0.82, 0.165, 1);
 }
 
 .app-list-options .display-group {
@@ -245,6 +262,8 @@ body {
 .app-list-options .display-group .icon:last-child {
     border-radius: 0 8px 8px 0;
 }
+
+
 
 /* Projects Container for scrolling */
 .projects-container {
@@ -281,6 +300,7 @@ body {
 }
 
 .project-item {
+    margin-top: 0.5rem;
     padding: 20px;
     box-sizing: border-box;
     display: flex;
@@ -289,11 +309,17 @@ body {
     border-radius: 12px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
     background: var(--color-white);
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: 0.15s ease;
 }
 
+
+
+
+
 .project-item:hover {
-    transform: translateY(-5px);
+    padding-left: 1.8rem;
+    cursor: pointer;
+    transform: scale(1.05);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
@@ -543,6 +569,107 @@ body {
 .options input[type="radio"],
 .options label {
     display: none;
+}
+
+/* Login Content*/
+
+.login-content {
+    flex: 1;
+    display: none;
+    align-items: center;
+    
+    flex-direction: column;
+    padding: 30px;
+    background: #f0f2f5;
+    
+}
+
+@keyframes pulseInfinite {
+    0% {
+        transform: scale(1);
+        
+    }
+    50% {
+        transform: scale(1.03);
+        
+    }
+    100% {
+        transform: scale(1);
+        
+    }
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 28vw;
+    height: 18vw;
+    background-color: white;
+    border-radius: 1vw;
+    margin-top: 10vw;
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1); 
+    animation: pulseInfinite 2s infinite ease-in-out;
+}
+
+.fa-exclamation {
+    color: #ba1e1f;
+    font-size: 3rem; 
+    margin-bottom: 1rem;
+    display: block;
+    animation: headShake;
+    animation-duration: 3s;
+    
+    animation-iteration-count: infinite;
+    
+}
+
+
+
+
+
+#login {
+    cursor: pointer;
+    color: white;
+    background-color: var(--primary-color);
+    border-radius: 0.3vw;
+    border-color: transparent;
+    width: 7vw;
+    height: 3vw;
+    margin-top: 3vw;
+    font-family: "Quicksand";
+    font-size: 1vw;
+    font-weight: 500;
+    transition: transform 0.15s ease;
+}
+
+#login:hover {
+    background: var(--primary-dark);
+    color: var(--color-white);
+    transform: scale(1.1); 
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
+}
+
+
+
+/* Make sure the login content header styles match the main content */
+.login-content .app-content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    flex-shrink: 0;
+}
+
+/* Ensure the searchbox in login content looks consistent */
+.login-content .searchbox {
+    display: flex;
+    padding: 12px;
+    background: var(--color-white);
+    border-radius: 8px;
+    width: 65vw;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* Responsive Design */

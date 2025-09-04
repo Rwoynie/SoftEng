@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Project Management Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Quicksand">
@@ -29,15 +31,15 @@
     </section>
 
     <section class="main-content">
-        <header class="header">
+        <header class="header" id="header">
             <div class="title">Thesis Repository</div>
             <div class="menu">
                 <button id="allButton"> All </button>
                 <button class="selected" id="recentButton"> Recent </button>
             </div>
         </header>
-
-        <section class="app-content">
+        
+        <section class="app-content" id="app-content">
             <div class="app-content-header">
                 <div class="searchbox">
                     <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
@@ -149,6 +151,7 @@
                                 <i class="fa fa-external-link icon" aria-hidden="true"></i>
                                 <a href="#"> medai.diagnosis </a>
                             </div>
+                            
                         </div>
                         <div class="desc-row">
                             <p>Machine learning algorithms for early detection and diagnosis of medical conditions.</p>
@@ -201,7 +204,7 @@
                         </div>
                     </li>
 
-                    <li class="project-item" data-tags="enhancement change-declined">
+                    <li class="project-item " data-tags="enhancement change-declined">
                         <div class="logo-row">
                             <img src="https://source.unsplash.com/50x50/?robot" alt="Logo" />
                             <div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>
@@ -263,6 +266,20 @@
                 </ul>
             </div>
         </section>
+
+        <section class="login-content" id="login-content">
+            <div class="app-content-header">
+                <div class="login-form">
+                    <i class="fa-solid fa-exclamation"></i>
+                    <p class="subhead">Login to your account to upload your thesis</p>
+                    <button id="login" onclick="login()">Login</button>
+                </div>
+            </div>
+        </section>
+
+
+
+
     </section>
 </div>
 

@@ -12,13 +12,15 @@ document.addEventListener('DOMContentLoaded', function() {
         // Hide all views
         allView.style.display = 'none';
         recentView.style.display = 'none';
-
+    
         // Show selected view
         viewToShow.style.display = 'grid';
-
+    
         // Update button states
         menuButtons.forEach(button => button.classList.remove('selected'));
         buttonToSelect.classList.add('selected');
+        
+        
     }
 
     // Event listeners for buttons
@@ -123,7 +125,81 @@ gridViewIcon.addEventListener('click', function() {
     displayGroupIcons.forEach(icon => icon.classList.remove('selected'));
     this.classList.add('selected');
 });
+
+// Sidebar functionality
+const sidebarButtons = document.querySelectorAll('.sidebar nav .menu-options li');
+const appContent = document.getElementById('app-content');
+const loginContent = document.getElementById('login-content');
+
+
+sidebarButtons.forEach(button => {
+    button.addEventListener('click', function() {
+        // Remove selected class from all sidebar buttons
+        sidebarButtons.forEach(btn => btn.classList.remove('selected'));
+        
+        // Add selected class to clicked button
+        this.classList.add('selected');
+        
+        // Check if wrench button was clicked
+        const isWrenchButton = this.querySelector('.fa-wrench');
+        
+        if (isWrenchButton) {
+            // Show login content, hide main content
+            appContent.style.display = 'none';
+            loginContent.style.display = 'flex';
+            header.style.display = 'none';
+        } else {
+            // Show main content, hide login content
+            appContent.style.display = 'flex';
+            loginContent.style.display = 'none';
+            header.style.display = 'flex';
+        }
+    });
+});
+
+    // Animation on scroll functionality
+    const animateOnScroll = function() {
+        const projectItems = document.querySelectorAll('.project-item');
+        
+        // remove any existing animation classes
+        projectItems.forEach(item => {
+            item.classList.remove('animate__animated', 'animate__fadeInUp');
+        });
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate__animated', 'animate__fadeInUp', 'animate__fast');
+                    
+                    
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.1
+        });
+        
+        // Observe all project items
+        projectItems.forEach(item => {
+            // Only observe if the item is visible
+            if (window.getComputedStyle(item).display !== 'none') {
+                observer.observe(item);
+            }
+        });
+    };
+    
+    // Call the animation function
+    animateOnScroll();
+
     
     // Initialize with recent view visible
     switchView(recentView, recentButton);
+
+    
+
 });
+
+function login(){
+    window.location.href = "indexLogin.php";
+}
+
