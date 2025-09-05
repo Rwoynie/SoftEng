@@ -114,6 +114,10 @@ body {
     cursor: pointer;
 }
 
+.fa-ellipsis-h {
+    cursor: pointer;
+}
+
 .sidebar .more-options {
     margin-top: auto;
     color: var(--color-lite);
@@ -244,7 +248,7 @@ body {
     background: var(--primary-color);
     color: var(--color-white);
     animation: pulse;
-    animation-duration: 0.5s;
+    animation-duration: 0.2s;
     animation-timing-function: cubic-bezier(0.075, 0.82, 0.165, 1);
 }
 
