@@ -7,6 +7,226 @@ document.addEventListener('DOMContentLoaded', function() {
     const appContentHeader = document.querySelector('.app-content-header');
     const logoutBtn = document.getElementById('logoutHeaderIcon');
 
+    const fabIcon = document.querySelector('.fab-icon');
+    const uploadModal = document.getElementById('uploadModal');
+    const modalClose = document.querySelector('.modal-close');
+    const btnCancel = document.querySelector('.btn-cancel');
+    const dropArea = document.getElementById('dropArea');
+    const fileInput = document.getElementById('fileInput');
+    const fileList = document.getElementById('fileList');
+    const btnUpload = document.querySelector('.btn-upload');
+    const browseBtn = document.querySelector('.browse-btn');
+
+    let uploadedFiles = [];
+    
+    // Open modal when FAB is clicked
+    if (fabIcon) {
+        fabIcon.addEventListener('click', function() {
+            uploadModal.classList.add('active');
+            document.body.style.overflow = 'hidden'; // Prevent scrolling
+        });
+    }
+    
+    // Close modal functions
+    function closeModal() {
+        uploadModal.classList.remove('active');
+        document.body.style.overflow = ''; // Re-enable scrolling
+    }
+    
+    if (modalClose) {
+        modalClose.addEventListener('click', closeModal);
+    }
+    
+    if (btnCancel) {
+        btnCancel.addEventListener('click', closeModal);
+    }
+    
+    // Close modal when clicking outside
+    uploadModal.addEventListener('click', function(e) {
+        if (e.target === uploadModal) {
+            closeModal();
+        }
+    });
+    
+    // File input handling via browse button
+    if (browseBtn) {
+        browseBtn.addEventListener('click', function() {
+            fileInput.click();
+        });
+    }
+    
+    // File input change event
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            handleFiles(e.target.files);
+        });
+    }
+    
+    // Drag and drop functionality
+    if (dropArea) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            dropArea.classList.add('dragover');
+        }
+        
+        function unhighlight() {
+            dropArea.classList.remove('dragover');
+        }
+        
+        dropArea.addEventListener('drop', function(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        });
+    }
+    
+    // Handle the selected files
+    function handleFiles(files) {
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            
+            // Check if file type is supported
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+            if (!['docx', 'pdf', 'zip'].includes(fileExtension)) {
+                Swal.fire({
+                    title: 'Unsupported File Type',
+                    text: 'Please upload only docx, pdf, or zip files.',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+                continue;
+            }
+            
+            // Check if file is already in the list
+            if (uploadedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                continue;
+            }
+            
+            uploadedFiles.push(file);
+            displayFile(file);
+        }
+        
+        // Enable upload button if there are files
+        btnUpload.disabled = uploadedFiles.length === 0;
+    }
+    
+    // Display file in the list
+    function displayFile(file) {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item';
+        
+        // Get appropriate icon based on file type
+        let fileIconClass = 'fa-file';
+        const fileExtension = file.name.split('.').pop().toLowerCase();
+        
+        if (fileExtension === 'pdf') {
+            fileIconClass = 'fa-file-pdf-o';
+        } else if (fileExtension === 'docx') {
+            fileIconClass = 'fa-file-word-o';
+        } else if (fileExtension === 'zip') {
+            fileIconClass = 'fa-file-archive-o';
+        }
+        
+        // Format file size
+        const fileSize = formatFileSize(file.size);
+        
+        fileItem.innerHTML = `
+            <div class="file-icon">
+                <i class="fa ${fileIconClass}" aria-hidden="true"></i>
+            </div>
+            <div class="file-info">
+                <div class="file-name">${file.name}</div>
+                <div class="file-size">${fileSize}</div>
+            </div>
+            <div class="file-remove" data-filename="${file.name}">
+                <i class="fa fa-times" aria-hidden="true"></i>
+            </div>
+        `;
+        
+        fileList.appendChild(fileItem);
+        
+        // Add event listener to remove button
+        const removeBtn = fileItem.querySelector('.file-remove');
+        removeBtn.addEventListener('click', function() {
+            const fileName = this.getAttribute('data-filename');
+            removeFile(fileName);
+            fileItem.remove();
+        });
+    }
+    
+    // Format file size to human readable format
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // Remove file from the list
+    function removeFile(fileName) {
+        uploadedFiles = uploadedFiles.filter(file => file.name !== fileName);
+        btnUpload.disabled = uploadedFiles.length === 0;
+    }
+    
+    // Upload button functionality
+    if (btnUpload) {
+        btnUpload.addEventListener('click', function() {
+            if (uploadedFiles.length === 0) return;
+            
+            // Create FormData object to send files
+            const formData = new FormData();
+            
+            for (let i = 0; i < uploadedFiles.length; i++) {
+                formData.append('files[]', uploadedFiles[i]);
+            }
+            
+            // Show loading state
+            btnUpload.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Uploading...';
+            btnUpload.disabled = true;
+            
+            // Simulate upload process (replace with actual AJAX call)
+            setTimeout(() => {
+                // Success message
+                Swal.fire({
+                    title: 'Upload Successful!',
+                    text: 'Your files have been uploaded successfully.',
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    // Reset the form
+                    uploadedFiles = [];
+                    fileList.innerHTML = '';
+                    btnUpload.disabled = true;
+                    btnUpload.innerHTML = 'Upload';
+                    fileInput.value = '';
+                    
+                    // Close the modal
+                    closeModal();
+                });
+            }, 2000);
+        });
+    }
+
+
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function() {
             Swal.fire({

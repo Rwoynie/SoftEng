@@ -441,6 +441,39 @@
 </div>
 
 <div class="fab-icon"> + </div>
+
+<!-- Upload Thesis Modal -->
+<div class="modal-overlay" id="uploadModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 class="modal-title">Upload Thesis</h2>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="upload-area" id="dropArea">
+                <div class="upload-icon">
+                    <i class="fa fa-cloud-upload" aria-hidden="true"></i>
+                </div>
+                <div class="upload-text">
+                    <h3>Drag & Drop your files here</h3>
+                    <p>Supported files: docx, pdf, zip</p>
+                </div>
+                <div class="browse-btn">Browse files</div>
+                <input type="file" class="file-input" id="fileInput" multiple accept=".docx,.pdf,.zip">
+            </div>
+            
+            <div class="file-list" id="fileList">
+                <!-- Files will be listed here -->
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel">Cancel</button>
+            <button class="btn-upload" disabled>Upload</button>
+        </div>
+    </div>
+</div>
+
+
 </body>
 <script type="text/javascript" src="userViewPage.js"></script>
 </html>

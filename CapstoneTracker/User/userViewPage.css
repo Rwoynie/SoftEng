@@ -803,6 +803,271 @@ body {
     box-shadow: none !important;
 }
 
+.fab-icon {
+    position: fixed;
+    z-index: 1000;
+    bottom: 30px;
+    right: 30px;
+    color: var(--color-white);
+    background: var(--primary-color);
+    border-radius: 50%;
+    text-align: center;
+    font-size: var(--size-xlarge);
+    box-shadow: 0 4px 20px rgba(163, 21, 23, 0.5);
+    width: 60px;
+    height: 60px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.fab-icon:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 25px rgba(163, 21, 23, 0.6);
+}
+
+
+ /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--color-white);
+            border-radius: 12px;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: translateY(-50px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--color-dark-grey);
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--color-lite-grey);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover {
+            color: var(--color-dark-grey);
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        .upload-area {
+            border: 2px dashed #d9d9d9;
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: border-color 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary-color);
+        }
+
+        .upload-area.dragover {
+            border-color: var(--primary-color);
+            background-color: rgba(186, 30, 31, 0.05);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--color-lite-grey);
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: var(--color-lite-grey);
+            margin-bottom: 15px;
+        }
+
+        .upload-text h3 {
+            font-size: 1.2rem;
+            margin-bottom: 5px;
+            color: var(--color-dark-grey);
+        }
+
+        .upload-text p {
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        .browse-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .browse-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .file-input {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-list {
+            margin-top: 20px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .file-icon {
+            margin-right: 12px;
+            color: var(--color-lite-grey);
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: var(--color-dark-grey);
+            margin-bottom: 5px;
+            word-break: break-all;
+        }
+
+        .file-size {
+            font-size: 0.8rem;
+            color: var(--color-lite-grey);
+        }
+
+        .file-remove {
+            color: var(--color-lite-grey);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .file-remove:hover {
+            color: var(--color-danger);
+        }
+
+        .modal-footer {
+            padding: 20px 25px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+        }
+
+        .btn-cancel {
+            padding: 10px 20px;
+            background: #e9ecef;
+            color: var(--color-dark-grey);
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-cancel:hover {
+            background: #dee2e6;
+        }
+
+        .btn-upload {
+            padding: 10px 20px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-upload:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-upload:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .modal {
+                width: 95%;
+                margin: 20px;
+            }
+            
+            .modal-footer {
+                flex-direction: column;
+            }
+            
+            .btn-cancel, .btn-upload {
+                width: 100%;
+            }
+        }
+
 
 /* Responsive Design */
 @media (max-width: 992px) {
