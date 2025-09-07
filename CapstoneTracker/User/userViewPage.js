@@ -5,6 +5,34 @@ document.addEventListener('DOMContentLoaded', function() {
     const profileContainer = document.getElementById('profileContainer');
     const projectsContainer = document.getElementById('projectsGrid');
     const appContentHeader = document.querySelector('.app-content-header');
+    const logoutBtn = document.getElementById('logoutHeaderIcon');
+
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You will be logged out of your account",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, logout!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Redirect to logout page or perform logout action
+                    Swal.fire(
+                        'Logged out!',
+                        'You have been successfully logged out.',
+                        'success'
+                    ).then(() => {
+                        // Redirect to login page after successful logout
+                        window.location.href = 'publicView.php'; // Change to your actual login page
+                    });
+                }
+            });
+        });
+    }
 
     // Function to show profile and hide projects
     function showProfile() {

@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Quicksand">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <link rel="stylesheet" href="userViewPage.css">
     
@@ -45,32 +46,46 @@
                 <button> Approved </button>
                 <button> Rejected </button>
             </div>
+
+            
         </header>
 
         <section class="app-content">
-            <!-- Profile Container (initially hidden) -->
-            <div class="profile-container" id="profileContainer">
-                <div class="profile-header">
-                    <img src="https://source.unsplash.com/120x120/?person" alt="Profile" class="profile-image">
-                    <div class="profile-info">
-                        <h2>John Doe</h2>
-                        <p>BSIT 2IT</p>
-                        <div class="profile-stats">
-                            <div class="stat-item">
-                                <div class="stat-value">15</div>
-                                <div class="stat-label">Thesis</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-value">10</div>
-                                <div class="stat-label">Thesis Approved</div>
-                            </div>
+           <!-- Profile Container (initially hidden) -->
+    <div class="profile-container" id="profileContainer">
+        <div class="profile-card">
+            <div class="profile-header">
+                <div class="profile-avatar">
+                    <img src="Images/profile.png" alt="Profile" class="profile-image">
+                    <div class="online-status"></div>
+                </div>
+                <div class="profile-info">
+                    <h2 class="profile-name">John Doe</h2>
+                    <p class="profile-title">BSIT 2IT</p>
+                    <div class="profile-stats">
+                        <div class="stat-item">
+                            <div class="stat-value">15</div>
+                            <div class="stat-label">Thesis</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">10</div>
+                            <div class="stat-label">Approved</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">5</div>
+                            <div class="stat-label">Pending</div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="profile-content">
-                    <div class="profile-section">
-                        <h3>Personal Information</h3>
+            <div class="profile-content">
+                <div class="profile-section">
+                    <h3 class="section-title">
+                        <i class="fa fa-user-o icon" aria-hidden="true"></i>
+                        Personal Information
+                    </h3>
+                    <div class="info-grid">
                         <div class="info-item">
                             <span class="info-label">Full Name:</span>
                             <span class="info-value">John Doe</span>
@@ -92,31 +107,46 @@
                             <span class="info-value">BSIT</span>
                         </div>
                     </div>
+                </div>
 
-                    <div class="profile-section">
-                        <h3>Account Settings</h3>
-                            <div class="info-item">
-                                <span class="info-label">Member Since:</span>
-                                <span class="info-value">January 15, 2022</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Last Login:</span>
-                                <span class="info-value">Today, 10:30 AM</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Status:</span>
-                                <span class="info-value" style="color: var(--color-good);">Active</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Role:</span>
-                                <span class="info-value">Project Manager</span>
-                            </div>
-                            <div class="info-item">
-                                <button class="edit-profile-btn">Edit Profile</button>
-                            </div>
+                <div class="profile-section">
+                    <h3 class="section-title">
+                        <i class="fa fa-cog icon" aria-hidden="true"></i>
+                        Account Settings
+                    </h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Member Since:</span>
+                            <span class="info-value">January 15, 2022</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Last Login:</span>
+                            <span class="info-value">Today, 10:30 AM</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Status:</span>
+                            <span class="info-value status-active">Active</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Role:</span>
+                            <span class="info-value">Project Manager</span>
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="btn btn-primary">
+                            <i class="fa fa-pencil" aria-hidden="true"></i>
+                            Edit Profile
+                        </button>
+                        <button class="btn btn-secondary" id="logoutHeaderIcon">
+                            <i class="fa fa-sign-out" aria-hidden="true"></i>
+                            Logout
+                        </button>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
 
             <div class="app-content-header">
                 <div class="searchbox">
