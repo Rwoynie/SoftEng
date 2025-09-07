@@ -83,6 +83,7 @@ document.addEventListener('DOMContentLoaded', function() {
      searchInput.addEventListener('input', function() {
          const searchTerm = this.value.toLowerCase();
          const projectItems = document.querySelectorAll('.project-item');
+         const notFound = document.getElementById('notFound');
          
          projectItems.forEach(item => {
              const title = item.querySelector('h3').textContent.toLowerCase();
@@ -91,8 +92,10 @@ document.addEventListener('DOMContentLoaded', function() {
              
              if (title.includes(searchTerm) || description.includes(searchTerm) || tags.includes(searchTerm)) {
                  item.style.display = 'flex';
+                 notFound.style.display = 'none';
              } else {
-                 item.style.display = 'none';
+                item.style.display = 'none';
+                notFound.style.display = "flex"; 
              }
          });
      });
@@ -163,7 +166,7 @@ sidebarButtons.forEach(button => {
         
         // remove any existing animation classes
         projectItems.forEach(item => {
-            item.classList.remove('animate__animated', 'animate__fadeInUp');
+            item.classList.remove('animate__animated', 'animate__fadeInUp', 'animate__fast');
         });
         
         const observer = new IntersectionObserver((entries) => {

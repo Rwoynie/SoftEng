@@ -266,6 +266,8 @@
                     </li>
                 </ul>
             </div>
+
+            <p class="notFound" id="notFound">No Results Found.</p>
         </section>
 
         <section class="login-content" id="login-content">

@@ -144,7 +144,7 @@ body {
     height: 80px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    
     flex-shrink: 0;
     position: fixed;
     top: 0;
@@ -162,7 +162,7 @@ body {
 
 .header .menu {
     display: flex;
-    margin-left: 28vw;
+    margin-left: 18rem;
     list-style: none;
 }
 
@@ -498,6 +498,14 @@ body {
     width: 30px;
     height: 30px;
     object-fit: cover;
+}
+
+.notFound {
+    display: none;
+    position: absolute;
+    align-self: center;
+    margin-top: 18vw;
+    
 }
 
 /* Filter Dropdown Styles */

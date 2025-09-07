@@ -491,6 +491,14 @@ body {
     object-fit: cover;
 }
 
+.notFound {
+    display: none;
+    position: absolute;
+    align-self: center;
+    margin-top: 18vw;
+    
+}
+
 .select .selected .fa-filter {
     margin-left: 8px;
     font-size: 14px;

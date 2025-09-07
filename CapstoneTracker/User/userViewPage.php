@@ -428,6 +428,9 @@
                 </ul>
 
             </div>
+
+            <p class="notFound" id="notFound">No Results Found.</p>
+
         </section>
     </section>
 </div>
