@@ -95,6 +95,16 @@ body {
     height: auto;
 }
 
+.back {
+    cursor: pointer;
+    transform: scale(1);
+    transition: 0.10s ease-in;
+}
+
+.back:hover {
+    transform: scale(1.1);
+}
+
 .container1 {
     width: 100%;
     display: flex;
