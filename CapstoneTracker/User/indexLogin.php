@@ -13,78 +13,44 @@
     <link rel="stylesheet" href="indexLogin.css">
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://apis.google.com/js/platform.js?onload=onGoogleLoad" async defer></script>
 </head>
 <body>
-    <div class="Line"></div>
-    <div class="yellow"></div>
-    <div class="cover" id="cover"></div>
-
-    <div class="container1">
+    
+<div class="container" onclick="onclick">
+  <div class="top"></div>
+  <div class="bottom"></div>
+  <div class="center">
+  <div class="container1">
         <div class="container2">
             <img class="sysLogo" src="../images/gradcap.png" alt="System Logo">
-            <h1>USeP ThesisComp</h1>
+            <h1>Thesis Repository</h1>
         </div>
 
         <div class="form-container">
             <!-- Login Form -->
             <form class="loginForm active">
                 <h2>Welcome!</h2>
-                <div class="form-group">
-                    <label for="userID">User ID</label>
-                    <input type="text" id="userID" placeholder="Enter your User ID" required>
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" placeholder="Enter your password" required>
-                </div>
-                <p class="Forg_Pass" onclick="forgotPassword()">Forgot password?</p>
-                <button type="submit" class="btn-login">Login</button>
-                <p class="toggle-form">Don't have an account? <span onclick="toggleForm()">Sign Up</span></p>
-            </form>
+                
+                    <br>
 
-            <!-- Signup Form -->
-            <form class="signupForm">
-                <h2>Create Account</h2>
-                <div class="name-fields">
-                    <div class="form-group">
-                        <label for="firstName">First Name</label>
-                        <input type="text" id="firstName" placeholder="Enter first name" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="middleName">Middle Name</label>
-                        <input type="text" id="middleName" placeholder="Enter middle name">
-                    </div>
-                    <div class="form-group">
-                        <label for="lastName">Last Name</label>
-                        <input type="text" id="lastName" placeholder="Enter last name" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="extension">Extension</label>
-                        <input type="text" id="extension" placeholder="Jr, Sr, III, etc.">
-                    </div>
-                </div>
-                <div class="account-fields">
-                    <div class="form-group">
-                        <label for="email">USeP Email</label>
-                        <input type="email" id="email" placeholder="Enter your USeP email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="newUserID">Student ID</label>
-                        <input type="text" id="newUserID" placeholder="Enter your Student ID" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="newPassword">Password</label>
-                        <input type="password" id="newPassword" placeholder="Create a password" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="confirmPassword">Confirm Password</label>
-                        <input type="password" id="confirmPassword" placeholder="Confirm your password" required>
-                    </div>
-                </div>
-                <button type="submit" class="btn-signup">Sign Up</button>
-                <p class="toggle-form">Already have an account? <span onclick="toggleForm()">Login</span></p>
+                    
+                <h6>Sign-in using USeP E-mail</h6>
+                <meta name="google-signin-client_id" content="YOUR_ACTUAL_CLIENT_ID.apps.googleusercontent.com">
+                <!-- Replace the Google button div with your custom button -->
+                <button id="customGoogleBtn" class="btn-google">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj48cGF0aCBkPSJNMTcuNiA5LjJsLS4xLTEuOEg5djMuNGg0LjhDMTMuNiAxMiAxMyAxMyAxMiAxMy42djIuMmgzYTguOCA4LjggMCAwIDAgMi42LTYuNnoiIGZpbGw9IiM0Mjg1RjQiIGZpbGwtcnVsZT0ibm9uemVybyIvPjxwYXRoIGQ9Ik05IDE4YzIuNCAwIDQuNS0uOCA2LTIuMmwtMy0yLjJhNS40IDUuNCAwIDAgMS04LTIuOUgxVjEzYTkgOSAwIDAgMCA4IDV6IiBmaWxsPSIjMzRBODUzIiBmaWxsLXJ1bGU9Im5vbnplcm8iLz48cGF0aCBkPSJNNCAxMC43YTUuNCA1LjQgMCAwIDEgMC0zLjRWNUgxYTkgOSAwIDAgMCAwIDhsMy0yLjN6IiBmaWxsPSIjRkJCQzA1IiBmaWxsLXJ1bGU9Im5vbnplcm8iLz48cGF0aCBkPSJNOSAzLjZjMS4zIDAgMi41LjQgMy40IDEuM0wxNSAyLjNBOSA5IDAgMCAwIDEgNWwzIDIuNGE1LjQgNS40IDAgMCAxIDUtMy43eiIgZmlsbD0iI0VBNDMzNSIgZmlsbC1ydWxlPSJub256ZXJvIi8+PHBhdGggZD0iTTAgMGgxOHYxOEgweiIvPjwvZz48L3N2Zz4=" alt="Google logo">
+                    Sign in with Google
+                </button>
+                <div id="googleButton" style="display: none;"></div>
+                
+                
             </form>
-        </div>
+  </div>
+</div>
+
+  </div>
+        
     </div>
 
     <script type="text/javascript" src="indexLogin.js">
