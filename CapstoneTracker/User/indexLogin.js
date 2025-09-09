@@ -74,6 +74,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(renderGoogleButton, 2000);
 });
 
+/*
 let slideIndex = 0;
 let slideInterval;
 
@@ -148,3 +149,5 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+*/

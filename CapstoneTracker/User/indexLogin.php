@@ -31,10 +31,7 @@
             <!-- Login Form -->
             <form class="loginForm active">
                 <h2>Welcome!</h2>
-                
-                    <br>
-
-                    
+          
                 <h6>Sign-in using USeP E-mail</h6>
                 <meta name="google-signin-client_id" content="YOUR_ACTUAL_CLIENT_ID.apps.googleusercontent.com">
                 <!-- Replace the Google button div with your custom button -->

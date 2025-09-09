@@ -20,6 +20,8 @@ body {
 	 height: 100vh;
 	 overflow: hidden;
 }
+
+
  .container:hover .top:before, .container:active .top:before, .container:hover .bottom:before, .container:active .bottom:before, .container:hover .top:after, .container:active .top:after, .container:hover .bottom:after, .container:active .bottom:after {
 	 margin-left: 200px;
 	 transform-origin: -200px 50%;
@@ -89,7 +91,7 @@ body {
 }
 
 .sysLogo {
-    width: 80px;
+    width: 13vw;
     height: auto;
 }
 
@@ -369,6 +371,8 @@ h2 {
 	 transform: rotate(-135deg);
 	 background: gold;
 }
+
+
  .center {
 	 position: absolute;
 	 width: 400px;
@@ -396,10 +400,7 @@ h2 {
 	 font-family: inherit;
 }
 
-.sysLogo {
-    width: 80px;
-    height: auto;
-}
+
 
 .container1 {
     width: 100%;
@@ -433,7 +434,7 @@ h2 {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-bottom: 1rem;
+    
     z-index: 5;
 }
 
@@ -715,7 +716,7 @@ h2 {
     margin: 0 auto;
     transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
     opacity: 1;
-    margin-top: 3vw;
+    margin-top: 5vw;
     transform: scale(1);
     position: relative;
     z-index: 1;
@@ -739,7 +740,7 @@ h2 {
     cursor: pointer;
     transition: all 0.3s ease;
     width: 100%;
-    max-width: 240px;
+    max-width: 250px;
     margin: 20px 0;
     z-index: 5;
 }
