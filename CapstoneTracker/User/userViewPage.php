@@ -450,6 +450,18 @@
             <button class="modal-close">&times;</button>
         </div>
         <div class="modal-body">
+            <div class="thesis-form">
+                <div class="thesis-form-group">
+                    <h3>Thesis Title *</h3>
+                    <input type="text" name="thesistitle" placeholder="Enter thesis title" class="thesis-form-input" id="thesisTitle" required>
+                </div>
+                
+                <div class="thesis-form-group">
+                    <h3>Author/s</h3>
+                    <input type="text" name="thesisauthor" placeholder="Enter author name(s)" class="thesis-form-input" id="thesisAuthor">
+                </div>
+            </div>
+            
             <div class="upload-area" id="dropArea">
                 <div class="upload-icon">
                     <i class="fa fa-cloud-upload" aria-hidden="true"></i>
@@ -462,18 +474,50 @@
                 <input type="file" class="file-input" id="fileInput" multiple accept=".docx,.pdf,.zip">
             </div>
             
-            <div class="file-list" id="fileList">
-                <!-- Files will be listed here -->
+            <div class="file-previews">
+                <h4>Selected Files</h4>
+                <div class="file-list-grid" id="fileList">
+                    <div class="empty-state">
+                        <i class="far fa-folder-open"></i>
+                        <p>No files selected</p>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn-cancel">Cancel</button>
-            <button class="btn-upload" disabled>Upload</button>
+            <button class="btn btn-cancel">Cancel</button>
+            <button class="btn btn-upload" id="uploadBtn" disabled>Upload Thesis</button>
+        </div>
+    </div>
+</div>
+
+<!-- Document Preview Modal -->
+<div class="modal-overlay preview-modal" id="previewModal">
+    <div class="modal preview-modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">Document Preview</h2>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="document-viewer">
+                <iframe id="doc-viewer-iframe" style="width: 100%; height: 500px; border: none;"></iframe>
+                <div id="pdf-viewer" style="display: none; width: 100%; height: 500px;"></div>
+                <div id="unsupported-file" style="display: none; text-align: center; padding: 50px;">
+                    <i class="fa fa-exclamation-triangle" style="font-size: 48px; color: #ff9800;"></i>
+                    <h3>Preview not available</h3>
+                    <p>This file type cannot be previewed in the browser.</p>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-cancel" id="closePreview">Close</button>
+            <a id="download-link" class="btn btn-primary" download>Download</a>
         </div>
     </div>
 </div>
 
 
 </body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
 <script type="text/javascript" src="userViewPage.js"></script>
 </html>

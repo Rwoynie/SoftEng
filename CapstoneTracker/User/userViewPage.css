@@ -1053,6 +1053,205 @@ body {
             cursor: not-allowed;
         }
 
+    /* File Preview Styles */
+.file-previews {
+    margin-top: 20px;
+}
+
+.file-previews h4 {
+    font-size: 1rem;
+    margin-bottom: 15px;
+    color: var(--color-dark-grey);
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.file-list-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.file-item-card {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transition: transform 0.3s;
+    position: relative;
+}
+
+.file-item-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.file-icon-preview {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+.file-icon-preview.pdf {
+    color: #e74c3c;
+}
+
+.file-icon-preview.word {
+    color: #2b579a;
+}
+
+.file-icon-preview.zip {
+    color: #f39c12;
+}
+
+.file-icon-preview.generic {
+    color: var(--color-lite-grey);
+}
+
+.file-info-preview {
+    width: 100%;
+}
+
+.file-name-preview {
+    font-weight: 600;
+    color: var(--color-dark-grey);
+    margin-bottom: 5px;
+    word-break: break-all;
+    font-size: 0.9rem;
+}
+
+.file-size-preview {
+    font-size: 0.8rem;
+    color: var(--color-lite-grey);
+    margin-bottom: 10px;
+}
+
+.file-actions-preview {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.file-action-btn-preview {
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    border: none;
+    transition: background 0.3s;
+}
+
+.file-remove-preview {
+    background: #ffebee;
+    color: var(--color-danger);
+}
+
+.file-remove-preview:hover {
+    background: #ffcdd2;
+}
+
+.file-download-preview {
+    background: #e8f5e9;
+    color: var(--color-good);
+}
+
+.file-download-preview:hover {
+    background: #c8e6c9;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 20px;
+    color: var(--color-lite-grey);
+    grid-column: 1 / -1;
+}
+
+.empty-state i {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    opacity: 0.5;
+}
+
+/* Thesis form styles */
+.thesis-form {
+    margin-bottom: 20px;
+}
+
+.thesis-form-group {
+    margin-bottom: 15px;
+}
+
+.thesis-form-group h3 {
+    font-size: 1rem;
+    margin-bottom: 8px;
+    color: var(--color-dark-grey);
+}
+
+.thesis-form-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    transition: border-color 0.3s;
+}
+
+.thesis-form-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+/* Document Preview Modal Styles */
+.preview-modal {
+    z-index: 2001; /* Higher than upload modal */
+}
+
+.preview-modal-content {
+    max-width: 900px;
+}
+
+/* PDF Viewer Styles */
+#pdf-viewer canvas {
+    display: block;
+    margin: 0 auto;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.pdf-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 15px 0;
+    gap: 15px;
+}
+
+.pdf-controls button {
+    padding: 8px 15px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.pdf-controls button:hover {
+    background: var(--primary-dark);
+}
+
+.pdf-controls button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.pdf-page-info {
+    font-weight: 600;
+    color: var(--color-dark-grey);
+}
+
         @media (max-width: 768px) {
             .modal {
                 width: 95%;

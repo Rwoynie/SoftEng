@@ -9,43 +9,68 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const fabIcon = document.querySelector('.fab-icon');
     const uploadModal = document.getElementById('uploadModal');
-    const modalClose = document.querySelector('.modal-close');
+    const previewModal = document.getElementById('previewModal');
+    const modalClose = document.querySelectorAll('.modal-close');
     const btnCancel = document.querySelector('.btn-cancel');
     const dropArea = document.getElementById('dropArea');
     const fileInput = document.getElementById('fileInput');
     const fileList = document.getElementById('fileList');
     const btnUpload = document.querySelector('.btn-upload');
     const browseBtn = document.querySelector('.browse-btn');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const closePreview = document.getElementById('closePreview');
+    const downloadLink = document.getElementById('download-link');
+    const docViewerIframe = document.getElementById('doc-viewer-iframe');
+    const pdfViewer = document.getElementById('pdf-viewer');
+    const unsupportedFile = document.getElementById('unsupported-file');
 
     let uploadedFiles = [];
+    let currentPdfDoc = null;
+    let currentPageNum = 1;
+    let pdfPageRendering = false;
+    let pdfPageNumPending = null;
     
     // Open modal when FAB is clicked
     if (fabIcon) {
         fabIcon.addEventListener('click', function() {
             uploadModal.classList.add('active');
-            document.body.style.overflow = 'hidden'; // Prevent scrolling
+            document.body.style.overflow = 'hidden';
         });
     }
     
     // Close modal functions
-    function closeModal() {
-        uploadModal.classList.remove('active');
-        document.body.style.overflow = ''; // Re-enable scrolling
+    function closeModal(modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
     }
     
-    if (modalClose) {
-        modalClose.addEventListener('click', closeModal);
-    }
+    // Close all modals
+    modalClose.forEach(closeBtn => {
+        closeBtn.addEventListener('click', function() {
+            const modal = this.closest('.modal-overlay');
+            closeModal(modal);
+        });
+    });
     
     if (btnCancel) {
-        btnCancel.addEventListener('click', closeModal);
+        btnCancel.addEventListener('click', function() {
+            closeModal(uploadModal);
+        });
+    }
+    
+    if (closePreview) {
+        closePreview.addEventListener('click', function() {
+            closeModal(previewModal);
+        });
     }
     
     // Close modal when clicking outside
-    uploadModal.addEventListener('click', function(e) {
-        if (e.target === uploadModal) {
-            closeModal();
-        }
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal(this);
+            }
+        });
     });
     
     // File input handling via browse button
@@ -124,50 +149,86 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Enable upload button if there are files
         btnUpload.disabled = uploadedFiles.length === 0;
+        
+        // Remove empty state if files are added
+        if (uploadedFiles.length > 0) {
+            const emptyState = fileList.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+        }
     }
     
-    // Display file in the list
+    // Display file in the list with preview
     function displayFile(file) {
         const fileItem = document.createElement('div');
-        fileItem.className = 'file-item';
+        fileItem.className = 'file-item-card animate__animated animate__fadeInUp';
         
         // Get appropriate icon based on file type
-        let fileIconClass = 'fa-file';
+        let fileIconClass = 'file-icon-preview generic';
         const fileExtension = file.name.split('.').pop().toLowerCase();
         
         if (fileExtension === 'pdf') {
-            fileIconClass = 'fa-file-pdf-o';
+            fileIconClass = 'file-icon-preview pdf';
         } else if (fileExtension === 'docx') {
-            fileIconClass = 'fa-file-word-o';
+            fileIconClass = 'file-icon-preview word';
         } else if (fileExtension === 'zip') {
-            fileIconClass = 'fa-file-archive-o';
+            fileIconClass = 'file-icon-preview zip';
         }
         
         // Format file size
         const fileSize = formatFileSize(file.size);
         
         fileItem.innerHTML = `
-            <div class="file-icon">
-                <i class="fa ${fileIconClass}" aria-hidden="true"></i>
+            <div class="${fileIconClass}">
+                <i class="far fa-file-${fileExtension === 'docx' ? 'word' : fileExtension}"></i>
             </div>
-            <div class="file-info">
-                <div class="file-name">${file.name}</div>
-                <div class="file-size">${fileSize}</div>
+            <div class="file-info-preview">
+                <div class="file-name-preview">${file.name}</div>
+                <div class="file-size-preview">${fileSize}</div>
             </div>
-            <div class="file-remove" data-filename="${file.name}">
-                <i class="fa fa-times" aria-hidden="true"></i>
+            <div class="file-actions-preview">
+                <button class="file-action-btn-preview file-download-preview" data-filename="${file.name}">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="file-action-btn-preview file-remove-preview" data-filename="${file.name}">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
         `;
         
         fileList.appendChild(fileItem);
         
         // Add event listener to remove button
-        const removeBtn = fileItem.querySelector('.file-remove');
+        const removeBtn = fileItem.querySelector('.file-remove-preview');
         removeBtn.addEventListener('click', function() {
             const fileName = this.getAttribute('data-filename');
             removeFile(fileName);
-            fileItem.remove();
+            fileItem.classList.add('animate__fadeOut');
+            setTimeout(() => {
+                fileItem.remove();
+                if (uploadedFiles.length === 0) {
+                    showEmptyState();
+                }
+            }, 500);
         });
+        
+        // Add event listener to preview button
+        const previewBtn = fileItem.querySelector('.file-download-preview');
+        previewBtn.addEventListener('click', function() {
+            const fileName = this.getAttribute('data-filename');
+            previewFile(fileName);
+        });
+    }
+
+    // Show empty state when no files
+    function showEmptyState() {
+        fileList.innerHTML = `
+            <div class="empty-state">
+                <i class="far fa-folder-open"></i>
+                <p>No files selected</p>
+            </div>
+        `;
     }
     
     // Format file size to human readable format
@@ -187,42 +248,226 @@ document.addEventListener('DOMContentLoaded', function() {
         btnUpload.disabled = uploadedFiles.length === 0;
     }
     
+    // Preview file using Google Docs Viewer for docx and PDF.js for pdf
+    function previewFile(fileName) {
+        const file = uploadedFiles.find(f => f.name === fileName);
+        if (!file) return;
+        
+        // Reset viewer states
+        docViewerIframe.style.display = 'none';
+        pdfViewer.style.display = 'none';
+        unsupportedFile.style.display = 'none';
+        
+        const fileExtension = file.name.split('.').pop().toLowerCase();
+        const fileUrl = URL.createObjectURL(file);
+        
+        // Set download link
+        downloadLink.href = fileUrl;
+        downloadLink.download = file.name;
+        
+        if (fileExtension === 'pdf') {
+            // Use PDF.js for PDF preview
+            previewPdf(fileUrl);
+            pdfViewer.style.display = 'block';
+        } else if (fileExtension === 'docx') {
+            // Use Google Docs Viewer for DOCX files
+            const previewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`;
+            docViewerIframe.src = previewUrl;
+            docViewerIframe.style.display = 'block';
+        } else {
+            // Show unsupported message for other file types
+            unsupportedFile.style.display = 'block';
+        }
+        
+        // Show preview modal
+        previewModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    // PDF.js functions for PDF preview
+    function previewPdf(url) {
+        // Load PDF document
+        pdfjsLib = pdfjsLib || window['pdfjs-dist/build/pdf'];
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+        
+        pdfjsLib.getDocument(url).promise.then(function(pdfDoc) {
+            currentPdfDoc = pdfDoc;
+            currentPageNum = 1;
+            
+            // Render the first page
+            renderPage(currentPageNum);
+            
+            // Add PDF controls
+            addPdfControls(pdfDoc);
+        }).catch(function(error) {
+            console.error('Error loading PDF:', error);
+            // Fallback to iframe if PDF.js fails
+            const previewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
+            docViewerIframe.src = previewUrl;
+            docViewerIframe.style.display = 'block';
+            pdfViewer.style.display = 'none';
+        });
+    }
+    
+    function renderPage(pageNum) {
+        pdfPageRendering = true;
+        
+        currentPdfDoc.getPage(pageNum).then(function(page) {
+            const scale = 1.5;
+            const viewport = page.getViewport({ scale });
+            
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            
+            // Clear previous content
+            pdfViewer.innerHTML = '';
+            pdfViewer.appendChild(canvas);
+            
+            const renderContext = {
+                canvasContext: ctx,
+                viewport: viewport
+            };
+            
+            const renderTask = page.render(renderContext);
+            
+            renderTask.promise.then(function() {
+                pdfPageRendering = false;
+                
+                if (pdfPageNumPending !== null) {
+                    renderPage(pdfPageNumPending);
+                    pdfPageNumPending = null;
+                }
+                
+                // Update page info
+                document.getElementById('pdf-page-num').textContent = pageNum;
+            });
+        });
+    }
+    
+    function queueRenderPage(pageNum) {
+        if (pdfPageRendering) {
+            pdfPageNumPending = pageNum;
+        } else {
+            renderPage(pageNum);
+        }
+    }
+    
+    function addPdfControls(pdfDoc) {
+        const controlsHtml = `
+            <div class="pdf-controls">
+                <button id="prev-page" ${currentPageNum <= 1 ? 'disabled' : ''}>Previous</button>
+                <span class="pdf-page-info">Page <span id="pdf-page-num">${currentPageNum}</span> of ${pdfDoc.numPages}</span>
+                <button id="next-page" ${currentPageNum >= pdfDoc.numPages ? 'disabled' : ''}>Next</button>
+            </div>
+        `;
+        
+        pdfViewer.insertAdjacentHTML('afterbegin', controlsHtml);
+        
+        document.getElementById('prev-page').addEventListener('click', function() {
+            if (currentPageNum <= 1) return;
+            currentPageNum--;
+            queueRenderPage(currentPageNum);
+            updatePdfControls(pdfDoc);
+        });
+        
+        document.getElementById('next-page').addEventListener('click', function() {
+            if (currentPageNum >= pdfDoc.numPages) return;
+            currentPageNum++;
+            queueRenderPage(currentPageNum);
+            updatePdfControls(pdfDoc);
+        });
+    }
+    
+    function updatePdfControls(pdfDoc) {
+        document.getElementById('prev-page').disabled = currentPageNum <= 1;
+        document.getElementById('next-page').disabled = currentPageNum >= pdfDoc.numPages;
+        document.getElementById('pdf-page-num').textContent = currentPageNum;
+    }
+
     // Upload button functionality
     if (btnUpload) {
         btnUpload.addEventListener('click', function() {
             if (uploadedFiles.length === 0) return;
             
+            // Validate thesis title
+            const thesisTitleInput = document.getElementById('thesisTitle');
+            if (thesisTitleInput && !thesisTitleInput.value.trim()) {
+                Swal.fire({
+                    title: 'Thesis Title Required',
+                    text: 'Please enter a title for your thesis.',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+            
             // Create FormData object to send files
             const formData = new FormData();
+            
+            // Add thesis title to form data
+            if (thesisTitleInput) {
+                formData.append('thesisTitle', thesisTitleInput.value.trim());
+            }
+            
+            // Add author to form data if exists
+            const thesisAuthorInput = document.getElementById('thesisAuthor');
+            if (thesisAuthorInput && thesisAuthorInput.value.trim()) {
+                formData.append('thesisAuthor', thesisAuthorInput.value.trim());
+            }
             
             for (let i = 0; i < uploadedFiles.length; i++) {
                 formData.append('files[]', uploadedFiles[i]);
             }
             
             // Show loading state
+            const originalText = btnUpload.innerHTML;
             btnUpload.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Uploading...';
             btnUpload.disabled = true;
             
-            // Simulate upload process (replace with actual AJAX call)
-            setTimeout(() => {
-                // Success message
-                Swal.fire({
-                    title: 'Upload Successful!',
-                    text: 'Your files have been uploaded successfully.',
-                    icon: 'success',
-                    confirmButtonText: 'OK'
-                }).then(() => {
-                    // Reset the form
-                    uploadedFiles = [];
-                    fileList.innerHTML = '';
-                    btnUpload.disabled = true;
-                    btnUpload.innerHTML = 'Upload';
-                    fileInput.value = '';
-                    
-                    // Close the modal
-                    closeModal();
-                });
-            }, 2000);
+            // Show SweetAlert for upload confirmation
+            Swal.fire({
+                title: 'Confirm Upload',
+                html: `Are you sure you want to upload <strong>${thesisTitleInput.value}</strong> with ${uploadedFiles.length} file(s)?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, upload it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Simulate upload process (replace with actual AJAX call)
+                    setTimeout(() => {
+                        // Success message
+                        Swal.fire({
+                            title: 'Upload Successful!',
+                            text: 'Your thesis has been uploaded successfully.',
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        }).then(() => {
+                            // Reset the form
+                            uploadedFiles = [];
+                            showEmptyState();
+                            btnUpload.disabled = true;
+                            btnUpload.innerHTML = 'Upload';
+                            fileInput.value = '';
+                            
+                            // Clear form fields
+                            if (thesisTitleInput) thesisTitleInput.value = '';
+                            if (thesisAuthorInput) thesisAuthorInput.value = '';
+                            
+                            // Close the modal
+                            closeModal(uploadModal);
+                        });
+                    }, 2000);
+                } else {
+                    // Reset button state if cancelled
+                    btnUpload.innerHTML = originalText;
+                    btnUpload.disabled = false;
+                }
+            });
         });
     }
 
