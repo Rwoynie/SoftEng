@@ -25,9 +25,9 @@
         <nav>
             <ul class="menu-options">
                 <li class="selected"> <i class="fa fa-th-large icon" aria-hidden="true"></i> </li>
-                <li> <i class="fa fa-calendar icon" aria-hidden="true"></i> </li>
+                
                 <li id="profileSidebarIcon"> <i class="fa fa-user-o icon" aria-hidden="true"></i> </li>
-                <li> <i class="fa fa-wrench icon" aria-hidden="true"></i> </li>
+                
             </ul>
         </nav>
 
@@ -40,11 +40,8 @@
         <header class="header" id="header">
             <div class="title">Thesis Repository</div>
             <div class="menu">
-                <button> All </button>
-                <button class="selected"> Recent </button>
-                <button> Pending </button>
-                <button> Approved </button>
-                <button> Rejected </button>
+                <button id="allButton"> All </button>
+                <button class="selected" id="recentButton"> Recent </button>
             </div>
 
             
@@ -164,16 +161,13 @@
                             </svg>
                         </div>
                         <div class="options">
-                            <div data-value="all">All</div>
-                            <div data-value="important">Important</div>
-                            <div data-value="enhancement">Enhancement</div>
-                            <div data-value="announcement">Announcement</div>
-                            <div data-value="news">News</div>
-                            <div data-value="discussion">Discussion</div>
-                            <div data-value="interesting">Interesting</div>
-                            <div data-value="cannot-fix">Cannot Fix</div>
-                            <div data-value="off-topic">Off Topic</div>
-                            <div data-value="change-declined">Change Declined</div>
+                        <div data-value="all">All</div>
+                            <div data-value="important">Name</div>
+                            <div data-value="enhancement">Author</div>
+                            <div data-value="announcement">Adviser</div>
+                            <div data-value="news">Date Uploaded</div>
+                            <div data-value="discussion">Hardbound Available</div>
+                           
                         </div>
                     </div>
 
@@ -185,7 +179,7 @@
             </div>
 
             <div class="projects-container">
-                <ul class="projects" id="projectsGrid">
+                <ul class="projects" id="recentView">
                     <li class="project-item" data-tags="important enhancement" data-file-url="../Images/Case Study.pdf" data-file-type="pdf">
                         <div  class="logo-row">
                             <img src="../Images/usep-logo-small.png" alt="Logo" />
@@ -200,7 +194,10 @@
                         <div class="desc-row">
                             <p>John Doe, Jane Smith</p>
                         </div>
-                       
+                        <div class="users">
+                                <p class="available"><i class="fa-solid fa-circle-check" style="color: #63E6BE;"></i>&nbsp&nbspHardbound Available</p>
+                                
+                            </div>
                         <div class="footer-row">
                             <div class="days warning">
                                 <i class="fa fa-clock-o icon" aria-hidden="true"></i> 2 days ago
@@ -355,6 +352,98 @@
                             <div class="users">
                                 <img src="https://source.unsplash.com/30x30/?profile" alt="User" />
                                 <img src="https://source.unsplash.com/30x30/?man" alt="User" />
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+
+                <ul class="projects all-projects" id="allView">
+                    <li class="project-item" data-tags="cannot-fix off-topic" data-file-url="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" data-file-type="pdf">
+                        <div class="logo-row">
+                            <img src="https://source.unsplash.com/50x50/?network" alt="Logo" />
+                            <div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>
+                        </div>
+                        <div class="title-row">
+                            <h3> 5G Network Optimization </h3>
+                            <div class="links">
+                                <i class="fa fa-external-link icon" aria-hidden="true"></i>
+                                <a href="#"> 5goptimization.tech </a>
+                            </div>
+                        </div>
+                        <div class="desc-row">
+                            <p>Advanced algorithms for optimizing 5G network performance and coverage in urban areas.</p>
+                        </div>
+                        <div class="progress-row">
+                            <p class="value-label" data-value="78"></p>
+                            <progress max="100" value="78" data-value="78"> 78% </progress>
+                        </div>
+                        <div class="footer-row">
+                            <div class="days">
+                                <i class="fa fa-clock-o icon" aria-hidden="true"></i> 2 weeks ago
+                            </div>
+                            <div class="users">
+                                <img src="https://source.unsplash.com/30x30/?engineer" alt="User" />
+                                <img src="https://source.unsplash.com/30x30/?technician" alt="User" />
+                            </div>
+                        </div>
+                    </li>
+
+                    <li class="project-item " data-tags="enhancement change-declined" data-file-url="https://file-examples.com/storage/fe8c7eef0c6364f6c9504cc/2017/02/file-sample_1MB.docx" data-file-type="docx">
+                        <div class="logo-row">
+                            <img src="https://source.unsplash.com/50x50/?robot" alt="Logo" />
+                            <div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>
+                        </div>
+                        <div class="title-row">
+                            <h3> Autonomous Robotics </h3>
+                            <div class="links">
+                                <i class="fa fa-external-link icon" aria-hidden="true"></i>
+                                <a href="#"> autonobot.org </a>
+                            </div>
+                        </div>
+                        <div class="desc-row">
+                            <p>Development of autonomous navigation systems for industrial and service robotics applications.</p>
+                        </div>
+                        <div class="progress-row">
+                            <p class="value-label" data-value="82"></p>
+                            <progress max="100" value="82" data-value="82"> 82% </progress>
+                        </div>
+                        <div class="footer-row">
+                            <div class="days">
+                                <i class="fa fa-clock-o icon" aria-hidden="true"></i> 3 weeks ago
+                            </div>
+                            <div class="users">
+                                <img src="https://source.unsplash.com/30x30/?roboticist" alt="User" />
+                                <img src="https://source.unsplash.com/30x30/?mechanic" alt="User" />
+                            </div>
+                        </div>
+                    </li>
+
+                    <li class="project-item" data-tags="news discussion" data-file-url="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" data-file-type="pdf">
+                        <div class="logo-row">
+                            <img src="https://source.unsplash.com/50x50/?data" alt="Logo" />
+                            <div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>
+                        </div>
+                        <div class="title-row">
+                            <h3> Big Data Analytics </h3>
+                            <div class="links">
+                                <i class="fa fa-external-link icon" aria-hidden="true"></i>
+                                <a href="#"> bigdataresearch.edu </a>
+                            </div>
+                        </div>
+                        <div class="desc-row">
+                            <p>Novel approaches to processing and analyzing large-scale datasets for scientific research.</p>
+                        </div>
+                        <div class="progress-row">
+                            <p class="value-label" data-value="91"></p>
+                            <progress max="100" value="91" data-value="91"> 91% </progress>
+                        </div>
+                        <div class="footer-row">
+                            <div class="days">
+                                <i class="fa fa-clock-o icon" aria-hidden="true"></i> 1 month ago
+                            </div>
+                            <div class="users">
+                                <img src="https://source.unsplash.com/30x30/?analyst" alt="User" />
+                                <img src="https://source.unsplash.com/30x30/?statistician" alt="User" />
                             </div>
                         </div>
                     </li>

@@ -144,7 +144,7 @@ sidebarButtons.forEach(button => {
         this.classList.add('selected');
         
         // Check if wrench button was clicked
-        const isWrenchButton = this.querySelector('.fa-wrench');
+        const isWrenchButton = this.querySelector('.fa-user-o');
         
         if (isWrenchButton) {
             // Show login content, hide main content

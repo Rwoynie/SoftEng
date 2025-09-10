@@ -22,7 +22,7 @@
         <nav>
             <ul class="menu-options">
                 <li class="selected"> <i class="fa fa-th-large icon" aria-hidden="true"></i> </li>
-                <li> <i class="fa fa-wrench icon" aria-hidden="true"></i> </li>
+                <li> <i class="fa fa-user-o icon" aria-hidden="true"></i> </li>
             </ul>
         </nav>
 
@@ -59,15 +59,12 @@
                         </div>
                         <div class="options">
                             <div data-value="all">All</div>
-                            <div data-value="important">Important</div>
-                            <div data-value="enhancement">Enhancement</div>
-                            <div data-value="announcement">Announcement</div>
-                            <div data-value="news">News</div>
-                            <div data-value="discussion">Discussion</div>
-                            <div data-value="interesting">Interesting</div>
-                            <div data-value="cannot-fix">Cannot Fix</div>
-                            <div data-value="off-topic">Off Topic</div>
-                            <div data-value="change-declined">Change Declined</div>
+                            <div data-value="important">Name</div>
+                            <div data-value="enhancement">Author</div>
+                            <div data-value="announcement">Adviser</div>
+                            <div data-value="news">Date Uploaded</div>
+                            <div data-value="discussion">Hardbound Available</div>
+                           
                         </div>
                     </div>
 
@@ -83,32 +80,29 @@
                 <!-- Recent Projects View -->
                 <ul class="projects" id="recentView">
                     <li class="project-item" data-tags="important enhancement">
-                        <div class="logo-row">
-                            <img src="https://source.unsplash.com/50x50/?technology" alt="Logo" />
+                    <div  class="logo-row">
+                            <img src="../Images/usep-logo-small.png" alt="Logo" />
                             <div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>
                         </div>
                         <div class="title-row">
-                            <h3> AI-Powered Learning Systems </h3>
+                            <h3>Sample Thesis Title</h3>
                             <div class="links">
-                                <i class="fa fa-external-link icon" aria-hidden="true"></i>
-                                <a href="#"> ailearning.edu </a>
+                                <p href="#">Uploaded: September 10, 2025</p>
                             </div>
                         </div>
                         <div class="desc-row">
-                            <p>Artificial intelligence applications in modern education systems and adaptive learning platforms.</p>
+                            <p>John Doe, Jane Smith</p>
                         </div>
-                        <div class="progress-row">
-                            <p class="value-label" data-value="94"></p>
-                            <progress max="100" value="94" data-value="94"> 94% </progress>
-                        </div>
+                        <div class="users">
+                                <p class="available"><i class="fa-solid fa-circle-check" style="color: #63E6BE;"></i>&nbsp&nbspHardbound Available</p>
+                                
+                            </div>
                         <div class="footer-row">
-                            <div class="days danger">
+                            <div class="days warning">
                                 <i class="fa fa-clock-o icon" aria-hidden="true"></i> 2 days ago
                             </div>
-                            <div class="users">
-                                <img src="https://source.unsplash.com/30x30/?student" alt="User" />
-                                <img src="https://source.unsplash.com/30x30/?graduate" alt="User" />
-                            </div>
+                            
+                            
                         </div>
                     </li>
 

@@ -21,6 +21,12 @@
     --size-xlarge: 1.5em;
     --size-xxlarge: 3em;
 }
+.available {
+    margin-top: -2vw;
+    margin-bottom: 2vw;
+    font-family: 'Quicksand';
+    font-size: 0.9vw;
+}
 
 .subhead {
     font-weight: 600;
@@ -42,7 +48,7 @@
 }
 
 body {
-    font-family: "Open Sans", sans-serif;
+    font-family: "Quicksand";
     background: #eef2f5;
     color: #333;
     line-height: 1.6;
@@ -144,7 +150,7 @@ body {
     height: 80px;
     display: flex;
     align-items: center;
-    
+    justify-content: space-between; /* Added to push title left and menu right */
     flex-shrink: 0;
     position: fixed;
     top: 0;
@@ -162,14 +168,14 @@ body {
 
 .header .menu {
     display: flex;
-    margin-left: 23vw;
+    margin-left: 0; /* Removed the left margin */
     list-style: none;
 }
 
 .header .menu button {
-    margin: 0 1vw;
+    margin: 0 0.5vw; /* Reduced margin between buttons */
     background-color: transparent;
-    font-family: "Quicksand", sans-serif; /* Added fallback font */
+    font-family: "Quicksand";
     border: none;
     text-transform: uppercase;
     font-weight: bold;
@@ -178,7 +184,7 @@ body {
     display: flex;
     align-items: center;
     position: relative;
-    padding: 10px 0;
+    padding: 10px 15px; /* Increased horizontal padding */
     transition: color 0.3s ease;
     cursor: pointer;
 }
@@ -285,6 +291,10 @@ body {
     overflow-y: auto;
     flex: 1;
     padding-right: 5px;
+}
+
+.all-projects {
+    display: none;
 }
 
 

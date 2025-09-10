@@ -24,6 +24,42 @@ document.addEventListener('DOMContentLoaded', function() {
     const pdfViewer = document.getElementById('pdf-viewer');
     const unsupportedFile = document.getElementById('unsupported-file');
 
+    const allButton = document.getElementById('allButton');
+    const recentButton = document.getElementById('recentButton');
+    const allView = document.getElementById('allView');
+    const recentView = document.getElementById('recentView');
+
+    // Changed to select buttons instead of li elements
+    const menuButtons = document.querySelectorAll('.header .menu button');
+
+    // Function to switch views
+    function switchView(viewToShow, buttonToSelect) {
+        // Hide all views
+        allView.style.display = 'none';
+        recentView.style.display = 'none';
+
+        // Show selected view
+        viewToShow.style.display = 'grid';
+
+        // Update button states
+        menuButtons.forEach(button => button.classList.remove('selected'));
+        buttonToSelect.classList.add('selected');
+        
+        // Re-run animations after switching views
+        animateOnScroll();
+    }
+
+    // Event listeners for buttons
+    if (allButton && recentButton) {
+        allButton.addEventListener('click', function() {
+            switchView(allView, allButton);
+        });
+
+        recentButton.addEventListener('click', function() {
+            switchView(recentView, recentButton);
+        });
+    }
+
     const projectItems = document.querySelectorAll('.project-item');
     projectItems.forEach(item => {
         item.addEventListener('click', function() {
@@ -687,8 +723,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Call the animation function
     animateOnScroll();
+
+    // Initialize with recent view visible
+    if (recentView && allView && recentButton) {
+        switchView(recentView, recentButton);
+    }
 });
 
+//Thesis view abstract
 function handleProjectItemClick(projectItem) {
     const title = projectItem.querySelector('h3').textContent;
     const uploadedDate = projectItem.querySelector('.links p').textContent;
@@ -741,11 +783,6 @@ function showProjectPreview(title, uploadedDate, authors, fileUrl) {
         // Use PDF.js for PDF preview
         previewPdf(fileUrl);
         pdfViewer.style.display = 'block';
-    } else if (['doc', 'docx'].includes(fileExtension)) {
-        // Use Google Docs Viewer for DOC/DOCX files
-        const previewUrl = `https://docs.google.com/gview?url=${fileUrlEncoded}&embedded=true`;
-        docViewerIframe.src = previewUrl;
-        docViewerIframe.style.display = 'block';
     } else {
         // Show unsupported message for other file types
         unsupportedFile.style.display = 'block';

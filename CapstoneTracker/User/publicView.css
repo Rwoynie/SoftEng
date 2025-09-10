@@ -22,6 +22,13 @@
     --size-xxlarge: 3em;
 }
 
+.available {
+    margin-top: -2vw;
+    margin-bottom: 2vw;
+    font-family: 'Quicksand';
+    font-size: 0.9vw;
+}
+
 .subhead {
     font-weight: 600;
     font-size: 1vw;
@@ -140,24 +147,32 @@ body {
     height: 80px;
     display: flex;
     align-items: center;
+    justify-content: space-between; /* Added to space title and menu */
     flex-shrink: 0;
-}
 
+    position: relative;
+    top: 0;
+    left: 0; /* Sidebar width */
+    right: 0;
+    z-index: 99;
+}
 
 .header .title {
     font-weight: bold;
     font-size: 1.5rem;
     color: var(--color-dark-grey);
+    /* Removed absolute positioning */
 }
 
 .header .menu {
     display: flex;
-    margin-left: 28vw;
     list-style: none;
+    margin: 0; /* Removed previous margin */
+    padding: 0;
 }
 
 .header .menu button {
-    margin: 0 1vw;
+    margin: 0 0.5vw; /* Reduced margin between buttons */
     background-color: transparent;
     font-family: "Quicksand";
     border: none;
@@ -168,7 +183,7 @@ body {
     display: flex;
     align-items: center;
     position: relative;
-    padding: 10px 0;
+    padding: 10px 15px; /* Increased horizontal padding */
     transition: color 0.3s ease;
     cursor: pointer;
 }
@@ -184,8 +199,10 @@ body {
     border-bottom: 3px solid var(--primary-color);
     position: absolute;
     bottom: 0;
-    width: 100%;
+    width: calc(100% - 30px); /* Adjusted for padding */
+    left: 15px; /* Center the underline */
 }
+
 
 /* App Content Styles */
 .app-content {
@@ -694,7 +711,7 @@ body {
 
 @media (max-width: 992px) {
     .header .menu {
-        margin-left: 30vw;
+        margin-left: 0vw;
     }
 
     .app-content-header {
