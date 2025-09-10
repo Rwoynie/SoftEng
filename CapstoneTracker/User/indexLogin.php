@@ -9,6 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Quicksand:wght@300..700&family=Raleway:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="indexLogin.css">
 
@@ -23,21 +25,23 @@
   <div class="center">
   <div class="container1">
         <div class="container2">
-            <img class="sysLogo" src="../images/gradcap.png" alt="System Logo">
+            <img class="sysLogo" src="../images/gradcap.png" alt="Thesis Repository Logo - Graduation Cap">
             <h1>Thesis Repository</h1>
+            <p class="tagline">A digital library for USeP student research.</p>
         </div>
 
         <div class="form-container">
             <!-- Login Form -->
             <form class="loginForm active">
                 <h2>Welcome!</h2>
-          
-                <h6>Sign-in using USeP E-mail</h6>
+                <p class="login-description">Access and upload research papers using your official USeP account.</p>
+                
                 <meta name="google-signin-client_id" content="YOUR_ACTUAL_CLIENT_ID.apps.googleusercontent.com">
                 <!-- Replace the Google button div with your custom button -->
-                <button id="customGoogleBtn" class="btn-google">
+                <button id="customGoogleBtn" class="btn-google" type="button" tabindex="0" aria-label="Sign in with Google using your USeP email account">
+                    <div class="loading-spinner"></div>
                     <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj48cGF0aCBkPSJNMTcuNiA5LjJsLS4xLTEuOEg5djMuNGg0LjhDMTMuNiAxMiAxMyAxMyAxMiAxMy42djIuMmgzYTguOCA4LjggMCAwIDAgMi42LTYuNnoiIGZpbGw9IiM0Mjg1RjQiIGZpbGwtcnVsZT0ibm9uemVybyIvPjxwYXRoIGQ9Ik05IDE4YzIuNCAwIDQuNS0uOCA2LTIuMmwtMy0yLjJhNS40IDUuNCAwIDAgMS04LTIuOUgxVjEzYTkgOSAwIDAgMCA4IDV6IiBmaWxsPSIjMzRBODUzIiBmaWxsLXJ1bGU9Im5vbnplcm8iLz48cGF0aCBkPSJNNCAxMC43YTUuNCA1LjQgMCAwIDEgMC0zLjRWNUgxYTkgOSAwIDAgMCAwIDhsMy0yLjN6IiBmaWxsPSIjRkJCQzA1IiBmaWxsLXJ1bGU9Im5vbnplcm8iLz48cGF0aCBkPSJNOSAzLjZjMS4zIDAgMi41LjQgMy40IDEuM0wxNSAyLjNBOSA5IDAgMCAwIDEgNWwzIDIuNGE1LjQgNS40IDAgMCAxIDUtMy43eiIgZmlsbD0iI0VBNDMzNSIgZmlsbC1ydWxlPSJub256ZXJvIi8+PHBhdGggZD0iTTAgMGgxOHYxOEgweiIvPjwvZz48L3N2Zz4=" alt="Google logo">
-                    Sign in with Google
+                    <span class="btn-text">Sign in with Google</span>
                 </button>
                 <div id="googleButton" style="display: none;"></div>
                 
@@ -49,6 +53,10 @@
   </div>
         
     </div>
+
+    <footer class="login-footer">
+        <p>&copy; 2025 University of Southeastern Philippines | Thesis Repository</p>
+    </footer>
 
     <script type="text/javascript" src="indexLogin.js">
 

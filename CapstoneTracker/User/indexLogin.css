@@ -1,5 +1,5 @@
 body {
-    font-family: 'Quicksand', sans-serif;
+    font-family: 'Inter', sans-serif;
     overflow-x: hidden;
     margin: 0;
     padding: 0;
@@ -22,9 +22,10 @@ body {
 }
 
 
- .container:hover .top:before, .container:active .top:before, .container:hover .bottom:before, .container:active .bottom:before, .container:hover .top:after, .container:active .top:after, .container:hover .bottom:after, .container:active .bottom:after {
-	 margin-left: 200px;
-	 transform-origin: -200px 50%;
+ .container:hover .top:before, .container:active .top:before, .container:hover .bottom:before, .container:active 
+.top:after, .container:hover .bottom:after, .container:active .bottom:after {
+	 margin-left: 300px;
+	 transform-origin: -300px 50%;
 	 transition-delay: 0s;
 }
  .container:hover .center, .container:active .center {
@@ -35,11 +36,11 @@ body {
 	 content: '';
 	 display: block;
 	 position: absolute;
-	 width: 300vmax; /* Increased from 200vmax to 300vmax */
-	 height: 300vmax; /* Increased from 200vmax to 300vmax */
+	 width: 110vmax; /* Smaller */
+	 height: 110vmax; /* Smaller */
 	 top: 50%;
 	 left: 50%;
-	 margin-top: -150vmax; /* Adjusted for the new size */
+	 margin-top: -55vmax; /* Adjusted for smaller size */
 	 transform-origin: 0 50%;
 	 transition: all 0.5s cubic-bezier(0.445, 0.05, 0, 1);
 	 z-index: 10;
@@ -48,12 +49,12 @@ body {
 }
  .top:before {
 	 transform: rotate(45deg);
-	 background: rgb(186, 30, 31);
+	 background: #380e0e;
      
 }
  .top:after {
 	 transform: rotate(135deg);
-	 background: rgb(186, 30, 31);
+	 background: #380e0e;
 }
  .bottom:before {
 	 transform: rotate(-45deg);
@@ -93,6 +94,9 @@ body {
 .sysLogo {
     width: 13vw;
     height: auto;
+    display: block;
+    margin: 1rem auto 0.75rem auto; /* Centered with consistent spacing */
+    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.35)); /* soft shadow following transparency */
 }
 
 .container1 {
@@ -211,8 +215,18 @@ h2 {
     color: black;
     text-align: center;
     font-weight: 400;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
     font-size: 1.8rem;
+}
+
+/* Login description styling */
+.login-description {
+    text-align: center;
+    margin: 0.5rem 0 1rem 0;
+    color: #444;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    font-weight: 400;
 }
 
 
@@ -224,20 +238,27 @@ h2 {
     background: white;
     color: #757575;
     border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 10px 16px;
-    font-size: 14px;
+    border-radius: 8px;
+    padding: 16px 24px;
+    font-size: 16px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.3s ease;
     width: 100%;
-    max-width: 240px;
-    margin: 20px 0;
+    max-width: 280px;
+    margin: 12px auto;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .btn-google:hover {
     background: #f8f8f8;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.btn-google:focus {
+    outline: 3px solid #4285f4;
+    outline-offset: 2px;
 }
 
 .btn-google img {
@@ -332,8 +353,8 @@ h2 {
 	 overflow: hidden;
 }
  .container:hover .top:before, .container:active .top:before, .container:hover .bottom:before, .container:active .bottom:before, .container:hover .top:after, .container:active .top:after, .container:hover .bottom:after, .container:active .bottom:after {
-	 margin-left: 200px;
-	 transform-origin: -200px 50%;
+	 margin-left: 300px;
+	 transform-origin: -300px 50%;
 	 transition-delay: 0s;
 }
  .container:hover .center, .container:active .center {
@@ -344,11 +365,11 @@ h2 {
 	 content: '';
 	 display: block;
 	 position: absolute;
-	 width: 300vmax; /* Increased from 200vmax to 300vmax */
-	 height: 300vmax; /* Increased from 200vmax to 300vmax */
+	 width: 110vmax; /* Smaller */
+	 height: 110vmax; /* Smaller */
 	 top: 50%;
 	 left: 50%;
-	 margin-top: -150vmax; /* Adjusted for the new size */
+	 margin-top: -55vmax; /* Adjusted for smaller size */
 	 transform-origin: 0 50%;
 	 transition: all 0.5s cubic-bezier(0.445, 0.05, 0, 1);
 	 z-index: 0;
@@ -440,9 +461,19 @@ h2 {
 
 .container2 h1 {
     color: black;
-    font-weight: 600;
-    font-size: 2.5rem;
+    font-family: 'Merriweather', serif;
+    font-weight: 700;
+    font-size: 2rem;
     margin-top: 1rem;
+}
+
+.tagline {
+    color: #555;
+    font-size: 1rem;
+    font-weight: 400;
+    text-align: center;
+    margin: 0.5rem 0 0 0;
+    font-style: italic;
 }
 
 
@@ -599,8 +630,18 @@ h2 {
     color: black;
     text-align: center;
     font-weight: 400;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
     font-size: 1.8rem;
+}
+
+/* Login description styling */
+.login-description {
+    text-align: center;
+    margin: 0.5rem 0 1rem 0;
+    color: #444;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    font-weight: 400;
 }
 
 @media (min-width: 768px) {
@@ -741,13 +782,19 @@ h2 {
     transition: all 0.3s ease;
     width: 100%;
     max-width: 250px;
-    margin: 20px 0;
+    margin: 12px 0;
     z-index: 5;
 }
 
 .btn-google:hover {
     background: #f8f8f8;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.btn-google:focus {
+    outline: 3px solid #4285f4;
+    outline-offset: 2px;
 }
 
 .btn-google img {
@@ -756,10 +803,23 @@ h2 {
     margin-right: 10px;
 }
 
-/* Center the heading */
-h6 {
+/* Footer styling */
+.login-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    padding: 12px 0;
     text-align: center;
-    margin: 15px 0;
-    color: #555;
-    font-weight: 500;
+    z-index: 100;
+}
+
+.login-footer p {
+    margin: 0;
+    color: #666;
+    font-size: 0.85rem;
+    font-weight: 400;
 }

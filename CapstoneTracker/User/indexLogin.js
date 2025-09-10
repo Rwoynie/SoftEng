@@ -8,6 +8,20 @@ function forgotPassword() {
     });
 }
 
+function showLoading() {
+    const btn = document.getElementById('customGoogleBtn');
+    if (btn) {
+        btn.classList.add('loading');
+    }
+}
+
+function hideLoading() {
+    const btn = document.getElementById('customGoogleBtn');
+    if (btn) {
+        btn.classList.remove('loading');
+    }
+}
+
 function onSignIn(googleUser) {
     var profile = googleUser.getBasicProfile();
     console.log('ID: ' + profile.getId());
@@ -18,6 +32,9 @@ function onSignIn(googleUser) {
     // You can send the ID token to your server for verification
     var id_token = googleUser.getAuthResponse().id_token;
     console.log('ID Token: ' + id_token);
+    
+    // Hide loading after successful sign-in
+    hideLoading();
 }
 
 // Wait for the Google API to load
@@ -38,6 +55,7 @@ function renderGoogleButton() {
             'onsuccess': onSignIn,
             'onfailure': function(error) {
                 console.log('Google Sign-In failed:', error);
+                hideLoading();
             }
         });
         
@@ -46,11 +64,13 @@ function renderGoogleButton() {
             const customBtn = document.getElementById('customGoogleBtn');
             if (customBtn) {
                 customBtn.addEventListener('click', function() {
+                    showLoading();
                     const googleButton = document.querySelector('#googleButton .abcRioButton');
                     if (googleButton) {
                         googleButton.click();
                     } else {
                         console.log('Google button not found');
+                        hideLoading();
                     }
                 });
             }
