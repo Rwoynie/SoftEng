@@ -1461,3 +1461,33 @@ body {
         justify-content: center;
     }
 }
+
+.project-info-preview {
+    padding: 15px 0;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.project-detail {
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: var(--color-dark-grey);
+}
+
+.project-detail strong {
+    color: var(--color-black);
+    margin-right: 5px;
+}
+
+/* Adjust modal height for additional content */
+.preview-modal-content {
+    max-height: 90vh;
+    width: auto;
+    
+}
+
+/* Ensure the document viewer has proper height */
+#document-viewer {
+    height: 500px;
+    overflow: auto;
+}

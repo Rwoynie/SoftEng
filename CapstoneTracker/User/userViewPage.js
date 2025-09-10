@@ -24,6 +24,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const pdfViewer = document.getElementById('pdf-viewer');
     const unsupportedFile = document.getElementById('unsupported-file');
 
+    const projectItems = document.querySelectorAll('.project-item');
+    projectItems.forEach(item => {
+        item.addEventListener('click', function() {
+            handleProjectItemClick(this);
+        });
+    });
+
     let uploadedFiles = [];
     let currentPdfDoc = null;
     let currentPageNum = 1;
@@ -681,3 +688,161 @@ document.addEventListener('DOMContentLoaded', function() {
     // Call the animation function
     animateOnScroll();
 });
+
+function handleProjectItemClick(projectItem) {
+    const title = projectItem.querySelector('h3').textContent;
+    const uploadedDate = projectItem.querySelector('.links p').textContent;
+    const authors = projectItem.querySelector('.desc-row p').textContent;
+    const fileUrl = projectItem.getAttribute('data-file-url'); // Get the file URL
+    
+    showProjectPreview(title, uploadedDate, authors, fileUrl);
+}
+
+function showProjectPreview(title, uploadedDate, authors, fileUrl) {
+    // Update modal content with project details
+    const modalTitle = document.querySelector('.preview-modal .modal-title');
+    modalTitle.textContent = title;
+    
+    // Create a container for project info
+    const projectInfo = document.createElement('div');
+    projectInfo.className = 'project-info-preview';
+    projectInfo.innerHTML = `
+        <div class="project-detail">
+            <strong>Uploaded:</strong> ${uploadedDate}
+        </div>
+        <div class="project-detail">
+            <strong>Authors:</strong> ${authors}
+        </div>
+    `;
+    
+    /* Insert project info before the document viewer
+    const documentViewer = document.getElementById('document-viewer');
+    documentViewer.parentNode.insertBefore(projectInfo, documentViewer); */
+    
+    // Set up the document preview
+    const fileExtension = fileUrl.split('.').pop().toLowerCase();
+    const fileUrlEncoded = encodeURIComponent(fileUrl);
+    
+    // Reset viewer states
+    const docViewerIframe = document.getElementById('doc-viewer-iframe');
+    const pdfViewer = document.getElementById('pdf-viewer');
+    const unsupportedFile = document.getElementById('unsupported-file');
+    
+    docViewerIframe.style.display = 'none';
+    pdfViewer.style.display = 'none';
+    unsupportedFile.style.display = 'none';
+    
+    // Set download link
+    const downloadLink = document.getElementById('download-link');
+    downloadLink.href = fileUrl;
+    downloadLink.download = title;
+    
+    if (fileExtension === 'pdf') {
+        // Use PDF.js for PDF preview
+        previewPdf(fileUrl);
+        pdfViewer.style.display = 'block';
+    } else if (['doc', 'docx'].includes(fileExtension)) {
+        // Use Google Docs Viewer for DOC/DOCX files
+        const previewUrl = `https://docs.google.com/gview?url=${fileUrlEncoded}&embedded=true`;
+        docViewerIframe.src = previewUrl;
+        docViewerIframe.style.display = 'block';
+    } else {
+        // Show unsupported message for other file types
+        unsupportedFile.style.display = 'block';
+    }
+    
+    // Show preview modal
+    const previewModal = document.getElementById('previewModal');
+    previewModal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+// PDF.js functions for PDF preview
+function previewPdf(url) {
+    // Load PDF document
+    const pdfjsLib = window['pdfjs-dist/build/pdf'];
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+    
+    pdfjsLib.getDocument(url).promise.then(function(pdfDoc) {
+        const pdfViewer = document.getElementById('pdf-viewer');
+        let currentPageNum = 1;
+        
+        // Render the first page
+        renderPage(pdfDoc, currentPageNum);
+        
+        // Add PDF controls
+        addPdfControls(pdfDoc, currentPageNum);
+    }).catch(function(error) {
+        console.error('Error loading PDF:', error);
+        // Fallback to iframe if PDF.js fails
+        const docViewerIframe = document.getElementById('doc-viewer-iframe');
+        const pdfViewer = document.getElementById('pdf-viewer');
+        const previewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
+        docViewerIframe.src = previewUrl;
+        docViewerIframe.style.display = 'block';
+        pdfViewer.style.display = 'none';
+    });
+}
+
+function renderPage(pdfDoc, pageNum) {
+    const pdfViewer = document.getElementById('pdf-viewer');
+    
+    pdfDoc.getPage(pageNum).then(function(page) {
+        const scale = 1.5;
+        const viewport = page.getViewport({ scale });
+        
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        
+        // Clear previous content
+        pdfViewer.innerHTML = '';
+        pdfViewer.appendChild(canvas);
+        
+        const renderContext = {
+            canvasContext: ctx,
+            viewport: viewport
+        };
+        
+        const renderTask = page.render(renderContext);
+        
+        renderTask.promise.then(function() {
+            // Update page info
+            document.getElementById('pdf-page-num').textContent = pageNum;
+        });
+    });
+}
+
+function addPdfControls(pdfDoc, currentPageNum) {
+    const pdfViewer = document.getElementById('pdf-viewer');
+    const controlsHtml = `
+        <div class="pdf-controls">
+            <button id="prev-page" ${currentPageNum <= 1 ? 'disabled' : ''}>Previous</button>
+            <span class="pdf-page-info">Page <span id="pdf-page-num">${currentPageNum}</span> of ${pdfDoc.numPages}</span>
+            <button id="next-page" ${currentPageNum >= pdfDoc.numPages ? 'disabled' : ''}>Next</button>
+        </div>
+    `;
+    
+    pdfViewer.insertAdjacentHTML('afterbegin', controlsHtml);
+    
+    document.getElementById('prev-page').addEventListener('click', function() {
+        if (currentPageNum <= 1) return;
+        currentPageNum--;
+        renderPage(pdfDoc, currentPageNum);
+        updatePdfControls(pdfDoc, currentPageNum);
+    });
+    
+    document.getElementById('next-page').addEventListener('click', function() {
+        if (currentPageNum >= pdfDoc.numPages) return;
+        currentPageNum++;
+        renderPage(pdfDoc, currentPageNum);
+        updatePdfControls(pdfDoc, currentPageNum);
+    });
+}
+
+function updatePdfControls(pdfDoc, currentPageNum) {
+    document.getElementById('prev-page').disabled = currentPageNum <= 1;
+    document.getElementById('next-page').disabled = currentPageNum >= pdfDoc.numPages;
+    document.getElementById('pdf-page-num').textContent = currentPageNum;
+}
