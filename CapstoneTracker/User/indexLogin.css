@@ -100,6 +100,7 @@ body {
 }
 
 .back {
+    margin-top: 1vw;
     cursor: pointer;
     transform: scale(1);
     transition: 0.10s ease-in;
@@ -636,13 +637,6 @@ h2 {
     color: #b1423c;
 }
 
-h2 {
-    color: black;
-    text-align: center;
-    font-weight: 400;
-    margin-bottom: 1rem;
-    font-size: 1.8rem;
-}
 
 /* Login description styling */
 .login-description {
@@ -749,13 +743,14 @@ h2 {
 /* Adjust form container height to accommodate slideshow */
 .form-container {
     position: relative;
-    width: 105vw;
-    height: auto;
-    min-height: 25vw; /* Increased to accommodate slideshow */
+    width: 30vw;
+    height: 15vw;
+    justify-content: center;
     background: transparent;
-    padding: 0rem 0rem 1rem 0;
-    
-    
+    padding: 2vw;
+    margin-top: 2vw;
+    border-radius: 1vw;
+
     overflow: hidden;
     transform: translateZ(0);
     
@@ -764,10 +759,11 @@ h2 {
 /* Adjust login form width */
 .loginForm {
     width: 100%; /* Changed from 27vw to 100% */
-    margin: 0 auto;
+    margin: 0;
     transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
     opacity: 1;
-    margin-top: 5vw;
+    margin-top: 0vw;
+    
     transform: scale(1);
     position: relative;
     z-index: 1;

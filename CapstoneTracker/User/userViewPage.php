@@ -444,7 +444,7 @@
 
 <!-- Upload Thesis Modal -->
 <div class="modal-overlay" id="uploadModal">
-    <div class="modal">
+    <form class="modal">
         <div class="modal-header">
             <h2 class="modal-title">Upload Thesis</h2>
             <button class="modal-close">&times;</button>
@@ -458,7 +458,11 @@
                 
                 <div class="thesis-form-group">
                     <h3>Author/s</h3>
-                    <input type="text" name="thesisauthor" placeholder="Enter author name(s)" class="thesis-form-input" id="thesisAuthor">
+                    <input type="text" name="thesisauthor" placeholder="Enter author name(s) separated with commas ','" class="thesis-form-input" id="thesisAuthor">
+                </div>
+                <div class="thesis-form-group">
+                    <h3>Year Level</h3>
+                    <input type="text" name="thesisyear" placeholder="Enter year level" class="thesis-form-input" id="thesisYearLevel">
                 </div>
             </div>
             
@@ -488,7 +492,7 @@
             <button class="btn btn-cancel">Cancel</button>
             <button class="btn btn-upload" id="uploadBtn" disabled>Upload Thesis</button>
         </div>
-    </div>
+    </form>
 </div>
 
 <!-- Document Preview Modal -->
