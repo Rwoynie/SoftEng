@@ -187,32 +187,25 @@
             <div class="projects-container">
                 <ul class="projects" id="projectsGrid">
                     <li class="project-item" data-tags="important enhancement">
-                        <div class="logo-row">
-                            <img src="https://source.unsplash.com/50x50/?brand" alt="Logo" />
+                        <div  class="logo-row">
+                            <img src="../Images/usep-logo-small.png" alt="Logo" />
                             <div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>
                         </div>
                         <div class="title-row">
-                            <h3> Sports Interactive </h3>
+                            <h3> Title </h3>
                             <div class="links">
-                                <i class="fa fa-external-link icon" aria-hidden="true"></i>
-                                <a href="#"> sportsinteractive.com </a>
+                                <p href="#">Uploaded: September 10, 2025</p>
                             </div>
                         </div>
                         <div class="desc-row">
-                            <p>Web resource which contains all about transfer in the world of sports.</p>
+                            <p>Authors</p>
                         </div>
-                        <div class="progress-row">
-                            <p class="value-label" data-value="94"></p>
-                            <progress max="100" value="94" data-value="94"> 94% </progress>
-                        </div>
+                       
                         <div class="footer-row">
-                            <div class="days danger">
-                                <i class="fa fa-clock-o icon" aria-hidden="true"></i> 2 days left
+                            <div class="days warning">
+                                <i class="fa fa-clock-o icon" aria-hidden="true"></i> 2 days ago
                             </div>
-                            <div class="users">
-                                <img src="https://source.unsplash.com/30x30/?person" alt="User" />
-                                <img src="https://source.unsplash.com/30x30/?woman" alt="User" />
-                            </div>
+                            
                         </div>
                     </li>
 
@@ -366,71 +359,10 @@
                         </div>
                     </li>
 
-                    <li class="project-item" data-tags="discussion interesting">
-                        <div class="logo-row">
-                            <img src="https://source.unsplash.com/50x50/?studio" alt="Logo" />
-                            <div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>
-                        </div>
-                        <div class="title-row">
-                            <h3> Piece Studio </h3>
-                            <div class="links">
-                                <i class="fa fa-external-link icon" aria-hidden="true"></i>
-                                <a href="#"> piecestudio.com </a>
-                            </div>
-                        </div>
-                        <div class="desc-row">
-                            <p>Creative design studio specializing in UI/UX and brand identity.</p>
-                        </div>
-                        <div class="progress-row">
-                            <p class="value-label" data-value="34"></p>
-                            <progress max="100" value="34" data-value="34" class="low"> 34% </progress>
-                        </div>
-                        <div class="footer-row">
-                            <div class="days">
-                                <i class="fa fa-clock-o icon" aria-hidden="true"></i> 12 days left
-                            </div>
-                            <div class="users">
-                                <img src="https://source.unsplash.com/30x30/?woman" alt="User" />
-                                <img src="https://source.unsplash.com/30x30/?user" alt="User" />
-                            </div>
-                        </div>
-                    </li>
 
-                    <li class="project-item" data-tags="announcement enhancement">
-                        <div class="logo-row">
-                            <img src="https://source.unsplash.com/50x50/?foundation" alt="Logo" />
-                            <div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>
-                        </div>
-                        <div class="title-row">
-                            <h3> Legacy Foundation </h3>
-                            <div class="links">
-                                <i class="fa fa-external-link icon" aria-hidden="true"></i>
-                                <a href="#"> legacyfoundation.com </a>
-                            </div>
-                        </div>
-                        <div class="desc-row">
-                            <p>Non-profit organization focused on education and community development.</p>
-                        </div>
-                        <div class="progress-row">
-                            <p class="value-label" data-value="32"></p>
-                            <progress max="100" value="32" data-value="32"> 32% </progress>
-                        </div>
-                        <div class="footer-row">
-                            <div class="days">
-                                <i class="fa fa-clock-o icon" aria-hidden="true"></i> 12 days left
-                            </div>
-                            <div class="users">
-                                <img src="https://source.unsplash.com/30x30/?person" alt="User" />
-                                <img src="https://source.unsplash.com/30x30/?profile" alt="User" />
-                            </div>
-                        </div>
-                    </li>
                 </ul>
 
-         <!--   <div class="uploadContainer" id="uploadContainer">
-
-            </div>  -->
-
+         
 
             </div>
 
@@ -444,7 +376,7 @@
 
 <!-- Upload Thesis Modal -->
 <div class="modal-overlay" id="uploadModal">
-    <div class="modal">
+    <form class="modal">
         <div class="modal-header">
             <h2 class="modal-title">Upload Thesis</h2>
             <button class="modal-close">&times;</button>
@@ -458,7 +390,11 @@
                 
                 <div class="thesis-form-group">
                     <h3>Author/s</h3>
-                    <input type="text" name="thesisauthor" placeholder="Enter author name(s)" class="thesis-form-input" id="thesisAuthor">
+                    <input type="text" name="thesisauthor" placeholder="Enter author name(s) separated with commas ','" class="thesis-form-input" id="thesisAuthor">
+                </div>
+                <div class="thesis-form-group">
+                    <h3>Year Level</h3>
+                    <input type="text" name="thesisyear" placeholder="Enter year level" class="thesis-form-input" id="thesisYearLevel">
                 </div>
             </div>
             
@@ -486,9 +422,9 @@
         </div>
         <div class="modal-footer">
             <button class="btn btn-cancel">Cancel</button>
-            <button class="btn btn-upload" id="uploadBtn" disabled>Upload Thesis</button>
+            <button onclick="" class="btn btn-upload" id="uploadBtn" disabled>Upload Thesis</button>
         </div>
-    </div>
+    </form>
 </div>
 
 <!-- Document Preview Modal -->

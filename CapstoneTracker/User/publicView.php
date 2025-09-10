@@ -59,10 +59,10 @@
                         </div>
                         <div class="options">
                             <div data-value="all">All</div>
-                            <div data-value="important">Important</div>
-                            <div data-value="enhancement">Enhancement</div>
-                            <div data-value="announcement">Announcement</div>
-                            <div data-value="news">News</div>
+                            <div data-value="important">(1st) First Year</div>
+                            <div data-value="enhancement">(2nd) Second Year</div>
+                            <div data-value="announcement">(3rd) Third Year</div>
+                            <div data-value="news">(4th) Fourth Year</div>
                             <div data-value="discussion">Discussion</div>
                             <div data-value="interesting">Interesting</div>
                             <div data-value="cannot-fix">Cannot Fix</div>
