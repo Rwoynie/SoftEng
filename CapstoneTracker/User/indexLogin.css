@@ -92,11 +92,21 @@ body {
 }
 
 .sysLogo {
-    width: 13vw;
+    width: 10vw;
     height: auto;
     display: block;
     margin: 1rem auto 0.75rem auto; /* Centered with consistent spacing */
     filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.35)); /* soft shadow following transparency */
+}
+
+.back {
+    cursor: pointer;
+    transform: scale(1);
+    transition: 0.10s ease-in;
+}
+
+.back:hover {
+    transform: scale(1.1);
 }
 
 .container1 {

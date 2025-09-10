@@ -44,7 +44,7 @@
                     <span class="btn-text">Sign in with Google</span>
                 </button>
                 <div id="googleButton" style="display: none;"></div>
-                
+                <div class="back"><p onclick="back()"><i class="fa-solid fa-house" style="color: #000000;"></i>&nbsp&nbspBack</p></div>
                 
             </form>
   </div>

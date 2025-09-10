@@ -8,6 +8,7 @@ function forgotPassword() {
     });
 }
 
+<<<<<<< HEAD
 function showLoading() {
     const btn = document.getElementById('customGoogleBtn');
     if (btn) {
@@ -20,6 +21,10 @@ function hideLoading() {
     if (btn) {
         btn.classList.remove('loading');
     }
+=======
+function back() {
+    window.location.href = "publicView.php";
+>>>>>>> 6da5b4600102608002a856e0caf9073cda902fd4
 }
 
 function onSignIn(googleUser) {
