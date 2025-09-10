@@ -186,19 +186,19 @@
 
             <div class="projects-container">
                 <ul class="projects" id="projectsGrid">
-                    <li class="project-item" data-tags="important enhancement">
+                    <li class="project-item" data-tags="important enhancement" data-file-url="../Images/Case Study.pdf" data-file-type="pdf">
                         <div  class="logo-row">
                             <img src="../Images/usep-logo-small.png" alt="Logo" />
                             <div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>
                         </div>
                         <div class="title-row">
-                            <h3> Title </h3>
+                            <h3>Sample Thesis Title</h3>
                             <div class="links">
                                 <p href="#">Uploaded: September 10, 2025</p>
                             </div>
                         </div>
                         <div class="desc-row">
-                            <p>Authors</p>
+                            <p>John Doe, Jane Smith</p>
                         </div>
                        
                         <div class="footer-row">
@@ -209,7 +209,7 @@
                         </div>
                     </li>
 
-                    <li class="project-item" data-tags="announcement news">
+                    <li class="project-item" data-tags="announcement news" data-file-url="../Images/IS-Project-Progress-MonitoringWeek-2.pdf" data-file-type="docx">
                         <div class="logo-row">
                             <img src="https://source.unsplash.com/50x50/?logo" alt="Logo" />
                             <div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>
@@ -239,7 +239,7 @@
                         </div>
                     </li>
 
-                    <li class="project-item" data-tags="discussion interesting">
+                    <li class="project-item" data-tags="discussion interesting" data-file-url="https://file-examples.com/storage/fe8c7eef0c6364f6c9504cc/2017/02/file-sample_1MB.docx" data-file-type="docx">
                         <div class="logo-row">
                             <img src="https://source.unsplash.com/50x50/?estate" alt="Logo" />
                             <div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>
@@ -269,7 +269,7 @@
                         </div>
                     </li>
 
-                    <li class="project-item" data-tags="cannot-fix off-topic">
+                    <li class="project-item" data-tags="cannot-fix off-topic" data-file-url="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" data-file-type="pdf">
                         <div class="logo-row">
                             <img src="https://source.unsplash.com/50x50/?media" alt="Logo" />
                             <div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>
@@ -299,7 +299,7 @@
                         </div>
                     </li>
 
-                    <li class="project-item" data-tags="enhancement change-declined">
+                    <li class="project-item" data-tags="enhancement change-declined" data-file-url="https://file-examples.com/storage/fe8c7eef0c6364f6c9504cc/2017/02/file-sample_1MB.docx" data-file-type="docx">
                         <div class="logo-row">
                             <img src="https://source.unsplash.com/50x50/?logistics" alt="Logo" />
                             <div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>
@@ -329,7 +329,7 @@
                         </div>
                     </li>
 
-                    <li class="project-item" data-tags="important news">
+                    <li class="project-item" data-tags="important news" data-file-url="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" data-file-type="pdf">
                         <div class="logo-row">
                             <img src="https://source.unsplash.com/50x50/?agency" alt="Logo" />
                             <div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>
@@ -358,16 +358,10 @@
                             </div>
                         </div>
                     </li>
-
-
                 </ul>
 
-         
-
+                <p class="notFound" id="notFound">No Results Found.</p>
             </div>
-
-            <p class="notFound" id="notFound">No Results Found.</p>
-
         </section>
     </section>
 </div>
@@ -392,10 +386,7 @@
                     <h3>Author/s</h3>
                     <input type="text" name="thesisauthor" placeholder="Enter author name(s) separated with commas ','" class="thesis-form-input" id="thesisAuthor">
                 </div>
-                <div class="thesis-form-group">
-                    <h3>Year Level</h3>
-                    <input type="text" name="thesisyear" placeholder="Enter year level" class="thesis-form-input" id="thesisYearLevel">
-                </div>
+                
             </div>
             
             <div class="upload-area" id="dropArea">
@@ -435,6 +426,7 @@
             <button class="modal-close">&times;</button>
         </div>
         <div class="modal-body">
+            <div id="project-info-preview" class="project-info-preview"></div>
             <div id="document-viewer">
                 <iframe id="doc-viewer-iframe" style="width: 100%; height: 500px; border: none;"></iframe>
                 <div id="pdf-viewer" style="display: none; width: 100%; height: 500px;"></div>
@@ -451,7 +443,6 @@
         </div>
     </div>
 </div>
-
 
 </body>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
