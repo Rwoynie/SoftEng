@@ -35,8 +35,9 @@
         <header class="header" id="header">
             <div class="title">Thesis Repository</div>
             <div class="menu">
-                <button id="allButton"> All </button>
                 <button class="selected" id="recentButton"> Recent </button>
+                <button id="allButton"> All </button>
+                
             </div>
         </header>
         

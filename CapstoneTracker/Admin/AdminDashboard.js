@@ -1,10 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Profile functionality (existing code)
-    const profileHeaderIcon = document.getElementById('profileHeaderIcon');
-    const profileSidebarIcon = document.getElementById('profileSidebarIcon');
-    const profileContainer = document.getElementById('profileContainer');
-    const projectsContainer = document.getElementById('projectsGrid');
-    const appContentHeader = document.querySelector('.app-content-header');
+    
     const logoutBtn = document.getElementById('logoutHeaderIcon');
 
     const fabIcon = document.querySelector('.fab-icon');
@@ -17,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const fileList = document.getElementById('fileList');
     const btnUpload = document.querySelector('.btn-upload');
     const browseBtn = document.querySelector('.browse-btn');
-    const uploadBtn = document.getElementById('uploadBtn');
+    
     const closePreview = document.getElementById('closePreview');
     const downloadLink = document.getElementById('download-link');
     const docViewerIframe = document.getElementById('doc-viewer-iframe');
@@ -28,9 +24,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const recentButton = document.getElementById('recentButton');
     const allView = document.getElementById('allView');
     const recentView = document.getElementById('recentView');
+    const userButton = document.getElementById('userButton');
+    const adminButton = document.getElementById('adminButton');
+    const userLogView = document.getElementById('userLog-container');
+    const adminLogView = document.getElementById('adminLog-container');
 
     // Changed to select buttons instead of li elements
     const menuButtons = document.querySelectorAll('.header .menu button');
+
+    // for log buttons
+    const logMenuButtons = document.querySelectorAll('.header .logMenu button');
 
     // Function to switch views
     function switchView(viewToShow, buttonToSelect) {
@@ -43,6 +46,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Update button states
         menuButtons.forEach(button => button.classList.remove('selected'));
+        buttonToSelect.classList.add('selected');
+
+        //button states for log buttons
+        logMenuButtons.forEach(button => button.classList.remove('selected'));
         buttonToSelect.classList.add('selected');
         
         // Preserve list/grid view setting
@@ -61,7 +68,41 @@ document.addEventListener('DOMContentLoaded', function() {
         animateOnScroll();
     }
 
-    // Event listeners for buttons
+    function switchLogView(viewToShow, buttonToSelect) {
+        // Hide all log views
+        if (userLogView) userLogView.style.display = 'none';
+        if (adminLogView) adminLogView.style.display = 'none';
+        
+        // Remove active class from all buttons
+        if (userButton && adminButton) {
+            userButton.classList.remove('selected');
+            adminButton.classList.remove('selected');
+        }
+        
+        // Show selected log view and activate button
+        if (viewToShow) {
+            viewToShow.style.display = 'block';
+            buttonToSelect.classList.add('selected');
+        }
+    }
+    
+    // Event listeners for log buttons
+    if (userButton && adminButton) {
+        userButton.addEventListener('click', function() {
+            switchLogView(userLogView, userButton);
+        });
+    
+        adminButton.addEventListener('click', function() {
+            switchLogView(adminLogView, adminButton);
+        });
+    }
+    
+    // Initialize with user log view visible when logs container is shown
+    if (userLogView && userButton) {
+        switchLogView(userLogView, userButton);
+    }
+
+    // Event listeners for recent & all buttons
     if (allButton && recentButton) {
         allButton.addEventListener('click', function() {
             switchView(allView, allButton);
@@ -71,6 +112,8 @@ document.addEventListener('DOMContentLoaded', function() {
             switchView(recentView, recentButton);
         });
     }
+
+    
 
     const projectItems = document.querySelectorAll('.project-item');
     projectItems.forEach(item => {
@@ -554,50 +597,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Function to show profile and hide projects
-    function showProfile() {
-        profileContainer.style.display = 'block';
-        projectsContainer.style.display = 'none';
-        appContentHeader.style.display = 'none';
-
-        // Update active states
-        document.querySelectorAll('.menu-options li').forEach(item => {
-            item.classList.remove('selected');
-        });
-        profileSidebarIcon.classList.add('selected');
-    }
-
-    // Function to hide profile and show projects
-    function hideProfile() {
-        profileContainer.style.display = 'none';
-        projectsContainer.style.display = 'grid';
-        appContentHeader.style.display = 'flex';
-
-        // Reset active states
-        document.querySelectorAll('.menu-options li').forEach(item => {
-            item.classList.remove('selected');
-        });
-        document.querySelector('.menu-options li:nth-child(1)').classList.add('selected');
-    }
-
-    // Add click event to profile icons
-    if (profileHeaderIcon) {
-        profileHeaderIcon.addEventListener('click', showProfile);
-    }
     
-    if (profileSidebarIcon) {
-        profileSidebarIcon.addEventListener('click', showProfile);
-    }
 
-    // Add click event to other sidebar icons to hide profile
-    document.querySelectorAll('.menu-options li:not(#profileSidebarIcon)').forEach(item => {
-        item.addEventListener('click', hideProfile);
-    });
+    
 
-    // Also hide profile when clicking on header menu items
-    document.querySelectorAll('.header .menu li').forEach(item => {
-        item.addEventListener('click', hideProfile);
-    });
 
     // NEW: Filter dropdown functionality
     const filterDropdown = document.getElementById('filterDropdown');
@@ -901,3 +904,73 @@ function updatePdfControls(pdfDoc, currentPageNum) {
     document.getElementById('next-page').disabled = currentPageNum >= pdfDoc.numPages;
     document.getElementById('pdf-page-num').textContent = currentPageNum;
 }
+
+// Sidebar functionality
+const sidebarOptions = document.querySelectorAll('.menu-options li');
+const contentContainers = {
+    'dashboard': document.querySelector('.projects-container'), // This is the main projects container
+    'users': document.getElementById('access-container'),
+    'logs': document.getElementById('logs-container')
+};
+
+// Function to switch sidebar views
+function switchSidebarView(viewId) {
+    const header = document.querySelector('.header');
+    const appContentHeader = document.querySelector('.app-content-header');
+    const mainContent = document.querySelector('.main-content');
+    
+    // Hide all content containers
+    Object.values(contentContainers).forEach(container => {
+        if (container) {
+            container.style.display = 'none';
+            container.classList.remove('content-container-active');
+        }
+    });
+    
+    // Show the selected content container
+    if (contentContainers[viewId]) {
+        contentContainers[viewId].style.display = 'block';
+        contentContainers[viewId].classList.add('content-container-active');
+        
+        
+    } else {
+        // Show the main header and search when in dashboard view
+        header.style.display = 'flex';
+        appContentHeader.style.display = 'flex';
+    }
+    
+    // Update active states in sidebar
+    sidebarOptions.forEach(option => {
+        option.classList.remove('selected');
+    });
+    
+    // Find and select the clicked option
+    const clickedOption = Array.from(sidebarOptions).find(option => {
+        return option.getAttribute('data-view') === viewId;
+    });
+    
+    if (clickedOption) {
+        clickedOption.classList.add('selected');
+    }
+
+    // If switching to logs view, ensure user log is shown by default
+    if (viewId === 'logs' && userLogView && userButton) {
+        switchLogView(userLogView, userButton);
+    }
+}
+
+// Add event listeners to sidebar options
+sidebarOptions.forEach((option, index) => {
+    // Set data attributes to identify each option
+    const viewIds = ['dashboard', 'users', 'logs'];
+    option.setAttribute('data-view', viewIds[index] || `option-${index}`);
+    
+    option.addEventListener('click', function() {
+        const viewId = this.getAttribute('data-view');
+        switchSidebarView(viewId);
+    });
+});
+
+// Initialize with dashboard view
+switchSidebarView('dashboard');
+

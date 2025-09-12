@@ -130,6 +130,16 @@ body {
     font-size: var(--size-xlarge);
 }
 
+/* submenu */
+
+.fa-ellipsis-h {
+    cursor: pointer;
+}
+
+#submenu {
+    display: none;
+}
+
 /* Main Content Styles */
 .main-content {
     flex: 1;
@@ -156,7 +166,7 @@ body {
     top: 0;
     left: 80px; /* Sidebar width */
     right: 0;
-    z-index: 99;
+    z-index: 90;
 }
 
 .header .title {
@@ -196,6 +206,68 @@ body {
 
 .header .menu button.selected::after,
 .header .menu button:hover::after {
+    content: "";
+    border-bottom: 3px solid var(--primary-color);
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    left: 0;
+}
+
+.logHeader {
+    background: var(--color-white);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    padding: 0 30px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Added to push title left and menu right */
+    flex-shrink: 0;
+    position: fixed;
+    top: 0;
+    left: 80px; /* Sidebar width */
+    right: 0;
+    z-index: 90;
+}
+
+.logHeader .title {
+    font-weight: bold;
+    font-family: "Quicksand";
+    font-size: 1.5rem;
+    color: var(--color-dark-grey);
+}
+
+
+.logHeader .logMenu {
+    display: flex;
+    margin-left: 0; /* Removed the left margin */
+    list-style: none;
+}
+
+.logHeader .logMenu button {
+    margin: 0 0.5vw; /* Reduced margin between buttons */
+    background-color: transparent;
+    font-family: "Quicksand";
+    border: none;
+    text-transform: uppercase;
+    font-weight: bold;
+    font-size: 0.85em;
+    color: var(--color-dark-grey);
+    display: flex;
+    align-items: center;
+    position: relative;
+    padding: 10px 15px; /* Increased horizontal padding */
+    transition: color 0.3s ease;
+    cursor: pointer;
+}
+
+.logHeader .logMenu button.selected,
+.logHeader .logMenu button:hover {
+    color: var(--primary-color);
+}
+
+.logHeader .logMenu button.selected::after,
+.logHeader .logMenu button:hover::after {
     content: "";
     border-bottom: 3px solid var(--primary-color);
     position: absolute;
@@ -1257,6 +1329,192 @@ body {
     border-color: var(--primary-color);
 }
 
+/* Document Preview Modal Styles */
+.preview-modal {
+    z-index: 2001; /* Higher than upload modal */
+}
+
+.preview-modal-content {
+    width: auto;;
+}
+
+/* PDF Viewer Styles */
+#pdf-viewer canvas {
+    display: block;
+    margin: 0 auto;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.pdf-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 15px 0;
+    gap: 15px;
+}
+
+.pdf-controls button {
+    padding: 8px 15px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.pdf-controls button:hover {
+    background: var(--primary-dark);
+}
+
+.pdf-controls button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.pdf-page-info {
+    font-weight: 600;
+    color: var(--color-dark-grey);
+}
+
+        @media (max-width: 768px) {
+            .modal {
+                width: 95%;
+                margin: 20px;
+            }
+            
+            .modal-footer {
+                flex-direction: column;
+            }
+            
+            .btn-cancel, .btn-upload {
+                width: 100%;
+            }
+        }
+
+/* Content Containers */
+.content-container {
+    padding: 2vw;
+    background: var(--color-white);
+    border-radius: 12px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    top: 0vw;
+    position: relative;
+    
+}
+
+.content-header {
+    margin-bottom: 2vw;
+    padding-bottom: 1vw;
+    border-bottom: 1px solid #eee;
+}
+.content-header h2 {
+    font-size: 1.8rem;
+    color: var(--color-dark-grey);
+    margin-bottom: 8px;
+    font-weight: bold;
+    font-family: "Quicksand";
+}
+
+.content-header p {
+    color: var(--color-dark-grey);
+    font-size: 1rem;
+}
+
+/* Hide the main header when content containers are visible */
+.content-container-active ~ .main-content .header {
+    display: none !important;
+}
+
+.content-container-active ~ .main-content .app-content-header {
+    display: none !important;
+}
+
+.log-content {
+    display: none;
+}
+
+.log-content.active {
+    display: block;
+}
+
+/* Access Management Styles */
+.access-card {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.access-card h3 {
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+    color: var(--color-dark-grey);
+}
+
+.access-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.access-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: var(--color-white);
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.access-info h4 {
+    font-size: 1rem;
+    margin-bottom: 5px;
+    color: var(--color-dark-grey);
+}
+
+.access-info p {
+    font-size: 0.85rem;
+    color: var(--color-lite-grey);
+    margin: 0;
+}
+
+.access-count {
+    background: var(--primary-color);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+/* Logs Table Styles */
+.logs-table {
+    overflow-x: auto;
+}
+
+.logs-table table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.logs-table th,
+.logs-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.logs-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: var(--color-dark-grey);
+}
+
+.logs-table tr:hover {
+    background-color: #f8f9fa;
+}
 
 
 
