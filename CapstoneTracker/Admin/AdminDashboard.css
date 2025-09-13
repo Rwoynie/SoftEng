@@ -1393,18 +1393,62 @@ body {
         }
 
 /* Content Containers */
+
+.fa-file-arrow-down {
+    cursor: pointer;
+    font-size: 2vw; /* Very large icon */
+    
+    transition: all 0.3s ease;
+    position: absolute;
+    right: 2.5vw;
+    bottom: 2.5vw;
+    
+    border-radius: 50%;
+    
+}
+
+.fa-file-arrow-down:hover {
+    color: var(--primary-dark);
+    
+    transform: scale(1.2);
+}
+
 .content-container {
     padding: 2vw;
+    overflow-y: scroll;
     background: var(--color-white);
     border-radius: 12px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
     top: 0vw;
+    height: 100%;
     position: relative;
     
 }
 
+
+/* Custom scrollbar for logs container */
+.content-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.content-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.content-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.content-container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+
+
 .content-header {
-    margin-bottom: 2vw;
+    margin-bottom: 0vw;
     padding-bottom: 1vw;
     border-bottom: 1px solid #eee;
 }
@@ -1455,17 +1499,24 @@ body {
 .access-list {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 3vw;
 }
 
 .access-item {
+    cursor: pointer;
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 15px;
-    background: var(--color-white);
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    background-color: var(--color-white);
+    border-radius: 0.8vw;
+    border: 0.1vw solid #dddddd;
+    transition: all 0.10s ease;
+}
+
+.access-item:hover {
+    background-color: #e7e7e7;
+    transform: scale(1.01);
 }
 
 .access-info h4 {
@@ -1490,6 +1541,9 @@ body {
 }
 
 /* Logs Table Styles */
+
+
+
 .logs-table {
     overflow-x: auto;
 }
@@ -1507,7 +1561,7 @@ body {
 }
 
 .logs-table th {
-    background-color: #f8f9fa;
+    background-color: #d2d1d1;
     font-weight: 600;
     color: var(--color-dark-grey);
 }

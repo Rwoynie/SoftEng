@@ -385,21 +385,26 @@
                     <div class="access-card">
                         <h3>User Roles</h3>
                         <div class="access-list">
-                            <div class="access-item">
+
+                            <div id="adminAccess" class="access-item">
                                 <div class="access-info">
                                     <h4>Administrator</h4>
                                     <p>Full system access</p>
                                 </div>
                                 <div class="access-count">3 users</div>
                             </div>
-                            <div class="access-item">
+
+
+                            <div id="facultyAccess" class="access-item">
                                 <div class="access-info">
                                     <h4>Faculty</h4>
                                     <p>Can edit content but not manage users</p>
                                 </div>
                                 <div class="access-count">7 users</div>
                             </div>
-                            <div class="access-item">
+
+
+                            <div id="studentAccess" class="access-item">
                                 <div class="access-info">
                                     <h4>Student</h4>
                                     <p>Read-only and download access</p>
@@ -408,6 +413,8 @@
                             </div>
                         </div>
                     </div>
+
+                    
                 </div>
             </div>
 
@@ -425,6 +432,7 @@
                     <div class="content-header">
                         <h2>User Log</h2>
                         <p>View user activities and events</p>
+                        <i class="fa-solid fa-file-arrow-down"></i>
                     </div>
                     <div class="content-body">
                         <div class="logs-table">
@@ -467,6 +475,7 @@
                     <div class="content-header">
                         <h2>Admin Log</h2>
                         <p>View administrator activities and events</p>
+                        <i class="fa-solid fa-file-arrow-down"></i>
                     </div>
                     <div class="content-body">
                         <div class="logs-table">

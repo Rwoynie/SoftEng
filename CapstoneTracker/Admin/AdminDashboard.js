@@ -974,3 +974,54 @@ sidebarOptions.forEach((option, index) => {
 // Initialize with dashboard view
 switchSidebarView('dashboard');
 
+//download functionality for logs with SweetAlert confirmation
+const logDownloadButtons = document.querySelectorAll('.fa-file-arrow-down');
+logDownloadButtons.forEach(button => {
+    button.addEventListener('click', function() {
+        // Determine which log type this button is for
+        const logContainer = this.closest('.log-content');
+        const logType = logContainer.id.includes('user') ? 'User' : 'Admin';
+        
+        Swal.fire({
+            title: `Download ${logType} Logs?`,
+            text: `Do you want to download the ${logType.toLowerCase()} logs as a CSV file?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, download!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Simulate download process
+                Swal.fire({
+                    title: 'Download Started!',
+                    text: `${logType} logs are being downloaded.`,
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                
+                // In a real application, you would trigger the actual download here
+                // For demonstration, we'll create a dummy download
+                setTimeout(() => {
+                    // Create a dummy CSV content
+                    const csvContent = "data:text/csv;charset=utf-8,";
+                    
+                    // Create a temporary link element
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", `${logType.toLowerCase()}_logs_${new Date().toISOString().split('T')[0]}.csv`);
+                    document.body.appendChild(link);
+                    
+                    // Trigger the download
+                    link.click();
+                    
+                    // Clean up
+                    document.body.removeChild(link);
+                }, 1000);
+            }
+        });
+    });
+});
