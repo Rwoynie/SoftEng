@@ -1,6 +1,6 @@
 <?php
 class Thesis extends Model {
-    public function getUserTheses($userId) {
+    public function getUserThesis($userId) {
         $this->db->query('SELECT * FROM theses WHERE user_id = :user_id ORDER BY created_at DESC');
         $this->db->bind(':user_id', $userId);
         return $this->db->resultSet();
