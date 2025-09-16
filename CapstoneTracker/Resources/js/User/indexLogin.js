@@ -8,7 +8,6 @@ function forgotPassword() {
     });
 }
 
-<<<<<<< HEAD
 function showLoading() {
     const btn = document.getElementById('customGoogleBtn');
     if (btn) {
@@ -21,25 +20,29 @@ function hideLoading() {
     if (btn) {
         btn.classList.remove('loading');
     }
-=======
-function back() {
-    window.location.href = "publicView.php";
->>>>>>> 6da5b4600102608002a856e0caf9073cda902fd4
 }
 
 function onSignIn(googleUser) {
     var profile = googleUser.getBasicProfile();
-    console.log('ID: ' + profile.getId());
-    console.log('Name: ' + profile.getName());
-    console.log('Image URL: ' + profile.getImageUrl());
-    console.log('Email: ' + profile.getEmail());
-    
-    // You can send the ID token to your server for verification
+    var email = (profile.getEmail() || '').toLowerCase();
+    if (!email.endsWith('@usep.edu.ph')) {
+        Swal.fire({
+            title: 'Invalid Email',
+            text: 'Please use your USeP (@usep.edu.ph) account.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        try {
+            if (typeof gapi !== 'undefined' && gapi.auth2) {
+                var auth2 = gapi.auth2.getAuthInstance();
+                if (auth2) auth2.signOut();
+            }
+        } catch (e) {}
+        return;
+    }
     var id_token = googleUser.getAuthResponse().id_token;
-    console.log('ID Token: ' + id_token);
-    
-    // Hide loading after successful sign-in
-    hideLoading();
+    sessionStorage.setItem('userEmail', email);
+    sessionStorage.setItem('googleIdToken', id_token);
 }
 
 // Wait for the Google API to load
@@ -97,7 +100,71 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add a fallback in case the Google API doesn't load properly
     setTimeout(renderGoogleButton, 2000);
+
+    // Modal open buttons
+    const researcherBtn = document.getElementById("researcherBtn");
+    const facultyBtn = document.getElementById("facultyBtn");
+    const modalTitle = document.getElementById("modalTitle");
+    const roleField = document.getElementById("roleField");
+    const googleModalBtn = document.getElementById("googleModalBtn");
+    const togglePasswordBtn = document.getElementById("togglePasswordBtn");
+    const passwordInput = document.getElementById("password");
+
+    function openLogin(role){
+      if (modalTitle) modalTitle.innerText = role + " Login";
+      if (roleField) roleField.value = role;
+      const modalEl = document.getElementById('loginModal');
+      if (!modalEl) return;
+      const loginModal = new bootstrap.Modal(modalEl);
+      loginModal.show();
+      // ensure Google button is clickable
+      setTimeout(() => {
+        if (googleModalBtn) {
+          googleModalBtn.onclick = function() {
+            const googleButton = document.querySelector('#googleButton .abcRioButton');
+            if (googleButton) {
+              googleButton.click();
+            } else {
+              Swal.fire('Google Sign-In not ready', 'Please try again in a moment.', 'info');
+            }
+          };
+        }
+      }, 300);
+    }
+
+    if (researcherBtn) researcherBtn.addEventListener("click", () => openLogin("Researcher"));
+    if (facultyBtn) facultyBtn.addEventListener("click", () => openLogin("Faculty"));
+
+    if (togglePasswordBtn && passwordInput) {
+      togglePasswordBtn.addEventListener('click', function() {
+        const isHidden = passwordInput.type === 'password';
+        passwordInput.type = isHidden ? 'text' : 'password';
+        const icon = this.querySelector('i');
+        if (icon) {
+          icon.classList.toggle('fa-eye');
+          icon.classList.toggle('fa-eye-slash');
+        }
+        this.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+      });
+    }
 });
+
+
+      const researcherBtn = document.getElementById("researcherBtn");
+      const facultyBtn = document.getElementById("facultyBtn");
+      const modalTitle = document.getElementById("modalTitle");
+      const roleField = document.getElementById("roleField");
+
+      function openLogin(role){
+        modalTitle.innerText = role + " Login";
+        roleField.value = role;
+        let loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+        loginModal.show();
+      }
+
+      researcherBtn.addEventListener("click", () => openLogin("Researcher"));
+      facultyBtn.addEventListener("click", () => openLogin("Faculty"));
+
 
 /*
 let slideIndex = 0;

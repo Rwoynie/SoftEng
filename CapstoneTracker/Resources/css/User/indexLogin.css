@@ -92,7 +92,7 @@ body {
 }
 
 .sysLogo {
-    width: 10vw;
+    width: 13vw;
     height: auto;
     display: block;
     margin: 1rem auto 0.75rem auto; /* Centered with consistent spacing */
@@ -389,11 +389,11 @@ h2 {
 }
  .top:before {
 	 transform: rotate(45deg);
-	 background: rgb(186, 30, 31);
+	 background: #800000;
 }
  .top:after {
 	 transform: rotate(135deg);
-	 background: rgb(186, 30, 31);
+	 background: #800000;
 }
  .bottom:before {
 	 transform: rotate(-45deg);
@@ -466,15 +466,15 @@ h2 {
     display: flex;
     flex-direction: column;
     align-items: center;
-    
     z-index: 5;
+   margin-bottom: 20%;
 }
 
 .container2 h1 {
     color: black;
     font-family: 'Merriweather', serif;
     font-weight: 700;
-    font-size: 2rem;
+    font-size: 2.1rem;
     margin-top: 1rem;
 }
 
@@ -828,4 +828,63 @@ h2 {
     color: #666;
     font-size: 0.85rem;
     font-weight: 400;
+}
+
+/* LOGIN MODAL CUSTOM STYLE */
+#loginModal .modal-content {
+    border-radius: 15px;
+    box-shadow: 0 6px 25px rgba(0,0,0,0.2);
+    font-family: 'Poppins', sans-serif;
+}
+
+#loginModal .modal-header {
+    border-bottom: none;
+    text-align: center;
+    display: block;
+    padding-bottom: 0;
+}
+
+#loginModal .modal-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-top: 10px;
+}
+
+#loginModal .sysLogo {
+    width: 80px;
+    height: auto;
+    margin: 0 auto;
+    display: block;
+}
+
+#loginModal .form-label {
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+#loginModal .form-control {
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 0.95rem;
+}
+
+#loginModal .btn-success {
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+#loginModal .btn.google-btn,
+#loginModal button[style*="background:#db4437"] {
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+#loginModal .btn-link {
+    font-size: 0.9rem;
+    text-decoration: none;
+    color: #0d6efd;
+}
+
+#loginModal .btn-link:hover {
+    text-decoration: underline;
 }

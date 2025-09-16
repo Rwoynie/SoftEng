@@ -13,11 +13,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="../../../resources/css/User/indexLogin.css">
-    <script type="text/javascript" src="../../../resources/css/User/indexLogin.js"></script>
-
+    <script type="text/javascript" src="../../../resources/js/User/indexLogin.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://apis.google.com/js/platform.js?onload=onGoogleLoad" async defer></script>
-</head>
+    
+</head> 
 <body>
     
 <div class="container" onclick="onclick">
@@ -26,34 +27,71 @@
   <div class="center">
   <div class="container1">
         <div class="container2">
-            <img class="sysLogo" src="../images/gradcap.png" alt="Thesis Repository Logo - Graduation Cap">
+            <img class="sysLogo" src="../../../resources/images/gradcap.png" alt="Thesis Repository Logo - Graduation Cap">
             <h1>Thesis Repository</h1>
             <p class="tagline">A digital library for USeP student research.</p>
-        </div>
-
-        <div class="form-container">
-            <!-- Login Form -->
-            <form class="loginForm active">
-                <h2>Welcome!</h2>
-                <p class="login-description">Access and upload research papers using your official USeP account.</p>
-                
-                <meta name="google-signin-client_id" content="YOUR_ACTUAL_CLIENT_ID.apps.googleusercontent.com">
-                <!-- Replace the Google button div with your custom button -->
-                <button id="customGoogleBtn" class="btn-google" type="button" tabindex="0" aria-label="Sign in with Google using your USeP email account">
-                    <div class="loading-spinner"></div>
-                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj48cGF0aCBkPSJNMTcuNiA5LjJsLS4xLTEuOEg5djMuNGg0LjhDMTMuNiAxMiAxMyAxMyAxMiAxMy42djIuMmgzYTguOCA4LjggMCAwIDAgMi42LTYuNnoiIGZpbGw9IiM0Mjg1RjQiIGZpbGwtcnVsZT0ibm9uemVybyIvPjxwYXRoIGQ9Ik05IDE4YzIuNCAwIDQuNS0uOCA2LTIuMmwtMy0yLjJhNS40IDUuNCAwIDAgMS04LTIuOUgxVjEzYTkgOSAwIDAgMCA4IDV6IiBmaWxsPSIjMzRBODUzIiBmaWxsLXJ1bGU9Im5vbnplcm8iLz48cGF0aCBkPSJNNCAxMC43YTUuNCA1LjQgMCAwIDEgMC0zLjRWNUgxYTkgOSAwIDAgMCAwIDhsMy0yLjN6IiBmaWxsPSIjRkJCQzA1IiBmaWxsLXJ1bGU9Im5vbnplcm8iLz48cGF0aCBkPSJNOSAzLjZjMS4zIDAgMi41LjQgMy40IDEuM0wxNSAyLjNBOSA5IDAgMCAwIDEgNWwzIDIuNGE1LjQgNS40IDAgMCAxIDUtMy43eiIgZmlsbD0iI0VBNDMzNSIgZmlsbC1ydWxlPSJub256ZXJvIi8+PHBhdGggZD0iTTAgMGgxOHYxOEgweiIvPjwvZz48L3N2Zz4=" alt="Google logo">
-                    <span class="btn-text">Sign in with Google</span>
+            <div class="d-flex justify-content-center gap-2" style="margin-top: 30px;">
+                <button id="researcherBtn" class="btn btn-primary btn-lg">
+                    <i class="fas fa-user-graduate me-2"></i>
+                    Researcher
+                </button>   
+                <span class="align-self-center text-muted">|</span>
+                <button id="facultyBtn" class="btn btn-outline-danger btn-lg">
+                    <i class="fas fa-chalkboard-teacher me-2"></i>
+                    Faculty
                 </button>
-                <div id="googleButton" style="display: none;"></div>
-                <div class="back"><p onclick="back()"><i class="fa-solid fa-house" style="color: #000000;"></i>&nbsp&nbspBack</p></div>
-                
-            </form>
+            </div>
+            <div class="text-center mt-3">
+                <a href="../../../app/Views/User/publicView.php" class="text-decoration-none link-secondary" >View as guest</a>
+            </div>
+        </div>  
+    </div>
   </div>
 </div>
 
-  </div>
-        
+<!-- LOGIN MODAL (ADDED) -->
+<div class="modal fade" id="loginModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content p-4">
+      <div class="modal-header border-0 text-center w-100 d-block position-relative">
+        <img src="../../../resources/images/gradcap.png" class="sysLogo mb-2" alt="Logo" style="width:80px;">
+        <h5 class="modal-title" id="modalTitle">Login</h5>
+        <button type="button" class="btn btn-link text-muted position-absolute" style="top:8px; right:10px; font-size:24px; text-decoration:none;" data-bs-dismiss="modal" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <input type="hidden" id="roleField" name="role">
+          <div class="mb-3">
+            <label for="username" class="form-label">Username</label>
+            <input type="text" id="username" class="form-control" placeholder="Enter username" required>
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <div class="input-group">
+              <input type="password" id="password" class="form-control" placeholder="Enter password" required>
+              <button class="btn btn-outline-secondary" type="button" id="togglePasswordBtn" aria-label="Show password">
+                <i class="far fa-eye"></i>
+              </button>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-success w-100 mb-2">Login</button>
+
+          <div class="d-flex justify-content-center mb-2">
+            <div id="googleButton"></div>
+          </div>
+          <button type="button" id="googleModalBtn" class="btn w-100 mb-3" style="background:#db4437; color:white;">
+            <i class="fab fa-google me-2"></i> Sign in with USeP Email
+          </button>
+          <small class="text-muted d-block text-center">Use your USeP (@usep.edu.ph) email only</small>
+
+          <div class="text-center">
+            <a href="#" class="btn btn-link">Not yet registered?</a>
+          </div>
+        </form>
+      </div>
     </div>
+  </div>
+</div>
 
     <footer class="login-footer">
         <p>&copy; 2025 University of Southeastern Philippines | Thesis Repository</p>
