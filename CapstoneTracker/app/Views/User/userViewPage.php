@@ -12,7 +12,8 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Quicksand">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    <link rel="stylesheet" href="userViewPage.css">
+    <link rel="stylesheet" href="../../../resources/css/User/userViewPage.css">
+    <script type="text/javascript" src="../../../resources/js/User/userViewPage.js"></script>
     
     </head>
 <body>
@@ -487,5 +488,5 @@
 
 </body>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-<script type="text/javascript" src="userViewPage.js"></script>
+
 </html>

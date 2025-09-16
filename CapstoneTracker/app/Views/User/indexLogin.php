@@ -12,7 +12,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700;900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="indexLogin.css">
+    <link rel="stylesheet" href="../../../resources/css/User/indexLogin.css">
+    <script type="text/javascript" src="../../../resources/css/User/indexLogin.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://apis.google.com/js/platform.js?onload=onGoogleLoad" async defer></script>
@@ -58,8 +59,6 @@
         <p>&copy; 2025 University of Southeastern Philippines | Thesis Repository</p>
     </footer>
 
-    <script type="text/javascript" src="indexLogin.js">
-
-    </script>
+    
 </body>
 </html>

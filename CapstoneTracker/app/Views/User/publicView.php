@@ -10,7 +10,10 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Quicksand">
-    <link rel="stylesheet" href="publicView.css">
+    
+    <link rel="stylesheet" href="../../../resources/css/User/publicView.css">
+    <script type="text/javascript" src="../../../resources/css/User/publicView.js"></script>
+    
 </head>
 <body>
 <div class="dashboard-container">
@@ -286,6 +289,6 @@
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.js"></script>
-<script type="text/javascript" src="publicView.js"></script>
+
 </body>
 </html>
