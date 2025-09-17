@@ -1,3 +1,12 @@
+<?php
+// index.php or your main file
+require_once 'config.php'; // This defines constants and starts session
+require_once 'Database.php'; // This uses the constants from config
+require_once 'Model.php';
+require_once 'Controller.php';
+
+?>
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>

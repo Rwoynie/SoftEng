@@ -190,6 +190,8 @@ sidebarButtons.forEach(button => {
             }
         });
     };
+
+    
     
     // Call the animation function
     animateOnScroll();

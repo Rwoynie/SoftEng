@@ -1,30 +1,25 @@
 <?php
 class User extends Model {
+    protected $tableName = 'users'; // Set table name
+    
+    // User-specific methods
     public function register($data) {
-        $this->db->query('INSERT INTO users (name, email, password) VALUES (:name, :email, :password)');
-        $this->db->bind(':name', $data['name']);
-        $this->db->bind(':email', $data['email']);
-        $this->db->bind(':password', password_hash($data['password'], PASSWORD_DEFAULT));
+        $salt = bin2hex(random_bytes(16));
+        $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
         
-        return $this->db->execute();
+        $this->db->query('INSERT INTO STUDENT_INFORMATION 
+            (pswrd, Salt, First_Name, Middle_Name, Last_Name, Extension, Email, Student_ID) 
+            VALUES (:password, :salt, :first_name, :middle_name, :last_name, :extension, :email, :student_id)');
+        
+        $this->db->bind(':password', $hashedPassword);
+        $this->db->bind(':salt', $salt);
+        // ... bind other parameters
     }
     
     public function login($email, $password) {
-        $this->db->query('SELECT * FROM users WHERE email = :email');
-        $this->db->bind(':email', $email);
-        
-        $row = $this->db->single();
-        
-        if ($row && password_verify($password, $row->password)) {
-            return $row;
-        }
-        
-        return false;
-    }
-    
-    public function getUserById($id) {
-        $this->db->query('SELECT * FROM users WHERE id = :id');
-        $this->db->bind(':id', $id);
-        return $this->db->single();
+        // Can use parent's database connection
+        $this->db->query('SELECT * FROM users ...');
+        // ... user-specific logic
     }
 }
+?>

@@ -10,9 +10,9 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Quicksand">
-    
+
     <link rel="stylesheet" href="../../../resources/css/User/publicView.css">
-    <script type="text/javascript" src="../../../resources/css/User/publicView.js"></script>
+    <script type="text/javascript" src="../../../resources/js/User/publicView.js"></script>
     
 </head>
 <body>
@@ -83,7 +83,7 @@
             <div class="projects-container">
                 <!-- Recent Projects View -->
                 <ul class="projects" id="recentView">
-                    <li class="project-item" data-tags="important enhancement">
+                    <li class="project-item project-hover" data-tags="important enhancement">
                     <div  class="logo-row">
                             <img src="../Images/usep-logo-small.png" alt="Logo" />
                             <div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>

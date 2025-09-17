@@ -1,10 +1,12 @@
 <?php
-// This needed per php class
+// config.php
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 require_once __DIR__ . '/../vendor/autoload.php'; 
+// Load helper functions
+require_once __DIR__ . '/../app/helpers/functions.php';
 
 $dotenvPath = dirname(__DIR__) . '/.env';
 if (!file_exists($dotenvPath)) {
@@ -14,36 +16,20 @@ if (!file_exists($dotenvPath)) {
 $dotenv = Dotenv\Dotenv::createImmutable(dirname(__DIR__)); 
 $dotenv->load();
 
-// upto here.
+// Define BASE_URL
+define('BASE_URL', $_ENV['BASE_URL'] ?? 'http://localhost/');
 
-// Database Connection Configuration
-$host = $_ENV['DB_HOST'];
-$username = $_ENV['DB_USER'];
-$password = $_ENV['DB_PASS'];
-$database = $_ENV['DB_NAME'];
-
-// Create database connection
-$conn = new mysqli($host, $username, $password, $database);
-
-// Check Connection
-if ($conn->connect_error) {
-    error_log("Database connection failed: " . $conn->connect_error);
-    header('Content-Type: application/json');
-    die(json_encode(["success" => false, "message" => "Database connection failed: " . $conn->connect_error]));
+// Start session
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
-// Create Database if it doesn't exist
-if (!$conn->query("CREATE DATABASE IF NOT EXISTS $database")) {
-    error_log("Database creation failed: " . $conn->error);
-    header('Content-Type: application/json');
-    die(json_encode(["success" => false, "message" => "Database creation failed: " . $conn->error]));
-}
+// Database Configuration (for PDO)
+define('DB_HOST', $_ENV['DB_HOST']);
+define('DB_USER', $_ENV['DB_USER']);
+define('DB_PASS', $_ENV['DB_PASS']);
+define('DB_NAME', $_ENV['DB_NAME']);
 
-// Select Database
-if (!$conn->select_db($database)) {
-    error_log("Failed to select database '$database': " . $conn->error);
-    header('Content-Type: application/json');
-    die(json_encode(["success" => false, "message" => "Failed to select database: " . $conn->error]));
-}
-
+// Remove the MySQLi connection code since we're using PDO through Database class
+// The Database class will handle the connection using these constants
 ?>

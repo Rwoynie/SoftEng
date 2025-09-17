@@ -1,48 +1,43 @@
 <?php
 class AuthController extends Controller {
+    
     public function login() {
+        // If already logged in, redirect to dashboard
+        if ($this->isLoggedIn()) {
+            $this->redirect('user/dashboard');
+        }
+        
+        // Display your login page directly
+        require_once __DIR__ . '/../indexLogin.php';
+    }
+    
+    public function googleLogin() {
+        // Handle Google login logic here
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            // Process login form
-            $userModel = $this->model('User');
-            $user = $userModel->login($_POST['email'], $_POST['password']);
+            // Process Google authentication
+            // This would verify the Google token and create user session
             
-            if ($user) {
-                // Create session
-                $this->createUserSession($user);
-                $this->redirect('user/dashboard');
-            } else {
-                // Login failed
-                $data = [
-                    'email' => $_POST['email'],
-                    'password' => '',
-                    'email_err' => 'Invalid credentials',
-                    'password_err' => 'Invalid credentials'
-                ];
-                $this->view('auth/login', $data);
-            }
-        } else {
-            // Load form
-            $data = [
-                'email' => '',
-                'password' => '',
-                'email_err' => '',
-                'password_err' => ''
-            ];
-            $this->view('auth/login', $data);
+            // After successful authentication:
+            $user = [/* user data from Google */];
+            $this->createUserSession($user);
+            $this->redirect('user/dashboard');
         }
     }
     
     public function createUserSession($user) {
-        $_SESSION['user_id'] = $user->id;
-        $_SESSION['user_email'] = $user->email;
-        $_SESSION['user_name'] = $user->name;
+        $_SESSION['user_id'] = $user['id'];
+        $_SESSION['user_email'] = $user['email'];
+        $_SESSION['user_name'] = $user['name'];
+        $_SESSION['user_role'] = $user['role'] ?? 'user';
     }
     
     public function logout() {
         unset($_SESSION['user_id']);
         unset($_SESSION['user_email']);
         unset($_SESSION['user_name']);
+        unset($_SESSION['user_role']);
         session_destroy();
-        $this->redirect('public/index');
+        $this->redirect('auth/login');
     }
 }
+?>
