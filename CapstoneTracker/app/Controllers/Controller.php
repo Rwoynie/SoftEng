@@ -10,7 +10,7 @@ class Controller {
      * @return object Model instance
      */
     protected function model($model) {
-        require_once __DIR__ . '/../models/' . $model . '.php';
+        require_once __DIR__ . '/../Models/' . $model . '.php';
         return new $model();
     }
     
@@ -21,7 +21,7 @@ class Controller {
      */
     protected function view($view, $data = []) {
         extract($data);
-        require_once __DIR__ . '/../views/' . $view . '.php';
+        require_once __DIR__ . '/../Views/' . $view . '.php';
     }
     
     /**

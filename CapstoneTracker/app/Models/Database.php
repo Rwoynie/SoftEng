@@ -1,5 +1,5 @@
-<!-- Prepared Statements -->
 <?php
+require_once __DIR__ . '/../../Database/config.php';
 class Database {
     private $host = DB_HOST;
     private $user = DB_USER;
@@ -9,20 +9,33 @@ class Database {
     private $dbh;
     private $stmt;
     private $error;
+    private $isConnected = false;
     
     public function __construct() {
-        $dsn = 'mysql:host=' . $this->host . ';dbname=' . $this->dbname;
+        $dsn = 'mysql:host=' . $this->host . ';dbname=' . $this->dbname . ';charset=utf8mb4';
         $options = [
             PDO::ATTR_PERSISTENT => true,
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_OBJ
         ];
         
         try {
             $this->dbh = new PDO($dsn, $this->user, $this->pass, $options);
+            $this->isConnected = true;
         } catch (PDOException $e) {
             $this->error = $e->getMessage();
-            echo $this->error;
+            error_log("Database connection error: " . $this->error);
+            $this->isConnected = false;
+            // Don't throw exception here, let the caller check isConnected()
         }
+    }
+
+    public function isConnected() {
+        return $this->isConnected;
+    }
+    
+    public function getError() {
+        return $this->error;
     }
     
     public function query($sql) {
@@ -49,20 +62,29 @@ class Database {
     }
     
     public function execute() {
-        return $this->stmt->execute();
+        try {
+            return $this->stmt->execute();
+        } catch (PDOException $e) {
+            error_log("Query execution error: " . $e->getMessage());
+            throw $e;
+        }
     }
     
     public function resultSet() {
         $this->execute();
-        return $this->stmt->fetchAll(PDO::FETCH_OBJ);
+        return $this->stmt->fetchAll();
     }
     
     public function single() {
         $this->execute();
-        return $this->stmt->fetch(PDO::FETCH_OBJ);
+        return $this->stmt->fetch();
     }
     
     public function rowCount() {
         return $this->stmt->rowCount();
+    }
+    
+    public function lastInsertId() {
+        return $this->dbh->lastInsertId();
     }
 }

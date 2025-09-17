@@ -1,11 +1,38 @@
 <?php
-// index.php or your main file
-require_once 'config.php'; // This defines constants and starts session
-require_once 'Database.php'; // This uses the constants from config
-require_once 'Model.php';
-require_once 'Controller.php';
+// indexLogin.php
+define('ROOT_DIR', dirname(__DIR__, 3));
 
-?>
+// Include the configuration file
+require_once ROOT_DIR . '\Database\config.php';
+
+// Initialize database if needed
+$setupError = null;
+try {
+    require_once ROOT_DIR . '\app\Controllers\SetupController.php';
+    $setupController = new SetupController();
+    $isDatabaseReady = $setupController->initializeDatabase();
+    
+    if (!$isDatabaseReady) {
+        $setupError = $setupController->getSetupError();
+        // Don't redirect, just show error on the page
+    }
+} catch (Exception $e) {
+    $setupError = "Setup error: " . $e->getMessage();
+    error_log("Database setup error: " . $e->getMessage());
+}
+
+require_once ROOT_DIR . '\app\Models\Model.php';
+require_once ROOT_DIR . '\app\Controllers\Controller.php';
+
+if ($setupError) {
+  echo '<div class="alert alert-danger position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999;">';
+  echo 'Setup Error: ' . htmlspecialchars($setupError);
+  echo '</div>';
+  
+  // Also log the detailed error
+  error_log("Database setup error details: " . $setupError);
+}
+?> 
 
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
