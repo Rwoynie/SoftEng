@@ -14,4 +14,4 @@ class Thesis extends Model {
     // - findById() to get specific thesis
     // - delete() to delete a thesis
 }
-?>
+?>  

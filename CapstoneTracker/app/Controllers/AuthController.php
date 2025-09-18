@@ -4,7 +4,7 @@ class AuthController extends Controller {
     public function login() {
         // If already logged in, redirect to dashboard
         if ($this->isLoggedIn()) {
-            $this->redirect('user/dashboard');
+            $this->redirect('../View/User/userViewPage.php');
         }
         
         // Display your login page directly
