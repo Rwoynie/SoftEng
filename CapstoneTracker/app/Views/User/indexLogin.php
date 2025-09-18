@@ -1,5 +1,11 @@
 <?php
-// indexLogin.php
+
+
+// Start session at the very top
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 define('ROOT_DIR', dirname(__DIR__, 3));
 
 // Include the configuration file
@@ -23,6 +29,16 @@ try {
 
 require_once ROOT_DIR . '\app\Models\Model.php';
 require_once ROOT_DIR . '\app\Controllers\Controller.php';
+
+// Store error message for SweetAlert
+$errorMessage = '';
+$showModal = false;
+
+if (isset($_SESSION['error_message'])) {
+    $errorMessage = $_SESSION['error_message'];
+    $showModal = true; // Show modal when there's an error
+    unset($_SESSION['error_message']);
+}
 
 if ($setupError) {
   echo '<div class="alert alert-danger position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999;">';
@@ -54,6 +70,11 @@ if ($setupError) {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://apis.google.com/js/platform.js?onload=onGoogleLoad" async defer></script>
     
+
+    <script>
+        const errorMessage = "<?php echo addslashes($errorMessage); ?>";
+        const showModal = <?php echo $showModal ? 'true' : 'false'; ?>;
+    </script>
 </head> 
 <body>
     
@@ -95,7 +116,9 @@ if ($setupError) {
         <button type="button" class="btn btn-link text-muted position-absolute" style="top:8px; right:10px; font-size:24px; text-decoration:none;" data-bs-dismiss="modal" aria-label="Close">&times;</button>
       </div>
       <div class="modal-body">
-        <form>
+        <form method="POST" action="../../../app/Controllers/AuthController.php">
+<!-- login action handler -->
+        <input type="hidden" name="action" value="login">
           <input type="hidden" id="roleField" name="role">
           <div class="mb-3">
             <label for="username" class="form-label">Username</label>
@@ -132,7 +155,8 @@ if ($setupError) {
     <footer class="login-footer">
         <p>&copy; 2025 University of Southeastern Philippines | Thesis Repository</p>
     </footer>
-
+    
     
 </body>
+
 </html>

@@ -1,3 +1,50 @@
+// Show error message as SweetAlert and reopen modal if there is an error
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if we should show the modal
+    if (typeof showModal !== 'undefined' && showModal) {
+        // Get the role from the hidden field or default to Researcher
+        const roleField = document.getElementById('roleField');
+        const role = roleField ? roleField.value : 'Researcher';
+        openLogin(role);
+    }
+    
+    // Show error message if there is one
+    if (typeof errorMessage !== 'undefined' && errorMessage && errorMessage !== '') {
+        showErrorAlert(errorMessage);
+    }
+    
+    // Initialize the page functionality
+    initializePage();
+});
+
+function showErrorAlert(message) {
+    Swal.fire({
+        title: 'Login Failed',
+        text: message,
+        icon: 'error',
+        confirmButtonText: 'OK'
+    }).then((result) => {
+        // After user closes the alert, focus on the username field
+        if (result.isConfirmed || result.isDismissed) {
+            const usernameField = document.getElementById('username');
+            if (usernameField) {
+                usernameField.focus();
+            }
+        }
+    });
+}
+
+// Prevent form submission from closing modal on error
+function setupFormHandlers() {
+    const loginForm = document.querySelector('#loginModal form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            // Let the form submit normally - the server will handle validation
+            console.log('Form submitted to AuthController');
+        });
+    }
+}
+
 
 function forgotPassword() {
     Swal.fire({

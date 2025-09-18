@@ -1,7 +1,7 @@
 <?php
 class UserController extends Controller {
     public function dashboard() {
-        if (!isLoggedIn()) {
+        if (!$this->isLoggedIn()) {
             $this->redirect('auth/login');
         }
         
@@ -12,11 +12,11 @@ class UserController extends Controller {
             'title' => 'Dashboard',
             'theses' => $theses
         ];
-        $this->view('user/dashboard', $data);
+        $this->view('User/dashboard', $data);
     }
     
     public function profile() {
-        if (!isLoggedIn()) {
+        if (!$this->isLoggedIn()) {
             $this->redirect('auth/login');
         }
         
@@ -27,7 +27,7 @@ class UserController extends Controller {
             'title' => 'Profile',
             'user' => $user
         ];
-        $this->view('user/profile', $data);
+        $this->view('User/profile', $data);
     }
     
     public function upload() {
@@ -43,13 +43,13 @@ class UserController extends Controller {
                     'title' => 'Upload Thesis',
                     'error' => 'Failed to upload thesis'
                 ];
-                $this->view('user/upload', $data);
+                $this->view('User/upload', $data);
             }
         } else {
             $data = [
                 'title' => 'Upload Thesis'
             ];
-            $this->view('user/upload', $data);
+            $this->view('User/upload', $data);
         }
     }
 }
