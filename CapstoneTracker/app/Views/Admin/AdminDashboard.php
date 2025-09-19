@@ -378,16 +378,16 @@
                                         
                 </header>
 
-                <div class="content-header">
+                <div id="accessHeader2" class="content-header">
                     
                     <p>Manage user permissions and access levels</p>
                 </div>
                 <div class="content-body">
-                    <div class="access-card">
+                    <div class="access-card" id="access-card">
                         <h3>User Roles</h3>
                         <div class="access-list">
 
-                            <button id="adminAccess" onclick="window.location.href = 'adminAccess.php'" class="access-item">
+                            <button id="adminAccess" class="access-item">
                                 <div class="access-info">
                                     <h4>Administrator</h4>
                                     <p>Full system access</p>
@@ -603,166 +603,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
 
 <script>
-    const projectsContainer = document.querySelector('.projects-container');
-    const accessContainer = document.getElementById('access-container');
-    const adminAccessBtn = document.getElementById('adminAccess');
-    const adminAccessContent = document.getElementById('admin-access-content');
-
-    // Show admin access content when adminAccess button is clicked
-    adminAccessBtn.addEventListener('click', function() {
-        // Hide the projects container and show the access container
-        projectsContainer.style.display = 'none';
-        accessContainer.style.display = 'block';
-        
-        // Load the admin access content from external file
-        loadAdminAccessContent();
-    });
-
-    // Function to load admin access content
-    function loadAdminAccessContent() {
-        fetch('adminAccess.php')
-            .then(response => response.text())
-            .then(data => {
-                adminAccessContent.innerHTML = data;
-                initializeAdminAccessFunctionality();
-            })
-            .catch(error => {
-                console.error('Error loading admin access content:', error);
-                adminAccessContent.innerHTML = '<p>Error loading admin access content. Please try again.</p>';
-            });
-    }
-
-    // Function to initialize admin access functionality
-    function initializeAdminAccessFunctionality() {
-        // Sample user data
-        const users = [
-            { id: 1, name: "John Smith", email: "john.smith@example.com", isAdmin: true, lastActive: "2 hours ago" },
-            { id: 2, name: "Emma Johnson", email: "emma.j@example.com", isAdmin: false, lastActive: "1 day ago" },
-            { id: 3, name: "Michael Brown", email: "m.brown@example.com", isAdmin: true, lastActive: "5 minutes ago" },
-            { id: 4, name: "Sarah Davis", email: "sarah.d@example.com", isAdmin: false, lastActive: "3 days ago" },
-            { id: 5, name: "Robert Wilson", email: "robert.w@example.com", isAdmin: false, lastActive: "1 week ago" },
-            { id: 6, name: "Jennifer Miller", email: "jennifer.m@example.com", isAdmin: true, lastActive: "12 hours ago" },
-            { id: 7, name: "David Taylor", email: "david.t@example.com", isAdmin: false, lastActive: "2 days ago" },
-            { id: 8, name: "Lisa Anderson", email: "lisa.a@example.com", isAdmin: false, lastActive: "Just now" }
-        ];
-
-        // Get elements from the loaded content
-        const adminUserList = document.getElementById('adminUserList');
-        const adminUserSearch = document.getElementById('adminUserSearch');
-        const saveAdminChangesBtn = document.getElementById('saveAdminChangesBtn');
-        const backButton = document.getElementById('backToRoles');
-
-        // Track changes
-        let changesMade = false;
-        const adminStatusChanges = {};
-
-        // Initialize the UI
-        function renderAdminUsers(userArray) {
-            adminUserList.innerHTML = '';
-            
-            userArray.forEach(user => {
-                const userElement = document.createElement('div');
-                userElement.className = 'access-item';
-                userElement.innerHTML = `
-                    <div class="access-info">
-                        <h4>${user.name}</h4>
-                        <p>${user.email} • Last active: ${user.lastActive}</p>
-                    </div>
-                    <div class="access-count">
-                        <label class="admin-toggle">
-                            <input type="checkbox" ${user.isAdmin ? 'checked' : ''} data-user-id="${user.id}">
-                            <span>${user.isAdmin ? 'Admin' : 'User'}</span>
-                        </label>
-                    </div>
-                `;
-                adminUserList.appendChild(userElement);
-            });
-
-            // Add event listeners to checkboxes
-            document.querySelectorAll('.admin-toggle input').forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    const userId = parseInt(this.dataset.userId);
-                    adminStatusChanges[userId] = this.checked;
-                    changesMade = true;
-                });
-            });
-        }
-
-        // Filter users based on search
-        if (adminUserSearch) {
-            adminUserSearch.addEventListener('input', function() {
-                const searchTerm = this.value.toLowerCase();
-                const filteredUsers = users.filter(user => 
-                    user.name.toLowerCase().includes(searchTerm) || 
-                    user.email.toLowerCase().includes(searchTerm)
-                );
-                renderAdminUsers(filteredUsers);
-            });
-        }
-
-        // Save changes with confirmation
-        if (saveAdminChangesBtn) {
-            saveAdminChangesBtn.addEventListener('click', function() {
-                if (!changesMade) {
-                    Swal.fire({
-                        title: 'No Changes',
-                        text: 'You haven\'t made any changes to save.',
-                        icon: 'info',
-                        confirmButtonColor: 'var(--primary-color)'
-                    });
-                    return;
-                }
-
-                Swal.fire({
-                    title: 'Confirm Changes',
-                    text: 'Are you sure you want to save these administrator privilege changes?',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: 'var(--primary-color)',
-                    cancelButtonColor: 'var(--color-lite-grey)',
-                    confirmButtonText: 'Yes, save changes!'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        // Apply changes to user data
-                        for (const [userId, isAdmin] of Object.entries(adminStatusChanges)) {
-                            const user = users.find(u => u.id === parseInt(userId));
-                            if (user) {
-                                user.isAdmin = isAdmin;
-                            }
-                        }
-                        
-                        // Reset changes
-                        changesMade = false;
-                        Object.keys(adminStatusChanges).forEach(key => delete adminStatusChanges[key]);
-                        
-                        // Show success message
-                        Swal.fire({
-                            title: 'Saved!',
-                            text: 'Admin privileges have been updated.',
-                            icon: 'success',
-                            confirmButtonColor: 'var(--primary-color)'
-                        });
-                        
-                        // Refresh the view
-                        renderAdminUsers(users);
-                    }
-                });
-            });
-        }
-
-        // Back button functionality
-        if (backButton) {
-            backButton.addEventListener('click', function() {
-                // Clear admin access content and show role selection
-                adminAccessContent.innerHTML = '';
-                projectsContainer.style.display = 'block';
-                accessContainer.style.display = 'none';
-            });
-        }
-
-        // Initial render
-        renderAdminUsers(users);
-    }
+    
 </script>
 
 </html>

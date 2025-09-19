@@ -284,14 +284,20 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    position: relative; /* Added for proper positioning context */
 }
 
 .app-content-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 25px;
+    margin-bottom: 10px;
     flex-shrink: 0;
+    position: sticky; /* Changed to sticky */
+    top: 0; /* Stick to top of container */
+    background: #f0f2f5; /* Match background color */
+    z-index: 50; /* Ensure it stays above content */
+    padding: 10px ;
 }
 
 
@@ -1415,7 +1421,7 @@ body {
 
 .content-container {
     padding: 2vw;
-    overflow-y: scroll;
+    
     background: var(--color-white);
     border-radius: 12px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
@@ -1497,6 +1503,7 @@ body {
 }
 
 .access-list {
+    margin-top: 2vw;
     display: flex;
     flex-direction: column;
     gap: 3vw;
@@ -1532,14 +1539,9 @@ body {
     margin: 0;
 }
 
-.access-count {
-    background: var(--primary-color);
-    color: white;
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-weight: 600;
-    font-size: 0.9rem;
-}
+
+
+
 
 /* Logs Table Styles */
 
@@ -1752,4 +1754,303 @@ body {
 #document-viewer {
     height: 500px;
     overflow: auto;
+}
+
+
+/* ===== ADMIN ACCESS PANEL STYLES ===== */
+#adminAccessPanel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0; /* Critical fix for scrolling */
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 10px;
+    position: relative;
+}
+
+.accessHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 15px 0;
+    background: #f8f9fa;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    border-bottom: 1px solid #ddd;
+}
+
+#backToRoles {
+    width: 140px;
+    margin-bottom: 10px;
+}
+
+.accessHeader h3 {
+    font-size: 1.4rem;
+    color: var(--color-dark-grey);
+    margin: 0;
+}
+
+.adminUserListContainer {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px 5px;
+    margin-top: 0px;
+    min-height: 300px; /* Minimum height to ensure scroll area */
+    max-height: calc(80vh - 250px); /* Responsive height based on viewport */
+    position: relative;
+}
+
+/* User list styles */
+#adminUserList {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 5px;
+    margin-top: 0px;
+    min-height: min-content;
+}
+
+#accessAdminList {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: var(--color-white);
+    border-radius: 8px;
+    border: 1px solid #dddddd;
+    transition: all 0.2s ease;
+}
+
+#accessAdminList:hover {
+    background-color: #f5f5f5;
+    transform: translateX(5px);
+}
+
+.access-info h4 {
+    font-size: 1rem;
+    margin-bottom: 5px;
+    color: var(--color-dark-grey);
+}
+
+.access-info p {
+    font-size: 0.85rem;
+    color: var(--color-lite-grey);
+    margin: 0;
+}
+
+/* Toggle switch styles */
+.admin-toggle {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 22px;
+}
+
+.admin-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #e0e0e0;
+    transition: .3s;
+    border-radius: 34px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+input:checked + .toggle-slider {
+    background-color: var(--primary-color);
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(22px);
+}
+
+
+
+input:checked + .toggle-slider + .toggle-label {
+    color: var(--primary-color);
+}
+
+
+/* Focus states for accessibility */
+
+.admin-toggle input:focus + .toggle-slider {
+    box-shadow: 0 0 0 2px rgba(186, 30, 31, 0.25);
+}
+
+/* Disabled state */
+.admin-toggle input:disabled + .toggle-slider {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+}
+
+.admin-toggle input:disabled + .toggle-slider:before {
+    background-color: #e0e0e0;
+}
+
+/* User role count badges - FIXED SELECTOR */
+#access-card .access-item > .access-count {
+    background: var(--primary-color);
+    color: rgb(255, 255, 255);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+
+
+/* Alternative toggle sizes */
+.toggle-sm {
+    width: 36px;
+    height: 18px;
+}
+
+.toggle-sm .toggle-slider:before {
+    height: 14px;
+    width: 14px;
+    transform: translateX(0);
+}
+
+.toggle-sm input:checked + .toggle-slider:before {
+    transform: translateX(18px);
+}
+
+.toggle-lg {
+    width: 52px;
+    height: 26px;
+}
+
+.toggle-lg .toggle-slider:before {
+    height: 22px;
+    width: 22px;
+    transform: translateX(0);
+}
+
+.toggle-lg input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+}
+
+/* Search box styles */
+#accessSearch {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    background: var(--color-white);
+    border-radius: 8px;
+    width: 100%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+#accessSearch .icon {
+    color: var(--color-lite-grey);
+    margin-right: 10px;
+}
+
+#accessSearch input.search-text {
+    border: none;
+    background: inherit;
+    font-size: var(--size-medium);
+    font-weight: 600;
+    outline: none;
+    width: 100%;
+}
+
+/* Not found message */
+.notFound {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--color-lite-grey);
+    display: none;
+}
+
+/* Save button */
+.fab-icon#saveAdminChangesBtn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: var(--primary-color);
+    color: white;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(163, 21, 23, 0.5);
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+.fab-icon#saveAdminChangesBtn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 25px rgba(163, 21, 23, 0.6);
+}
+
+/* Scrollbar styling */
+.adminUserListContainer::-webkit-scrollbar {
+    width: 8px;
+}
+
+.adminUserListContainer::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.adminUserListContainer::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.adminUserListContainer::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+#backToRoles {
+    width: 9vw;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .accessHeader {
+        padding: 10px 0;
+    }
+    
+    .access-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    
+    #backToRoles {
+        width: 100%;
+    }
+    
+    .searchbox {
+        width: 100%;
+    }
 }
