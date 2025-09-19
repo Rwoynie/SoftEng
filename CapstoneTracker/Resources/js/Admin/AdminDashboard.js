@@ -727,29 +727,37 @@ document.addEventListener('DOMContentLoaded', function() {
     // Search functionality
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            const projectItems = document.querySelectorAll('.project-item');
-            const notFound = document.getElementById('notFound');
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const projectItems = document.querySelectorAll('.project-item');
+        const notFound = document.getElementById('notFound');
+        
+        let foundResults = false;
+        
+        projectItems.forEach(item => {
+            const title = item.querySelector('h3').textContent.toLowerCase();
+            const description = item.querySelector('.desc-row p').textContent.toLowerCase();
+            const tags = item.getAttribute('data-tags').toLowerCase();
             
-            projectItems.forEach(item => {
-                const title = item.querySelector('h3').textContent.toLowerCase();
-                const description = item.querySelector('.desc-row p').textContent.toLowerCase();
-                const tags = item.getAttribute('data-tags').toLowerCase();
-                
-                if (title.includes(searchTerm) || description.includes(searchTerm) || tags.includes(searchTerm)) {
-                    item.style.display = 'flex';
-                    notFound.style.display = 'none';
-                } else {
-                    item.style.display = 'none';
-                    notFound.style.display = "flex";
-                }
-            });
-            
-            // Re-run animations after searching
-            animateOnScroll();
+            if (title.includes(searchTerm) || description.includes(searchTerm) || tags.includes(searchTerm)) {
+                item.style.display = 'flex';
+                foundResults = true;
+            } else {
+                item.style.display = 'none';
+            }
         });
-    }
+        
+        // Show/hide the "No Results Found" message based on whether we found any results
+        if (foundResults || searchTerm === '') {
+            notFound.style.display = 'none';
+        } else {
+            notFound.style.display = 'flex';
+        }
+        
+        // Re-run animations after searching
+        animateOnScroll();
+    });
+}
 
     // Display toggle functionality
     const listViewIcon = document.getElementById('listViewIcon');
