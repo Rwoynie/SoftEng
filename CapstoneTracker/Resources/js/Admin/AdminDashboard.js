@@ -29,6 +29,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const userLogView = document.getElementById('userLog-container');
     const adminLogView = document.getElementById('adminLog-container');
 
+    let changesMade = false;
+    let roleChanges = {};
+    let users = [];
+
     // Changed to select buttons instead of li elements
     const menuButtons = document.querySelectorAll('.header .menu button');
 
@@ -727,37 +731,36 @@ document.addEventListener('DOMContentLoaded', function() {
     // Search functionality
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
-    searchInput.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase();
-        const projectItems = document.querySelectorAll('.project-item');
-        const notFound = document.getElementById('notFound');
-        
-        let foundResults = false;
-        
-        projectItems.forEach(item => {
-            const title = item.querySelector('h3').textContent.toLowerCase();
-            const description = item.querySelector('.desc-row p').textContent.toLowerCase();
-            const tags = item.getAttribute('data-tags').toLowerCase();
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            const projectItems = document.querySelectorAll('.project-item');
+            const notFound = document.getElementById('notFound');
             
-            if (title.includes(searchTerm) || description.includes(searchTerm) || tags.includes(searchTerm)) {
-                item.style.display = 'flex';
-                foundResults = true;
+            let foundResults = false;
+            
+            projectItems.forEach(item => {
+                const title = item.querySelector('h3').textContent.toLowerCase();
+                
+                // Only search by title/name now (removed description and tags search)
+                if (title.includes(searchTerm)) {
+                    item.style.display = 'flex';
+                    foundResults = true;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            // Show/hide the "No Results Found" message based on whether we found any results
+            if (foundResults || searchTerm === '') {
+                notFound.style.display = 'none';
             } else {
-                item.style.display = 'none';
+                notFound.style.display = 'flex';
             }
+            
+            // Re-run animations after searching
+            animateOnScroll();
         });
-        
-        // Show/hide the "No Results Found" message based on whether we found any results
-        if (foundResults || searchTerm === '') {
-            notFound.style.display = 'none';
-        } else {
-            notFound.style.display = 'flex';
-        }
-        
-        // Re-run animations after searching
-        animateOnScroll();
-    });
-}
+    }
 
     // Display toggle functionality
     const listViewIcon = document.getElementById('listViewIcon');
@@ -879,6 +882,172 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
+
+    // Admin Access Management Search Functionality - FIXED
+    const adminUserSearch = document.getElementById('adminUserSearch');
+    if (adminUserSearch) {
+        adminUserSearch.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            const userItems = document.querySelectorAll('.admin-user-item');
+            const notFound = document.getElementById('adminNotFound');
+            
+            let foundResults = false;
+            
+            userItems.forEach(item => {
+                const userName = item.querySelector('h4').textContent.toLowerCase();
+                
+                // Only search by name now (removed email search)
+                if (userName.includes(searchTerm)) {
+                    item.style.display = 'flex';
+                    foundResults = true;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            // Show/hide the "No Results Found" message
+            if (foundResults || searchTerm === '') {
+                notFound.style.display = 'none';
+            } else {
+                notFound.style.display = 'block';
+            }
+        });
+    }
+
+    // Role Change Handling
+    function initializeRoleChangeHandling() {
+        const roleCheckboxes = document.querySelectorAll('.role-checkbox input');
+        
+        roleCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const userId = this.getAttribute('data-user-id');
+                const role = this.getAttribute('name');
+                const isChecked = this.checked;
+                
+                // Initialize user in roleChanges if not exists
+                if (!roleChanges[userId]) {
+                    roleChanges[userId] = {};
+                }
+                
+                // Track this change
+                roleChanges[userId][role] = isChecked;
+                changesMade = true;
+                
+                // If a role is selected, uncheck others in the same group
+                if (isChecked) {
+                    const userItem = this.closest('.admin-user-item');
+                    const otherCheckboxes = userItem.querySelectorAll(`.role-checkbox input:not([name="${role}"])`);
+                    
+                    otherCheckboxes.forEach(otherCheckbox => {
+                        otherCheckbox.checked = false;
+                        
+                        // Also track these changes
+                        const otherRole = otherCheckbox.getAttribute('name');
+                        if (!roleChanges[userId]) {
+                            roleChanges[userId] = {};
+                        }
+                        roleChanges[userId][otherRole] = false;
+                    });
+                }
+            });
+        });
+        
+        // Initialize the checkboxes
+        initializeRoleCheckboxes();
+    }
+
+    // Initialize role checkboxes to ensure only one is checked per user
+    function initializeRoleCheckboxes() {
+        const userItems = document.querySelectorAll('.admin-user-item');
+        
+        userItems.forEach(userItem => {
+            const checkboxes = userItem.querySelectorAll('.role-checkbox input');
+            let checkedCount = 0;
+            
+            // Count how many are checked
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    checkedCount++;
+                }
+            });
+            
+            // If more than one is checked, keep only the first one
+            if (checkedCount > 1) {
+                let firstChecked = true;
+                checkboxes.forEach(checkbox => {
+                    if (checkbox.checked) {
+                        if (firstChecked) {
+                            firstChecked = false;
+                        } else {
+                            checkbox.checked = false;
+                        }
+                    }
+                });
+            }
+            
+            // If none are checked, check student by default
+            if (checkedCount === 0) {
+                const studentCheckbox = userItem.querySelector('.role-checkbox input[name="student"]');
+                if (studentCheckbox) {
+                    studentCheckbox.checked = true;
+                }
+            }
+        });
+    }
+
+    // Save Admin Changes Function - FIXED (moved inside DOMContentLoaded)
+    const saveAdminChangesBtn = document.getElementById('saveAdminChangesBtn');
+    if (saveAdminChangesBtn) {
+        saveAdminChangesBtn.addEventListener('click', function() {
+            if (!changesMade) {
+                Swal.fire({
+                    title: 'No Changes',
+                    text: 'You haven\'t made any changes to save.',
+                    icon: 'info',
+                    confirmButtonColor: 'var(--primary-color)'
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: 'Confirm Changes',
+                text: 'Are you sure you want to save these role changes?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: 'var(--primary-color)',
+                cancelButtonColor: 'var(--color-lite-grey)',
+                confirmButtonText: 'Yes, save changes!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading state
+                    const originalHtml = this.innerHTML;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    
+                    // Simulate API call
+                    setTimeout(() => {
+                        // Reset changes
+                        changesMade = false;
+                        roleChanges = {};
+                        
+                        // Restore button content
+                        this.innerHTML = originalHtml;
+                        
+                        // Show success message
+                        Swal.fire({
+                            title: 'Saved!',
+                            text: 'User roles have been updated.',
+                            icon: 'success',
+                            confirmButtonColor: 'var(--primary-color)'
+                        });
+                    }, 1500);
+                }
+            });
+        });
+    }
+
+    // Initialize the role change handling when the page loads
+    initializeRoleChangeHandling();
+
 });
 
 //Thesis view abstract
@@ -1033,194 +1202,5 @@ function updatePdfControls(pdfDoc, currentPageNum) {
 
 
 
-/* Admin Access Management Script */
-function initializeAdminAccessFunctionality() {
-    // Sample user data
-    const users = [
-        { id: 1, name: "John Smith", email: "john.smith@example.com", lastActive: "2 hours ago" },
-        { id: 2, name: "Emma Johnson", email: "emma.j@example.com", lastActive: "1 day ago" },
-        { id: 3, name: "Michael Brown", email: "m.brown@example.com", lastActive: "5 minutes ago" },
-        { id: 4, name: "Sarah Davis", email: "sarah.d@example.com", lastActive: "3 days ago" },
-        { id: 5, name: "Robert Wilson", email: "robert.w@example.com", lastActive: "1 week ago" },
-        { id: 6, name: "Jennifer Miller", email: "jennifer.m@example.com", lastActive: "12 hours ago" },
-        { id: 7, name: "David Taylor", email: "david.t@example.com", lastActive: "2 days ago" },
-        { id: 8, name: "Lisa Anderson", email: "lisa.a@example.com", lastActive: "Just now" }
-    ];
 
-    // Get elements from the loaded content
-    const adminUserList = document.getElementById('adminUserList');
-    const adminUserSearch = document.getElementById('adminUserSearch');
-    const saveAdminChangesBtn = document.getElementById('saveAdminChangesBtn');
-    const notFound = document.getElementById('notFound');
-    const backButton = document.getElementById('backToRoles');
 
-    // Track changes
-    let changesMade = false;
-    const adminStatusChanges = {};
-
-    // Initialize the UI
-    function renderAdminUsers(userArray) {
-        if (!adminUserList) return;
-        
-        adminUserList.innerHTML = '';
-        
-        if (userArray.length === 0) {
-            if (notFound) notFound.style.display = 'block';
-            return;
-        }
-        
-        if (notFound) notFound.style.display = 'none';
-        
-        userArray.forEach(user => {
-            const userElement = document.createElement('div');
-            userElement.className = 'access-item';
-            userElement.innerHTML = `
-                <div class="access-info">
-                    <h4>${user.name}</h4>
-                    <p>${user.email} • Last active: ${user.lastActive}</p>
-                </div>
-                <div class="access-count">
-                    <label class="admin-toggle">
-                        <input type="checkbox" ${user.isAdmin ? 'checked' : ''} data-user-id="${user.id}">
-                        <span class="toggle-slider"></span>
-                        
-                    </label>
-                </div>
-            `;
-            adminUserList.appendChild(userElement);
-        });
-
-        // Add event listeners to checkboxes
-        document.querySelectorAll('.admin-toggle input').forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                const userId = parseInt(this.dataset.userId);
-                adminStatusChanges[userId] = this.checked;
-                changesMade = true;
-                
-                
-            });
-        });
-    }
-
-    // Filter users based on search
-    if (adminUserSearch) {
-        adminUserSearch.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            const filteredUsers = users.filter(user => 
-                user.name.toLowerCase().includes(searchTerm) || 
-                user.email.toLowerCase().includes(searchTerm)
-            );
-            renderAdminUsers(filteredUsers);
-        });
-    }
-
-    // Save changes with confirmation
-    if (saveAdminChangesBtn) {
-        saveAdminChangesBtn.addEventListener('click', function() {
-            if (!changesMade) {
-                Swal.fire({
-                    title: 'No Changes',
-                    text: 'You haven\'t made any changes to save.',
-                    icon: 'info',
-                    confirmButtonColor: 'var(--primary-color)'
-                });
-                return;
-            }
-
-            Swal.fire({
-                title: 'Confirm Changes',
-                text: 'Are you sure you want to save these administrator privilege changes?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: 'var(--primary-color)',
-                cancelButtonColor: 'var(--color-lite-grey)',
-                confirmButtonText: 'Yes, save changes!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Apply changes to user data
-                    for (const [userId, isAdmin] of Object.entries(adminStatusChanges)) {
-                        const user = users.find(u => u.id === parseInt(userId));
-                        if (user) {
-                            user.isAdmin = isAdmin;
-                        }
-                    }
-                    
-                    // Reset changes
-                    changesMade = false;
-                    Object.keys(adminStatusChanges).forEach(key => delete adminStatusChanges[key]);
-                    
-                    // Show success message
-                    Swal.fire({
-                        title: 'Saved!',
-                        text: 'Admin privileges have been updated.',
-                        icon: 'success',
-                        confirmButtonColor: 'var(--primary-color)'
-                    });
-                    
-                    // Refresh the view
-                    renderAdminUsers(users);
-                }
-            });
-        });
-    }
-
-    // Back button functionality
-    if (backButton) {
-        backButton.addEventListener('click', function() {
-            // Clear admin access content and show role selection
-            const adminAccessContent = document.getElementById('admin-access-content');
-            const accessCard = document.getElementById('access-card');
-            const accessContainer = document.getElementById('access-container');
-            const accessHeader2 = document.getElementById('accessHeader2');
-            
-            if (accessHeader2) accessHeader2.style.display = 'block';
-            if (adminAccessContent) adminAccessContent.innerHTML = '';
-            if (accessCard) accessCard.style.display = 'block';
-            if (accessContainer) accessContainer.style.display = 'block';
-        });
-    }
-
-    // Initial render
-    renderAdminUsers(users);
-}
-
-function loadAdminAccessContent() {
-    const adminAccessContent = document.getElementById('admin-access-content');
-    const projectsContainer = document.querySelector('.projects-container');
-    const accessContainer = document.getElementById('access-container');
-    const accessCard = document.getElementById('access-card');
-    const accessHeader2 = document.getElementById('accessHeader2');
-    
-    // Hide the projects container and show the access container
-    if (projectsContainer) projectsContainer.style.display = 'none';
-    if (accessContainer) accessContainer.style.display = 'block';
-    if (accessCard) accessCard.style.display = 'none';
-    if (accessHeader2) accessHeader2.style.display = 'none';
-    
-    // Load the admin access content
-    fetch('adminAccess.php')
-        .then(response => response.text())
-        .then(data => {
-            if (adminAccessContent) {
-                adminAccessContent.innerHTML = data;
-                initializeAdminAccessFunctionality(); 
-            }
-        })
-        .catch(error => {
-            console.error('Error loading admin access content:', error);
-            if (adminAccessContent) {
-                adminAccessContent.innerHTML = '<p>Error loading admin access content. Please try again.</p>';
-            }
-        });
-}
-
-// Initialize admin access functionality when the button is clicked
-document.addEventListener('DOMContentLoaded', function() {
-    const adminAccessBtn = document.getElementById('adminAccess');
-    
-    if (adminAccessBtn) {
-        adminAccessBtn.addEventListener('click', function() {
-            loadAdminAccessContent();
-        });
-    }
-});

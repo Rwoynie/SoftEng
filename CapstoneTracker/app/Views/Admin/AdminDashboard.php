@@ -379,44 +379,150 @@
                 </header>
 
                 <div id="accessHeader2" class="content-header">
-                    
-                    <p>Manage user permissions and access levels</p>
-                </div>
-                <div class="content-body">
-                    <div class="access-card" id="access-card">
-                        <h3>User Roles</h3>
+                <div class="access-card" id="access-card">
+                        
                         <div class="access-list">
 
-                            <button id="adminAccess" class="access-item">
+                            <div id="adminAccess" class="access-item">
                                 <div class="access-info">
                                     <h4>Administrator</h4>
                                     <p>Full system access</p>
                                 </div>
                                 <div class="access-count">3 users</div>
-                            </button>
+                            </div>
 
 
-                            <button id="facultyAccess" class="access-item">
+                            <div id="facultyAccess" class="access-item">
                                 <div class="access-info">
                                     <h4>Faculty</h4>
                                     <p>Can edit content but not manage users</p>
                                 </div>
                                 <div class="access-count">7 users</div>
-                            </button>
+                            </div>
 
 
-                            <button id="studentAccess" class="access-item">
+                            <div id="studentAccess" class="access-item">
                                 <div class="access-info">
                                     <h4>Student</h4>
                                     <p>Read-only and download access</p>
                                 </div>
                                 <div class="access-count">12 users</div>
-                            </button>
+                            </div>
                         </div>
                     </div>
+                    
+                </div>
+                <div class="content-body">
+                <div id="adminAccessPanel" class="access-card">
+    
+    
+    <div class="searchbox" id="accessSearch">
+        <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
+        <input type="text" placeholder="Search users..." class="search-text" id="adminUserSearch">
+    </div>
+                        
+    
+    
 
-                    <!-- Container for loaded admin access content -->
-                    <div id="admin-access-content"></div>
+        <div class="adminUserListContainer">
+            <div class="access-list" id="adminUserList">
+                <!-- Users will be populated here by JavaScript -->
+                <div class="access-item admin-user-item">
+                    <div class="access-info">
+                        <h4>John Smith</h4>
+                        <p>john.smith@example.com • Last active: 2 hours ago</p>
+                    </div>
+                    <div class="access-roles">
+                        <label class="role-checkbox">
+                            <input class="checkbox" type="checkbox" name="admin" data-user-id="1"> Admin
+                        </label>
+                        <label class="role-checkbox">
+                            <input class="checkbox" type="checkbox" name="faculty" data-user-id="1"> Faculty
+                        </label>
+                        <label class="role-checkbox">
+                            <input class="checkbox" type="checkbox" name="student" data-user-id="1" checked> Student
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- More user items here -->
+                <div class="access-item admin-user-item">
+                    <div class="access-info">
+                        <h4>John Smith</h4>
+                        <p>john.smith@example.com • Last active: 2 hours ago</p>
+                    </div>
+                    <div class="access-roles">
+                        <label class="role-checkbox">
+                            <input class="checkbox" type="checkbox" name="admin" data-user-id="1"> Admin
+                        </label>
+                        <label class="role-checkbox">
+                            <input class="checkbox" type="checkbox" name="faculty" data-user-id="1"> Faculty
+                        </label>
+                        <label class="role-checkbox">
+                            <input class="checkbox" type="checkbox" name="student" data-user-id="1" checked> Student
+                        </label>
+                    </div>
+                </div>
+                <div class="access-item admin-user-item">
+                    <div class="access-info">
+                        <h4>John Smith</h4>
+                        <p>john.smith@example.com • Last active: 2 hours ago</p>
+                    </div>
+                    <div class="access-roles">
+                        <label class="role-checkbox">
+                            <input class="checkbox" type="checkbox" name="admin" data-user-id="1"> Admin
+                        </label>
+                        <label class="role-checkbox">
+                            <input class="checkbox" type="checkbox" name="faculty" data-user-id="1"> Faculty
+                        </label>
+                        <label class="role-checkbox">
+                            <input class="checkbox" type="checkbox" name="student" data-user-id="1" checked> Student
+                        </label>
+                    </div>
+                </div>
+                <div class="access-item admin-user-item">
+                    <div class="access-info">
+                        <h4>John Smith</h4>
+                        <p>john.smith@example.com • Last active: 2 hours ago</p>
+                    </div>
+                    <div class="access-roles">
+                        <label class="role-checkbox">
+                            <input class="checkbox" type="checkbox" name="admin" data-user-id="1"> Admin
+                        </label>
+                        <label class="role-checkbox">
+                            <input class="checkbox" type="checkbox" name="faculty" data-user-id="1"> Faculty
+                        </label>
+                        <label class="role-checkbox">
+                            <input class="checkbox" type="checkbox" name="student" data-user-id="1" checked> Student
+                        </label>
+                    </div>
+                </div>
+                <div class="access-item admin-user-item">
+                    <div class="access-info">
+                        <h4>John Smith</h4>
+                        <p>john.smith@example.com • Last active: 2 hours ago</p>
+                    </div>
+                    <div class="access-roles">
+                        <label class="role-checkbox">
+                            <input class="checkbox" type="checkbox" name="admin" data-user-id="1"> Admin
+                        </label>
+                        <label class="role-checkbox">
+                            <input class="checkbox" type="checkbox" name="faculty" data-user-id="1"> Faculty
+                        </label>
+                        <label class="role-checkbox">
+                            <input class="checkbox" type="checkbox" name="student" data-user-id="1" checked> Student
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <p class="notFound" id="adminNotFound">No users found matching your search.</p>
+        </div>
+        
+        <div class="fab-icon" id="saveAdminChangesBtn">
+            <i class="fas fa-save"></i>
+        </div>
+    </div>
 
                     
                 </div>
