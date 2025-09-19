@@ -85,7 +85,7 @@ if ($setupError) {
   <div class="container1">
         <div class="container2">
             <img class="sysLogo" src="../../../resources/images/gradcap.png" alt="Thesis Repository Logo - Graduation Cap">
-            <h1>Thesis Repository</h1>
+            <h1>Compendium System</h1>
             <p class="tagline">A digital library for USeP student research.</p>
             <div class="d-flex justify-content-center gap-2" style="margin-top: 30px;">
                 <button id="researcherBtn" class="btn btn-primary btn-lg">
@@ -144,7 +144,162 @@ if ($setupError) {
           <small class="text-muted d-block text-center">Use your USeP (@usep.edu.ph) email only</small>
 
           <div class="text-center">
-            <a href="#" class="btn btn-link">Not yet registered?</a>
+            <a href="#" id="openRegisterLink" class="btn btn-link">Not yet registered?</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STUDENT REGISTRATION MODAL -->
+<div class="modal fade" id="studentRegisterModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content p-4">
+      <div class="modal-header border-0 text-center w-100 d-block position-relative">
+        <img src="../../../resources/images/gradcap.png" class="sysLogo mb-2" alt="Logo" style="width:80px;">
+        <h5 class="modal-title">Student Registration</h5>
+        <button type="button" class="btn btn-link text-muted position-absolute" style="top:8px; right:10px; font-size:24px; text-decoration:none;" data-bs-dismiss="modal" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="studentRegisterForm" onsubmit="return false;" enctype="multipart/form-data">
+          <div class="row g-3">
+            <div class="col-12">
+              <label for="regFullName" class="form-label">Full Name</label>
+              <input type="text" id="regFullName" class="form-control" placeholder="e.g., Juan Dela Cruz" required>
+            </div>
+            <div class="col-md-6">
+              <label for="regStudentId" class="form-label">Student ID number</label>
+              <input type="text" id="regStudentId" class="form-control" placeholder="e.g., 2025-12345" required>
+            </div>
+            <div class="col-md-6">
+              <label for="regYearLevel" class="form-label">Year Level</label>
+              <select id="regYearLevel" class="form-select" required>
+                <option value="" selected disabled>Select year level</option>
+                <option>1st year</option>
+                <option>2nd year</option>
+                <option>3rd year</option>
+                <option>4th year</option>
+                <option>5th year</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label for="regCourse" class="form-label">Course / Program</label>
+              <select id="regCourse" class="form-select" required>
+                <option value="" selected disabled>Select your program</option>
+                <option>Bachelor of Technical-Vocational Teacher Education</option>
+                <option>Bachelor of Special Need Education</option>
+                <option>Bachelor of Early Childhood Education</option>
+                <option>Bachelor of Secondary Education</option>
+                <option>Bachelor of Science in Information Technology</option>
+                <option>Bachelor of Elementary Education</option>
+                <option>Bachelor Science in Agricultural and Biosystems Engineering</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label for="regEmail" class="form-label">Email Address</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                <input type="email" id="regEmail" class="form-control" placeholder="your.name@usep.edu.ph" required>
+              </div>
+              <small class="text-muted">Use your university email (@usep.edu.ph)</small>
+            </div>
+            <div class="col-md-6">
+              <label for="regPassword" class="form-label">Password</label>
+              <div class="input-group">
+                <input type="password" id="regPassword" class="form-control" required>
+                <button class="btn btn-outline-secondary" type="button" id="regTogglePassword" aria-label="Show password">
+                  <i class="far fa-eye"></i>
+                </button>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label for="regConfirmPassword" class="form-label">Confirm Password</label>
+              <div class="input-group">
+                <input type="password" id="regConfirmPassword" class="form-control" required>
+                <button class="btn btn-outline-secondary" type="button" id="regToggleConfirm" aria-label="Show password">
+                  <i class="far fa-eye"></i>
+                </button>
+              </div>
+            </div>
+            <div class="col-12">
+              <label for="regProfilePic" class="form-label">Profile picture</label>
+              <input type="file" id="regProfilePic" class="form-control" accept="image/*">
+              <small class="text-muted">Max 5MB. JPG/PNG preferred.</small>
+            </div>
+            <div class="col-12 d-grid gap-2">
+              <button type="submit" class="btn btn-primary">Create account</button>
+              <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="modal">Back to login</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FACULTY REGISTRATION MODAL -->
+<div class="modal fade" id="facultyRegisterModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content p-4">
+      <div class="modal-header border-0 text-center w-100 d-block position-relative">
+        <img src="../../../resources/images/gradcap.png" class="sysLogo mb-2" alt="Logo" style="width:80px;">
+        <h5 class="modal-title">Faculty Registration</h5>
+        <button type="button" class="btn btn-link text-muted position-absolute" style="top:8px; right:10px; font-size:24px; text-decoration:none;" data-bs-dismiss="modal" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="facultyRegisterForm" onsubmit="return false;">
+          <div class="row g-3">
+            <div class="col-12">
+              <label for="facFullName" class="form-label">Full Name</label>
+              <input type="text" id="facFullName" class="form-control" placeholder="e.g., Maria Santos" required>
+            </div>
+            <div class="col-md-6">
+              <label for="facEmployeeId" class="form-label">Employee ID number</label>
+              <input type="text" id="facEmployeeId" class="form-control" placeholder="e.g., EMP-12345" required>
+            </div>
+            <div class="col-md-6">
+              <label for="facDepartment" class="form-label">Department / College</label>
+              <select id="facDepartment" class="form-select" required>
+                <option value="" selected disabled>Select department</option>
+                <option>CTET</option>
+                <option>COE</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label for="facDesignation" class="form-label">Designation / Position</label>
+              <input type="text" id="facDesignation" class="form-control" placeholder="e.g., Instructor, Professor" required>
+            </div>
+            <div class="col-12">
+              <label for="facEmail" class="form-label">Email Address</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                <input type="email" id="facEmail" class="form-control" placeholder="your.name@usep.edu.ph" required>
+              </div>
+              <small class="text-muted">Use your university email (@usep.edu.ph)</small>
+            </div>
+            <div class="col-md-6">
+              <label for="facPassword" class="form-label">Password</label>
+              <div class="input-group">
+                <input type="password" id="facPassword" class="form-control" required>
+                <button class="btn btn-outline-secondary" type="button" id="facTogglePassword" aria-label="Show password">
+                  <i class="far fa-eye"></i>
+                </button>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label for="facConfirmPassword" class="form-label">Confirm Password</label>
+              <div class="input-group">
+                <input type="password" id="facConfirmPassword" class="form-control" required>
+                <button class="btn btn-outline-secondary" type="button" id="facToggleConfirm" aria-label="Show password">
+                  <i class="far fa-eye"></i>
+                </button>
+              </div>
+            </div>
+            <div class="col-12 d-grid gap-2">
+              <button type="submit" class="btn btn-primary">Create account</button>
+              <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="modal">Back to login</button>
+            </div>
           </div>
         </form>
       </div>

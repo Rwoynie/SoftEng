@@ -154,6 +154,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const modalTitle = document.getElementById("modalTitle");
     const roleField = document.getElementById("roleField");
     const googleModalBtn = document.getElementById("googleModalBtn");
+    const registerForm = document.getElementById('studentRegisterForm');
+    const facultyRegisterForm = document.getElementById('facultyRegisterForm');
+    const regTogglePassword = document.getElementById('regTogglePassword');
+    const regToggleConfirm = document.getElementById('regToggleConfirm');
+    const regPassword = document.getElementById('regPassword');
+    const regConfirmPassword = document.getElementById('regConfirmPassword');
     const togglePasswordBtn = document.getElementById("togglePasswordBtn");
     const passwordInput = document.getElementById("password");
 
@@ -192,6 +198,76 @@ document.addEventListener('DOMContentLoaded', function() {
           icon.classList.toggle('fa-eye-slash');
         }
         this.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+      });
+    }
+
+    if (registerForm) {
+      registerForm.addEventListener('submit', function () {
+        const email = document.getElementById('regEmail').value.trim().toLowerCase();
+        const pass = document.getElementById('regPassword').value;
+        const confirm = document.getElementById('regConfirmPassword').value;
+        if (!email.endsWith('@usep.edu.ph')) {
+          Swal.fire('Invalid email', 'Please use your USeP (@usep.edu.ph) email.', 'error');
+          return;
+        }
+        if (pass !== confirm) {
+          Swal.fire('Passwords do not match', 'Please re-enter your password.', 'error');
+          return;
+        }
+        Swal.fire('Submitted', 'Registration submitted (wire backend endpoint next).', 'success');
+      });
+    }
+
+    if (facultyRegisterForm) {
+      facultyRegisterForm.addEventListener('submit', function () {
+        const email = document.getElementById('facEmail').value.trim().toLowerCase();
+        const pass = document.getElementById('facPassword').value;
+        const confirm = document.getElementById('facConfirmPassword').value;
+        if (!email.endsWith('@usep.edu.ph')) {
+          Swal.fire('Invalid email', 'Please use your USeP (@usep.edu.ph) email.', 'error');
+          return;
+        }
+        if (pass !== confirm) {
+          Swal.fire('Passwords do not match', 'Please re-enter your password.', 'error');
+          return;
+        }
+        Swal.fire('Submitted', 'Faculty registration submitted (wire backend endpoint next).', 'success');
+      });
+    }
+
+    function wireToggle(btn, input) {
+      if (btn && input) {
+        btn.addEventListener('click', function() {
+          const isHidden = input.type === 'password';
+          input.type = isHidden ? 'text' : 'password';
+          const icon = this.querySelector('i');
+          if (icon) {
+            icon.classList.toggle('fa-eye');
+            icon.classList.toggle('fa-eye-slash');
+          }
+          this.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+        });
+      }
+    }
+
+    wireToggle(regTogglePassword, regPassword);
+    wireToggle(regToggleConfirm, regConfirmPassword);
+    wireToggle(document.getElementById('facTogglePassword'), document.getElementById('facPassword'));
+    wireToggle(document.getElementById('facToggleConfirm'), document.getElementById('facConfirmPassword'));
+
+    // Open respective registration modal based on selected role
+    const openRegisterLink = document.getElementById('openRegisterLink');
+    if (openRegisterLink) {
+      openRegisterLink.addEventListener('click', function() {
+        const role = (roleField && roleField.value) || 'Researcher';
+        const currentModal = document.getElementById('loginModal');
+        const modalInstance = bootstrap.Modal.getInstance(currentModal) || new bootstrap.Modal(currentModal);
+        modalInstance.hide();
+        setTimeout(() => {
+          const targetId = role.toLowerCase() === 'faculty' ? 'facultyRegisterModal' : 'studentRegisterModal';
+          const targetEl = document.getElementById(targetId);
+          if (targetEl) new bootstrap.Modal(targetEl).show();
+        }, 250);
       });
     }
 });
