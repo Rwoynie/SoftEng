@@ -1521,6 +1521,7 @@ body {
 
 .access-info h4 {
     font-size: 1rem;
+    justify-self: left;
     margin-bottom: 5px;
     color: var(--color-dark-grey);
 }

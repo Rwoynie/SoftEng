@@ -1,0 +1,230 @@
+:root {
+    --color-white: #fafbfb;
+    --color-lite-grey: #9199a5;
+    --color-dark-grey: #565d68;
+    --color-black: #1e2026;
+    --color-lite: #bbc3c9;
+    --primary-color: rgb(186, 30, 31);
+    --primary-dark: rgb(151, 20, 23);
+    --size-medium: 0.75em;
+    --size-large: 1em;
+    --size-xlarge: 1.5em;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: "Quicksand", sans-serif;
+    background: #eef2f5;
+    color: #333;
+    line-height: 1.6;
+    padding: 0;
+    margin: 0;
+}
+
+.app-content {
+    padding: 20px;
+    background: #f0f2f5;
+    width: 100%;
+    min-height: 100vh;
+}
+
+.access-card {
+    background: var(--color-white);
+    border-radius: 12px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    padding: 20px;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 15px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.btn-secondary {
+    background: #e9ecef;
+    color: var(--color-dark-grey);
+}
+
+.btn-secondary:hover {
+    background: #dee2e6;
+}
+
+.btn i {
+    margin-right: 8px;
+}
+
+h3 {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+    color: var(--color-dark-grey);
+    font-weight: bold;
+}
+
+.searchbox {
+    display: flex;
+    padding: 12px;
+    background: var(--color-white);
+    border-radius: 8px;
+    width: 100%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+}
+
+.searchbox .icon {
+    color: var(--color-lite-grey);
+    margin-right: 10px;
+}
+
+.searchbox input.search-text {
+    border: none;
+    background: inherit;
+    font-size: var(--size-medium);
+    font-weight: 600;
+    outline: none;
+    width: 100%;
+}
+
+.access-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.access-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dddddd;
+    transition: all 0.2s ease;
+}
+
+.access-item:hover {
+    background-color: #e7e7e7;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.access-info h4 {
+    font-size: 1rem;
+    margin-bottom: 5px;
+    color: var(--color-dark-grey);
+}
+
+.access-info p {
+    font-size: 0.85rem;
+    color: var(--color-lite-grey);
+    margin: 0;
+}
+
+.access-count {
+    display: flex;
+    align-items: center;
+}
+
+.admin-toggle {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+
+.admin-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 24px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+    background-color: var(--primary-color);
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+}
+
+.toggle-label {
+    margin-left: 10px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--color-dark-grey);
+}
+
+input:checked + .toggle-slider + .toggle-label {
+    color: var(--primary-color);
+}
+
+.fab-icon {
+    position: fixed;
+    z-index: 1000;
+    bottom: 30px;
+    right: 30px;
+    color: var(--color-white);
+    background: var(--primary-color);
+    border-radius: 50%;
+    text-align: center;
+    font-size: var(--size-xlarge);
+    box-shadow: 0 4px 20px rgba(163, 21, 23, 0.5);
+    width: 60px;
+    height: 60px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.fab-icon:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 25px rgba(163, 21, 23, 0.6);
+}
+
+.notFound {
+    text-align: center;
+    padding: 30px;
+    color: var(--color-lite-grey);
+    font-style: italic;
+    display: none;
+}

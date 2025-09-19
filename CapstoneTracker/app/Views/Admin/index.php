@@ -9,7 +9,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="index.css">
+
+    <link rel="stylesheet" href="../../../resources/css/Admin/index.css">
+    <script type="text/javascript" src="../../../resources/js/Admin/index.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
@@ -80,20 +82,7 @@
         </div>
     </div>
 
-    <script>
-        // Toggle between forms
-        const signUpButton = document.getElementById('signUp');
-        const signInButton = document.getElementById('signIn');
-        const container = document.getElementById('container');
-
-        signUpButton.addEventListener('click', () => {
-            container.classList.add("right-panel-active");
-        });
-
-        signInButton.addEventListener('click', () => {
-            container.classList.remove("right-panel-active");
-        });
-    </script>
+    
 </body>
 </html>
 

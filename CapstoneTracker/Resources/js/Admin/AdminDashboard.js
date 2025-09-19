@@ -35,6 +35,102 @@ document.addEventListener('DOMContentLoaded', function() {
     // for log buttons
     const logMenuButtons = document.querySelectorAll('.header .logMenu button');
 
+    // Function to switch log views
+    function switchLogView(viewToShow, buttonToSelect) {
+        // Get references to log views and buttons (they might not exist initially)
+        const userLogView = document.getElementById('userLog-container');
+        const adminLogView = document.getElementById('adminLog-container');
+        const userButton = document.getElementById('userButton');
+        const adminButton = document.getElementById('adminButton');
+        
+        // Hide all log views if they exist
+        if (userLogView) userLogView.style.display = 'none';
+        if (adminLogView) adminLogView.style.display = 'none';
+        
+        // Remove active class from all buttons if they exist
+        if (userButton) userButton.classList.remove('selected');
+        if (adminButton) adminButton.classList.remove('selected');
+        
+        // Show selected log view and activate button
+        if (viewToShow && buttonToSelect) {
+            viewToShow.style.display = 'block';
+            buttonToSelect.classList.add('selected');
+        }
+    }
+    
+    // Initialize sidebar functionality
+    function initializeSidebar() {
+        const sidebarOptions = document.querySelectorAll('.menu-options li');
+        const contentContainers = {
+            'dashboard': document.querySelector('.projects-container'),
+            'users': document.getElementById('access-container'),
+            'logs': document.getElementById('logs-container')
+        };
+
+        // Function to switch sidebar views
+        function switchSidebarView(viewId) {
+            const header = document.querySelector('.header');
+            const appContentHeader = document.querySelector('.app-content-header');
+            const mainContent = document.querySelector('.main-content');
+            
+            // Hide all content containers
+            Object.values(contentContainers).forEach(container => {
+                if (container) {
+                    container.style.display = 'none';
+                    container.classList.remove('content-container-active');
+                }
+            });
+            
+            // Show the selected content container
+            if (contentContainers[viewId]) {
+                contentContainers[viewId].style.display = 'block';
+                contentContainers[viewId].classList.add('content-container-active');
+                
+                // Special handling for logs view
+                if (viewId === 'logs') {
+                    // Ensure user log is shown by default
+                    const userLogView = document.getElementById('userLog-container');
+                    const userButton = document.getElementById('userButton');
+                    if (userLogView && userButton) {
+                        switchLogView(userLogView, userButton);
+                    }
+                }
+            }
+            
+            // Update active states in sidebar
+            sidebarOptions.forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // Find and select the clicked option
+            const clickedOption = Array.from(sidebarOptions).find(option => {
+                return option.getAttribute('data-view') === viewId;
+            });
+            
+            if (clickedOption) {
+                clickedOption.classList.add('selected');
+            }
+        }
+
+        // Add event listeners to sidebar options
+        sidebarOptions.forEach((option, index) => {
+            // Set data attributes to identify each option
+            const viewIds = ['dashboard', 'users', 'logs'];
+            option.setAttribute('data-view', viewIds[index] || `option-${index}`);
+            
+            option.addEventListener('click', function() {
+                const viewId = this.getAttribute('data-view');
+                switchSidebarView(viewId);
+            });
+        });
+
+        // Initialize with dashboard view
+        switchSidebarView('dashboard');
+    }
+
+    // Initialize sidebar
+    initializeSidebar();
+
     // Function to switch views
     function switchView(viewToShow, buttonToSelect) {
         // Hide all views
@@ -68,24 +164,6 @@ document.addEventListener('DOMContentLoaded', function() {
         animateOnScroll();
     }
 
-    function switchLogView(viewToShow, buttonToSelect) {
-        // Hide all log views
-        if (userLogView) userLogView.style.display = 'none';
-        if (adminLogView) adminLogView.style.display = 'none';
-        
-        // Remove active class from all buttons
-        if (userButton && adminButton) {
-            userButton.classList.remove('selected');
-            adminButton.classList.remove('selected');
-        }
-        
-        // Show selected log view and activate button
-        if (viewToShow) {
-            viewToShow.style.display = 'block';
-            buttonToSelect.classList.add('selected');
-        }
-    }
-    
     // Event listeners for log buttons
     if (userButton && adminButton) {
         userButton.addEventListener('click', function() {
@@ -112,8 +190,6 @@ document.addEventListener('DOMContentLoaded', function() {
             switchView(recentView, recentButton);
         });
     }
-
-    
 
     const projectItems = document.querySelectorAll('.project-item');
     projectItems.forEach(item => {
@@ -569,7 +645,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function() {
             Swal.fire({
@@ -596,11 +671,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-
-    
-
-    
-
 
     // NEW: Filter dropdown functionality
     const filterDropdown = document.getElementById('filterDropdown');
@@ -749,6 +819,58 @@ document.addEventListener('DOMContentLoaded', function() {
     if (recentView && allView && recentButton) {
         switchView(recentView, recentButton);
     }
+
+    //download functionality for logs with SweetAlert confirmation
+    const logDownloadButtons = document.querySelectorAll('.fa-file-arrow-down');
+    logDownloadButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Determine which log type this button is for
+            const logContainer = this.closest('.log-content');
+            const logType = logContainer.id.includes('user') ? 'User' : 'Admin';
+            
+            Swal.fire({
+                title: `Download ${logType} Logs?`,
+                text: `Do you want to download the ${logType.toLowerCase()} logs as a CSV file?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, download!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Simulate download process
+                    Swal.fire({
+                        title: 'Download Started!',
+                        text: `${logType} logs are being downloaded.`,
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    
+                    // In a real application, you would trigger the actual download here
+                    // For demonstration, we'll create a dummy download
+                    setTimeout(() => {
+                        // Create a dummy CSV content
+                        const csvContent = "data:text/csv;charset=utf-8,";
+                        
+                        // Create a temporary link element
+                        const encodedUri = encodeURI(csvContent);
+                        const link = document.createElement("a");
+                        link.setAttribute("href", encodedUri);
+                        link.setAttribute("download", `${logType.toLowerCase()}_logs_${new Date().toISOString().split('T')[0]}.csv`);
+                        document.body.appendChild(link);
+                        
+                        // Trigger the download
+                        link.click();
+                        
+                        // Clean up
+                        document.body.removeChild(link);
+                    }, 1000);
+                }
+            });
+        });
+    });
 });
 
 //Thesis view abstract
@@ -777,10 +899,6 @@ function showProjectPreview(title, uploadedDate, authors, fileUrl) {
             <strong>Authors:</strong> ${authors}
         </div>
     `;
-    
-    /* Insert project info before the document viewer
-    const documentViewer = document.getElementById('document-viewer');
-    documentViewer.parentNode.insertBefore(projectInfo, documentViewer); */
     
     // Set up the document preview
     const fileExtension = fileUrl.split('.').pop().toLowerCase();
@@ -905,123 +1023,16 @@ function updatePdfControls(pdfDoc, currentPageNum) {
     document.getElementById('pdf-page-num').textContent = currentPageNum;
 }
 
-// Sidebar functionality
-const sidebarOptions = document.querySelectorAll('.menu-options li');
-const contentContainers = {
-    'dashboard': document.querySelector('.projects-container'), // This is the main projects container
-    'users': document.getElementById('access-container'),
-    'logs': document.getElementById('logs-container')
-};
-
-// Function to switch sidebar views
-function switchSidebarView(viewId) {
-    const header = document.querySelector('.header');
-    const appContentHeader = document.querySelector('.app-content-header');
-    const mainContent = document.querySelector('.main-content');
-    
-    // Hide all content containers
-    Object.values(contentContainers).forEach(container => {
-        if (container) {
-            container.style.display = 'none';
-            container.classList.remove('content-container-active');
-        }
-    });
-    
-    // Show the selected content container
-    if (contentContainers[viewId]) {
-        contentContainers[viewId].style.display = 'block';
-        contentContainers[viewId].classList.add('content-container-active');
-        
-        
-    } else {
-        // Show the main header and search when in dashboard view
-        header.style.display = 'flex';
-        appContentHeader.style.display = 'flex';
-    }
-    
-    // Update active states in sidebar
-    sidebarOptions.forEach(option => {
-        option.classList.remove('selected');
-    });
-    
-    // Find and select the clicked option
-    const clickedOption = Array.from(sidebarOptions).find(option => {
-        return option.getAttribute('data-view') === viewId;
-    });
-    
-    if (clickedOption) {
-        clickedOption.classList.add('selected');
-    }
-
-    // If switching to logs view, ensure user log is shown by default
-    if (viewId === 'logs' && userLogView && userButton) {
-        switchLogView(userLogView, userButton);
-    }
-}
-
-// Add event listeners to sidebar options
-sidebarOptions.forEach((option, index) => {
-    // Set data attributes to identify each option
-    const viewIds = ['dashboard', 'users', 'logs'];
-    option.setAttribute('data-view', viewIds[index] || `option-${index}`);
-    
-    option.addEventListener('click', function() {
-        const viewId = this.getAttribute('data-view');
-        switchSidebarView(viewId);
-    });
-});
-
-// Initialize with dashboard view
-switchSidebarView('dashboard');
-
-//download functionality for logs with SweetAlert confirmation
-const logDownloadButtons = document.querySelectorAll('.fa-file-arrow-down');
-logDownloadButtons.forEach(button => {
-    button.addEventListener('click', function() {
-        // Determine which log type this button is for
-        const logContainer = this.closest('.log-content');
-        const logType = logContainer.id.includes('user') ? 'User' : 'Admin';
-        
-        Swal.fire({
-            title: `Download ${logType} Logs?`,
-            text: `Do you want to download the ${logType.toLowerCase()} logs as a CSV file?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Yes, download!',
-            cancelButtonText: 'Cancel'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Simulate download process
-                Swal.fire({
-                    title: 'Download Started!',
-                    text: `${logType} logs are being downloaded.`,
-                    icon: 'success',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-                
-                // In a real application, you would trigger the actual download here
-                // For demonstration, we'll create a dummy download
-                setTimeout(() => {
-                    // Create a dummy CSV content
-                    const csvContent = "data:text/csv;charset=utf-8,";
-                    
-                    // Create a temporary link element
-                    const encodedUri = encodeURI(csvContent);
-                    const link = document.createElement("a");
-                    link.setAttribute("href", encodedUri);
-                    link.setAttribute("download", `${logType.toLowerCase()}_logs_${new Date().toISOString().split('T')[0]}.csv`);
-                    document.body.appendChild(link);
-                    
-                    // Trigger the download
-                    link.click();
-                    
-                    // Clean up
-                    document.body.removeChild(link);
-                }, 1000);
-            }
+// Function to load admin access content
+function loadAdminAccessContent() {
+    fetch('adminAccessContent.php')  // Changed to the content-only file
+        .then(response => response.text())
+        .then(data => {
+            adminAccessContent.innerHTML = data;
+            initializeAdminAccessFunctionality();
+        })
+        .catch(error => {
+            console.error('Error loading admin access content:', error);
+            adminAccessContent.innerHTML = '<p>Error loading admin access content. Please try again.</p>';
         });
-    });
-});
+}
