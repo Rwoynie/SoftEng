@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let changesMade = false;
     let roleChanges = {};
-    let users = [];
+    
 
     // Changed to select buttons instead of li elements
     const menuButtons = document.querySelectorAll('.header .menu button');
@@ -68,6 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const contentContainers = {
             'dashboard': document.querySelector('.projects-container'),
             'users': document.getElementById('access-container'),
+            'accounts': document.getElementById('accounts-container'),
             'logs': document.getElementById('logs-container')
         };
 
@@ -119,7 +120,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add event listeners to sidebar options
         sidebarOptions.forEach((option, index) => {
             // Set data attributes to identify each option
-            const viewIds = ['dashboard', 'users', 'logs'];
+            const viewIds = ['dashboard', 'users', 'accounts', 'logs'];
             option.setAttribute('data-view', viewIds[index] || `option-${index}`);
             
             option.addEventListener('click', function() {

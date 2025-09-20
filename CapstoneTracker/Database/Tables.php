@@ -32,6 +32,7 @@ class DatabaseSchema {
                 Email VARCHAR(255) UNIQUE NOT NULL,
                 User_ID VARCHAR(255) UNIQUE NOT NULL,
                 User_Role VARCHAR(255) NOT NULL,
+                Acc_Status VARCHAR(255) NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX (Email),
@@ -228,13 +229,6 @@ class DatabaseSchema {
     }
     
     /**
-     * Set error message
-     */
-    public function setError($message) {
-        $this->error = $message;
-    }
-    
-    /**
      * Complete setup process (database + tables + admin)
      */
     public function fullSetup($host, $username, $password, $databaseName) {
@@ -245,7 +239,7 @@ class DatabaseSchema {
         
         // Now connect to the specific database
         try {
-            require_once __DIR__ . '/../app/Models/Database.php';
+            require_once __DIR__ . '/Database.php';
             $this->db = new Database();
             
             if (!$this->db->isConnected()) {

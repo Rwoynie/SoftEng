@@ -8,7 +8,7 @@ class User extends Model {
         $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
         
         $this->db->query('INSERT INTO USER_INFORMATION 
-            (pswrd, Salt, First_Name, Middle_Name, Last_Name, Extension, Email, Student_ID, User_Role) 
+            (pswrd, Salt, First_Name, Middle_Name, Last_Name, Extension, Email, Student_ID, User_Role, Acc_Status) 
             VALUES (:password, :salt, :first_name, :middle_name, :last_name, :extension, :email, :student_id, )');
         
         $this->db->bind(':password', $hashedPassword);
