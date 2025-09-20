@@ -1,13 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
   // DOM Elements
   const landingPage = document.getElementById('landing-page');
-  const footer1 = document.getElementById('footer1');
   const resultsPage = document.getElementById('results-page');
   const searchInput = document.getElementById('search-input');
   const resultsSearchInput = document.getElementById('results-search-input');
   const searchBtn = document.getElementById('search-btn');
   const resultsSearchBtn = document.getElementById('results-search-btn');
   const thesisResults = document.getElementById('thesis-results');
+  const resultsNumber = document.getElementById('results-number');
   
   // Carousel Elements
   const carouselContainer = document.querySelector('.carousel-container');
@@ -16,51 +16,89 @@ document.addEventListener('DOMContentLoaded', () => {
   const nextButton = document.querySelector('.carousel-control.next');
   const indicatorsContainer = document.querySelector('.carousel-indicators');
   
-
+  // Filter Elements
+  const filterDropdown = document.getElementById('filterDropdown');
+  const sortDropdown = document.getElementById('sortDropdown');
+  
+  // Sample thesis data (in a real app, this would come from an API)
   const thesisData = [
     {
       id: 1,
-      title: "Regular Logistics",
+      title: "AI-Powered Logistics Optimization",
       url: "regularlogistics.com",
-      description: "Supply chain management solution for small and medium businesses.",
+      description: "Supply chain management solution for small and medium businesses using machine learning algorithms.",
       progress: 44,
       daysLeft: 9,
       hardboundAvailable: true,
       department: "cs",
-      tags: ["logistics", "supply chain", "business"]
+      tags: ["logistics", "machine learning", "supply chain", "business"],
+      date: "2025-08-15",
+      views: 124
     },
     {
       id: 2,
-      title: "Capstone Finder",
+      title: "Capstone Finder: Digital Repository System",
       url: "capstonefinder.org",
-      description: "A digital repository for storing, managing, and searching capstone projects.",
+      description: "A digital repository for storing, managing, and searching capstone projects with advanced filtering.",
       progress: 75,
       daysLeft: 15,
       hardboundAvailable: true,
       department: "it",
-      tags: ["repository", "management", "search"]
+      tags: ["repository", "management", "search", "database"],
+      date: "2025-07-22",
+      views: 287
     },
     {
       id: 3,
-      title: "Smart Campus",
+      title: "Smart Campus: IoT Infrastructure",
       url: "smartcampus.edu",
-      description: "IoT-based solution for campus management and facility optimization.",
+      description: "IoT-based solution for campus management and facility optimization using sensor networks.",
       progress: 30,
       daysLeft: 25,
       hardboundAvailable: false,
       department: "ce",
-      tags: ["iot", "campus", "management"]
+      tags: ["iot", "campus", "management", "sensors"],
+      date: "2025-09-03",
+      views: 96
     },
     {
       id: 4,
-      title: "E-Learning Platform",
+      title: "Adaptive E-Learning Platform with AI",
       url: "elearnplatform.com",
-      description: "Interactive online learning system with AI-powered recommendations.",
+      description: "Interactive online learning system with AI-powered recommendations and personalized learning paths.",
       progress: 90,
       daysLeft: 5,
       hardboundAvailable: true,
       department: "cs",
-      tags: ["education", "ai", "learning"]
+      tags: ["education", "ai", "learning", "adaptive"],
+      date: "2025-06-18",
+      views: 352
+    },
+    {
+      id: 5,
+      title: "Blockchain-Based Secure Voting System",
+      url: "securevoting.io",
+      description: "A transparent and tamper-proof voting system utilizing blockchain technology for elections.",
+      progress: 65,
+      daysLeft: 18,
+      hardboundAvailable: false,
+      department: "it",
+      tags: ["blockchain", "voting", "security", "elections"],
+      date: "2025-08-29",
+      views: 211
+    },
+    {
+      id: 6,
+      title: "Renewable Energy Monitoring System",
+      url: "greenenergymonitor.com",
+      description: "Real-time monitoring and optimization of renewable energy sources for efficient power management.",
+      progress: 82,
+      daysLeft: 7,
+      hardboundAvailable: true,
+      department: "ce",
+      tags: ["renewable energy", "monitoring", "sustainability", "optimization"],
+      date: "2025-07-10",
+      views: 178
     }
   ];
 
@@ -81,12 +119,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize carousel
     initCarousel();
     
+    // Initialize dropdowns
+    initDropdowns();
+    
     // Initialize with empty results container
     thesisResults.innerHTML = `
       <div class="no-results">
         <i class="fas fa-search"></i>
         <h3>Search for theses</h3>
-        <p>Enter keywords in the search box above</p>
+        <p>Enter keywords in the search box above to find relevant research</p>
       </div>
     `;
   }
@@ -124,18 +165,44 @@ document.addEventListener('DOMContentLoaded', () => {
       gridBtn.classList.remove('active');
     });
 
-    // Filter dropdown functionality
-    const filterDropdown = document.getElementById('filterDropdown');
+    // Window resize for responsive carousel
+    window.addEventListener('resize', () => {
+      slidesToShow = calculateSlidesToShow();
+      updateCarousel();
+    });
+
+    // Pagination buttons
+    const paginationButtons = document.querySelectorAll('.pagination-btn, .page-btn');
+    paginationButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        if (!this.classList.contains('active') && !this.disabled) {
+          document.querySelectorAll('.page-btn').forEach(btn => {
+            btn.classList.remove('active');
+          });
+          
+          if (this.classList.contains('page-btn')) {
+            this.classList.add('active');
+          }
+          
+          // In a real app, this would fetch the next page of results
+          setTimeout(() => {
+            alert('Pagination would load more results in a real application');
+          }, 300);
+        }
+      });
+    });
+  }
+
+  function initDropdowns() {
+    // Initialize filter dropdown
     if (filterDropdown) {
       filterDropdown.addEventListener('click', function(e) {
         e.stopPropagation();
         this.classList.toggle('active');
-      });
-
-      // Close dropdown when clicking outside
-      document.addEventListener('click', (e) => {
-        if (!filterDropdown.contains(e.target)) {
-          filterDropdown.classList.remove('active');
+        
+        // Close other dropdowns
+        if (sortDropdown.classList.contains('active')) {
+          sortDropdown.classList.remove('active');
         }
       });
 
@@ -154,10 +221,42 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // Window resize for responsive carousel
-    window.addEventListener('resize', () => {
-      slidesToShow = calculateSlidesToShow();
-      updateCarousel();
+    // Initialize sort dropdown
+    if (sortDropdown) {
+      sortDropdown.addEventListener('click', function(e) {
+        e.stopPropagation();
+        this.classList.toggle('active');
+        
+        // Close other dropdowns
+        if (filterDropdown.classList.contains('active')) {
+          filterDropdown.classList.remove('active');
+        }
+      });
+
+      // Handle option selection
+      const options = sortDropdown.querySelectorAll('.options div');
+      options.forEach(option => {
+        option.addEventListener('click', function() {
+          const value = this.getAttribute('data-value');
+          const text = this.textContent;
+          sortDropdown.querySelector('.selected span').textContent = `Sort by: ${text}`;
+          sortDropdown.classList.remove('active');
+          
+          // Sort results based on selection
+          sortResults(value);
+        });
+      });
+    }
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', (e) => {
+      if (filterDropdown && !filterDropdown.contains(e.target)) {
+        filterDropdown.classList.remove('active');
+      }
+      
+      if (sortDropdown && !sortDropdown.contains(e.target)) {
+        sortDropdown.classList.remove('active');
+      }
     });
   }
 
@@ -196,6 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function createIndicators() {
     const indicatorCount = Math.ceil(totalSlides / slidesToShow);
+    indicatorsContainer.innerHTML = '';
     
     for (let i = 0; i < indicatorCount; i++) {
       const indicator = document.createElement('div');
@@ -222,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateCarousel() {
-    const cardWidth = slides[0].offsetWidth + 20; // width + margin
+    const cardWidth = slides[0].offsetWidth + 24; // width + margin
     const translateX = -currentSlide * cardWidth;
     announcementCards.style.transform = `translateX(${translateX}px)`;
     updateIndicators();
@@ -265,7 +365,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (term) {
       // Show results page
       landingPage.classList.add('hidden');
-      footer1.classList.add('hidden');
       resultsPage.classList.remove('hidden');
       
       // Set the search term in results page
@@ -295,7 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
       const results = searchTheses(term);
       displayResults(results);
-    }, 500);
+    }, 800);
   }
 
   function filterResults(department) {
@@ -306,6 +405,28 @@ document.addEventListener('DOMContentLoaded', () => {
       results = searchTheses(term);
     } else {
       results = searchTheses(term).filter(thesis => thesis.department === department);
+    }
+    
+    displayResults(results);
+  }
+
+  function sortResults(criteria) {
+    const term = resultsSearchInput.value.trim();
+    let results = searchTheses(term);
+    
+    switch(criteria) {
+      case 'recent':
+        results.sort((a, b) => new Date(b.date) - new Date(a.date));
+        break;
+      case 'popular':
+        results.sort((a, b) => b.views - a.views);
+        break;
+      case 'title':
+        results.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+      case 'department':
+        results.sort((a, b) => a.department.localeCompare(b.department));
+        break;
     }
     
     displayResults(results);
@@ -325,6 +446,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function displayResults(results) {
+    // Update results count
+    resultsNumber.textContent = results.length;
+    
     if (results.length === 0) {
       thesisResults.innerHTML = `
         <div class="no-results">
@@ -337,7 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     thesisResults.innerHTML = results.map(thesis => `
-      <div class="thesis-card">
+      <div class="thesis-card" data-id="${thesis.id}">
         <div class="card-header">
           <div class="card-logo">
             <i class="fas fa-book"></i>
@@ -372,5 +496,31 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
     `).join('');
+    
+    // Add event listeners to thesis cards
+    const thesisCards = document.querySelectorAll('.thesis-card');
+    thesisCards.forEach(card => {
+      card.addEventListener('click', (e) => {
+        if (!e.target.closest('.card-menu')) {
+          const thesisId = card.getAttribute('data-id');
+          viewThesisDetails(thesisId);
+        }
+      });
+      
+      // Menu click handler
+      const menu = card.querySelector('.card-menu');
+      if (menu) {
+        menu.addEventListener('click', (e) => {
+          e.stopPropagation();
+          // Implement menu functionality here
+          alert('Thesis menu clicked');
+        });
+      }
+    });
+  }
+
+  function viewThesisDetails(thesisId) {
+    // In a real application, this would navigate to a thesis details page
+    alert(`Viewing details for thesis ID: ${thesisId}`);
   }
 });
