@@ -73,7 +73,7 @@
                     <h3>System Launch</h3>
                     <span class="date">September 15, 2025</span>
                   </div>
-                  <p>The Thesis Compendium System officially goes live this semester. All students are encouraged to register and explore the new features.</p>
+                  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
                   <a href="#" class="read-more">Read more</a>
                 </div>
               </div>
@@ -88,7 +88,7 @@
                     <h3>Submission Deadline</h3>
                     <span class="date">September 20, 2025</span>
                   </div>
-                  <p>Capstone project submissions are due on October 10, 2025. Please ensure all documents are properly formatted and submitted on time.</p>
+                  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
                   <a href="#" class="read-more">Read more</a>
                 </div>
               </div>
@@ -103,7 +103,7 @@
                     <h3>System Maintenance</h3>
                     <span class="date">September 25, 2025</span>
                   </div>
-                  <p>System maintenance will occur on October 1, 2025, from 12AM–4AM. The system will be unavailable during this period.</p>
+                  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
                   <a href="#" class="read-more">Read more</a>
                 </div>
               </div>
@@ -118,19 +118,14 @@
                     <h3>Thesis Writing Workshop</h3>
                     <span class="date">October 5, 2025</span>
                   </div>
-                  <p>Join our thesis writing workshop on October 15th. Learn how to structure your research and use the system effectively.</p>
+                  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
                   <a href="#" class="read-more">Read more</a>
                 </div>
               </div>
             </div>
           </div>
           
-          <button class="carousel-control prev" aria-label="Previous announcements">
-            <i class="fas fa-chevron-left"></i>
-          </button>
-          <button class="carousel-control next" aria-label="Next announcements">
-            <i class="fas fa-chevron-right"></i>
-          </button>
+          
           
           <div class="carousel-indicators"></div>
         </div>

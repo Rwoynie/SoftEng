@@ -340,6 +340,10 @@ body {
   flex-grow: 1;
 }
 
+.card-content p{
+  text-align: justify;
+}
+
 .card-header {
   margin-bottom: 1rem;
 }
