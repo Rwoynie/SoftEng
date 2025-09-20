@@ -729,6 +729,57 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // ACCOUNT FILTER NEW: Filter dropdown functionality
+    const accountfilterDropdown = document.getElementById('accountFilterDropdown');
+    if (filterDropdown) {
+        const selectedText = accountfilterDropdown.querySelector('.selected span');
+        const options = accountfilterDropdown.querySelectorAll('.options div');
+        
+        // Toggle dropdown on click
+        accountfilterDropdown.querySelector('.selected').addEventListener('click', function(e) {
+            e.stopPropagation();
+            accountfilterDropdown.classList.toggle('active');
+        });
+        
+        // Handle option selection
+        options.forEach(option => {
+            option.addEventListener('click', function() {
+                const value = this.getAttribute('data-value');
+                selectedText.textContent = this.textContent;
+                accountfilterDropdown.classList.remove('active');
+                
+                // Filter projects based on selected value
+                const projectItems = document.querySelectorAll('.project-item');
+                
+                if (value === 'all') {
+                    // Show all items if "All" is selected
+                    projectItems.forEach(item => {
+                        item.style.display = 'flex';
+                    });
+                } else {
+                    // Hide items that don't match the filter
+                    projectItems.forEach(item => {
+                        const tags = item.getAttribute('data-tags').split(' ');
+                        if (tags.includes(value)) {
+                            item.style.display = 'flex';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+                }
+                
+                
+            });
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (filterDropdown && !filterDropdown.contains(e.target)) {
+                filterDropdown.classList.remove('active');
+            }
+        });
+    }
+
     // Search functionality
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {

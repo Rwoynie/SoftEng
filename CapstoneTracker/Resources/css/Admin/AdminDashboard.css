@@ -1505,13 +1505,24 @@ body {
 }
 
 .access-list {
- 
+    
     display: flex;
     flex-direction: row;
     gap: 3vw;
 }
 
+.accessCard {
+    cursor: pointer;
+    transition: all 0.10s ease-in;
+}
+
+.accessCard:hover {
+    transform: scale(1.03);
+    background-color: #e8e8e8;
+}
+
 .access-item {
+    
     width: 30vw;
     display: flex;
     justify-content: space-between;
@@ -1883,7 +1894,7 @@ body {
     padding: 12px;
     background: var(--color-white);
     border-radius: 8px;
-    width: 80%;
+    width: 100%;
     margin-bottom: 0.8vw;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -1993,5 +2004,200 @@ body {
     
     .searchbox {
         width: 100%;
+    }
+}
+
+/*------------------------------------------------ Account Management*/
+
+.accountHeader {
+    
+    margin-bottom: 10px;
+    flex-shrink: 0;
+    position: sticky; /* Changed to sticky */
+    top: 0; /* Stick to top of container */
+    background: transparent; /* Match background color */
+    z-index: 50; /* Ensure it stays above content */
+    padding-bottom: 10px ;
+    border-bottom: 1px solid #eee;
+}
+
+.accounts-table-container {
+    background: var(--color-white);
+    border-radius: 12px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.accounts-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.accounts-table th {
+    background-color: #f5f5f5;
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--color-dark-grey);
+    border-bottom: 1px solid #eee;
+}
+
+.accounts-table td {
+    padding: 15px;
+    padding-top: 1.2vw;
+    padding-bottom: 1.2vw;
+    border-bottom: 1px solid #eee;
+}
+
+.accounts-table tr:last-child td {
+    border-bottom: none;
+}
+
+.accounts-table tr:hover {
+    background-color: #f9f9f9;
+}
+
+/* Status badges */
+.status-badge {
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-approved {
+    background-color: #e8f5e9;
+    color: var(--color-good);
+}
+
+.status-pending {
+    background-color: #fff3e0;
+    color: var(--color-warning);
+}
+
+/* Role badges */
+.role-badge {
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.role-admin {
+    background-color: #ffebee;
+    color: var(--color-danger);
+}
+
+.role-faculty {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}
+
+.role-student {
+    background-color: #f3e5f5;
+    color: #7b1fa2;
+}
+
+/* Action buttons */
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 0px;
+    margin-left: -3.5vw;
+}
+
+.action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.approve-btn {
+    background-color: #e8f5e9;
+    color: var(--color-good);
+}
+
+.approve-btn:hover {
+    background-color: #c8e6c9;
+}
+
+.approve-btn.disabled {
+    background-color: #f5f5f5;
+    color: #bdbdbd;
+    cursor: not-allowed;
+}
+
+.approve-btn.disabled:hover {
+    background-color: #f5f5f5;
+}
+
+.delete-btn {
+    background-color: #ffebee;
+    color: var(--color-danger);
+}
+
+.delete-btn:hover {
+    background-color: #ffcdd2;
+}
+
+/* Pagination */
+.table-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.pagination-btn {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    background-color: var(--color-white);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background-color: #f5f5f5;
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-info {
+    color: var(--color-lite-grey);
+    font-size: 14px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    .accounts-table-container {
+        overflow-x: auto;
+    }
+    
+    .accounts-table {
+        min-width: 800px;
+    }
+}
+
+@media (max-width: 768px) {
+    .action-buttons {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .action-btn {
+        width: 28px;
+        height: 28px;
     }
 }

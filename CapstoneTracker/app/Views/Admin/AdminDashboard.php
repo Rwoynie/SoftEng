@@ -70,7 +70,7 @@
                     <div class="app-content-header">
                     <div class="searchbox">
                         <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
-                        <input type="text" name="search" placeholder="Search thesis" class="search-text" id="searchInput">
+                        <input type="text" name="search" placeholder="Search thesis..." class="search-text" id="searchInput">
                     </div>
 
                     <div class="app-list-options">
@@ -87,7 +87,7 @@
                                 <div data-value="important">Name</div>
                                 <div data-value="enhancement">Author</div>
                                 <div data-value="announcement">Adviser</div>
-                                <div data-value="news">Date Uploaded</div>
+                                <div data-value="news">Recent Date Uploaded</div>
                                 <div data-value="discussion">Hardbound Available</div>
                             
                             </div>
@@ -384,31 +384,31 @@
                         
                         <div class="access-list">
 
-                            <div id="adminAccess" class="access-item">
+                            <button id="adminAccess" class="access-item accessCard">
                                 <div class="access-info">
                                     <h4>Administrator</h4>
                                     <p>Full system access</p>
                                 </div>
                                 <div class="access-count">3 users</div>
-                            </div>
+                            </button>
 
 
-                            <div id="facultyAccess" class="access-item">
+                            <button id="facultyAccess" class="access-item accessCard">
                                 <div class="access-info">
                                     <h4>Faculty</h4>
                                     <p>Can edit content but not manage users</p>
                                 </div>
                                 <div class="access-count">7 users</div>
-                            </div>
+                            </button>
 
 
-                            <div id="studentAccess" class="access-item">
+                            <button id="studentAccess" class="access-item accessCard">
                                 <div class="access-info">
                                     <h4>Student</h4>
                                     <p>Read-only and download access</p>
                                 </div>
                                 <div class="access-count">12 users</div>
-                            </div>
+                            </button>
                         </div>
                     </div>
                     
@@ -529,6 +529,150 @@
                 </div>
             </div>
 
+            <div id="accounts-container" class="content-container" style="display: none;">
+                <header class="logHeader" id="accountHeader">
+                    <div class="title">Account Management</div>
+                    <div class="logMenu">
+                        <button class="selected" id="allAccountsButton">All Accounts</button>
+                        <button id="pendingButton">Pending</button>
+                        <button id="approvedButton">Approved</button>
+                    </div>
+                </header>
+                
+                <div class="app-content-header accountHeader">
+                    <div class="searchbox">
+                        <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
+                        <input type="text" name="search" placeholder="Search accounts..." class="search-text" id="accountSearchInput">
+                    </div>
+
+                    <div class="app-list-options">
+                        <div class="select" id="accountFilterDropdown">
+                            <div class="selected">
+                                <span>Recently Joined</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 512 512" class="arrow">
+                                    <path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path>
+                                </svg>
+                            </div>
+                            <div class="options">
+                                <div data-value="recent">Recently Joined</div>
+                                <div data-value="admin">Administrator</div>
+                                <div data-value="faculty">Faculty</div>
+                                <div data-value="student">Student</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="accounts-table-container">
+                    <table class="accounts-table">
+                        <thead>
+                            <tr>
+                                <th>Full Name</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Role</th>
+                                <th>Join Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Approved Account Example -->
+                            <tr>
+                                <td>John Smith</td>
+                                <td>john.smith@example.com</td>
+                                <td><span class="status-badge status-approved">Approved</span></td>
+                                <td><span class="role-badge role-admin">Admin</span></td>
+                                <td>Oct 15, 2023</td>
+                                <td class="action-buttons">
+                                    <button class="action-btn approve-btn disabled" title="Account Already Approved" disabled>
+                                        <i class="fa fa-check"></i>
+                                    </button>
+                                    <button class="action-btn delete-btn" title="Delete Account">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            
+                            <!-- Pending Account Example -->
+                            <tr>
+                                <td>Jane Doe</td>
+                                <td>jane.doe@example.com</td>
+                                <td><span class="status-badge status-pending">Pending</span></td>
+                                <td><span class="role-badge role-faculty">Faculty</span></td>
+                                <td>Oct 20, 2023</td>
+                                <td class="action-buttons">
+                                    <button class="action-btn approve-btn" title="Approve Account">
+                                        <i class="fa fa-check"></i>
+                                    </button>
+                                    <button class="action-btn delete-btn" title="Delete Account">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            
+                            <!-- More account rows would go here -->
+                            <tr>
+                                <td>Robert Johnson</td>
+                                <td>robert.j@example.com</td>
+                                <td><span class="status-badge status-approved">Approved</span></td>
+                                <td><span class="role-badge role-student">Student</span></td>
+                                <td>Sep 5, 2023</td>
+                                <td class="action-buttons">
+                                    <button class="action-btn approve-btn disabled" title="Account Already Approved" disabled>
+                                        <i class="fa fa-check"></i>
+                                    </button>
+                                    <button class="action-btn delete-btn" title="Delete Account">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>Sarah Williams</td>
+                                <td>sarah.w@example.com</td>
+                                <td><span class="status-badge status-pending">Pending</span></td>
+                                <td><span class="role-badge role-student">Student</span></td>
+                                <td>Oct 22, 2023</td>
+                                <td class="action-buttons">
+                                    <button class="action-btn approve-btn" title="Approve Account">
+                                        <i class="fa fa-check"></i>
+                                    </button>
+                                    <button class="action-btn delete-btn" title="Delete Account">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>Michael Brown</td>
+                                <td>michael.b@example.com</td>
+                                <td><span class="status-badge status-approved">Approved</span></td>
+                                <td><span class="role-badge role-faculty">Faculty</span></td>
+                                <td>Aug 12, 2023</td>
+                                <td class="action-buttons">
+                                    <button class="action-btn approve-btn disabled" title="Account Already Approved" disabled>
+                                        <i class="fa fa-check"></i>
+                                    </button>
+                                    <button class="action-btn delete-btn" title="Delete Account">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="table-pagination">
+                    <button class="pagination-btn" disabled>
+                        <i class="fa fa-chevron-left"></i>
+                    </button>
+                    <span class="pagination-info">Page 1 of 3</span>
+                    <button class="pagination-btn">
+                        <i class="fa fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
             <div id="logs-container" class="content-container" style="display: none;">
                 <header class="logHeader" id="logHeader">
                     <div class="title">System Logs</div>
@@ -625,13 +769,7 @@
                 </div>
             </div>
 
-            <div id="accounts-container" class="content-container" style="display: none;">
-                <header class="header" id="header">
-                    <div class="title">Account Management</div>
-                           
-
-                </header>
-            </div>
+            
         </section>
     </section>
 </div>
