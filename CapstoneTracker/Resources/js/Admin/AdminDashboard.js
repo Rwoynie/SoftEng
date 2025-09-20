@@ -1100,6 +1100,77 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize the role change handling when the page loads
     initializeRoleChangeHandling();
 
+   
+    // Account Management Filtering
+    const allAccountsButton = document.getElementById('allAccountsButton');
+    const pendingButton = document.getElementById('pendingButton');
+    const approvedButton = document.getElementById('approvedButton');
+
+    // Account status containers
+    const allAccountsContainer = document.getElementById('allAccounts-container');
+    const pendingAccountsContainer = document.getElementById('pendingAccounts-container');
+    const approvedAccountsContainer = document.getElementById('approvedAccounts-container');
+
+    // Function to switch account views
+    function switchAccountView(viewToShow, buttonToSelect) {
+        // Hide all account views
+        if (allAccountsContainer) allAccountsContainer.style.display = 'none';
+        if (pendingAccountsContainer) pendingAccountsContainer.style.display = 'none';
+        if (approvedAccountsContainer) approvedAccountsContainer.style.display = 'none';
+        
+        // Remove active class from all buttons
+        const accountButtons = document.querySelectorAll('.logMenu button');
+        accountButtons.forEach(button => button.classList.remove('selected'));
+        
+        // Show selected account view and activate button
+        if (viewToShow && buttonToSelect) {
+            viewToShow.style.display = 'block';
+            buttonToSelect.classList.add('selected');
+        }
+    }
+
+    // Event listeners for account filter buttons
+    if (allAccountsButton && pendingButton && approvedButton) {
+        allAccountsButton.addEventListener('click', function() {
+            switchAccountView(allAccountsContainer, allAccountsButton);
+        });
+        
+        pendingButton.addEventListener('click', function() {
+            switchAccountView(pendingAccountsContainer, pendingButton);
+        });
+        
+        approvedButton.addEventListener('click', function() {
+            switchAccountView(approvedAccountsContainer, approvedButton);
+        });
+    }
+
+    // Initialize with all accounts view
+    if (allAccountsContainer && allAccountsButton) {
+        switchAccountView(allAccountsContainer, allAccountsButton);
+    }
+
+    // Account search functionality
+    const accountSearchInput = document.getElementById('accountSearchInput');
+    if (accountSearchInput) {
+        accountSearchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            const accountRows = document.querySelectorAll('.accounts-table tbody tr');
+            
+            accountRows.forEach(row => {
+                const name = row.querySelector('td:first-child').textContent.toLowerCase();
+                const email = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                
+                if (name.includes(searchTerm) || email.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    }
+
+    
+
 });
 
 //Thesis view abstract

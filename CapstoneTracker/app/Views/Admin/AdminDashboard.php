@@ -661,15 +661,29 @@
                         </tbody>
                     </table>
                 </div>
+
+                <div id="allAccounts-container" class="accounts-content">
+                    <!-- All accounts table will be shown here -->
+                </div>
+
+                <div id="pendingAccounts-container" class="accounts-content" style="display: none;">
+                    <!-- Pending accounts table will be shown here -->
+                </div>
+
+                <div id="approvedAccounts-container" class="accounts-content" style="display: none;">
+                    <!-- Approved accounts table will be shown here -->
+                </div>
                 
-                <div class="table-pagination">
-                    <button class="pagination-btn" disabled>
-                        <i class="fa fa-chevron-left"></i>
-                    </button>
-                    <span class="pagination-info">Page 1 of 3</span>
-                    <button class="pagination-btn">
-                        <i class="fa fa-chevron-right"></i>
-                    </button>
+                <div class="table-pagination-container">
+                    <div class="table-pagination">
+                        <button class="pagination-btn" disabled>
+                            <i class="fa fa-chevron-left"></i>
+                        </button>
+                        <span class="pagination-info">Page 1 of 3</span>
+                        <button class="pagination-btn">
+                            <i class="fa fa-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
