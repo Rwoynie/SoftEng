@@ -38,7 +38,7 @@
     </section>
 
     <section class="main-content">
-        <header class="header" id="header">
+    <header class="header" id="header">
             <div class="title">Thesis Repository</div>
             <div class="menu">
                 <button class="selected" id="recentButton"> Recent </button>
@@ -51,101 +51,107 @@
 
         <section class="app-content">
            <!-- Profile Container (initially hidden) -->
-    <div class="profile-container" id="profileContainer">
-        <div class="profile-card">
-            <div class="profile-header">
-                <div class="profile-avatar">
-                    <img src="Images/profile.png" alt="Profile" class="profile-image">
-                    <div class="online-status"></div>
-                </div>
-                <div class="profile-info">
-                    <h2 class="profile-name">John Doe</h2>
-                    <p class="profile-title">BSIT 2IT</p>
-                    <div class="profile-stats">
-                        <div class="stat-item">
-                            <div class="stat-value">15</div>
-                            <div class="stat-label">Thesis</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">10</div>
-                            <div class="stat-label">Approved</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">5</div>
-                            <div class="stat-label">Pending</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="profile-container" id="profileContainer">
+        <header class="header" id="header">
+            <div class="title">Profile</div>
+            
 
-            <div class="profile-content">
-                <div class="profile-section">
-                    <h3 class="section-title">
-                        <i class="fa fa-user-o icon" aria-hidden="true"></i>
-                        Personal Information
-                    </h3>
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <span class="info-label">Full Name:</span>
-                            <span class="info-value">John Doe</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Email:</span>
-                            <span class="info-value">johndoe@example.com</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Phone:</span>
-                            <span class="info-value">09091452546</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Location:</span>
-                            <span class="info-value">Tagum City</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Department:</span>
-                            <span class="info-value">BSIT</span>
+            
+        </header>
+            <div class="profile-card">
+                <div class="profile-header">
+                    <div class="profile-avatar">
+                        <img src="../../../resources/Images/profile.png" alt="Profile" class="profile-image">
+                        <div class="online-status"></div>
+                    </div>
+                    <div class="profile-info">
+                        <h2 class="profile-name">John Doe</h2>
+                        <p class="profile-title">BSIT 2IT</p>
+                        <div class="profile-stats">
+                            <div class="stat-item">
+                                <div class="stat-value">15</div>
+                                <div class="stat-label">Thesis</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">10</div>
+                                <div class="stat-label">Approved</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">5</div>
+                                <div class="stat-label">Pending</div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="profile-section">
-                    <h3 class="section-title">
-                        <i class="fa fa-cog icon" aria-hidden="true"></i>
-                        Account Settings
-                    </h3>
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <span class="info-label">Member Since:</span>
-                            <span class="info-value">January 15, 2022</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Last Login:</span>
-                            <span class="info-value">Today, 10:30 AM</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Status:</span>
-                            <span class="info-value status-active">Active</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Role:</span>
-                            <span class="info-value">Project Manager</span>
+                <div class="profile-content">
+                    <div class="profile-section">
+                        <h3 class="section-title">
+                            <i class="fa fa-user-o icon" aria-hidden="true"></i>
+                            Personal Information
+                        </h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Full Name:</span>
+                                <span class="info-value">John Doe</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Email:</span>
+                                <span class="info-value">johndoe@example.com</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Phone:</span>
+                                <span class="info-value">09091452546</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Location:</span>
+                                <span class="info-value">Tagum City</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Department:</span>
+                                <span class="info-value">BSIT</span>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="action-buttons">
-                        <button class="btn btn-primary">
-                            <i class="fa fa-pencil" aria-hidden="true"></i>
-                            Edit Profile
-                        </button>
-                        <button class="btn btn-secondary" id="logoutHeaderIcon">
-                            <i class="fa fa-sign-out" aria-hidden="true"></i>
-                            Logout
-                        </button>
+
+                    <div class="profile-section">
+                        <h3 class="section-title">
+                            <i class="fa fa-cog icon" aria-hidden="true"></i>
+                            Account Settings
+                        </h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Member Since:</span>
+                                <span class="info-value">January 15, 2022</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Last Login:</span>
+                                <span class="info-value">Today, 10:30 AM</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Status:</span>
+                                <span class="info-value status-active">Active</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Role:</span>
+                                <span class="info-value">Student</span>
+                            </div>
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button class="btn btn-primary">
+                                <i class="fa fa-pencil" aria-hidden="true"></i>
+                                Edit Profile
+                            </button>
+                            <button class="btn btn-secondary" id="logoutHeaderIcon">
+                                <i class="fa fa-sign-out" aria-hidden="true"></i>
+                                Logout
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
             <div class="app-content-header">
                 <div class="searchbox">
@@ -198,6 +204,7 @@
             </div>
 
             <div class="projects-container">
+            
                 <ul class="projects" id="recentView">
                     <li class="project-item" data-tags="important enhancement" data-file-url="../Images/Case Study.pdf" data-file-type="pdf">
                         <div  class="logo-row">

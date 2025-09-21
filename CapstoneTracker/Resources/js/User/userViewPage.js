@@ -29,6 +29,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const allView = document.getElementById('allView');
     const recentView = document.getElementById('recentView');
 
+    
+
     // Changed to select buttons instead of li elements
     const menuButtons = document.querySelectorAll('.header .menu button');
 
@@ -557,47 +559,77 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to show profile and hide projects
     function showProfile() {
         profileContainer.style.display = 'block';
-        projectsContainer.style.display = 'none';
+        // Hide all project views
+        allView.style.display = 'none';
+        recentView.style.display = 'none';
         appContentHeader.style.display = 'none';
-
-        // Update active states
+    
+        // Update active states - ensure only profile icon is selected
         document.querySelectorAll('.menu-options li').forEach(item => {
             item.classList.remove('selected');
         });
-        profileSidebarIcon.classList.add('selected');
+        // Get the parent li of the profile icon
+        profileSidebarIcon.closest('li').classList.add('selected');
     }
+    
 
     // Function to hide profile and show projects
     function hideProfile() {
         profileContainer.style.display = 'none';
-        projectsContainer.style.display = 'grid';
         appContentHeader.style.display = 'flex';
-
-        // Reset active states
+        
+        // Show the appropriate view based on which button is selected
+        if (allButton.classList.contains('selected')) {
+            allView.style.display = 'grid';
+        } else {
+            recentView.style.display = 'grid';
+        }
+    
+        // Reset active states - select the dashboard icon
         document.querySelectorAll('.menu-options li').forEach(item => {
             item.classList.remove('selected');
         });
-        document.querySelector('.menu-options li:nth-child(1)').classList.add('selected');
+        document.querySelector('.menu-options li:first-child').classList.add('selected');
     }
 
+    // Add click event to profile icon
+    if (profileSidebarIcon) {
+        profileSidebarIcon.addEventListener('click', function() {
+            showProfile();
+        });
+    }
+
+    // Add click event to other sidebar icons to hide profile
+    document.querySelectorAll('.menu-options li:not(#profileSidebarIcon)').forEach(item => {
+        item.addEventListener('click', function() {
+            hideProfile();
+        });
+    });
+
+    // Also hide profile when clicking on header menu items
+    document.querySelectorAll('.header .menu button').forEach(button => {
+        button.addEventListener('click', function() {
+            hideProfile();
+            
+            // Update button selection state
+            document.querySelectorAll('.header .menu button').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            this.classList.add('selected');
+        });
+    });
+
+   
     // Add click event to profile icons
     if (profileHeaderIcon) {
         profileHeaderIcon.addEventListener('click', showProfile);
     }
     
-    if (profileSidebarIcon) {
-        profileSidebarIcon.addEventListener('click', showProfile);
-    }
+    
 
-    // Add click event to other sidebar icons to hide profile
-    document.querySelectorAll('.menu-options li:not(#profileSidebarIcon)').forEach(item => {
-        item.addEventListener('click', hideProfile);
-    });
+    
 
-    // Also hide profile when clicking on header menu items
-    document.querySelectorAll('.header .menu li').forEach(item => {
-        item.addEventListener('click', hideProfile);
-    });
+    
 
     // NEW: Filter dropdown functionality
     const sortDropdown = document.getElementById('sortDropdown');
