@@ -41,7 +41,7 @@
     </section>
 
     <section class="main-content">
-    <div class="fab-icon"> + </div>
+    
                 <header class="header" id="header">
                     <div class="title">Published Titles</div>
                     <div class="menu">
@@ -108,7 +108,7 @@
             
 
             <div class="projects-container">
-            
+            <div class="fab-icon"> + </div>
 
                     
 
@@ -700,100 +700,136 @@
             </div>
 
             <div id="logs-container" class="content-container" style="display: none;">
-                <header class="logHeader" id="logHeader">
-                    <div class="title">System Logs</div>
-                    <div class="logMenu">
-                        <button class="selected" id="userButton"> User </button>
-                        <button id="adminButton"> Admin </button>
+    <header class="logHeader" id="logHeader">
+        <div class="title">System Logs</div>
+        <div class="logMenu">
+            <button class="selected" id="userButton"> User </button>
+            <button id="adminButton"> Admin </button>
+        </div>
+    </header>
+    
+    <!-- User Log Container -->
+        <div id="userLog-container" class="log-content">
+            <div class="log-filter-bar">
+            <div class="searchbox">
+                        <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
+                        <input type="text" name="search" placeholder="Search thesis..." class="search-text" id="searchInput">
                     </div>
-                </header>
-                
-                <!-- User Log Container -->
-                <div id="userLog-container" class="log-content">
-                    <div class="content-header">
-                        <h2>User Log</h2>
-                        <p>View user activities and events</p>
-                        <i class="fa-solid fa-file-arrow-down"></i>
-                    </div>
-                    <div class="content-body">
-                        <div class="logs-table">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Date & Time</th>
-                                        <th>User</th>
-                                        <th>Action</th>
-                                        <th>Details</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>2023-10-15 14:32</td>
-                                        <td>admin@example.com</td>
-                                        <td>Login</td>
-                                        <td>Successful login</td>
-                                    </tr>
-                                    <tr>
-                                        <td>2023-10-15 13:45</td>
-                                        <td>editor@example.com</td>
-                                        <td>Thesis Upload</td>
-                                        <td>Uploaded "Advanced AI Research"</td>
-                                    </tr>
-                                    <tr>
-                                        <td>2023-10-15 12:18</td>
-                                        <td>admin@example.com</td>
-                                        <td>User Management</td>
-                                        <td>Updated permissions for editor@example.com</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Admin Log Container -->
-                <div id="adminLog-container" class="log-content" style="display: none;">
-                    <div class="content-header">
-                        <h2>Admin Log</h2>
-                        <p>View administrator activities and events</p>
-                        <i class="fa-solid fa-file-arrow-down"></i>
-                    </div>
-                    <div class="content-body">
-                        <div class="logs-table">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Date & Time</th>
-                                        <th>Admin</th>
-                                        <th>Action</th>
-                                        <th>Details</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>2023-10-16 09:15</td>
-                                        <td>superadmin@example.com</td>
-                                        <td>System Update</td>
-                                        <td>Applied security patches</td>
-                                    </tr>
-                                    <tr>
-                                        <td>2023-10-15 16:30</td>
-                                        <td>admin@example.com</td>
-                                        <td>User Creation</td>
-                                        <td>Created new editor account</td>
-                                    </tr>
-                                    <tr>
-                                        <td>2023-10-15 11:05</td>
-                                        <td>superadmin@example.com</td>
-                                        <td>Database Backup</td>
-                                        <td>Performed full system backup</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                <div class="log-filter-options">
+                    <button class="log-filter-btn active" data-filter="all">All</button>
+                    <button class="log-filter-btn" data-filter="login">Logins</button>
+                    <button class="log-filter-btn" data-filter="upload">Uploads</button>
+                    <button class="log-filter-btn" data-filter="management">Management</button>
                 </div>
             </div>
+            
+            <div class="logs-table-container">
+                <table class="logs-table">
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr data-log-type="login">
+                            <td>2023-10-15 14:32</td>
+                            <td>admin@example.com</td>
+                            <td><span class="log-action action-login">Login</span></td>
+                            <td>Successful login from IP 192.168.1.1</td>
+                        </tr>
+                        <tr data-log-type="upload">
+                            <td>2023-10-15 13:45</td>
+                            <td>editor@example.com</td>
+                            <td><span class="log-action action-upload">Thesis Upload</span></td>
+                            <td>Uploaded "Advanced AI Research" (3.2MB)</td>
+                        </tr>
+                        <tr data-log-type="management">
+                            <td>2023-10-15 12:18</td>
+                            <td>admin@example.com</td>
+                            <td><span class="log-action action-management">User Management</span></td>
+                            <td>Updated permissions for editor@example.com</td>
+                        </tr>
+                        <tr data-log-type="login">
+                            <td>2023-10-15 11:30</td>
+                            <td>user@example.com</td>
+                            <td><span class="log-action action-login">Login Failed</span></td>
+                            <td>Failed login attempt - incorrect password</td>
+                        </tr>
+                        <tr data-log-type="upload">
+                            <td>2023-10-15 10:15</td>
+                            <td>researcher@example.com</td>
+                            <td><span class="log-action action-upload">Thesis Update</span></td>
+                            <td>Updated metadata for "Machine Learning Applications"</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Admin Log Container -->
+        <div id="adminLog-container" class="log-content" style="display: none;">
+            <div class="log-filter-bar">
+            <div class="searchbox">
+                        <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
+                        <input type="text" name="search" placeholder="Search thesis..." class="search-text" id="searchInput">
+                    </div>
+                <div class="log-filter-options">
+                    <button class="log-filter-btn active" data-filter="all">All</button>
+                    <button class="log-filter-btn" data-filter="system">System</button>
+                    <button class="log-filter-btn" data-filter="management">Management</button>
+                    <button class="log-filter-btn" data-filter="security">Security</button>
+                </div>
+            </div>
+            
+            <div class="logs-table-container">
+                <table class="logs-table">
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Admin</th>
+                            <th>Action</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr data-log-type="system">
+                            <td>2023-10-16 09:15</td>
+                            <td>superadmin@example.com</td>
+                            <td><span class="log-action action-system">System Update</span></td>
+                            <td>Applied security patches to database server</td>
+                        </tr>
+                        <tr data-log-type="management">
+                            <td>2023-10-15 16:30</td>
+                            <td>admin@example.com</td>
+                            <td><span class="log-action action-management">User Creation</span></td>
+                            <td>Created new editor account: editor2@example.com</td>
+                        </tr>
+                        <tr data-log-type="system">
+                            <td>2023-10-15 11:05</td>
+                            <td>superadmin@example.com</td>
+                            <td><span class="log-action action-system">Database Backup</span></td>
+                            <td>Performed full system backup (2.4GB)</td>
+                        </tr>
+                        <tr data-log-type="security">
+                            <td>2023-10-15 09:45</td>
+                            <td>admin@example.com</td>
+                            <td><span class="log-action action-system">Security Audit</span></td>
+                            <td>Ran security audit - no vulnerabilities found</td>
+                        </tr>
+                        <tr data-log-type="management">
+                            <td>2023-10-14 17:20</td>
+                            <td>admin@example.com</td>
+                            <td><span class="log-action action-management">Role Update</span></td>
+                            <td>Changed user permissions for research team</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
             
         </section>

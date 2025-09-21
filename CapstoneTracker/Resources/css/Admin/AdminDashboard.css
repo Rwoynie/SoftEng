@@ -1495,13 +1495,7 @@ body {
     display: none !important;
 }
 
-.log-content {
-    display: none;
-}
 
-.log-content.active {
-    display: block;
-}
 
 /* Access Management Styles */
 .access-card {
@@ -1571,38 +1565,278 @@ body {
     margin: 0;
 }
 
+/* ===== MODERN SYSTEM LOGS DESIGN ===== */
+#logs-container {
+    padding: 20px;
+    background: var(--color-white);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
 
+.log-content {
+    display: none;
+    height: 100%;
+    flex-direction: column;
+}
 
+.log-content.active {
+    display: flex;
+}
 
+.log-content .content-header {
+    padding: 20px 0;
+    margin-bottom: 15px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
 
-/* Logs Table Styles */
+.log-content .content-header h2 {
+    font-size: 1.5rem;
+    color: var(--color-dark-grey);
+    margin: 0;
+    font-weight: 700;
+}
 
+.log-content .content-header p {
+    color: var(--color-lite-grey);
+    margin: 5px 0 0 0;
+    font-size: 0.9rem;
+}
 
+.log-content .content-header .fa-file-arrow-down {
+    position: static;
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    background: rgba(186, 30, 31, 0.1);
+    padding: 10px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.log-content .content-header .fa-file-arrow-down:hover {
+    background: var(--primary-color);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(186, 30, 31, 0.3);
+}
+
+.log-content .content-body {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.logs-table-container {
+    flex: 1;
+    height: 80%;
+    overflow-y: auto;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
 
 .logs-table {
-    overflow-x: auto;
-}
-
-.logs-table table {
     width: 100%;
-    border-collapse: collapse;
+    
+    border-collapse: separate;
+    border-spacing: 0;
 }
 
-.logs-table th,
-.logs-table td {
-    padding: 12px 15px;
-    text-align: left;
-    border-bottom: 1px solid #eee;
+.logs-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .logs-table th {
-    background-color: #d2d1d1;
+    background: #f1f1f1;
+    padding: 15px 20px;
+    text-align: left;
     font-weight: 600;
+    color: var(--color-dark-grey);
+    border-bottom: 2px solid #dee2e6;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.logs-table td {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f1f1f1;
+    color: var(--color-dark-grey);
+    font-size: 0.95rem;
+    transition: background-color 0.2s ease;
+}
+
+.logs-table tr:last-child td {
+    border-bottom: none;
+}
+
+.logs-table tr:hover td {
+    background-color: #f8f9fa;
+}
+
+.logs-table tr:nth-child(even) {
+    background-color: #fafbfb;
+}
+
+.logs-table tr:nth-child(even):hover td {
+    background-color: #f1f3f5;
+}
+
+/* Log type indicators */
+.logs-table tr[data-log-type="login"] td:first-child {
+    border-left: 4px solid #4caf50;
+}
+
+.logs-table tr[data-log-type="upload"] td:first-child {
+    border-left: 4px solid #2196f3;
+}
+
+.logs-table tr[data-log-type="management"] td:first-child {
+    border-left: 4px solid #ff9800;
+}
+
+.logs-table tr[data-log-type="system"] td:first-child {
+    border-left: 4px solid #9c27b0;
+}
+
+/* Status badges for actions */
+.log-action {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.action-login {
+    background-color: rgba(76, 175, 80, 0.15);
+    color: #2e7d32;
+}
+
+.action-upload {
+    background-color: rgba(33, 150, 243, 0.15);
+    color: #1565c0;
+}
+
+.action-management {
+    background-color: rgba(255, 152, 0, 0.15);
+    color: #ef6c00;
+}
+
+.action-system {
+    background-color: rgba(156, 39, 176, 0.15);
+    color: #7b1fa2;
+}
+
+/* Log filter bar */
+.log-filter-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+
+.log-filter-options {
+    display: flex;
+    gap: 10px;
+}
+
+.log-filter-btn {
+    padding: 8px 15px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+
+.log-filter-btn.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.log-filter-btn:hover {
+    background: white;
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* Empty state for logs */
+.logs-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--color-lite-grey);
+}
+
+.logs-empty-state i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+.logs-empty-state h3 {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
     color: var(--color-dark-grey);
 }
 
-.logs-table tr:hover {
-    background-color: #f8f9fa;
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    .log-filter-bar {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+    
+    .log-search-box {
+        width: 100%;
+    }
+    
+    .log-filter-options {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 768px) {
+    .logs-table {
+        display: block;
+        overflow-x: auto;
+    }
+    
+    .logs-table th,
+    .logs-table td {
+        padding: 12px 15px;
+    }
+    
+    .log-content .content-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    
+    .log-content .content-header .fa-file-arrow-down {
+        align-self: flex-end;
+    }
 }
 
 
@@ -2171,13 +2405,18 @@ body {
     background-color: #ffcdd2;
 }
 
-/* Pagination */
+/* to center absolute (left - bottom position) Pagination */
 .table-pagination {
+
+    left: 50%;
+    transform: translate(-50%, -10%);
     display: flex;
+    position: absolute;
+    bottom: 1vw;
     justify-content: center;
     align-items: center;
     gap: 15px;
-    margin-top: 20px;
+    
 }
 
 .pagination-btn {

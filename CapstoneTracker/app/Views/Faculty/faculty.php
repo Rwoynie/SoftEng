@@ -12,7 +12,8 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Quicksand">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    <link rel="stylesheet" href="faculty.css">
+    <link rel="stylesheet" href="../../../resources/css/Faculty/faculty.css">
+    <script type="text/javascript" src="../../../resources/js/Faculty/faculty.js"></script>
     
 </head>
 <body>
