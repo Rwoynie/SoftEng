@@ -239,6 +239,7 @@ body {
 
 .searchbox input.search-text {
     border: none;
+    font-family: "Quicksand";
     background: inherit;
     font-size: var(--size-medium);
     font-weight: 600;
@@ -532,11 +533,16 @@ body {
 }
 
 .notFound {
-    display: none;
-    position: absolute;
-    align-self: center;
-    margin-top: 18vw;
-    
+    display: none; 
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+    padding: 2rem;
+    margin-top: 10vw;
+    font-size: 1.2rem;
+    color: #666;
+    grid-column: 1 / -1; 
 }
 
 /* Filter Dropdown Styles */

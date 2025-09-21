@@ -626,6 +626,7 @@ body {
     text-align: center;
     width: 100%;
     padding: 2rem;
+    margin-top: 10vw;
     font-size: 1.2rem;
     color: #666;
     grid-column: 1 / -1; 
