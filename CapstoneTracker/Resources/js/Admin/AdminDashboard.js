@@ -29,6 +29,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const userLogView = document.getElementById('userLog-container');
     const adminLogView = document.getElementById('adminLog-container');
 
+    const adminAccessBtn = document.getElementById('adminAccess');
+    const facultyAccessBtn = document.getElementById('facultyAccess');
+    const studentAccessBtn = document.getElementById('studentAccess');
+    const adminAccessPanel = document.getElementById('adminAccessPanel');
+    const accessCard = document.getElementById('access-card');
+    const accessHeader2 = document.getElementById('accessHeader2');
+
     let changesMade = false;
     let roleChanges = {};
     
@@ -1032,21 +1039,145 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Function to filter users by role
+    function filterUsersByRole(role) {
+        const userItems = document.querySelectorAll('.admin-user-item');
+        let foundResults = false;
+        
+        userItems.forEach(item => {
+            // Check if user has the selected role
+            const roleCheckbox = item.querySelector(`.role-checkbox input[name="${role}"]`);
+            if (roleCheckbox && roleCheckbox.checked) {
+                item.style.display = 'flex';
+                foundResults = true;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        // Show/hide the "No Results Found" message
+        const notFound = document.getElementById('adminNotFound');
+        if (foundResults) {
+            notFound.style.display = 'none';
+        } else {
+            notFound.style.display = 'block';
+        }
+    }
+
+    // Function to show all users
+    function showAllUsers() {
+        const userItems = document.querySelectorAll('.admin-user-item');
+        userItems.forEach(item => {
+            item.style.display = 'flex';
+        });
+        
+        // Hide the "No Results Found" message
+        const notFound = document.getElementById('adminNotFound');
+        notFound.style.display = 'none';
+    }
+
+    // Event listeners for access cards
+    if (adminAccessBtn) {
+        adminAccessBtn.addEventListener('click', function() {
+            // Remove active class from all cards
+            document.querySelectorAll('.accessCard').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            // Add active class to clicked card
+            this.classList.add('active');
+            
+            filterUsersByRole('admin');
+            
+            // Update search to work with current filter
+            const searchInput = document.getElementById('adminUserSearch');
+            if (searchInput) {
+                searchInput.value = '';
+                searchInput.setAttribute('data-current-filter', 'admin');
+            }
+        });
+    }
+    
+    if (facultyAccessBtn) {
+        facultyAccessBtn.addEventListener('click', function() {
+            // Remove active class from all cards
+            document.querySelectorAll('.accessCard').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            // Add active class to clicked card
+            this.classList.add('active');
+            
+            filterUsersByRole('faculty');
+            
+            // Update search to work with current filter
+            const searchInput = document.getElementById('adminUserSearch');
+            if (searchInput) {
+                searchInput.value = '';
+                searchInput.setAttribute('data-current-filter', 'faculty');
+            }
+        });
+    }
+    
+    if (studentAccessBtn) {
+        studentAccessBtn.addEventListener('click', function() {
+            // Remove active class from all cards
+            document.querySelectorAll('.accessCard').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            // Add active class to clicked card
+            this.classList.add('active');
+            
+            filterUsersByRole('student');
+            
+            // Update search to work with current filter
+            const searchInput = document.getElementById('adminUserSearch');
+            if (searchInput) {
+                searchInput.value = '';
+                searchInput.setAttribute('data-current-filter', 'student');
+            }
+        });
+    }
+
+    function initializeAccessCards() {
+        // By default, select the Admin card
+        if (adminAccessBtn) {
+            adminAccessBtn.classList.add('active');
+        }
+    }
+    
+
     // Admin Access Management Search Functionality - FIXED
     const adminUserSearch = document.getElementById('adminUserSearch');
     if (adminUserSearch) {
-        adminUserSearch.addEventListener('input', function() {
+        // Store the original event listener function
+        const originalSearchHandler = adminUserSearch.oninput;
+        
+        // Replace with enhanced search that respects filters
+        adminUserSearch.oninput = function() {
             const searchTerm = this.value.toLowerCase().trim();
             const userItems = document.querySelectorAll('.admin-user-item');
             const notFound = document.getElementById('adminNotFound');
+            const currentFilter = this.getAttribute('data-current-filter');
             
             let foundResults = false;
             
             userItems.forEach(item => {
                 const userName = item.querySelector('h4').textContent.toLowerCase();
+                const userEmail = item.querySelector('p').textContent.toLowerCase();
                 
-                // Only search by name now (removed email search)
-                if (userName.includes(searchTerm)) {
+                // Check if item matches search term
+                const matchesSearch = userName.includes(searchTerm) || userEmail.includes(searchTerm);
+                
+                // Check if item matches current filter (if any)
+                let matchesFilter = true;
+                if (currentFilter) {
+                    const roleCheckbox = item.querySelector(`.role-checkbox input[name="${currentFilter}"]`);
+                    matchesFilter = roleCheckbox && roleCheckbox.checked;
+                }
+                
+                if (matchesSearch && matchesFilter) {
                     item.style.display = 'flex';
                     foundResults = true;
                 } else {
@@ -1060,7 +1191,7 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 notFound.style.display = 'block';
             }
-        });
+        };
     }
 
     // Role Change Handling
