@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Compendium Dashboard</title>
-    <link rel="icon" href="../Images/gradcap.png" type="image/x-icon">
+    <link rel="icon" href="/CapstoneTracker/resources/Images/ThesisCompLogo.png" type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -154,22 +154,39 @@
                 </div>
 
                 <div class="app-list-options">
-                    <div class="select" id="filterDropdown">
+                    <!-- Department Filter Dropdown -->
+                    <div class="select" id="departmentFilterDropdown">
                         <div class="selected">
-                            <span>All</span>
+                            <span>All Departments</span>
+                            
+                            <svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 512 512" class="arrow">
+                                <path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path>
+                            </svg>
+                        </div>
+                        <div class="options">
+                            <div data-value="all">All Departments</div>
+                            <div data-value="cs">Computer Science</div>
+                            <div data-value="it">Information Technology</div>
+                            <div data-value="ce">Computer Engineering</div>
+                            <div data-value="ee">Electrical Engineering</div>
+                            <div data-value="me">Mechanical Engineering</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sort Dropdown (renamed from filterDropdown) -->
+                    <div class="select" id="sortDropdown">
+                        <div class="selected">
+                            <span>Sort by: Recent</span>
                             <i class="fa fa-filter" style="margin-left: 3vw; position: absolute; right: 2.5vw;" aria-hidden="true"></i>
                             <svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 512 512" class="arrow">
                                 <path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path>
                             </svg>
                         </div>
                         <div class="options">
-                        <div data-value="all">All</div>
-                            <div data-value="important">Name</div>
-                            <div data-value="enhancement">Author</div>
-                            <div data-value="announcement">Adviser</div>
-                            <div data-value="news">Date Uploaded</div>
-                            <div data-value="discussion">Hardbound Available</div>
-                           
+                            <div data-value="recent">Most Recent</div>
+                            <div data-value="popular">Most Viewed</div>
+                            <div data-value="title">Title (A-Z)</div>
+                            <div data-value="department">Department</div>
                         </div>
                     </div>
 

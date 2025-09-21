@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
-    <link rel="icon" href="/CapstoneTracker/resources/Images/gradcap.png" type="image/x-icon">
+    <link rel="icon" href="/CapstoneTracker/resources/Images/ThesisCompLogo.png" type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -36,26 +36,12 @@
         
             <i class="fa fa-ellipsis-h icon" aria-hidden="true"></i>
 
-            <div id="submenu">
-            <button class="btn btn-secondary" id="logoutHeaderIcon">
-                            <i class="fa fa-sign-out" aria-hidden="true"></i>
-                            Logout
-                        </button>
-            </div>
+            
         </div>
     </section>
 
     <section class="main-content">
-        
-
-        <section class="app-content">
-           
-    
-
-            
-
-            <div class="projects-container">
-            <div class="fab-icon"> + </div>
+    <div class="fab-icon"> + </div>
                 <header class="header" id="header">
                     <div class="title">Published Titles</div>
                     <div class="menu">
@@ -67,38 +53,64 @@
                     
                 </header>
 
-                    <div class="app-content-header">
+        <section class="app-content">
+        <div class="app-content-header">
                     <div class="searchbox">
                         <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
                         <input type="text" name="search" placeholder="Search thesis..." class="search-text" id="searchInput">
                     </div>
 
                     <div class="app-list-options">
-                        <div class="select" id="filterDropdown">
-                            <div class="selected">
-                                <span>All</span>
-                                <i class="fa fa-filter" style="margin-left: 3vw; position: absolute; right: 2.5vw;" aria-hidden="true"></i>
-                                <svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 512 512" class="arrow">
-                                    <path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path>
-                                </svg>
-                            </div>
-                            <div class="options">
-                            <div data-value="all">All</div>
-                                <div data-value="important">Name</div>
-                                <div data-value="enhancement">Author</div>
-                                <div data-value="announcement">Adviser</div>
-                                <div data-value="news">Recent Date Uploaded</div>
-                                <div data-value="discussion">Hardbound Available</div>
-                            
-                            </div>
-                        </div>
-
-                        <div class="display-group">
-                            <div class="icon" id="listViewIcon"> <i class="fa fa-bars" aria-hidden="true"></i> </div>
-                            <div class="icon selected" id="gridViewIcon"> <i class="fa fa-th" aria-hidden="true"></i> </div>
-                        </div>
+                <!-- Department Filter Dropdown -->
+                <div class="select" id="departmentFilterDropdown">
+                    <div class="selected">
+                        <span>All Departments</span>
+                        
+                        <svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 512 512" class="arrow">
+                            <path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path>
+                        </svg>
+                    </div>
+                    <div class="options">
+                        <div data-value="all">All Departments</div>
+                        <div data-value="cs">Computer Science</div>
+                        <div data-value="it">Information Technology</div>
+                        <div data-value="ce">Computer Engineering</div>
+                        <div data-value="ee">Electrical Engineering</div>
+                        <div data-value="me">Mechanical Engineering</div>
                     </div>
                 </div>
+                
+                <!-- Sort Dropdown (renamed from filterDropdown) -->
+                <div class="select" id="sortDropdown">
+                    <div class="selected">
+                        <span>Sort by: Recent</span>
+                        <i class="fa fa-filter" style="margin-left: 3vw; position: absolute; right: 2.5vw;" aria-hidden="true"></i>
+                        <svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 512 512" class="arrow">
+                            <path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path>
+                        </svg>
+                    </div>
+                    <div class="options">
+                        <div data-value="recent">Most Recent</div>
+                        <div data-value="popular">Most Viewed</div>
+                        <div data-value="title">Title (A-Z)</div>
+                        <div data-value="department">Department</div>
+                    </div>
+                </div>
+
+                <div class="display-group">
+                    <div class="icon" id="listViewIcon"> <i class="fa fa-bars" aria-hidden="true"></i> </div>
+                    <div class="icon selected" id="gridViewIcon"> <i class="fa fa-th" aria-hidden="true"></i> </div>
+                </div>
+            </div>
+                </div>
+    
+
+            
+
+            <div class="projects-container">
+            
+
+                    
 
                 <ul class="projects" id="recentView">
                     <li class="project-item" data-tags="important enhancement" data-file-url="../Images/Case Study.pdf" data-file-type="pdf">

@@ -600,55 +600,143 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // NEW: Filter dropdown functionality
-    const filterDropdown = document.getElementById('filterDropdown');
-    if (filterDropdown) {
-        const selectedText = filterDropdown.querySelector('.selected span');
-        const options = filterDropdown.querySelectorAll('.options div');
-        
-        // Toggle dropdown on click
-        filterDropdown.querySelector('.selected').addEventListener('click', function(e) {
-            e.stopPropagation();
-            filterDropdown.classList.toggle('active');
-        });
-        
-        // Handle option selection
-        options.forEach(option => {
-            option.addEventListener('click', function() {
-                const value = this.getAttribute('data-value');
-                selectedText.textContent = this.textContent;
-                filterDropdown.classList.remove('active');
-                
-                // Filter projects based on selected value
-                const projectItems = document.querySelectorAll('.project-item');
-                
-                if (value === 'all') {
-                    // Show all items if "All" is selected
-                    projectItems.forEach(item => {
-                        item.style.display = 'flex';
-                    });
-                } else {
-                    // Hide items that don't match the filter
-                    projectItems.forEach(item => {
-                        const tags = item.getAttribute('data-tags').split(' ');
-                        if (tags.includes(value)) {
-                            item.style.display = 'flex';
-                        } else {
-                            item.style.display = 'none';
-                        }
-                    });
-                }
-                
-                // Re-run animations after filtering
-                animateOnScroll();
+    const sortDropdown = document.getElementById('sortDropdown');
+
+    // Add this function to initialize both dropdowns
+    function initializeFilterDropdowns() {
+        // Department Filter Dropdown
+        if (departmentFilterDropdown) {
+            const deptSelectedText = departmentFilterDropdown.querySelector('.selected span');
+            const deptOptions = departmentFilterDropdown.querySelectorAll('.options div');
+            
+            // Toggle dropdown on click
+            departmentFilterDropdown.querySelector('.selected').addEventListener('click', function(e) {
+                e.stopPropagation();
+                departmentFilterDropdown.classList.toggle('active');
             });
-        });
+            
+            // Handle option selection
+            deptOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    const value = this.getAttribute('data-value');
+                    deptSelectedText.textContent = this.textContent;
+                    departmentFilterDropdown.classList.remove('active');
+                    
+                    // Filter projects based on selected department
+                    filterProjectsByDepartment(value);
+                });
+            });
+        }
         
-        // Close dropdown when clicking outside
+        // Sort Dropdown
+        if (sortDropdown) {
+            const sortSelectedText = sortDropdown.querySelector('.selected span');
+            const sortOptions = sortDropdown.querySelectorAll('.options div');
+            
+            // Toggle dropdown on click
+            sortDropdown.querySelector('.selected').addEventListener('click', function(e) {
+                e.stopPropagation();
+                sortDropdown.classList.toggle('active');
+            });
+            
+            // Handle option selection
+            sortOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    const value = this.getAttribute('data-value');
+                    sortSelectedText.textContent = "Sort by: " + this.textContent;
+                    sortDropdown.classList.remove('active');
+                    
+                    // Sort projects based on selected criteria
+                    sortProjects(value);
+                });
+            });
+        }
+        
+        // Close dropdowns when clicking outside
         document.addEventListener('click', function(e) {
-            if (filterDropdown && !filterDropdown.contains(e.target)) {
-                filterDropdown.classList.remove('active');
+            if (departmentFilterDropdown && !departmentFilterDropdown.contains(e.target)) {
+                departmentFilterDropdown.classList.remove('active');
+            }
+            if (sortDropdown && !sortDropdown.contains(e.target)) {
+                sortDropdown.classList.remove('active');
             }
         });
+    }
+
+    // Add these filter and sort functions
+    function filterProjectsByDepartment(department) {
+        const projectItems = document.querySelectorAll('.project-item');
+        const notFound = document.getElementById('notFound');
+        let foundResults = false;
+        
+        projectItems.forEach(item => {
+            // Add data-department attribute to your project items in HTML
+            // Example: <li class="project-item" data-department="cs" ...>
+            const itemDepartment = item.getAttribute('data-department');
+            
+            if (department === 'all' || itemDepartment === department) {
+                item.style.display = 'flex';
+                foundResults = true;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        // Show/hide the "No Results Found" message
+        if (foundResults || department === 'all') {
+            notFound.style.display = 'none';
+        } else {
+            notFound.style.display = 'flex';
+        }
+        
+        // Re-run animations after filtering
+        animateOnScroll();
+    }
+
+    initializeFilterDropdowns();
+
+    function sortProjects(criteria) {
+        const projectsContainer = document.querySelector('.projects');
+        const projectItems = Array.from(document.querySelectorAll('.project-item'));
+        
+        // Sort based on criteria
+        switch(criteria) {
+            case 'recent':
+                // Assuming you have a data-upload-date attribute with timestamp
+                projectItems.sort((a, b) => {
+                    return new Date(b.getAttribute('data-upload-date')) - new Date(a.getAttribute('data-upload-date'));
+                });
+                break;
+            case 'popular':
+                // Assuming you have a data-views attribute
+                projectItems.sort((a, b) => {
+                    return parseInt(b.getAttribute('data-views')) - parseInt(a.getAttribute('data-views'));
+                });
+                break;
+            case 'title':
+                projectItems.sort((a, b) => {
+                    const titleA = a.querySelector('h3').textContent.toLowerCase();
+                    const titleB = b.querySelector('h3').textContent.toLowerCase();
+                    return titleA.localeCompare(titleB);
+                });
+                break;
+            case 'department':
+                projectItems.sort((a, b) => {
+                    const deptA = a.getAttribute('data-department');
+                    const deptB = b.getAttribute('data-department');
+                    return deptA.localeCompare(deptB);
+                });
+                break;
+        }
+        
+        // Clear the container and append sorted items
+        projectsContainer.innerHTML = '';
+        projectItems.forEach(item => {
+            projectsContainer.appendChild(item);
+        });
+        
+        // Re-run animations after sorting
+        animateOnScroll();
     }
 
     // Search functionality
