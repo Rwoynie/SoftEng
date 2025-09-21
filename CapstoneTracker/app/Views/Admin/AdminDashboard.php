@@ -764,6 +764,30 @@
                             <td><span class="log-action action-upload">Thesis Update</span></td>
                             <td>Updated metadata for "Machine Learning Applications"</td>
                         </tr>
+                        <tr data-log-type="upload">
+                            <td>2023-10-15 10:15</td>
+                            <td>researcher@example.com</td>
+                            <td><span class="log-action action-upload">Thesis Update</span></td>
+                            <td>Updated metadata for "Machine Learning Applications"</td>
+                        </tr>
+                        <tr data-log-type="upload">
+                            <td>2023-10-15 10:15</td>
+                            <td>researcher@example.com</td>
+                            <td><span class="log-action action-upload">Thesis Update</span></td>
+                            <td>Updated metadata for "Machine Learning Applications"</td>
+                        </tr>
+                        <tr data-log-type="upload">
+                            <td>2023-10-15 10:15</td>
+                            <td>researcher@example.com</td>
+                            <td><span class="log-action action-upload">Thesis Update</span></td>
+                            <td>Updated metadata for "Machine Learning Applications"</td>
+                        </tr>
+                        <tr data-log-type="upload">
+                            <td>2023-10-15 10:15</td>
+                            <td>researcher@example.com</td>
+                            <td><span class="log-action action-upload">Thesis Update</span></td>
+                            <td>Updated metadata for "Machine Learning Applications"</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
