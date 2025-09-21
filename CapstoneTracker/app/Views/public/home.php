@@ -6,7 +6,10 @@
   <title>Thesis Compendium System</title>
   <link rel="stylesheet" href="../../../resources/css/User/home.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Quicksand">
   <script defer src="../../../resources/js/User/home.js"></script>
 </head>
 <body>
@@ -166,12 +169,7 @@
     <!-- ================= Search Results Page ================= -->
     <section id="results-page" class="hidden">
       <header class="results-header">
-        <div class="results-title">
-          <h2>Search Results</h2>
-          <p class="results-count">Showing <span id="results-number">0</span> results</p>
-        </div>
-        
-        <section class="search-filter">
+      <section class="search-filter">
           <div class="searchbox">
             <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
             <input type="text" id="results-search-input" placeholder="Search thesis...">
@@ -208,11 +206,17 @@
             </div>
             
             <div class="display-group">
-              <button class="toggle-view list-view" title="List view"><i class="fa fa-bars" aria-hidden="true"></i></button>
-              <button class="toggle-view grid-view active" title="Grid view"><i class="fa fa-th" aria-hidden="true"></i></button>
-            </div>
+                            <div class="icon" id="listViewIcon"> <i class="fa fa-bars" aria-hidden="true"></i> </div>
+                            <div class="icon selected" id="gridViewIcon"> <i class="fa fa-th" aria-hidden="true"></i> </div>
+                        </div>
           </div>
         </section>
+        <div class="results-title">
+          
+          <p class="results-count">Showing <span id="results-number">0</span> results...</p>
+        </div>
+        
+        
       </header>
 
       <section class="results-container">

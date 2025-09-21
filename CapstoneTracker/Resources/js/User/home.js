@@ -146,24 +146,37 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.key === 'Enter') handleResultsSearch();
     });
 
-    // Grid/List toggle
-    const gridBtn = document.querySelector('.grid-view');
-    const listBtn = document.querySelector('.list-view');
-    const results = document.querySelector('.results');
+    // Display toggle functionality
+    const listViewIcon = document.getElementById('listViewIcon');
+    const gridViewIcon = document.getElementById('gridViewIcon');
 
-    gridBtn.addEventListener('click', () => {
-      results.classList.add('grid');
-      results.classList.remove('list');
-      gridBtn.classList.add('active');
-      listBtn.classList.remove('active');
-    });
+    if (listViewIcon && gridViewIcon) {
+        const displayGroupIcons = document.querySelectorAll('.display-group .icon');
 
-    listBtn.addEventListener('click', () => {
-      results.classList.add('list');
-      results.classList.remove('grid');
-      listBtn.classList.add('active');
-      gridBtn.classList.remove('active');
-    });
+        listViewIcon.addEventListener('click', function() {
+            // Switch to list view for ALL project containers
+            const projectsContainers = document.querySelectorAll('.projects');
+            projectsContainers.forEach(container => {
+                container.style.gridTemplateColumns = '1fr';
+            });
+            
+            // Update icon states
+            displayGroupIcons.forEach(icon => icon.classList.remove('selected'));
+            this.classList.add('selected');
+        });
+
+        gridViewIcon.addEventListener('click', function() {
+            // Switch to grid view for ALL project containers
+            const projectsContainers = document.querySelectorAll('.projects');
+            projectsContainers.forEach(container => {
+                container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(300px, 1fr))';
+            });
+            
+            // Update icon states
+            displayGroupIcons.forEach(icon => icon.classList.remove('selected'));
+            this.classList.add('selected');
+        });
+    }
 
     // Window resize for responsive carousel
     window.addEventListener('resize', () => {

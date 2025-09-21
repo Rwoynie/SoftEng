@@ -38,7 +38,7 @@
 }
 
 body {
-  font-family: "Inter", sans-serif;
+  font-family: "Quicksand", sans-serif;
   background: var(--color-bg);
   color: var(--color-dark-grey);
   line-height: 1.6;
@@ -146,18 +146,18 @@ body {
 
 .searchbox {
   display: flex;
-  padding: 0.5rem;
+  padding: 0.3rem;
   background: var(--color-white);
   border-radius: var(--border-radius);
   width: 100%;
   max-width: 700px;
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   align-items: center;
   transition: var(--transition);
 }
 
 .searchbox:focus-within {
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+  box-shadow: 0 0 0 1px rgba(127, 197, 255, 0.5);
 }
 
 .searchbox .icon {
@@ -177,7 +177,7 @@ body {
 }
 
 .search-btn {
-  padding: 0.75rem 1.5rem;
+  padding: 0.7rem 1.5rem;
   border: none;
   background: var(--primary-color);
   color: white;
@@ -501,9 +501,11 @@ body {
 
 /* Results Page */
 .results-header {
-  background: var(--color-white);
+  background: #f0f2f5;
   box-shadow: var(--shadow-sm);
   padding: 2rem;
+  padding-bottom: -0rem;
+  margin-bottom: -3rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -511,7 +513,7 @@ body {
 
 .results-title h2 {
   font-weight: 700;
-  font-size: 1.75rem;
+  font-size: 1.4rem;
   color: var(--color-dark-grey);
   margin-bottom: 0.5rem;
 }
@@ -590,12 +592,40 @@ body {
 }
 
 /* Display Toggles */
+
+.display-group .icon {
+  margin: 0 0.5vw;
+  padding: 0.8vw;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  position: relative;
+  color: var(--color-lite);
+  background: var(--color-white);
+  cursor: pointer;
+  transition: 0.10s ease;
+}
+
+.display-group .icon.selected {
+  background: var(--primary-color);
+  color: var(--color-white);
+  animation: pulse;
+  animation-duration: 0.2s;
+  animation-timing-function: cubic-bezier(0.075, 0.82, 0.165, 1);
+}
+
 .display-group {
   display: flex;
-  border-radius: var(--border-radius);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--color-lite);
+  margin-left: 15px;
+}
+
+.display-group .icon {
+  margin-right: 0;
+  margin-left: 0;
+  border-radius: 8px 0 0 8px;
+}
+
+.display-group .icon:last-child {
+  border-radius: 0 8px 8px 0;
 }
 
 .toggle-view {
@@ -615,8 +645,11 @@ body {
 /* Results Container */
 .results-container {
   flex: 1;
+  
   padding: 2rem;
-  background: var(--color-bg);
+  padding-top: 0rem;
+  padding: 4rem;
+  background-color: #f0f2f5;
   overflow-y: auto;
 }
 
@@ -659,6 +692,7 @@ body {
 
 /* Thesis Cards */
 .thesis-card {
+  cursor: pointer;
   background: var(--color-white);
   padding: 1.5rem;
   border-radius: var(--border-radius);
@@ -956,7 +990,9 @@ body {
 .no-results {
   grid-column: 1 / -1;
   text-align: center;
-  padding: 3rem;
+  padding: 2rem;
+  padding-bottom: 6rem;
+  padding-top: 0rem;
   color: var(--color-lite-grey);
 }
 
