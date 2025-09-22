@@ -224,17 +224,45 @@ document.addEventListener('DOMContentLoaded', function() {
     let pdfPageNumPending = null;
     
     // Open modal when FAB is clicked
-    if (fabIcon) {
+    if (fabIcon && uploadModal) {
         fabIcon.addEventListener('click', function() {
-            uploadModal.classList.add('active');
-            document.body.style.overflow = 'hidden';
+            console.log('FAB clicked, opening modal');
+            try {
+                uploadModal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+                console.log('Modal opened successfully');
+            } catch (error) {
+                console.error('Error opening modal:', error);
+            }
         });
+    } else {
+        console.error('FAB icon or upload modal not found');
     }
     
     // Close modal functions
     function closeModal(modal) {
-        modal.classList.remove('active');
-        document.body.style.overflow = '';
+        if (!modal) {
+            console.error('Modal element not provided');
+            return;
+        }
+        try {
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        } catch (error) {
+            console.error('Error closing modal:', error);
+        }
+    }
+
+     // Fix: Safe event listener attachment for modal close
+     if (modalClose) {
+        modalClose.forEach(closeBtn => {
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function() {
+                    const modal = this.closest('.modal-overlay');
+                    closeModal(modal);
+                });
+            }
+        });
     }
     
     // Close all modals
@@ -250,6 +278,7 @@ document.addEventListener('DOMContentLoaded', function() {
             closeModal(uploadModal);
         });
     }
+
     
     if (closePreview) {
         closePreview.addEventListener('click', function() {
@@ -259,11 +288,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Close modal when clicking outside
     document.querySelectorAll('.modal-overlay').forEach(modal => {
-        modal.addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeModal(this);
-            }
-        });
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeModal(this);
+                }
+            });
+        }
     });
     
     // File input handling via browse button
@@ -321,10 +352,10 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Check if file type is supported
             const fileExtension = file.name.split('.').pop().toLowerCase();
-            if (!['docx', 'pdf', 'zip'].includes(fileExtension)) {
+            if (!'pdf'.includes(fileExtension)) {
                 Swal.fire({
                     title: 'Unsupported File Type',
-                    text: 'Please upload only docx, pdf, or zip files.',
+                    text: 'Please upload only pdf files.',
                     icon: 'error',
                     confirmButtonText: 'OK'
                 });
@@ -581,8 +612,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Upload button functionality
     if (btnUpload) {
-        btnUpload.addEventListener('click', function() {
-            if (uploadedFiles.length === 0) return;
+        btnUpload.addEventListener('click', function(e) {
+            // Always prevent default so upload only proceeds after confirmation
+            e.preventDefault();
+            if (uploadedFiles.length === 0) {
+                Swal.fire({
+                    title: 'No Files Selected',
+                    text: 'Please select at least one file to upload.',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
             
             // Validate thesis title
             const thesisTitleInput = document.getElementById('thesisTitle');
@@ -596,30 +637,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // Create FormData object to send files
-            const formData = new FormData();
-            
-            // Add thesis title to form data
-            if (thesisTitleInput) {
-                formData.append('thesisTitle', thesisTitleInput.value.trim());
-            }
-            
-            // Add author to form data if exists
-            const thesisAuthorInput = document.getElementById('thesisAuthor');
-            if (thesisAuthorInput && thesisAuthorInput.value.trim()) {
-                formData.append('thesisAuthor', thesisAuthorInput.value.trim());
-            }
-            
-            for (let i = 0; i < uploadedFiles.length; i++) {
-                formData.append('files[]', uploadedFiles[i]);
-            }
-            
-            // Show loading state
-            const originalText = btnUpload.innerHTML;
-            btnUpload.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Uploading...';
-            btnUpload.disabled = true;
-            
-            // Show SweetAlert for upload confirmation
+            // Show confirmation dialog
             Swal.fire({
                 title: 'Confirm Upload',
                 html: `Are you sure you want to upload <strong>${thesisTitleInput.value}</strong> with ${uploadedFiles.length} file(s)?`,
@@ -631,37 +649,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 cancelButtonText: 'Cancel'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Simulate upload process (replace with actual AJAX call)
-                    setTimeout(() => {
-                        // Success message
+                    // Submit the actual form
+                    const uploadForm = document.getElementById('uploadForm');
+                    if (uploadForm) {
+                        uploadForm.submit();
+                    } else {
+                        // Fallback: Show success message
                         Swal.fire({
                             title: 'Upload Successful!',
                             text: 'Your thesis has been uploaded successfully.',
                             icon: 'success',
                             confirmButtonText: 'OK'
                         }).then(() => {
-                            // Reset the form
-                            uploadedFiles = [];
-                            showEmptyState();
-                            btnUpload.disabled = true;
-                            btnUpload.innerHTML = 'Upload';
-                            fileInput.value = '';
-                            
-                            // Clear form fields
-                            if (thesisTitleInput) thesisTitleInput.value = '';
-                            if (thesisAuthorInput) thesisAuthorInput.value = '';
-                            
-                            // Close the modal
+                            resetUploadForm();
                             closeModal(uploadModal);
                         });
-                    }, 2000);
-                } else {
-                    // Reset button state if cancelled
-                    btnUpload.innerHTML = originalText;
-                    btnUpload.disabled = false;
+                    }
                 }
             });
         });
+    }
+    
+    // Function to reset upload form
+    function resetUploadForm() {
+        uploadedFiles = [];
+        showEmptyState();
+        btnUpload.disabled = true;
+        fileInput.value = '';
+        
+        // Clear form fields
+        const thesisTitleInput = document.getElementById('thesisTitle');
+        const thesisAuthorInput = document.getElementById('thesisAuthor');
+        if (thesisTitleInput) thesisTitleInput.value = '';
+        if (thesisAuthorInput) thesisAuthorInput.value = '';
     }
 
     if (logoutBtn) {
@@ -1064,17 +1084,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Function to show all users
-    function showAllUsers() {
-        const userItems = document.querySelectorAll('.admin-user-item');
-        userItems.forEach(item => {
-            item.style.display = 'flex';
-        });
-        
-        // Hide the "No Results Found" message
-        const notFound = document.getElementById('adminNotFound');
-        notFound.style.display = 'none';
-    }
 
     // Event listeners for access cards
     if (adminAccessBtn) {
@@ -1403,18 +1412,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
 //Thesis view abstract
 function handleProjectItemClick(projectItem) {
-    const title = projectItem.querySelector('h3').textContent;
-    const uploadedDate = projectItem.querySelector('.links p').textContent;
-    const authors = projectItem.querySelector('.desc-row p').textContent;
-    const fileUrl = projectItem.getAttribute('data-file-url'); // Get the file URL
+    if (!projectItem) return;
     
-    showProjectPreview(title, uploadedDate, authors, fileUrl);
+    const title = projectItem.querySelector('h3')?.textContent || 'No title';
+    const uploadedDate = projectItem.querySelector('.links p')?.textContent || 'Unknown date';
+    const authors = projectItem.querySelector('.desc-row p')?.textContent || 'Unknown authors';
+    const fileUrl = projectItem.getAttribute('data-file-url');
+    
+    if (fileUrl) {
+        showProjectPreview(title, uploadedDate, authors, fileUrl);
+    } else {
+        console.error('No file URL found for project item');
+    }
 }
 
 function showProjectPreview(title, uploadedDate, authors, fileUrl) {
-    // Update modal content with project details
     const modalTitle = document.querySelector('.preview-modal .modal-title');
-    modalTitle.textContent = title;
+    if (modalTitle) {
+        modalTitle.textContent = title;
+    }
     
     // Create a container for project info
     const projectInfo = document.createElement('div');

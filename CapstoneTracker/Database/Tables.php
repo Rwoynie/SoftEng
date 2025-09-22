@@ -42,7 +42,7 @@ class DatabaseSchema {
             // THESIS TABLE
             "CREATE TABLE IF NOT EXISTS THESIS (
                 ID INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-                student_id INT(11) UNSIGNED NOT NULL,
+                User_ID INT(11) UNSIGNED NOT NULL,
                 Title VARCHAR(255) NOT NULL,
                 Author VARCHAR(255) NOT NULL,
                 File_Path VARCHAR(500) NOT NULL,
@@ -50,8 +50,8 @@ class DatabaseSchema {
                 File_Type VARCHAR(100) NOT NULL,
                 uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                FOREIGN KEY (student_id) REFERENCES USER_INFORMATION(ID) ON DELETE CASCADE,
-                INDEX (student_id),
+                FOREIGN KEY (User_ID) REFERENCES USER_INFORMATION(ID) ON DELETE CASCADE,
+                INDEX (User_ID),
                 INDEX (Title)
             ) ENGINE=InnoDB;",
 
@@ -118,7 +118,8 @@ class DatabaseSchema {
             'Last_Name' => 'Administrator',
             'Email' => 'admin@thesis.system',
             'User_ID' => 'ADMIN001',
-            'User_Role' => 'admin'
+            'User_Role' => 'admin',
+            'Acc_Status' => 'approved' // FIXED: Added missing Acc_Status field
         ];
     }
     
@@ -229,6 +230,13 @@ class DatabaseSchema {
     }
     
     /**
+     * Set error message
+     */
+    public function setError($message) {
+        $this->error = $message;
+    }
+    
+    /**
      * Complete setup process (database + tables + admin)
      */
     public function fullSetup($host, $username, $password, $databaseName) {
@@ -239,7 +247,7 @@ class DatabaseSchema {
         
         // Now connect to the specific database
         try {
-            require_once __DIR__ . '/Database.php';
+            require_once '../../Models/Database.php';
             $this->db = new Database();
             
             if (!$this->db->isConnected()) {

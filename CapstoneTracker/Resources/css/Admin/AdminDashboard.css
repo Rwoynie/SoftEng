@@ -939,6 +939,11 @@ body {
     box-shadow: 0 0 0 3px rgba(186, 30, 31, 0.3) !important;
 }
 
+/* Ensure SweetAlert appears above all overlays/modals */
+.swal2-container {
+    z-index: 5000 !important;
+}
+
 .swal-cancel-btn {
     background-color: #6c757d !important;
     border: none !important;

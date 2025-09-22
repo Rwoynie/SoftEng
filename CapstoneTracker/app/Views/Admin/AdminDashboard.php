@@ -1,3 +1,7 @@
+<?php
+    require_once '../../../Database/config.php'; // Adjust path as needed
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -864,10 +868,16 @@
 
 <!-- Upload Thesis Modal -->
 <div class="modal-overlay" id="uploadModal">
-    <form class="modal">
-        <div class="modal-header">
+<form class="modal" action="../../../app/Controllers/UserController.php?action=upload" method="POST" enctype="multipart/form-data" id="uploadForm">
+     <div class="modal-header">
             <h2 class="modal-title">Upload Thesis</h2>
-            <button class="modal-close">&times;</button>
+
+            <?php if (!empty($data['error'])): ?>
+            <div class="error-message">
+                <?php echo $data['error']; ?>
+            </div>
+            <?php endif; ?>
+            <button type="button" class="modal-close">&times;</button>
         </div>
         <div class="modal-body">
             <div class="thesis-form">
@@ -892,7 +902,7 @@
                     <p>Supported files: docx, pdf, zip</p>
                 </div>
                 <div class="browse-btn">Browse files</div>
-                <input type="file" class="file-input" id="fileInput" multiple accept=".docx,.pdf,.zip">
+                <input type="file" class="file-input" id="fileInput" name="files[]" multiple accept=".pdf">
             </div>
             
             <div class="file-previews">
@@ -942,7 +952,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
 
 <script>
-    
+
 </script>
 
 </html>
