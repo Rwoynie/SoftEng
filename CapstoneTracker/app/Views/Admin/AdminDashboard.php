@@ -31,8 +31,8 @@
         <ul class="menu-options">
             <li class="selected" data-view="dashboard"> <i class="fa fa-th-large icon" aria-hidden="true"></i> </li>
             <li id="" data-view="users"><i class="fa-solid fa-fingerprint" aria-hidden="true"></i></li>
-            <li id="" data-view="logs"><i class="fa-solid fa-users" aria-hidden="true"></i></li>
-            <li id="" data-view="accounts"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></li>
+            <li id="" data-view="accounts"><i class="fa-solid fa-users" aria-hidden="true"></i></li>
+            <li id="" data-view="logs"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></li>
         </ul>
         </nav>
 
@@ -388,6 +388,7 @@
 
                 <p class="notFound" id="notFound">No Results Found.</p>
             </div>
+
 
             <div id="access-container" class="content-container" style="display: none;">
             <header class="header" id="header">

@@ -1,6 +1,12 @@
 <?php
 
+if (!defined('ROOT_DIR')) {
+    define('ROOT_DIR', dirname(__DIR__, 2)); // Adjust based on your directory structure
+}
+
+
 require_once __DIR__ . '/Controller.php';
+require_once __DIR__ . '/RegistrationController.php';
 
 class AuthController extends Controller {
     
@@ -11,12 +17,21 @@ class AuthController extends Controller {
         }
         
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $action = $_POST['action'] ?? '';
+            $action = $_POST['action'] ?? ($_GET['action'] ?? ''); // Check both POST and GET
             
             if ($action === 'login') {
                 $this->processLogin();
             } elseif ($action === 'googleLogin') {
                 $this->googleLogin();
+            } elseif ($action === 'student_register' || $action === 'registerStudent') {
+                $this->processStudentRegistration();
+            } elseif ($action === 'faculty_register' || $action === 'registerFaculty') {
+                $this->processFacultyRegistration();
+            } else {
+                // Handle unknown action
+                $_SESSION['error_message'] = "Invalid action: " . $action;
+                header('Location: ../../indexLogin.php');
+                exit();
             }
         } elseif ($_SERVER['REQUEST_METHOD'] == 'GET') {
             $action = $_GET['action'] ?? '';
@@ -50,6 +65,50 @@ class AuthController extends Controller {
         }
     }
 
+    public function processStudentRegistration() {
+        try {
+            $registrationController = new RegistrationController();
+            
+            $result = $registrationController->registerStudent($_POST, $_FILES);
+            
+            if ($result) {
+                $_SESSION['success_message'] = "Student registration successful! Your account is pending approval.";
+                header('Location: ../../indexLogin.php');
+                exit();
+            } else {
+                $_SESSION['error_message'] = $registrationController->getError();
+                header('Location: ../../indexLogin.php?show=student_register');
+                exit();
+            }
+        } catch (Exception $e) {
+            $_SESSION['error_message'] = "Registration error: " . $e->getMessage();
+            header('Location: ../../indexLogin.php?show=student_register');
+            exit();
+        }
+    }
+
+    public function processFacultyRegistration() {
+        try {
+            $registrationController = new RegistrationController();
+            
+            $result = $registrationController->registerFaculty($_POST);
+            
+            if ($result) {
+                $_SESSION['success_message'] = "Faculty registration successful! Your account is pending approval.";
+                header('Location: ../../indexLogin.php');
+                exit();
+            } else {
+                $_SESSION['error_message'] = $registrationController->getError();
+                header('Location: ../../indexLogin.php?show=faculty_register');
+                exit();
+            }
+        } catch (Exception $e) {
+            $_SESSION['error_message'] = "Registration error: " . $e->getMessage();
+            header('Location: ../../indexLogin.php?show=faculty_register');
+            exit();
+        }
+    }
+
     public function googleLogin() {
         // Handle Google login logic here
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -64,48 +123,46 @@ class AuthController extends Controller {
     }
 
     private function authenticateUser($username, $password, $role) {
-        // Database connection
-        require_once ROOT_DIR . '\Database\config.php';
+        // Use your User model for authentication
+        require_once ROOT_DIR . '\app\Models\User.php';
         
-        // Determine table based on role
-        $table = ($role === 'Faculty') ? 'faculty' : 'researchers';
-        
-        // Query database
-        $query = "SELECT * FROM $table WHERE username = ?";
-        $stmt = $conn->prepare($query);
-        
-        if (!$stmt) {
-            error_log("Database error: " . $conn->error);
-            return false;
-        }
-        
-        $stmt->bind_param("s", $username);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        if ($result->num_rows === 1) {
-            $user = $result->fetch_assoc();
+        try {
+            $userModel = new User();
             
-            // Verify password (assuming passwords are hashed)
-            if (password_verify($password, $user['password'])) {
-                return [
-                    'id' => $user['id'],
-                    'username' => $user['username'],
-                    'email' => $user['email'],
-                    'name' => $user['name'],
-                    'role' => $role
+            // For now, using email as username - adjust based on your needs
+            $user = $userModel->login($username, $password);
+            
+            if ($user) {
+                // Check if user role matches the selected role
+                $userRole = strtolower($user->User_Role ?? '');
+                $selectedRole = strtolower($role);
+                
+                // Map role names for compatibility
+                $roleMapping = [
+                    'researcher' => 'student',
+                    'faculty' => 'faculty'
                 ];
-            } else {
-                error_log("Password verification failed for user: $username");
+                
+                $mappedRole = $roleMapping[$selectedRole] ?? $selectedRole;
+                
+                if ($userRole === $mappedRole) {
+                    return [
+                        'id' => $user->ID,
+                        'username' => $user->Email, // Using email as username
+                        'email' => $user->Email,
+                        'name' => $user->First_Name . ' ' . $user->Last_Name,
+                        'role' => $user->User_Role
+                    ];
+                } else {
+                    error_log("Role mismatch: User role is $userRole, but selected role is $selectedRole");
+                }
             }
-        } else {
-            error_log("User not found: $username in table: $table");
+        } catch (Exception $e) {
+            error_log("Authentication error: " . $e->getMessage());
         }
         
         return false;
     }
-
-
 
     
     public function createUserSession($user) {
@@ -113,6 +170,7 @@ class AuthController extends Controller {
         $_SESSION['user_email'] = $user['email'];
         $_SESSION['user_name'] = $user['name'];
         $_SESSION['user_role'] = $user['role'] ?? 'user';
+        $_SESSION['logged_in'] = true;
     }
     
     public function logout() {
@@ -128,7 +186,7 @@ class AuthController extends Controller {
 
     private function redirectWithError($message) {
         $_SESSION['error_message'] = $message;
-        header('Location: ../Views/User/indexLogin.php');
+        header('Location: ../../indexLogin.php');
         exit();
     }
 

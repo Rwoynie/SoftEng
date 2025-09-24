@@ -202,38 +202,70 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (registerForm) {
-      registerForm.addEventListener('submit', function () {
-        const email = document.getElementById('regEmail').value.trim().toLowerCase();
-        const pass = document.getElementById('regPassword').value;
-        const confirm = document.getElementById('regConfirmPassword').value;
-        if (!email.endsWith('@usep.edu.ph')) {
-          Swal.fire('Invalid email', 'Please use your USeP (@usep.edu.ph) email.', 'error');
-          return;
-        }
-        if (pass !== confirm) {
-          Swal.fire('Passwords do not match', 'Please re-enter your password.', 'error');
-          return;
-        }
-        Swal.fire('Submitted', 'Registration submitted (wire backend endpoint next).', 'success');
+      registerForm.addEventListener('submit', function (e) {
+          e.preventDefault();
+          
+          const email = document.getElementById('regEmail').value.trim().toLowerCase();
+          const pass = document.getElementById('regPassword').value;
+          const confirm = document.getElementById('regConfirmPassword').value;
+          
+          if (!email.endsWith('@usep.edu.ph')) {
+              Swal.fire('Invalid email', 'Please use your USeP (@usep.edu.ph) email.', 'error');
+              return;
+          }
+          
+          if (pass !== confirm) {
+              Swal.fire('Passwords do not match', 'Please re-enter your password.', 'error');
+              return;
+          }
+          
+          // Show loading state
+          Swal.fire({
+              title: 'Processing...',
+              text: 'Please wait while we create your account',
+              allowOutsideClick: false,
+              didOpen: () => {
+                  Swal.showLoading();
+              }
+          });
+          
+          // Submit the form to AuthController
+          this.submit();
       });
-    }
+  }
 
     if (facultyRegisterForm) {
-      facultyRegisterForm.addEventListener('submit', function () {
+    facultyRegisterForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        
         const email = document.getElementById('facEmail').value.trim().toLowerCase();
         const pass = document.getElementById('facPassword').value;
         const confirm = document.getElementById('facConfirmPassword').value;
+        
         if (!email.endsWith('@usep.edu.ph')) {
-          Swal.fire('Invalid email', 'Please use your USeP (@usep.edu.ph) email.', 'error');
-          return;
+            Swal.fire('Invalid email', 'Please use your USeP (@usep.edu.ph) email.', 'error');
+            return;
         }
+        
         if (pass !== confirm) {
-          Swal.fire('Passwords do not match', 'Please re-enter your password.', 'error');
-          return;
+            Swal.fire('Passwords do not match', 'Please re-enter your password.', 'error');
+            return;
         }
-        Swal.fire('Submitted', 'Faculty registration submitted (wire backend endpoint next).', 'success');
-      });
-    }
+        
+        // Show loading state
+        Swal.fire({
+            title: 'Processing...',
+            text: 'Please wait while we create your account',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        // Submit the form to AuthController
+        this.submit();
+    });
+}
 
     function wireToggle(btn, input) {
       if (btn && input) {

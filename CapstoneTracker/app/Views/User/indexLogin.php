@@ -162,19 +162,34 @@ if ($setupError) {
         <button type="button" class="btn btn-link text-muted position-absolute" style="top:8px; right:10px; font-size:24px; text-decoration:none;" data-bs-dismiss="modal" aria-label="Close">&times;</button>
       </div>
       <div class="modal-body">
-        <form id="studentRegisterForm" onsubmit="return false;" enctype="multipart/form-data">
+        <form id="studentRegisterForm" method="POST" action="../../../app/Controllers/AuthController.php" enctype="multipart/form-data">
+        <input type="hidden" name="action" value="student_register">
           <div class="row g-3">
-            <div class="col-12">
-              <label for="regFullName" class="form-label">Full Name</label>
-              <input type="text" id="regFullName" class="form-control" placeholder="e.g., Juan Dela Cruz" required>
+            <!-- Separate Name Fields -->
+            <div class="col-md-4">
+              <label for="regFirstName" class="form-label">First Name</label>
+              <input type="text" id="regFirstName" name="firstName" class="form-control" placeholder="Juan" required>
             </div>
+            <div class="col-md-4">
+              <label for="regMiddleName" class="form-label">Middle Name</label>
+              <input type="text" id="regMiddleName" name="middleName" class="form-control" placeholder="Santos">
+            </div>
+            <div class="col-md-4">
+              <label for="regLastName" class="form-label">Last Name</label>
+              <input type="text" id="regLastName" name="lastName" class="form-control" placeholder="Dela Cruz" required>
+            </div>
+            <div class="col-12">
+              <label for="regExtension" class="form-label">Name Extension (Optional)</label>
+              <input type="text" id="regExtension" name="extension" class="form-control" placeholder="Jr., III, etc.">
+            </div>
+            
             <div class="col-md-6">
               <label for="regStudentId" class="form-label">Student ID number</label>
-              <input type="text" id="regStudentId" class="form-control" placeholder="e.g., 2025-12345" required>
+              <input type="text" id="regStudentId" name="studentId" class="form-control" placeholder="e.g., 2025-12345" required>
             </div>
             <div class="col-md-6">
               <label for="regYearLevel" class="form-label">Year Level</label>
-              <select id="regYearLevel" class="form-select" required>
+              <select id="regYearLevel" name="yearLevel" class="form-select" required>
                 <option value="" selected disabled>Select year level</option>
                 <option>1st year</option>
                 <option>2nd year</option>
@@ -185,7 +200,7 @@ if ($setupError) {
             </div>
             <div class="col-12">
               <label for="regCourse" class="form-label">Course / Program</label>
-              <select id="regCourse" class="form-select" required>
+              <select id="regCourse" name="course" class="form-select" required>
                 <option value="" selected disabled>Select your program</option>
                 <option>Bachelor of Technical-Vocational Teacher Education</option>
                 <option>Bachelor of Special Need Education</option>
@@ -200,14 +215,14 @@ if ($setupError) {
               <label for="regEmail" class="form-label">Email Address</label>
               <div class="input-group">
                 <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                <input type="email" id="regEmail" class="form-control" placeholder="your.name@usep.edu.ph" required>
+                <input type="email" id="regEmail" name="email" class="form-control" placeholder="your.name@usep.edu.ph" required>
               </div>
               <small class="text-muted">Use your university email (@usep.edu.ph)</small>
             </div>
             <div class="col-md-6">
               <label for="regPassword" class="form-label">Password</label>
               <div class="input-group">
-                <input type="password" id="regPassword" class="form-control" required>
+                <input type="password" id="regPassword" name="password" class="form-control" required>
                 <button class="btn btn-outline-secondary" type="button" id="regTogglePassword" aria-label="Show password">
                   <i class="far fa-eye"></i>
                 </button>
@@ -216,7 +231,7 @@ if ($setupError) {
             <div class="col-md-6">
               <label for="regConfirmPassword" class="form-label">Confirm Password</label>
               <div class="input-group">
-                <input type="password" id="regConfirmPassword" class="form-control" required>
+                <input type="password" id="regConfirmPassword" name="confirmPassword" class="form-control" required>
                 <button class="btn btn-outline-secondary" type="button" id="regToggleConfirm" aria-label="Show password">
                   <i class="far fa-eye"></i>
                 </button>
@@ -224,7 +239,7 @@ if ($setupError) {
             </div>
             <div class="col-12">
               <label for="regProfilePic" class="form-label">Profile picture</label>
-              <input type="file" id="regProfilePic" class="form-control" accept="image/*">
+              <input type="file" id="regProfilePic" name="profilePic" class="form-control" accept="image/*">
               <small class="text-muted">Max 5MB. JPG/PNG preferred.</small>
             </div>
             <div class="col-12 d-grid gap-2">
@@ -248,19 +263,33 @@ if ($setupError) {
         <button type="button" class="btn btn-link text-muted position-absolute" style="top:8px; right:10px; font-size:24px; text-decoration:none;" data-bs-dismiss="modal" aria-label="Close">&times;</button>
       </div>
       <div class="modal-body">
-        <form id="facultyRegisterForm" onsubmit="return false;">
+        <form id="facultyRegisterForm" method="POST" action="../../../app/Controllers/AuthController.php?action=registerFaculty">
           <div class="row g-3">
-            <div class="col-12">
-              <label for="facFullName" class="form-label">Full Name</label>
-              <input type="text" id="facFullName" class="form-control" placeholder="e.g., Maria Santos" required>
+            <!-- Separate Name Fields -->
+            <div class="col-md-4">
+              <label for="facFirstName" class="form-label">First Name</label>
+              <input type="text" id="facFirstName" name="firstName" class="form-control" placeholder="Maria" required>
             </div>
+            <div class="col-md-4">
+              <label for="facMiddleName" class="form-label">Middle Name</label>
+              <input type="text" id="facMiddleName" name="middleName" class="form-control" placeholder="Santos">
+            </div>
+            <div class="col-md-4">
+              <label for="facLastName" class="form-label">Last Name</label>
+              <input type="text" id="facLastName" name="lastName" class="form-control" placeholder="Reyes" required>
+            </div>
+            <div class="col-12">
+              <label for="facExtension" class="form-label">Name Extension (Optional)</label>
+              <input type="text" id="facExtension" name="extension" class="form-control" placeholder="Jr., III, etc.">
+            </div>
+            
             <div class="col-md-6">
               <label for="facEmployeeId" class="form-label">Employee ID number</label>
-              <input type="text" id="facEmployeeId" class="form-control" placeholder="e.g., EMP-12345" required>
+              <input type="text" id="facEmployeeId" name="employeeId" class="form-control" placeholder="e.g., EMP-12345" required>
             </div>
             <div class="col-md-6">
               <label for="facDepartment" class="form-label">Department / College</label>
-              <select id="facDepartment" class="form-select" required>
+              <select id="facDepartment" name="department" class="form-select" required>
                 <option value="" selected disabled>Select department</option>
                 <option>CTET</option>
                 <option>COE</option>
@@ -268,20 +297,20 @@ if ($setupError) {
             </div>
             <div class="col-12">
               <label for="facDesignation" class="form-label">Designation / Position</label>
-              <input type="text" id="facDesignation" class="form-control" placeholder="e.g., Instructor, Professor" required>
+              <input type="text" id="facDesignation" name="designation" class="form-control" placeholder="e.g., Instructor, Professor" required>
             </div>
             <div class="col-12">
               <label for="facEmail" class="form-label">Email Address</label>
               <div class="input-group">
                 <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                <input type="email" id="facEmail" class="form-control" placeholder="your.name@usep.edu.ph" required>
+                <input type="email" id="facEmail" name="email" class="form-control" placeholder="your.name@usep.edu.ph" required>
               </div>
               <small class="text-muted">Use your university email (@usep.edu.ph)</small>
             </div>
             <div class="col-md-6">
               <label for="facPassword" class="form-label">Password</label>
               <div class="input-group">
-                <input type="password" id="facPassword" class="form-control" required>
+                <input type="password" id="facPassword" name="password" class="form-control" required>
                 <button class="btn btn-outline-secondary" type="button" id="facTogglePassword" aria-label="Show password">
                   <i class="far fa-eye"></i>
                 </button>
@@ -290,7 +319,7 @@ if ($setupError) {
             <div class="col-md-6">
               <label for="facConfirmPassword" class="form-label">Confirm Password</label>
               <div class="input-group">
-                <input type="password" id="facConfirmPassword" class="form-control" required>
+                <input type="password" id="facConfirmPassword" name="confirmPassword" class="form-control" required>
                 <button class="btn btn-outline-secondary" type="button" id="facToggleConfirm" aria-label="Show password">
                   <i class="far fa-eye"></i>
                 </button>
