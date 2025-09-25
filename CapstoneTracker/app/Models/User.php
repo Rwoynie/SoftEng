@@ -3,7 +3,14 @@ class User extends Model {
     protected $tableName = 'USER_INFORMATION'; // Set table name
     
     /**
-     * User registration method
+     * Get database instance for external use
+     */
+    public function getDb() {
+        return $this->db;
+    }
+
+    /**
+     * User registration method - IMPROVED VERSION
      */
     public function register($data) {
         try {
@@ -11,96 +18,76 @@ class User extends Model {
             $salt = bin2hex(random_bytes(16));
             $hashedPassword = password_hash($data['password'] . $salt, PASSWORD_DEFAULT);
             
+            // Generate unique User_ID based on role
+            $userRole = $data['user_role'] ?? 'student';
+            $userId = $this->generateUserId($userRole, $data);
+            
+            // Check if User_ID already exists
+            if ($this->userIdExists($userId)) {
+                throw new Exception("User ID '$userId' is already registered");
+            }
+            
+            // Check if email already exists
+            if ($this->emailExists($data['email'])) {
+                throw new Exception("Email address '{$data['email']}' is already registered");
+            }
+            
             // Build the SQL query based on available data
-            $fields = [];
-            $values = [];
-            $bindings = [];
-            
-            // Required fields
-            $fields[] = 'pswrd';
-            $values[] = ':password';
-            $bindings[':password'] = $hashedPassword;
-            
-            $fields[] = 'Salt';
-            $values[] = ':salt';
-            $bindings[':salt'] = $salt;
-            
-            $fields[] = 'First_Name';
-            $values[] = ':first_name';
-            $bindings[':first_name'] = $data['first_name'] ?? '';
-            
-            $fields[] = 'Last_Name';
-            $values[] = ':last_name';
-            $bindings[':last_name'] = $data['last_name'] ?? '';
-            
-            $fields[] = 'Email';
-            $values[] = ':email';
-            $bindings[':email'] = $data['email'] ?? '';
-            
-            $fields[] = 'User_ID';
-            $values[] = ':user_id';
-            $bindings[':user_id'] = $data['student_id'] ?? $data['employee_id'] ?? '';
-            
-            $fields[] = 'User_Role';
-            $values[] = ':user_role';
-            $bindings[':user_role'] = $data['user_role'] ?? 'student';
-            
-            $fields[] = 'Acc_Status';
-            $values[] = ':acc_status';
-            $bindings[':acc_status'] = $data['acc_status'] ?? 'pending';
+            $fields = ['pswrd', 'Salt', 'First_Name', 'Last_Name', 'Email', 'User_ID', 'User_Role', 'Acc_Status'];
+            $values = [':password', ':salt', ':first_name', ':last_name', ':email', ':user_id', ':user_role', ':acc_status'];
+            $bindings = [
+                ':password' => $hashedPassword,
+                ':salt' => $salt,
+                ':first_name' => $data['first_name'] ?? '',
+                ':last_name' => $data['last_name'] ?? '',
+                ':email' => $data['email'] ?? '',
+                ':user_id' => $userId,
+                ':user_role' => $userRole,
+                ':acc_status' => $data['acc_status'] ?? 'pending'
+            ];
             
             // Optional fields
-            if (!empty($data['middle_name'])) {
-                $fields[] = 'Middle_Name';
-                $values[] = ':middle_name';
-                $bindings[':middle_name'] = $data['middle_name'];
+            $optionalFields = [
+                'middle_name' => 'Middle_Name',
+                'extension' => 'Extension',
+                'year_level' => 'Year_Level',
+                'course' => 'Course',
+                'department' => 'Department',
+                'designation' => 'Designation',
+                'profile_pic' => 'Profile_Pic'
+            ];
+            
+            foreach ($optionalFields as $dataKey => $dbField) {
+                if (!empty($data[$dataKey])) {
+                    $fields[] = $dbField;
+                    $values[] = ":$dataKey";
+                    $bindings[":$dataKey"] = $data[$dataKey];
+                }
             }
             
-            if (!empty($data['extension'])) {
-                $fields[] = 'Extension';
-                $values[] = ':extension';
-                $bindings[':extension'] = $data['extension'];
-            }
-            
-            if (!empty($data['student_id'])) {
+            // Add Student_ID or Employee_ID based on role
+            if ($userRole === 'student' && !empty($data['student_id'])) {
                 $fields[] = 'Student_ID';
                 $values[] = ':student_id';
                 $bindings[':student_id'] = $data['student_id'];
-            }
-            
-            // Additional fields for your system
-            if (!empty($data['year_level'])) {
-                $fields[] = 'Year_Level';
-                $values[] = ':year_level';
-                $bindings[':year_level'] = $data['year_level'];
-            }
-            
-            if (!empty($data['course'])) {
-                $fields[] = 'Course';
-                $values[] = ':course';
-                $bindings[':course'] = $data['course'];
-            }
-            
-            if (!empty($data['department'])) {
-                $fields[] = 'Department';
-                $values[] = ':department';
-                $bindings[':department'] = $data['department'];
-            }
-            
-            if (!empty($data['designation'])) {
-                $fields[] = 'Designation';
-                $values[] = ':designation';
-                $bindings[':designation'] = $data['designation'];
-            }
-            
-            if (!empty($data['profile_pic'])) {
-                $fields[] = 'Profile_Pic';
-                $values[] = ':profile_pic';
-                $bindings[':profile_pic'] = $data['profile_pic'];
+                
+                // Check if Student_ID already exists
+                if ($this->studentIdExists($data['student_id'])) {
+                    throw new Exception("Student ID '{$data['student_id']}' is already registered");
+                }
+            } elseif ($userRole === 'faculty' && !empty($data['employee_id'])) {
+                $fields[] = 'Employee_ID';
+                $values[] = ':employee_id';
+                $bindings[':employee_id'] = $data['employee_id'];
+                
+                // Check if Employee_ID already exists
+                if ($this->employeeIdExists($data['employee_id'])) {
+                    throw new Exception("Employee ID '{$data['employee_id']}' is already registered");
+                }
             }
             
             // Build the final query
-            $sql = 'INSERT INTO USER_INFORMATION (' . implode(', ', $fields) . ') 
+            $sql = 'INSERT INTO ' . $this->tableName . ' (' . implode(', ', $fields) . ') 
                     VALUES (' . implode(', ', $values) . ')';
             
             $this->db->query($sql);
@@ -115,7 +102,31 @@ class User extends Model {
             
         } catch (Exception $e) {
             error_log("User registration error: " . $e->getMessage());
-            return false;
+            throw $e; // Re-throw to let controller handle it
+        }
+    }
+    
+    /**
+     * Generate unique User_ID based on role
+     */
+    private function generateUserId($role, $data) {
+        if ($role === 'student') {
+            // For students: S + Student_ID (e.g., S2025-12345)
+            $studentId = $data['student_id'] ?? '';
+            if (empty($studentId)) {
+                throw new Exception("Student ID is required for student registration");
+            }
+            return 'S' . $studentId;
+        } elseif ($role === 'faculty') {
+            // For faculty: F + Employee_ID (e.g., FEMP-12345)
+            $employeeId = $data['employee_id'] ?? '';
+            if (empty($employeeId)) {
+                throw new Exception("Employee ID is required for faculty registration");
+            }
+            return 'F' . $employeeId;
+        } else {
+            // For other roles (like admin), use as is
+            return $data['user_id'] ?? uniqid();
         }
     }
     
@@ -124,8 +135,8 @@ class User extends Model {
      */
     public function login($identifier, $password) {
         try {
-            // Allow login by email or user_id
-            $this->db->query('SELECT * FROM USER_INFORMATION WHERE (Email = :identifier OR User_ID = :identifier OR Student_ID = :identifier) AND Acc_Status = "approved"');
+            // Allow login by email, user_id, student_id, or employee_id
+            $this->db->query('SELECT * FROM USER_INFORMATION WHERE (Email = :identifier OR User_ID = :identifier OR Student_ID = :identifier OR Employee_ID = :identifier) AND Acc_Status = "approved"');
             $this->db->bind(':identifier', $identifier);
             $result = $this->db->single();
             
@@ -146,6 +157,66 @@ class User extends Model {
             return false;
         }
     }
-    // Other user-specific methods can be added here
+    
+    /**
+     * Check if email already exists
+     */
+    public function emailExists($email) {
+        try {
+            $this->db->query('SELECT ID FROM USER_INFORMATION WHERE Email = :email');
+            $this->db->bind(':email', $email);
+            $this->db->execute();
+            return $this->db->rowCount() > 0;
+        } catch (Exception $e) {
+            error_log("Email exists check error: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Check if User_ID already exists
+     */
+    public function userIdExists($userId) {
+        try {
+            $this->db->query('SELECT ID FROM USER_INFORMATION WHERE User_ID = :user_id');
+            $this->db->bind(':user_id', $userId);
+            $this->db->execute();
+            return $this->db->rowCount() > 0;
+        } catch (Exception $e) {
+            error_log("User ID exists check error: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Check if Student_ID already exists
+     */
+    public function studentIdExists($studentId) {
+        try {
+            $this->db->query('SELECT ID FROM USER_INFORMATION WHERE Student_ID = :student_id');
+            $this->db->bind(':student_id', $studentId);
+            $this->db->execute();
+            return $this->db->rowCount() > 0;
+        } catch (Exception $e) {
+            error_log("Student ID exists check error: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Check if Employee_ID already exists
+     */
+    public function employeeIdExists($employeeId) {
+        try {
+            $this->db->query('SELECT ID FROM USER_INFORMATION WHERE Employee_ID = :employee_id');
+            $this->db->bind(':employee_id', $employeeId);
+            $this->db->execute();
+            return $this->db->rowCount() > 0;
+        } catch (Exception $e) {
+            error_log("Employee ID exists check error: " . $e->getMessage());
+            return false;
+        }
+    }
 }
+?>
 ?>

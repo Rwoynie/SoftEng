@@ -81,22 +81,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Function to switch sidebar views
         function switchSidebarView(viewId) {
-    const header = document.querySelector('.header');
-    const appContentHeader = document.querySelector('.app-content-header');
-    const mainContent = document.querySelector('.main-content');
-    
-    // Hide all content containers
-    Object.values(contentContainers).forEach(container => {
-        if (container) {
-            container.style.display = 'none';
-            container.classList.remove('content-container-active');
-        }
-    });
-    
-    // Show the selected content container
-    if (contentContainers[viewId]) {
-        contentContainers[viewId].style.display = 'block';
-        contentContainers[viewId].classList.add('content-container-active');
+            const header = document.querySelector('.header');
+            const appContentHeader = document.querySelector('.app-content-header');
+            const mainContent = document.querySelector('.main-content');
+            
+            // Hide all content containers
+            Object.values(contentContainers).forEach(container => {
+                if (container) {
+                    container.style.display = 'none';
+                    container.classList.remove('content-container-active');
+                }
+            });
+            
+            // Show the selected content container
+            if (contentContainers[viewId]) {
+                contentContainers[viewId].style.display = 'block';
+                contentContainers[viewId].classList.add('content-container-active');
         
         // Show app-content-header only for dashboard view
         if (viewId === 'dashboard') {
@@ -104,32 +104,32 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             if (appContentHeader) appContentHeader.style.display = 'none';
         }
-        
-        // Special handling for logs view
-        if (viewId === 'logs') {
-            // Ensure user log is shown by default
-            const userLogView = document.getElementById('userLog-container');
-            const userButton = document.getElementById('userButton');
-            if (userLogView && userButton) {
-                switchLogView(userLogView, userButton);
+                
+                // Special handling for logs view
+                if (viewId === 'logs') {
+                    // Ensure user log is shown by default
+                    const userLogView = document.getElementById('userLog-container');
+                    const userButton = document.getElementById('userButton');
+                    if (userLogView && userButton) {
+                        switchLogView(userLogView, userButton);
+                    }
+                }
+            }
+            
+            // Update active states in sidebar
+            sidebarOptions.forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // Find and select the clicked option
+            const clickedOption = Array.from(sidebarOptions).find(option => {
+                return option.getAttribute('data-view') === viewId;
+            });
+            
+            if (clickedOption) {
+                clickedOption.classList.add('selected');
             }
         }
-    }
-    
-    // Update active states in sidebar
-    sidebarOptions.forEach(option => {
-        option.classList.remove('selected');
-    });
-    
-    // Find and select the clicked option
-    const clickedOption = Array.from(sidebarOptions).find(option => {
-        return option.getAttribute('data-view') === viewId;
-    });
-    
-    if (clickedOption) {
-        clickedOption.classList.add('selected');
-    }
-}
 
         // Add event listeners to sidebar options
         sidebarOptions.forEach((option, index) => {
@@ -228,8 +228,8 @@ document.addEventListener('DOMContentLoaded', function() {
         fabIcon.addEventListener('click', function() {
             console.log('FAB clicked, opening modal');
             try {
-                uploadModal.classList.add('active');
-                document.body.style.overflow = 'hidden';
+            uploadModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
                 console.log('Modal opened successfully');
             } catch (error) {
                 console.error('Error opening modal:', error);
@@ -246,8 +246,8 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         try {
-            modal.classList.remove('active');
-            document.body.style.overflow = '';
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
         } catch (error) {
             console.error('Error closing modal:', error);
         }
@@ -289,11 +289,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Close modal when clicking outside
     document.querySelectorAll('.modal-overlay').forEach(modal => {
         if (modal) {
-            modal.addEventListener('click', function(e) {
-                if (e.target === this) {
-                    closeModal(this);
-                }
-            });
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal(this);
+            }
+        });
         }
     });
     
@@ -672,16 +672,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Function to reset upload form
     function resetUploadForm() {
-        uploadedFiles = [];
-        showEmptyState();
-        btnUpload.disabled = true;
-        fileInput.value = '';
-        
-        // Clear form fields
+                            uploadedFiles = [];
+                            showEmptyState();
+                            btnUpload.disabled = true;
+                            fileInput.value = '';
+                            
+                            // Clear form fields
         const thesisTitleInput = document.getElementById('thesisTitle');
         const thesisAuthorInput = document.getElementById('thesisAuthor');
-        if (thesisTitleInput) thesisTitleInput.value = '';
-        if (thesisAuthorInput) thesisAuthorInput.value = '';
+                            if (thesisTitleInput) thesisTitleInput.value = '';
+                            if (thesisAuthorInput) thesisAuthorInput.value = '';
     }
 
     if (logoutBtn) {
@@ -1420,7 +1420,7 @@ function handleProjectItemClick(projectItem) {
     const fileUrl = projectItem.getAttribute('data-file-url');
     
     if (fileUrl) {
-        showProjectPreview(title, uploadedDate, authors, fileUrl);
+    showProjectPreview(title, uploadedDate, authors, fileUrl);
     } else {
         console.error('No file URL found for project item');
     }
@@ -1429,7 +1429,7 @@ function handleProjectItemClick(projectItem) {
 function showProjectPreview(title, uploadedDate, authors, fileUrl) {
     const modalTitle = document.querySelector('.preview-modal .modal-title');
     if (modalTitle) {
-        modalTitle.textContent = title;
+    modalTitle.textContent = title;
     }
     
     // Create a container for project info

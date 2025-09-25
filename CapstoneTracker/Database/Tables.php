@@ -4,7 +4,7 @@
  * Handles table definitions, database creation, and setup operations
  */
 
-class DatabaseSchema {
+ class DatabaseSchema {
     private $db;
     private $error = null;
     
@@ -20,7 +20,7 @@ class DatabaseSchema {
      */
     public static function getTableQueries() {
         return [
-            // USER_INFORMATION TABLE
+            // USER_INFORMATION TABLE (UPDATED WITH ADDITIONAL FIELDS)
             "CREATE TABLE IF NOT EXISTS USER_INFORMATION (
                 ID INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 pswrd VARCHAR(255) NOT NULL,
@@ -31,12 +31,23 @@ class DatabaseSchema {
                 Extension VARCHAR(20),
                 Email VARCHAR(255) UNIQUE NOT NULL,
                 User_ID VARCHAR(255) UNIQUE NOT NULL,
-                User_Role VARCHAR(255) NOT NULL,
-                Acc_Status VARCHAR(255) NOT NULL,
+                Student_ID VARCHAR(255) UNIQUE,
+                Employee_ID VARCHAR(255) UNIQUE,
+                User_Role ENUM('student', 'faculty', 'admin') NOT NULL,
+                Acc_Status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+                Year_Level VARCHAR(50),
+                Course VARCHAR(255),
+                Department VARCHAR(255),
+                Designation VARCHAR(255),
+                Profile_Pic VARCHAR(500),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX (Email),
-                INDEX (User_ID)
+                INDEX (User_ID),
+                INDEX (Student_ID),
+                INDEX (Employee_ID),
+                INDEX (User_Role),
+                INDEX (Acc_Status)
             ) ENGINE=InnoDB;",
 
             // THESIS TABLE
@@ -119,7 +130,7 @@ class DatabaseSchema {
             'Email' => 'admin@thesis.system',
             'User_ID' => 'ADMIN001',
             'User_Role' => 'admin',
-            'Acc_Status' => 'approved' // FIXED: Added missing Acc_Status field
+            'Acc_Status' => 'approved'
         ];
     }
     
@@ -184,8 +195,8 @@ class DatabaseSchema {
             $this->db->execute();
             
             if ($this->db->rowCount() == 0) {
-                $this->db->query("INSERT INTO USER_INFORMATION (pswrd, Salt, First_Name, Last_Name, Email, User_ID, User_Role) 
-                                VALUES (:password, :salt, :first_name, :last_name, :email, :user_id, :user_role)");
+                $this->db->query("INSERT INTO USER_INFORMATION (pswrd, Salt, First_Name, Last_Name, Email, User_ID, User_Role, Acc_Status) 
+                                VALUES (:password, :salt, :first_name, :last_name, :email, :user_id, :user_role, :acc_status)");
                 
                 $this->db->bind(':password', $adminData['pswrd']);
                 $this->db->bind(':salt', $adminData['Salt']);
@@ -194,6 +205,7 @@ class DatabaseSchema {
                 $this->db->bind(':email', $adminData['Email']);
                 $this->db->bind(':user_id', $adminData['User_ID']);
                 $this->db->bind(':user_role', $adminData['User_Role']);
+                $this->db->bind(':acc_status', $adminData['Acc_Status']);
                 
                 $this->db->execute();
                 return true;
@@ -230,13 +242,6 @@ class DatabaseSchema {
     }
     
     /**
-     * Set error message
-     */
-    public function setError($message) {
-        $this->error = $message;
-    }
-    
-    /**
      * Complete setup process (database + tables + admin)
      */
     public function fullSetup($host, $username, $password, $databaseName) {
@@ -270,17 +275,6 @@ class DatabaseSchema {
         return true;
     }
 
-
-
-
-
-
-
-
-
-
-
-    
     /**
      * Static method for manual setup (replaces old Tables.php)
      */

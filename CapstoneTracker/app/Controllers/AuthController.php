@@ -4,9 +4,7 @@ if (!defined('ROOT_DIR')) {
     define('ROOT_DIR', dirname(__DIR__, 2)); // Adjust based on your directory structure
 }
 
-
 require_once __DIR__ . '/Controller.php';
-require_once __DIR__ . '/RegistrationController.php';
 
 class AuthController extends Controller {
     
@@ -23,14 +21,10 @@ class AuthController extends Controller {
                 $this->processLogin();
             } elseif ($action === 'googleLogin') {
                 $this->googleLogin();
-            } elseif ($action === 'student_register' || $action === 'registerStudent') {
-                $this->processStudentRegistration();
-            } elseif ($action === 'faculty_register' || $action === 'registerFaculty') {
-                $this->processFacultyRegistration();
             } else {
-                // Handle unknown action
+                // Handle unknown action - registration actions are now handled by RegistrationController
                 $_SESSION['error_message'] = "Invalid action: " . $action;
-                header('Location: ../../indexLogin.php');
+                header('Location: ../../app/Views/User/indexLogin.php');
                 exit();
             }
         } elseif ($_SERVER['REQUEST_METHOD'] == 'GET') {
@@ -59,53 +53,9 @@ class AuthController extends Controller {
         if ($user) {
             // Create session and redirect
             $this->createUserSession($user);
-            $this->redirect('../View/User/userViewPage.php');
+            $this->redirect('../../app/Views/User/userViewPage.php');
         } else {
             $this->redirectWithError('Invalid credentials. Please try again.');
-        }
-    }
-
-    public function processStudentRegistration() {
-        try {
-            $registrationController = new RegistrationController();
-            
-            $result = $registrationController->registerStudent($_POST, $_FILES);
-            
-            if ($result) {
-                $_SESSION['success_message'] = "Student registration successful! Your account is pending approval.";
-                header('Location: ../../indexLogin.php');
-                exit();
-            } else {
-                $_SESSION['error_message'] = $registrationController->getError();
-                header('Location: ../../indexLogin.php?show=student_register');
-                exit();
-            }
-        } catch (Exception $e) {
-            $_SESSION['error_message'] = "Registration error: " . $e->getMessage();
-            header('Location: ../../indexLogin.php?show=student_register');
-            exit();
-        }
-    }
-
-    public function processFacultyRegistration() {
-        try {
-            $registrationController = new RegistrationController();
-            
-            $result = $registrationController->registerFaculty($_POST);
-            
-            if ($result) {
-                $_SESSION['success_message'] = "Faculty registration successful! Your account is pending approval.";
-                header('Location: ../../indexLogin.php');
-                exit();
-            } else {
-                $_SESSION['error_message'] = $registrationController->getError();
-                header('Location: ../../indexLogin.php?show=faculty_register');
-                exit();
-            }
-        } catch (Exception $e) {
-            $_SESSION['error_message'] = "Registration error: " . $e->getMessage();
-            header('Location: ../../indexLogin.php?show=faculty_register');
-            exit();
         }
     }
 
@@ -181,12 +131,12 @@ class AuthController extends Controller {
         session_destroy();
         
         // Redirect to login page
-        $this->redirect('../../indexLogin.php');
+        $this->redirect('../../app/Views/User/indexLogin.php');
     }
 
     private function redirectWithError($message) {
         $_SESSION['error_message'] = $message;
-        header('Location: ../../indexLogin.php');
+        header('Location: ../../app/Views/User/indexLogin.php');
         exit();
     }
 

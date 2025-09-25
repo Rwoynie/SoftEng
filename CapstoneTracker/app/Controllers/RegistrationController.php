@@ -4,107 +4,106 @@
  * Handles user registration for students and faculty
  */
 
+ /*
 if (!defined('ROOT_DIR')) {
     define('ROOT_DIR', dirname(__DIR__, 2)); 
 }
-
-require_once __DIR__ . '/../Models/Database.php';
-require_once __DIR__ . '/../Models/Model.php';
-require_once __DIR__ . '/../Models/User.php';
+ */
+require_once '../Models/Database.php';
+require_once '../Models/Model.php';
+require_once '../Models/User.php';
 
 class RegistrationController {
-    private $db;
+
     private $userModel;
     private $error = null;
     
     public function __construct() {
-        $this->db = new Database();
         $this->userModel = new User();
+    }
+    
+    /**
+     * Handle registration request - determines if it's student or faculty
+     */
+    public function handleRegistration($data, $files = []) {
+        $action = $data['action'] ?? '';
+        
+        if ($action === 'student_register') {
+            return $this->registerStudent($data, $files);
+        } elseif ($action === 'faculty_register') {
+            return $this->registerFaculty($data);
+        } else {
+            $this->error = "Invalid registration action";
+            return false;
+        }
     }
     
     /**
      * Handle student registration
      */
     public function registerStudent($data, $files = []) {
-        // Validate required fields
-        $required = ['firstName', 'lastName', 'studentId', 'yearLevel', 'course', 'email', 'password', 'confirmPassword'];
-        foreach ($required as $field) {
-            if (empty($data[$field])) {
-                $this->error = "All required fields are missing: " . $field;
-                return false;
-            }
-        }
-        
-        // Validate email format and domain
-        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            $this->error = "Invalid email format";
-            return false;
-        }
-        
-        if (!preg_match('/@usep\.edu\.ph$/i', $data['email'])) {
-            $this->error = "Only USeP email addresses (@usep.edu.ph) are allowed";
-            return false;
-        }
-        
-        // Validate password match
-        if ($data['password'] !== $data['confirmPassword']) {
-            $this->error = "Passwords do not match";
-            return false;
-        }
-        
-        // Validate password strength
-        if (strlen($data['password']) < 8) {
-            $this->error = "Password must be at least 8 characters long";
-            return false;
-        }
-        
-        // Check if email already exists
-        if ($this->emailExists($data['email'])) {
-            $this->error = "Email address is already registered";
-            return false;
-        }
-        
-        // Check if student ID already exists
-        if ($this->userIdExists($data['studentId'])) {
-            $this->error = "Student ID is already registered";
-            return false;
-        }
-        
         try {
+            // Validate required fields
+            $required = ['firstName', 'lastName', 'studentId', 'yearLevel', 'course', 'email', 'password', 'confirmPassword'];
+            foreach ($required as $field) {
+                if (empty($data[$field])) {
+                    throw new Exception("All required fields must be filled. Missing: " . $field);
+                }
+            }
+            
+            // Validate email format and domain
+            if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+                throw new Exception("Invalid email format");
+            }
+            
+            if (!preg_match('/@usep\.edu\.ph$/i', $data['email'])) {
+                throw new Exception("Only USeP email addresses (@usep.edu.ph) are allowed");
+            }
+            
+            // Validate password match
+            if ($data['password'] !== $data['confirmPassword']) {
+                throw new Exception("Passwords do not match");
+            }
+            
+            // Validate password strength
+            if (strlen($data['password']) < 8) {
+                throw new Exception("Password must be at least 8 characters long");
+            }
+            
             // Handle profile picture upload
             $profilePicPath = null;
             if (!empty($files['profilePic']) && $files['profilePic']['error'] === UPLOAD_ERR_OK) {
                 $profilePicPath = $this->handleProfilePictureUpload($files['profilePic']);
             }
             
-            // Prepare user data for your existing register function
+            // Prepare user data for registration
             $userData = [
                 'password' => $data['password'],
-                'first_name' => $data['firstName'],
-                'middle_name' => $data['middleName'] ?? '',
-                'last_name' => $data['lastName'],
-                'extension' => $data['extension'] ?? '',
-                'email' => $data['email'],
-                'student_id' => $data['studentId'],
+                'first_name' => trim($data['firstName']),
+                'middle_name' => trim($data['middleName'] ?? ''),
+                'last_name' => trim($data['lastName']),
+                'extension' => trim($data['extension'] ?? ''),
+                'email' => trim($data['email']),
+                'student_id' => trim($data['studentId']),
                 'user_role' => 'student',
-                'acc_status' => 'pending', // Default status for new registrations
+                'acc_status' => 'pending',
                 'year_level' => $data['yearLevel'],
                 'course' => $data['course'],
                 'profile_pic' => $profilePicPath
             ];
             
-            // Use your existing register function from User model
+            // Use the register function from User model
             $result = $this->userModel->register($userData);
             
             if ($result) {
                 return true;
             } else {
-                $this->error = "Registration failed. Please try again.";
-                return false;
+                throw new Exception("Registration failed. Please try again.");
             }
             
         } catch (Exception $e) {
-            $this->error = "Registration error: " . $e->getMessage();
+            $this->error = $e->getMessage();
+            error_log("Student registration error: " . $this->error);
             return false;
         }
     }
@@ -113,107 +112,113 @@ class RegistrationController {
      * Handle faculty registration
      */
     public function registerFaculty($data) {
-        // Validate required fields
-        $required = ['firstName', 'lastName', 'employeeId', 'department', 'designation', 'email', 'password', 'confirmPassword'];
-        foreach ($required as $field) {
-            if (empty($data[$field])) {
-                $this->error = "All required fields are missing: " . $field;
-                return false;
-            }
-        }
-        
-        // Validate email format and domain
-        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            $this->error = "Invalid email format";
-            return false;
-        }
-        
-        if (!preg_match('/@usep\.edu\.ph$/i', $data['email'])) {
-            $this->error = "Only USeP email addresses (@usep.edu.ph) are allowed";
-            return false;
-        }
-        
-        // Validate password match
-        if ($data['password'] !== $data['confirmPassword']) {
-            $this->error = "Passwords do not match";
-            return false;
-        }
-        
-        // Validate password strength
-        if (strlen($data['password']) < 8) {
-            $this->error = "Password must be at least 8 characters long";
-            return false;
-        }
-        
-        // Check if email already exists
-        if ($this->emailExists($data['email'])) {
-            $this->error = "Email address is already registered";
-            return false;
-        }
-        
-        // Check if employee ID already exists
-        if ($this->userIdExists($data['employeeId'])) {
-            $this->error = "Employee ID is already registered";
-            return false;
-        }
-        
         try {
-            // Prepare user data for your existing register function
+            // Validate required fields
+            $required = ['firstName', 'lastName', 'employeeId', 'department', 'designation', 'email', 'password', 'confirmPassword'];
+            foreach ($required as $field) {
+                if (empty($data[$field])) {
+                    throw new Exception("All required fields must be filled. Missing: " . $field);
+                }
+            }
+            
+            // Validate email format and domain
+            if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+                throw new Exception("Invalid email format");
+            }
+            
+            if (!preg_match('/@usep\.edu\.ph$/i', $data['email'])) {
+                throw new Exception("Only USeP email addresses (@usep.edu.ph) are allowed");
+            }
+            
+            // Validate password match
+            if ($data['password'] !== $data['confirmPassword']) {
+                throw new Exception("Passwords do not match");
+            }
+            
+            // Validate password strength
+            if (strlen($data['password']) < 8) {
+                throw new Exception("Password must be at least 8 characters long");
+            }
+            
+            // Prepare user data for registration
             $userData = [
                 'password' => $data['password'],
-                'first_name' => $data['firstName'],
-                'middle_name' => $data['middleName'] ?? '',
-                'last_name' => $data['lastName'],
-                'extension' => $data['extension'] ?? '',
-                'email' => $data['email'],
-                'student_id' => $data['employeeId'], // Using student_id field for employee ID
+                'first_name' => trim($data['firstName']),
+                'middle_name' => trim($data['middleName'] ?? ''),
+                'last_name' => trim($data['lastName']),
+                'extension' => trim($data['extension'] ?? ''),
+                'email' => trim($data['email']),
+                'employee_id' => trim($data['employeeId']),
                 'user_role' => 'faculty',
-                'acc_status' => 'pending', // Default status for new registrations
+                'acc_status' => 'pending',
                 'department' => $data['department'],
                 'designation' => $data['designation']
             ];
             
-            // Use your existing register function from User model
+            // Use the register function from User model
             $result = $this->userModel->register($userData);
             
             if ($result) {
                 return true;
             } else {
-                $this->error = "Registration failed. Please try again.";
-                return false;
+                throw new Exception("Registration failed. Please try again.");
             }
             
         } catch (Exception $e) {
-            $this->error = "Registration error: " . $e->getMessage();
+            $this->error = $e->getMessage();
+            error_log("Faculty registration error: " . $this->error);
             return false;
         }
     }
     
     /**
-     * Check if email already exists (compatible with your User model)
+     * Process registration form submission
      */
-    private function emailExists($email) {
-        try {
-            $this->userModel->db->query('SELECT ID FROM USER_INFORMATION WHERE Email = :email');
-            $this->userModel->db->bind(':email', $email);
-            $this->userModel->db->execute();
-            return $this->userModel->db->rowCount() > 0;
-        } catch (Exception $e) {
-            return false;
+    public function processRegistration() {
+        // Start session if not already started
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
         }
-    }
-    
-    /**
-     * Check if user ID already exists (compatible with your User model)
-     */
-    private function userIdExists($userId) {
-        try {
-            $this->userModel->db->query('SELECT ID FROM USER_INFORMATION WHERE Student_ID = :user_id OR User_ID = :user_id');
-            $this->userModel->db->bind(':user_id', $userId);
-            $this->userModel->db->execute();
-            return $this->userModel->db->rowCount() > 0;
-        } catch (Exception $e) {
-            return false;
+        
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $action = $_POST['action'] ?? '';
+            
+            try {
+                if ($action === 'student_register') {
+                    $result = $this->registerStudent($_POST, $_FILES);
+                    
+                    if ($result) {
+                        $_SESSION['success_message'] = "Student registration successful! Your account is pending approval.";
+                        header('Location: ../../app/Views/User/indexLogin.php');
+                        exit();
+                    } else {
+                        throw new Exception($this->getError() ?: "Registration failed. Please try again.");
+                    }
+                } elseif ($action === 'faculty_register') {
+                    $result = $this->registerFaculty($_POST);
+                    
+                    if ($result) {
+                        $_SESSION['success_message'] = "Faculty registration successful! Your account is pending approval.";
+                        header('Location: ../../app/Views/User/indexLogin.php');
+                        exit();
+                    } else {
+                        throw new Exception($this->getError() ?: "Registration failed. Please try again.");
+                    }
+                } else {
+                    throw new Exception("Invalid registration action");
+                }
+            } catch (Exception $e) {
+                // Store the specific error message
+                $_SESSION['error_message'] = $e->getMessage();
+                // Also store which modal to open
+                $_SESSION['error_modal'] = ($action === 'faculty_register') ? 'faculty' : 'student';
+                header('Location: ../../app/Views/User/indexLogin.php');
+                exit();
+            }
+        } else {
+            $_SESSION['error_message'] = "Invalid request method";
+            header('Location: ../../app/Views/User/indexLogin.php');
+            exit();
         }
     }
     
@@ -255,33 +260,6 @@ class RegistrationController {
     }
     
     /**
-     * Extract first name from full name
-     */
-    private function extractFirstName($fullName) {
-        $names = explode(' ', trim($fullName));
-        return $names[0] ?? '';
-    }
-    
-    /**
-     * Extract last name from full name
-     */
-    private function extractLastName($fullName) {
-        $names = explode(' ', trim($fullName));
-        return end($names) ?? '';
-    }
-    
-    /**
-     * Extract middle name from full name
-     */
-    private function extractMiddleName($fullName) {
-        $names = explode(' ', trim($fullName));
-        if (count($names) > 2) {
-            return implode(' ', array_slice($names, 1, -1));
-        }
-        return '';
-    }
-    
-    /**
      * Get error message
      */
     public function getError() {
@@ -315,4 +293,15 @@ class RegistrationController {
         ];
     }
 }
+
+// Handle direct access to this file for registration processing
+if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
+    // Enable error reporting for debugging
+    error_reporting(E_ALL);
+    ini_set('display_errors', 1);
+    
+    $registrationController = new RegistrationController();
+    $registrationController->processRegistration();
+}
+
 ?>

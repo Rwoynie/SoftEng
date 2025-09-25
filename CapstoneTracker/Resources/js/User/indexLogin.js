@@ -1,16 +1,28 @@
+
 // Show error message as SweetAlert and reopen modal if there is an error
 document.addEventListener('DOMContentLoaded', function() {
-    // Check if we should show the modal
-    if (typeof showModal !== 'undefined' && showModal) {
-        // Get the role from the hidden field or default to Researcher
-        const roleField = document.getElementById('roleField');
-        const role = roleField ? roleField.value : 'Researcher';
-        openLogin(role);
-    }
-    
-    // Show error message if there is one
+    // Check if we should show the modal based on error message
     if (typeof errorMessage !== 'undefined' && errorMessage && errorMessage !== '') {
         showErrorAlert(errorMessage);
+        
+        // Safely check errorModal with proper undefined handling
+        const modalType = typeof errorModal !== 'undefined' ? errorModal : '';
+        
+        // Determine which modal to open based on the error context
+        if (modalType === 'student' || errorMessage.includes('Student') || errorMessage.includes('student')) {
+            setTimeout(() => {
+                openStudentRegistration();
+            }, 1000);
+        } else if (modalType === 'faculty' || errorMessage.includes('Faculty') || errorMessage.includes('faculty')) {
+            setTimeout(() => {
+                openFacultyRegistration();
+            }, 1000);
+        } else {
+            // Default to login modal for general errors
+            setTimeout(() => {
+                openLogin('Researcher');
+            }, 1000);
+        }
     }
     
     // Initialize the page functionality
@@ -18,20 +30,54 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function showErrorAlert(message) {
-    Swal.fire({
-        title: 'Login Failed',
-        text: message,
-        icon: 'error',
-        confirmButtonText: 'OK'
-    }).then((result) => {
-        // After user closes the alert, focus on the username field
-        if (result.isConfirmed || result.isDismissed) {
-            const usernameField = document.getElementById('username');
-            if (usernameField) {
-                usernameField.focus();
-            }
-        }
-    });
+    console.log('Raw error message:', message, 'Type:', typeof message);
+    
+    // Convert to string and trim
+    const msg = String(message || '').trim();
+    
+    // List of values that should be considered as "no real message"
+    const emptyValues = [
+        'undefined', 'null', "'undefined'", "'null'", 
+        '"undefined"', '"null"', 'false', '0', '',
+        '[]', '{}', 'NaN'
+    ];
+    
+    // Check if message is empty or in our invalid list
+    if (!msg || emptyValues.includes(msg)) {
+        Swal.fire({
+            title: 'Registration Failed',
+            text: 'Registration failed. Please try again.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    } else {
+        // Show the actual error message
+        Swal.fire({
+            title: 'Registration Failed',
+            text: msg,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+function openStudentRegistration() {
+    const studentModal = new bootstrap.Modal(document.getElementById('studentRegisterModal'));
+    studentModal.show();
+}
+
+function openFacultyRegistration() {
+    const facultyModal = new bootstrap.Modal(document.getElementById('facultyRegisterModal'));
+    facultyModal.show();
+}
+
+function openLogin(role){
+    if (modalTitle) modalTitle.innerText = role + " Login";
+    if (roleField) roleField.value = role;
+    const modalEl = document.getElementById('loginModal');
+    if (!modalEl) return;
+    const loginModal = new bootstrap.Modal(modalEl);
+    loginModal.show();
 }
 
 // Prevent form submission from closing modal on error
@@ -137,8 +183,8 @@ function renderGoogleButton() {
 }
 
 // Initialize when document is ready
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Document loaded');
+function initializePage() {
+    console.log('Initializing page functionality...');
     
     // Check if Google API is already loaded
     if (typeof gapi !== 'undefined') {
@@ -148,7 +194,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add a fallback in case the Google API doesn't load properly
     setTimeout(renderGoogleButton, 2000);
 
-    // Modal open buttons
+    // Modal open buttons - ADD NULL CHECKS
     const researcherBtn = document.getElementById("researcherBtn");
     const facultyBtn = document.getElementById("facultyBtn");
     const modalTitle = document.getElementById("modalTitle");
@@ -164,41 +210,47 @@ document.addEventListener('DOMContentLoaded', function() {
     const passwordInput = document.getElementById("password");
 
     function openLogin(role){
-      if (modalTitle) modalTitle.innerText = role + " Login";
-      if (roleField) roleField.value = role;
-      const modalEl = document.getElementById('loginModal');
-      if (!modalEl) return;
-      const loginModal = new bootstrap.Modal(modalEl);
-      loginModal.show();
-      // ensure Google button is clickable
-      setTimeout(() => {
-        if (googleModalBtn) {
-          googleModalBtn.onclick = function() {
-            const googleButton = document.querySelector('#googleButton .abcRioButton');
-            if (googleButton) {
-              googleButton.click();
-            } else {
-              Swal.fire('Google Sign-In not ready', 'Please try again in a moment.', 'info');
+        if (modalTitle) modalTitle.innerText = role + " Login";
+        if (roleField) roleField.value = role;
+        const modalEl = document.getElementById('loginModal');
+        if (!modalEl) return;
+        const loginModal = new bootstrap.Modal(modalEl);
+        loginModal.show();
+        
+        setTimeout(() => {
+            if (googleModalBtn) {
+                googleModalBtn.onclick = function() {
+                    const googleButton = document.querySelector('#googleButton .abcRioButton');
+                    if (googleButton) {
+                        googleButton.click();
+                    } else {
+                        Swal.fire('Google Sign-In not ready', 'Please try again in a moment.', 'info');
+                    }
+                };
             }
-          };
-        }
-      }, 300);
+        }, 300);
     }
 
-    if (researcherBtn) researcherBtn.addEventListener("click", () => openLogin("Researcher"));
-    if (facultyBtn) facultyBtn.addEventListener("click", () => openLogin("Faculty"));
+    // ADD NULL CHECKS FOR EVENT LISTENERS
+    if (researcherBtn) {
+        researcherBtn.addEventListener("click", () => openLogin("Researcher"));
+    }
+    
+    if (facultyBtn) {
+        facultyBtn.addEventListener("click", () => openLogin("Faculty"));
+    }
 
     if (togglePasswordBtn && passwordInput) {
-      togglePasswordBtn.addEventListener('click', function() {
-        const isHidden = passwordInput.type === 'password';
-        passwordInput.type = isHidden ? 'text' : 'password';
-        const icon = this.querySelector('i');
-        if (icon) {
-          icon.classList.toggle('fa-eye');
-          icon.classList.toggle('fa-eye-slash');
-        }
-        this.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
-      });
+        togglePasswordBtn.addEventListener('click', function() {
+            const isHidden = passwordInput.type === 'password';
+            passwordInput.type = isHidden ? 'text' : 'password';
+            const icon = this.querySelector('i');
+            if (icon) {
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            }
+            this.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+        });
     }
 
     if (registerForm) {
@@ -302,23 +354,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 250);
       });
     }
-});
-
-
-      const researcherBtn = document.getElementById("researcherBtn");
-      const facultyBtn = document.getElementById("facultyBtn");
-      const modalTitle = document.getElementById("modalTitle");
-      const roleField = document.getElementById("roleField");
-
-      function openLogin(role){
-        modalTitle.innerText = role + " Login";
-        roleField.value = role;
-        let loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
-        loginModal.show();
-      }
-
-      researcherBtn.addEventListener("click", () => openLogin("Researcher"));
-      facultyBtn.addEventListener("click", () => openLogin("Faculty"));
+};
 
 
 /*

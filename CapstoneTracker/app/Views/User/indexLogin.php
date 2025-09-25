@@ -6,15 +6,15 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-define('ROOT_DIR', dirname(__DIR__, 3));
+
 
 // Include the configuration file
-require_once ROOT_DIR . '\Database\config.php';
+require_once '..\..\..\Database\config.php';
 
 // Initialize database if needed
 $setupError = null;
 try {
-    require_once ROOT_DIR . '\app\Controllers\SetupController.php';
+    require_once '..\..\..\app\Controllers\SetupController.php';
     $setupController = new SetupController();
     $isDatabaseReady = $setupController->initializeDatabase();
     
@@ -27,17 +27,20 @@ try {
     error_log("Database setup error: " . $e->getMessage());
 }
 
-require_once ROOT_DIR . '\app\Models\Model.php';
-require_once ROOT_DIR . '\app\Controllers\Controller.php';
+require_once '..\..\..\app\Models\Model.php';
+require_once '..\..\..\app\Controllers\Controller.php';
 
 // Store error message for SweetAlert
 $errorMessage = '';
+$errorModal = '';
 $showModal = false;
 
 if (isset($_SESSION['error_message'])) {
-    $errorMessage = $_SESSION['error_message'];
-    $showModal = true; // Show modal when there's an error
-    unset($_SESSION['error_message']);
+  $errorMessage = $_SESSION['error_message'];
+  $errorModal = $_SESSION['error_modal'] ?? '';
+  $showModal = true;
+  unset($_SESSION['error_message']);
+  unset($_SESSION['error_modal']);
 }
 
 if ($setupError) {
@@ -162,7 +165,7 @@ if ($setupError) {
         <button type="button" class="btn btn-link text-muted position-absolute" style="top:8px; right:10px; font-size:24px; text-decoration:none;" data-bs-dismiss="modal" aria-label="Close">&times;</button>
       </div>
       <div class="modal-body">
-        <form id="studentRegisterForm" method="POST" action="../../../app/Controllers/AuthController.php" enctype="multipart/form-data">
+      <form id="studentRegisterForm" method="POST" action="../../Controllers/RegistrationController.php" enctype="multipart/form-data">
         <input type="hidden" name="action" value="student_register">
           <div class="row g-3">
             <!-- Separate Name Fields -->
@@ -263,7 +266,7 @@ if ($setupError) {
         <button type="button" class="btn btn-link text-muted position-absolute" style="top:8px; right:10px; font-size:24px; text-decoration:none;" data-bs-dismiss="modal" aria-label="Close">&times;</button>
       </div>
       <div class="modal-body">
-        <form id="facultyRegisterForm" method="POST" action="../../../app/Controllers/AuthController.php?action=registerFaculty">
+      <form id="facultyRegisterForm" method="POST" action="../../Controllers/RegistrationController.php">
           <div class="row g-3">
             <!-- Separate Name Fields -->
             <div class="col-md-4">
@@ -342,5 +345,13 @@ if ($setupError) {
     
     
 </body>
+
+    <script>
+        
+
+        // Debug output
+    console.log('PHP errorMessage:', errorMessage);
+    
+    </script>
 
 </html>
