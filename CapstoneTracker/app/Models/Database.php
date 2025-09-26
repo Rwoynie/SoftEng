@@ -87,4 +87,25 @@ class Database {
     public function lastInsertId() {
         return $this->dbh->lastInsertId();
     }
+
+    public function beginTransaction() {
+        if (!$this->isConnected) {
+            return false;
+        }
+        return $this->dbh->beginTransaction();
+    }
+
+    public function commit() {
+        if (!$this->isConnected) {
+            return false;
+        }
+        return $this->dbh->commit();
+    }
+
+    public function rollBack() {
+        if (!$this->isConnected) {
+            return false;
+        }
+        return $this->dbh->rollBack();
+    }
 }
