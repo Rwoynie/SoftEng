@@ -34,6 +34,7 @@ require_once '..\..\..\app\Controllers\Controller.php';
 $errorMessage = '';
 $errorModal = '';
 $showModal = false;
+$successMessage = '';
 
 if (isset($_SESSION['error_message'])) {
   $errorMessage = $_SESSION['error_message'];
@@ -41,6 +42,11 @@ if (isset($_SESSION['error_message'])) {
   $showModal = true;
   unset($_SESSION['error_message']);
   unset($_SESSION['error_modal']);
+}
+
+if (isset($_SESSION['success_message'])) {
+  $successMessage = $_SESSION['success_message'];
+  unset($_SESSION['success_message']);
 }
 
 if ($setupError) {
@@ -58,7 +64,7 @@ if ($setupError) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="../images/gradcap.png" type="image/x-icon">
+    <link rel="icon" href="/CapstoneTracker/resources/Images/ThesisCompLogo.png" type="image/x-icon">
     <title>User | Login</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Quicksand:wght@300..700&family=Raleway:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
@@ -77,6 +83,7 @@ if ($setupError) {
     <script>
         const errorMessage = "<?php echo addslashes($errorMessage); ?>";
         const showModal = <?php echo $showModal ? 'true' : 'false'; ?>;
+        const successMessage = "<?php echo addslashes($successMessage); ?>";
     </script>
 </head> 
 <body>
@@ -93,7 +100,7 @@ if ($setupError) {
             <div class="d-flex justify-content-center gap-2" style="margin-top: 30px;">
                 <button id="researcherBtn" class="btn btn-primary btn-lg">
                     <i class="fas fa-user-graduate me-2"></i>
-                    Researcher
+                    Student
                 </button>   
                 <span class="align-self-center text-muted">|</span>
                 <button id="facultyBtn" class="btn btn-outline-danger btn-lg">
@@ -124,8 +131,8 @@ if ($setupError) {
         <input type="hidden" name="action" value="login">
           <input type="hidden" id="roleField" name="role">
           <div class="mb-3">
-            <label for="username" class="form-label">Username</label>
-            <input type="text" id="username" class="form-control" placeholder="Enter username" required>
+            <label for="email" class="form-label">Email</label>
+            <input type="text" id="username" class="form-control" placeholder="Enter USeP email" required>
           </div>
           <div class="mb-3">
             <label for="password" class="form-label">Password</label>
@@ -342,6 +349,50 @@ if ($setupError) {
     <footer class="login-footer">
         <p>&copy; 2025 University of Southeastern Philippines | Thesis Repository</p>
     </footer>
+
+    <!-- ADMIN LOGIN MODAL (HIDDEN - ACCESSED VIA CTRL+H) -->
+    <div class="modal fade" id="adminLoginModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content p-4">
+          <div class="modal-header text-center w-100 d-block position-relative">
+            <img src="../../../resources/Images/ThesisCompLogo.png" class="sysLogo mb-2" alt="Logo" style="width:80px;">
+            <h5 class="modal-title">
+                <i class="fas fa-shield-alt admin-icon"></i>
+                Admin Login
+            </h5>
+            <button type="button" class="btn btn-link text-white position-absolute" style="top:8px; right:10px; font-size:24px; text-decoration:none;" data-bs-dismiss="modal" aria-label="Close">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="admin-warning mb-3">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Restricted Access:</strong> Authorized personnel only.
+            </div>
+            <form id="adminLoginForm" method="POST" action="../../Controllers/AdminController.php">
+              <input type="hidden" name="action" value="login">
+              <div class="mb-3">
+                <label for="adminUsername" class="form-label">Admin ID</label>
+                <input type="text" id="adminUsername" name="admin_username" class="form-control" placeholder="Enter admin ID" required>
+              </div>
+              <div class="mb-3">
+                <label for="adminPassword" class="form-label">Password</label>
+                <div class="input-group">
+                  <input type="password" id="adminPassword" name="admin_password" class="form-control" placeholder="Enter admin password" required>
+                  <button class="btn btn-outline-secondary" type="button" id="adminTogglePassword" aria-label="Show password">
+                    <i class="far fa-eye"></i>
+                  </button>
+                </div>
+              </div>
+              <br>
+              <button type="submit" class="btn btn-danger w-100 mb-2">
+                <i class="fas fa-sign-in-alt me-2"></i>Admin Login
+              </button>
+              
+              
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
     
     
 </body>

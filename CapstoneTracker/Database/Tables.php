@@ -33,7 +33,7 @@
                 User_ID VARCHAR(255) UNIQUE NOT NULL,
                 Student_ID VARCHAR(255) UNIQUE,
                 Employee_ID VARCHAR(255) UNIQUE,
-                User_Role ENUM('student', 'faculty', 'admin') NOT NULL,
+                User_Role ENUM('student', 'faculty', 'admin', 'superAdmin') NOT NULL,
                 Acc_Status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
                 Year_Level VARCHAR(50),
                 Course VARCHAR(255),
@@ -49,7 +49,7 @@
                 INDEX (User_Role),
                 INDEX (Acc_Status)
             ) ENGINE=InnoDB;",
-
+            
             // THESIS TABLE
             "CREATE TABLE IF NOT EXISTS THESIS (
                 ID INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -118,19 +118,28 @@
      * Get default admin account data
      */
     public static function getDefaultAdminData() {
-        $password = 'admin123';
+        $password = 'compendiumSystemAdmin';
         $salt = bin2hex(random_bytes(16));
         $hashedPassword = password_hash($password . $salt, PASSWORD_DEFAULT);
         
         return [
             'pswrd' => $hashedPassword,
             'Salt' => $salt,
-            'First_Name' => 'System',
-            'Last_Name' => 'Administrator',
-            'Email' => 'admin@thesis.system',
+            'First_Name' => 'Admin',
+            'Middle_Name' => 'Admin',
+            'Last_Name' => 'Admin',
+            'Extension' => null,
+            'Email' => 'admin@usep.edu.ph',
             'User_ID' => 'ADMIN001',
-            'User_Role' => 'admin',
-            'Acc_Status' => 'approved'
+            'Student_ID' => null,
+            'Employee_ID' => null,
+            'User_Role' => 'superAdmin',
+            'Acc_Status' => 'approved',
+            'Year_Level' => null,
+            'Course' => null,
+            'Department' => null,
+            'Designation' => null,
+            'Profile_Pic' => null
         ];
     }
     
@@ -195,17 +204,30 @@
             $this->db->execute();
             
             if ($this->db->rowCount() == 0) {
-                $this->db->query("INSERT INTO USER_INFORMATION (pswrd, Salt, First_Name, Last_Name, Email, User_ID, User_Role, Acc_Status) 
-                                VALUES (:password, :salt, :first_name, :last_name, :email, :user_id, :user_role, :acc_status)");
+                // Build the query with all fields
+                $this->db->query("INSERT INTO USER_INFORMATION 
+                    (pswrd, Salt, First_Name, Middle_Name, Last_Name, Extension, Email, User_ID, Student_ID, Employee_ID, User_Role, Acc_Status, Year_Level, Course, Department, Designation, Profile_Pic) 
+                    VALUES 
+                    (:password, :salt, :first_name, :middle_name, :last_name, :extension, :email, :user_id, :student_id, :employee_id, :user_role, :acc_status, :year_level, :course, :department, :designation, :profile_pic)");
                 
+                // Bind all parameters
                 $this->db->bind(':password', $adminData['pswrd']);
                 $this->db->bind(':salt', $adminData['Salt']);
                 $this->db->bind(':first_name', $adminData['First_Name']);
+                $this->db->bind(':middle_name', $adminData['Middle_Name']);
                 $this->db->bind(':last_name', $adminData['Last_Name']);
+                $this->db->bind(':extension', $adminData['Extension']);
                 $this->db->bind(':email', $adminData['Email']);
                 $this->db->bind(':user_id', $adminData['User_ID']);
+                $this->db->bind(':student_id', $adminData['Student_ID']);
+                $this->db->bind(':employee_id', $adminData['Employee_ID']);
                 $this->db->bind(':user_role', $adminData['User_Role']);
                 $this->db->bind(':acc_status', $adminData['Acc_Status']);
+                $this->db->bind(':year_level', $adminData['Year_Level']);
+                $this->db->bind(':course', $adminData['Course']);
+                $this->db->bind(':department', $adminData['Department']);
+                $this->db->bind(':designation', $adminData['Designation']);
+                $this->db->bind(':profile_pic', $adminData['Profile_Pic']);
                 
                 $this->db->execute();
                 return true;
@@ -270,7 +292,10 @@
         }
         
         // Create admin
-        $this->createDefaultAdmin();
+        if (!$this->createDefaultAdmin()) {
+            // This is not a critical error - admin might already exist
+            error_log("Admin creation note: " . $this->getError());
+        }
         
         return true;
     }

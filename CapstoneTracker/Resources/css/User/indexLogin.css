@@ -864,6 +864,7 @@ h2 {
 
 #loginModal .form-control {
     border-radius: 10px;
+    
     padding: 10px;
     font-size: 0.95rem;
 }
@@ -887,4 +888,165 @@ h2 {
 
 #loginModal .btn-link:hover {
     text-decoration: underline;
+}
+
+/* ADMIN LOGIN MODAL STYLES */
+#adminLoginModal .modal-content {
+    border-radius: 15px;
+    box-shadow: 0 6px 25px rgba(0,0,0,0.3);
+    font-family: 'Poppins', sans-serif;
+    border: 2px solid #dc3545;
+}
+
+#adminLoginModal .modal-header {
+    border-bottom: none;
+    text-align: center;
+    display: block;
+    padding-bottom: 0;
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    color: white;
+    border-radius: 13px 13px 0 0;
+}
+
+#adminLoginModal .modal-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-top: 10px;
+    color: white;
+}
+
+#adminLoginModal .sysLogo {
+    width: 80px;
+    height: auto;
+    margin: 0 auto;
+    display: block;
+    filter: brightness(0) invert(1);
+}
+
+#adminLoginModal .form-label {
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+#adminPassword {
+    border-top-right-radius: 0px !important;
+    border-bottom-right-radius: 0px !important;
+}
+
+#adminLoginModal .form-control {
+    border-radius: 10px;
+    
+    padding: 10px;
+    font-size: 0.95rem;
+    border: 1px solid #dc3545;
+}
+
+
+
+#adminLoginModal .form-control:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+#adminLoginModal .btn-danger {
+    border-radius: 10px;
+    font-weight: 600;
+    background: #dc3545;
+    border: none;
+}
+
+#adminLoginModal .btn-danger:hover {
+    background: #c82333;
+}
+
+#adminLoginModal .admin-warning {
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 15px;
+    font-size: 0.85rem;
+    color: #856404;
+}
+
+#adminLoginModal .admin-icon {
+    color: #dc3545;
+    font-size: 1.2rem;
+    margin-right: 8px;
+}
+
+/* Admin access notification styles */
+.admin-access-notification {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 9999;
+    animation: slideInFromLeft 0.3s ease;
+}
+
+@keyframes slideInFromLeft {
+    from { 
+        transform: translateX(-100px);
+        opacity: 0;
+    }
+    to { 
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.admin-access-notification div {
+    top: 20px;
+    background: #dc3545;
+    left: 0px;
+    color: white;
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    border-left: 4px solid #ffc107;
+    max-width: 300px;
+    opacity: 0.7;
+}
+
+.admin-access-notification .fa-shield-alt {
+    color: #ffc107;
+}
+
+/*Sequence Error*/
+
+.sequence-error-notification {
+    position: fixed;
+    top: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    animation: slideInFromTop 0.3s ease;
+}
+
+@keyframes slideInFromTop {
+    from { 
+        top: -100px;
+        opacity: 0;
+    }
+    to { 
+        top: 20px;
+        opacity: 1;
+    }
+}
+
+.sequence-error-notification div {
+    background: #dc3545;
+    color: white;
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    border-left: 4px solid #ffc107;
+    max-width: 300px;
+    text-align: center;
+}
+
+.sequence-error-notification .fa-exclamation-triangle {
+    color: #ffc107;
 }

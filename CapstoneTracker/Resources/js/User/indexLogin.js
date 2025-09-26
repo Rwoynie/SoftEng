@@ -2,6 +2,21 @@
 // Show error message as SweetAlert and reopen modal if there is an error
 document.addEventListener('DOMContentLoaded', function() {
     // Check if we should show the modal based on error message
+    if (event.ShiftKey && event.key === 'h') {
+        event.preventDefault();
+        
+        const adminModal = document.getElementById('adminLoginModal');
+        if (adminModal) {
+            const adminModalInstance = new bootstrap.Modal(adminModal);
+            adminModalInstance.show();
+            
+            // Show access notification
+            showAdminAccessNotification();
+            
+            console.log('Admin login panel opened via Shift+H');
+        }
+    }
+
     if (typeof errorMessage !== 'undefined' && errorMessage && errorMessage !== '') {
         showErrorAlert(errorMessage);
         
@@ -24,10 +39,119 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 1000);
         }
     }
+
+    
     
     // Initialize the page functionality
     initializePage();
+    setupAdminModal();
+   // setupAdminForm();
+
 });
+
+//Sequence Error Notif
+function showSequenceErrorNotification() {
+    // Remove any existing notification
+    const existingNotification = document.querySelector('.sequence-error-notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+    
+    // Create error notification
+    const notification = document.createElement('div');
+    notification.className = 'sequence-error-notification';
+    notification.innerHTML = `
+        <div>
+            <i class="fas fa-exclamation-triangle me-2"></i><strong>Incorrect Sequence</strong>
+            <br>
+            <span class="ms-2">Access denied</span>
+        </div>
+    `;
+    document.body.appendChild(notification);
+    
+    // Add animation - slide in from top
+    notification.style.top = '-100px';
+    notification.style.opacity = '0';
+    setTimeout(() => {
+        notification.style.transition = 'all 0.3s ease';
+        notification.style.top = '20px';
+        notification.style.opacity = '1';
+    }, 10);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.style.top = '-100px';
+        notification.style.opacity = '0';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 300);
+    }, 3000);
+}
+
+//Admin Access Notif
+function showAdminAccessNotification() {
+    // Remove any existing notification
+    const existingNotification = document.querySelector('.admin-access-notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+    
+    // Create a subtle notification
+    const notification = document.createElement('div');
+    notification.className = 'admin-access-notification';
+    notification.innerHTML = `
+        <div>
+            <i class="fas fa-shield-alt me-2"></i><strong>Admin Login Access Granted</strong>
+            
+        </div>
+    `;
+    document.body.appendChild(notification);
+    
+    // Add animation - slide in from left
+    notification.style.transform = 'translateX(-100px)';
+    notification.style.opacity = '0';
+    setTimeout(() => {
+        notification.style.transition = 'all 0.3s ease';
+        notification.style.transform = 'translateX(0)';
+        notification.style.opacity = '1';
+    }, 10);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.style.transform = 'translateX(-100px)';
+        notification.style.opacity = '0';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 300);
+    }, 3000);
+}
+
+function showSuccessAlert(message) {
+    console.log('Success message:', message);
+    
+    const msg = String(message || '').trim();
+    const emptyValues = ['undefined', 'null', "'undefined'", "'null'", '"undefined"', '"null"', 'false', '0', '', '[]', '{}', 'NaN'];
+    
+    if (!msg || emptyValues.includes(msg)) {
+        Swal.fire({
+            title: 'Registration Successful',
+            text: 'Your account has been created successfully!',
+            icon: 'success',
+            confirmButtonText: 'OK'
+        });
+    } else {
+        Swal.fire({
+            title: 'Registration Successful',
+            text: msg,
+            icon: 'success',
+            confirmButtonText: 'OK'
+        });
+    }
+}
 
 function showErrorAlert(message) {
     console.log('Raw error message:', message, 'Type:', typeof message);
@@ -71,14 +195,7 @@ function openFacultyRegistration() {
     facultyModal.show();
 }
 
-function openLogin(role){
-    if (modalTitle) modalTitle.innerText = role + " Login";
-    if (roleField) roleField.value = role;
-    const modalEl = document.getElementById('loginModal');
-    if (!modalEl) return;
-    const loginModal = new bootstrap.Modal(modalEl);
-    loginModal.show();
-}
+
 
 // Prevent form submission from closing modal on error
 function setupFormHandlers() {
@@ -208,6 +325,10 @@ function initializePage() {
     const regConfirmPassword = document.getElementById('regConfirmPassword');
     const togglePasswordBtn = document.getElementById("togglePasswordBtn");
     const passwordInput = document.getElementById("password");
+
+    let adminSequence = [];
+    let shiftPressed = false;
+    const requiredSequence = ['a', 'd', 'm', 'i', 'n', '!', '@','#'];
 
     function openLogin(role){
         if (modalTitle) modalTitle.innerText = role + " Login";
@@ -354,7 +475,144 @@ function initializePage() {
         }, 250);
       });
     }
+
+    document.addEventListener('keydown', function(event) {
+        // Don't listen for sequence if admin modal is open
+        if (adminModalOpen) return;
+        
+        // Check if Shift key is pressed
+        if (event.shiftKey && !shiftPressed) {
+            shiftPressed = true;
+            adminSequence = []; // Reset sequence when Shift is first pressed
+            console.log('Shift pressed - listening for admin sequence...');
+            return;
+        }
+        
+        // If Shift is pressed, listen for the sequence
+        if (shiftPressed && event.key.length === 1) { // Only single character keys
+            const key = event.key.toLowerCase();
+            
+            // Add to sequence
+            adminSequence.push(key);
+            console.log('Sequence progress:', adminSequence.join(''));
+            
+            // Check if sequence matches
+            if (adminSequence.length === requiredSequence.length) {
+                if (JSON.stringify(adminSequence) === JSON.stringify(requiredSequence)) {
+                    event.preventDefault();
+                    openAdminPanel();
+                } else {
+                    // Show error notification for incorrect sequence
+                    showSequenceErrorNotification();
+                    // Reset sequence
+                    adminSequence = [];
+                    console.log('Sequence incorrect - resetting');
+                }
+            }
+            
+            // If sequence is longer than required, reset
+            if (adminSequence.length > requiredSequence.length) {
+                adminSequence = [];
+            }
+        }
+    });
+    
+    document.addEventListener('keyup', function(event) {
+        // Reset when Shift is released
+        if (event.key === 'Shift') { // Changed from 'Control' to 'Shift'
+            shiftPressed = false;
+            adminSequence = [];
+            console.log('Shift released - sequence reset');
+        }
+    });
+    
 };
+
+//Open Admin Modal
+let adminModalOpen = false;
+
+function openAdminPanel() {
+    // Reset sequence state
+    shiftPressed = false;
+    adminSequence = [];
+    
+    const adminModal = document.getElementById('adminLoginModal');
+    if (adminModal) {
+        const adminModalInstance = new bootstrap.Modal(adminModal);
+        adminModalInstance.show();
+        
+        // Set modal state to open
+        adminModalOpen = true;
+        
+        // Show access notification
+        showAdminAccessNotification();
+        
+        console.log('Admin login panel opened via Shift+admin sequence');
+    }
+}
+
+
+function setupAdminModal() {
+    const adminToggleBtn = document.getElementById('adminTogglePassword');
+    const adminPasswordInput = document.getElementById('adminPassword');
+    const adminModal = document.getElementById('adminLoginModal');
+    
+    if (adminModal) {
+        adminModal.addEventListener('hidden.bs.modal', function () {
+            adminModalOpen = false;
+            console.log('Admin modal closed - sequence detection re-enabled');
+        });
+        
+        adminModal.addEventListener('shown.bs.modal', function () {
+            adminModalOpen = true;
+            console.log('Admin modal opened - sequence detection disabled');
+        });
+    }
+    
+    if (adminToggleBtn && adminPasswordInput) {
+        adminToggleBtn.addEventListener('click', function() {
+            const isHidden = adminPasswordInput.type === 'password';
+            adminPasswordInput.type = isHidden ? 'text' : 'password';
+            const icon = this.querySelector('i');
+            if (icon) {
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            }
+            this.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+        });
+    }
+}
+
+function setupAdminForm() {
+    const adminLoginForm = document.getElementById('adminLoginForm');
+    if (adminLoginForm) {
+        adminLoginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('adminUsername').value;
+            const password = document.getElementById('adminPassword').value;
+            
+            if (!username || !password) {
+                Swal.fire('Error', 'Please enter both Admin ID and password', 'error');
+                return;
+            }
+            
+            // Show loading state
+            Swal.fire({
+                title: 'Authenticating...',
+                text: 'Please wait while we verify your credentials',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Submit the form
+            this.submit();
+        });
+    }
+}
+
 
 
 /*

@@ -3,6 +3,9 @@
  * Base Model Class
  * Provides common functionality for all models
  */
+
+require_once 'Database.php';
+
 class Model {
     /**
      * Database instance
