@@ -67,8 +67,7 @@ class AdminController extends Controller {
     
     private function authenticateAdmin($identifier, $password) {
         try {
-            // Reuse the User model for authentication
-            require_once '..\..\Models\User.php';
+            require_once '../Models/User.php';
             
             $userModel = new User();
             $user = $userModel->login($identifier, $password);
@@ -77,13 +76,26 @@ class AdminController extends Controller {
                 // Check if user has admin role
                 $userRole = strtolower($user->User_Role ?? '');
                 
-                if ($userRole === 'admin') {
+                if ($userRole === 'admin' || $userRole === 'superadmin') {
+                    // Return ALL user data from database
                     return [
                         'id' => $user->ID,
-                        'username' => $user->User_ID, // Using User_ID as username
+                        'user_id' => $user->User_ID, // This is the actual User_ID from database
                         'email' => $user->Email,
-                        'name' => $user->First_Name . ' ' . $user->Last_Name,
-                        'role' => $user->User_Role
+                        'first_name' => $user->First_Name,
+                        'last_name' => $user->Last_Name,
+                        'middle_name' => $user->Middle_Name ?? '',
+                        'extension' => $user->Extension ?? '',
+                        'role' => $user->User_Role,
+                        'year_level' => $user->Year_Level ?? null,
+                        'course' => $user->Course ?? null,
+                        'department' => $user->Department ?? null,
+                        'designation' => $user->Designation ?? null,
+                        'employee_id' => $user->Employee_ID ?? null,
+                        'student_id' => $user->Student_ID ?? null,
+                        'profile_pic' => $user->Profile_Pic ?? null,
+                        'date_created' => $user->Date_Created ?? null,
+                        'last_login' => $user->Last_Login ?? null
                     ];
                 } else {
                     error_log("Admin login attempt by non-admin user: $identifier (Role: $userRole)");
@@ -97,42 +109,93 @@ class AdminController extends Controller {
     }
     
     private function createAdminSession($user) {
+        // Store only what's needed for functionality and display
         $_SESSION['user_id'] = $user['id'];
+        $_SESSION['user_db_id'] = $user['user_id'];
         $_SESSION['user_email'] = $user['email'];
-        $_SESSION['user_name'] = $user['name'];
+        $_SESSION['user_name'] = $user['first_name'] . ' ' . $user['last_name'];
         $_SESSION['user_role'] = $user['role'];
+        $_SESSION['first_name'] = $user['first_name'];
+        $_SESSION['last_name'] = $user['last_name'];
         $_SESSION['logged_in'] = true;
-        $_SESSION['is_admin'] = true; // Additional flag for admin
+        $_SESSION['is_admin'] = true;
+        
+        // Don't store sensitive or unnecessary data in session
+        // Remove these if they were previously stored:
+        unset($_SESSION['middle_name']);
+        unset($_SESSION['extension']);
+        unset($_SESSION['password_hash']);
+        // etc.
     }
-    
+
     public function dashboard() {
+        // Start session if not already started
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
         // Check if user is logged in and is admin
-        if (!$this->isLoggedIn()) {
-            $this->redirect('auth/login');
+        if (!$this->isLoggedIn() || !$this->isAdmin()) {
+            $this->redirectWithError('Access denied. Admin privileges required.');
+            return;
         }
         
-        if (!$this->isAdmin()) {
-            // Redirect to user dashboard or show error
-            $this->redirect('user/dashboard');
-        }
-        
-        $thesisModel = $this->model('Thesis');
-        $theses = $thesisModel->getAllTheses();
-        
+
+        // Prepare COMPLETE data array with ALL session values
         $data = [
-            'title' => 'Admin Dashboard',
-            'theses' => $theses
+            'user_id' => $_SESSION['user_id'] ?? null,
+            'user_db_id' => $_SESSION['user_db_id'] ?? null, 
+            'user_email' => $_SESSION['user_email'] ?? null,
+            'user_name' => $_SESSION['user_name'] ?? null,
+            'user_role' => $_SESSION['user_role'] ?? null,
+            'first_name' => $_SESSION['first_name'] ?? null,
+            'last_name' => $_SESSION['last_name'] ?? null,
+            'middle_name' => $_SESSION['middle_name'] ?? null,
+            'extension' => $_SESSION['extension'] ?? null,
+            'year_level' => $_SESSION['year_level'] ?? null,
+            'course' => $_SESSION['course'] ?? null,
+            'department' => $_SESSION['department'] ?? null,
+            'designation' => $_SESSION['designation'] ?? null,
+            'employee_id' => $_SESSION['employee_id'] ?? null,
+            'student_id' => $_SESSION['student_id'] ?? null,
+            'profile_pic' => $_SESSION['profile_pic'] ?? null,
+            'date_created' => $_SESSION['date_created'] ?? null,
+            'last_login' => $_SESSION['last_login'] ?? null
         ];
         
-        // Load the AdminDashboard view
-        $this->view('admin/dashboard', $data);
+        // Debug: Log session data
+        error_log("=== ADMIN DASHBOARD SESSION DATA ===");
+        error_log("Session ID: " . session_id());
+        error_log("User DB ID: " . ($data['user_db_id'] ?? 'NOT SET'));
+        error_log("All session data: " . print_r($_SESSION, true));
+        error_log("Passing to view: " . print_r($data, true));
+        
+        // Include the AdminDashboard view with data
+        $this->loadView('Admin/AdminDashboard', $data);
+    }
+
+    private function loadView($viewPath, $data = []) {
+        // Extract data to variables
+        extract($data);
+        
+        // Include the view file
+        $viewFile = __DIR__ . '/../Views/' . $viewPath . '.php';
+        
+        if (file_exists($viewFile)) {
+            require_once $viewFile;
+        } else {
+            error_log("View file not found: " . $viewFile);
+            die("View file not found.");
+        }
+        exit();
     }
     
-    
-    
+    // Also fix the isAdmin() method to check for both admin and superAdmin
     private function isAdmin() {
-        return isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin';
+        $role = $_SESSION['user_role'] ?? '';
+        return in_array(strtolower($role), ['admin', 'superadmin']);
     }
+    
     
     private function redirectToAdminDashboard() {
         header('Location: ../../app/Views/Admin/AdminDashboard.php');
@@ -171,6 +234,7 @@ class AdminController extends Controller {
 }
 
 
+// Error reporting
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
@@ -185,5 +249,9 @@ $action = $_POST['action'] ?? $_GET['action'] ?? 'login';
 
 if ($action === 'login') {
     $adminController->login();
+} elseif ($action === 'dashboard') {
+    $adminController->dashboard();
+} elseif ($action === 'logout') {
+    $adminController->logout();
 }
 ?>

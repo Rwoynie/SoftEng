@@ -125,9 +125,9 @@
         return [
             'pswrd' => $hashedPassword,
             'Salt' => $salt,
-            'First_Name' => 'Admin',
+            'First_Name' => 'SuperAdmin',
             'Middle_Name' => 'Admin',
-            'Last_Name' => 'Admin',
+            'Last_Name' => 'SuperAdmin',
             'Extension' => null,
             'Email' => 'admin@usep.edu.ph',
             'User_ID' => 'ADMIN001',

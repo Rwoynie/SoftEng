@@ -1,5 +1,26 @@
 <?php
-    require_once '../../../Database/config.php'; // Adjust path as needed
+// AdminDashboard.php - At the VERY TOP of the file
+require_once '../../../Database/config.php'; 
+// Start session
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Check if user is logged in as admin
+if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in'] || !isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
+    header('Location: ../User/indexLogin.php');
+    exit();
+}
+
+// Get only the necessary user data for display (not the entire session)
+$displayUserData = [
+    'user_name' => $_SESSION['user_name'] ?? '',
+    'user_role' => $_SESSION['user_role'] ?? '',
+    
+];
+
+// Debug output (remove in production)
+error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unknown'));
 ?>
 
 <!DOCTYPE html>
@@ -18,7 +39,9 @@
     
     <link rel="stylesheet" href="../../../resources/css/Admin/AdminDashboard.css">
     <script type="text/javascript" src="../../../resources/js/Admin/AdminDashboard.js"></script>
-    
+    <script>
+        const userDisplayData = <?php echo json_encode($displayUserData); ?>;
+    </script>
     </head>
 <body>
 <div class="dashboard-container">
@@ -39,9 +62,14 @@
         <div class="more-options">
         
             <i class="fa fa-ellipsis-h icon" aria-hidden="true"></i>
-
+            
             
         </div>
+        <div id="user-info-display" style="display: none;">
+            <span id="user-full-name"><?php echo htmlspecialchars($displayUserData['user_name']); ?></span>
+            <span id="user-role"><?php echo htmlspecialchars($displayUserData['user_role']); ?></span>
+        </div>
+        
     </section>
 
     <section class="main-content">
@@ -119,7 +147,7 @@
                 <ul class="projects" id="recentView">
                     <li class="project-item" data-tags="important enhancement" data-file-url="../Images/Case Study.pdf" data-file-type="pdf">
                         <div  class="logo-row">
-                            <img src="../Images/usep-logo-small.png" alt="Logo" />
+                            <img src="/CapstoneTracker/resources/Images/usep-logo-small.png" alt="Logo" />
                             <div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>
                         </div>
                         <div class="title-row">
@@ -952,8 +980,5 @@
 </body>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
 
-<script>
-
-</script>
 
 </html>

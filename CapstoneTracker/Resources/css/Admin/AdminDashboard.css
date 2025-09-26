@@ -152,6 +152,85 @@ body {
     height: calc(100vh - 80px);
 }
 
+/* Logout Menu Styles */
+.logout-menu {
+    position: absolute;
+    bottom: 70px;
+    left: 1.5vw;
+    background: var(--color-white);
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    padding: 15px;
+    width: 15vw;
+    z-index: 1000;
+    display: none;
+    border: 1px solid #eee;
+    animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.logout-menu .user-info {
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f0f0f0;
+    margin-bottom: 10px;
+}
+
+.logout-menu .user-name {
+    font-weight: 600;
+    color: var(--color-dark-grey);
+    margin-bottom: 5px;
+}
+
+.logout-menu .user-role {
+    font-size: 0.85rem;
+    color: var(--color-lite-grey);
+}
+
+.logout-menu-btn {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Quicksand';
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.logout-menu-btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+}
+
+.logout-menu-btn i {
+    margin-right: 8px;
+}
+
+.more-options {
+    position: relative;
+}
+
+.fa-ellipsis-h {
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.fa-ellipsis-h:hover {
+    color: var(--color-white);
+}
+
 /* Header Styles - Fixed */
 .header {
     background: var(--color-white);

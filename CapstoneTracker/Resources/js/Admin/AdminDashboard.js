@@ -32,9 +32,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const adminAccessBtn = document.getElementById('adminAccess');
     const facultyAccessBtn = document.getElementById('facultyAccess');
     const studentAccessBtn = document.getElementById('studentAccess');
-    const adminAccessPanel = document.getElementById('adminAccessPanel');
-    const accessCard = document.getElementById('access-card');
-    const accessHeader2 = document.getElementById('accessHeader2');
+
+    // logout
+    const moreOptionsIcon = document.querySelector('.more-options .fa-ellipsis-h');
+    const logoutMenu = document.createElement('div');
+    logoutMenu.id = 'logoutMenu';
+    logoutMenu.className = 'logout-menu';
+
+    //session data
+    const sessionData = document.getElementById('session-data');
+    const userName = userDisplayData ? userDisplayData.user_name : '';
+    const userRole = userDisplayData ? userDisplayData.user_role : '';
+ 
+
+    const displayName = userName;
 
     let changesMade = false;
     let roleChanges = {};
@@ -1403,6 +1414,83 @@ document.addEventListener('DOMContentLoaded', function() {
                     row.style.display = 'none';
                 }
             });
+        });
+    }
+
+    //Logout Function
+    logoutMenu.innerHTML = `
+        <div class="user-info">
+            <div class="user-name">${displayName}</div>
+            <div class="user-role">${userRole}</div>
+        </div>
+        <button class="logout-menu-btn">
+            <i class="fas fa-sign-out-alt"></i>Logout
+        </button>
+    `;
+
+    // Add the logout menu to the sidebar
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) {
+        sidebar.appendChild(logoutMenu);
+    }
+
+    // Toggle logout menu visibility
+    if (moreOptionsIcon) {
+        moreOptionsIcon.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const isVisible = logoutMenu.style.display === 'block';
+            
+            // Hide all other open menus first
+            document.querySelectorAll('.logout-menu').forEach(menu => {
+                menu.style.display = 'none';
+            });
+            
+            logoutMenu.style.display = isVisible ? 'none' : 'block';
+        });
+    }
+
+    // Close logout menu when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!logoutMenu.contains(e.target) && e.target !== moreOptionsIcon) {
+            logoutMenu.style.display = 'none';
+        }
+    });
+
+    // Logout functionality from the menu
+    
+    const logoutMenuBtn = logoutMenu.querySelector('.logout-menu-btn');
+    if (logoutMenuBtn) {
+        logoutMenuBtn.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You will be logged out of your admin account",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, logout!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Redirect to admin logout endpoint
+                    window.location.href = '../../../app/Controllers/AdminController.php?action=logout';
+                }
+            });
+            
+            // Close the menu after clicking
+            logoutMenu.style.display = 'none';
+        });
+    }
+    
+
+    // Add hover effect to the ellipsis icon
+    if (moreOptionsIcon) {
+        moreOptionsIcon.addEventListener('mouseenter', function() {
+            this.style.color = 'var(--color-white)';
+        });
+        
+        moreOptionsIcon.addEventListener('mouseleave', function() {
+            this.style.color = 'var(--color-lite)';
         });
     }
 
