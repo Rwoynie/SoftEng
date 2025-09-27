@@ -111,7 +111,7 @@ class RegistrationController {
     /**
      * Handle faculty registration
      */
-    public function registerFaculty($data) {
+    public function registerFaculty($data, $files = []) {
         try {
             // Validate required fields
             $required = ['firstName', 'lastName', 'employeeId', 'department', 'designation', 'email', 'password', 'confirmPassword'];
@@ -140,6 +140,12 @@ class RegistrationController {
                 throw new Exception("Password must be at least 8 characters long");
             }
             
+            // Handle profile picture upload (optional for faculty)
+            $profilePicPath = null;
+            if (!empty($files['profilePic']) && $files['profilePic']['error'] === UPLOAD_ERR_OK) {
+                $profilePicPath = $this->handleProfilePictureUpload($files['profilePic']);
+            }
+            
             // Prepare user data for registration
             $userData = [
                 'password' => $data['password'],
@@ -152,7 +158,8 @@ class RegistrationController {
                 'user_role' => 'faculty',
                 'acc_status' => 'pending',
                 'department' => $data['department'],
-                'designation' => $data['designation']
+                'designation' => $data['designation'],
+                'profile_pic' => $profilePicPath  // Added profile picture for faculty
             ];
             
             // Use the register function from User model
@@ -161,7 +168,9 @@ class RegistrationController {
             if ($result) {
                 return true;
             } else {
-                throw new Exception("Registration failed. Please try again.");
+                // Get the specific error from the model if available
+                $modelError = $this->userModel->getError();
+                throw new Exception($modelError ?: "Registration failed. Please try again.");
             }
             
         } catch (Exception $e) {
@@ -180,8 +189,13 @@ class RegistrationController {
             session_start();
         }
         
+        // Debug: Log the POST data
+        error_log("Registration POST data: " . print_r($_POST, true));
+        error_log("Registration FILES data: " . print_r($_FILES, true));
+        
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $action = $_POST['action'] ?? '';
+            error_log("Registration action: " . $action);
             
             try {
                 if ($action === 'student_register') {
@@ -195,23 +209,27 @@ class RegistrationController {
                         throw new Exception($this->getError() ?: "Registration failed. Please try again.");
                     }
                 } elseif ($action === 'faculty_register') {
-                    $result = $this->registerFaculty($_POST);
+                    error_log("Processing faculty registration...");
+                    $result = $this->registerFaculty($_POST, $_FILES);
                     
                     if ($result) {
                         $_SESSION['success_message'] = "Faculty registration successful! Your account is now pending for approval.";
                         header('Location: ../../app/Views/User/indexLogin.php');
                         exit();
                     } else {
-                        throw new Exception($this->getError() ?: "Registration failed. Please try again.");
+                        $error = $this->getError();
+                        error_log("Faculty registration error: " . $error);
+                        throw new Exception($error ?: "Faculty registration failed. Please try again.");
                     }
                 } else {
-                    throw new Exception("Invalid registration action");
+                    throw new Exception("Invalid registration action: " . $action);
                 }
             } catch (Exception $e) {
                 // Store the specific error message
                 $_SESSION['error_message'] = $e->getMessage();
                 // Also store which modal to open
                 $_SESSION['error_modal'] = ($action === 'faculty_register') ? 'faculty' : 'student';
+                error_log("Registration exception: " . $e->getMessage());
                 header('Location: ../../app/Views/User/indexLogin.php');
                 exit();
             }

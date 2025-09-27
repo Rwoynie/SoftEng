@@ -220,6 +220,13 @@ class User extends Model {
             return false;
         }
     }
+    
+    /**
+     * Get error message
+     */
+    public function getError() {
+        return $this->error ?? null;
+    }
 }
 ?>
 ?>

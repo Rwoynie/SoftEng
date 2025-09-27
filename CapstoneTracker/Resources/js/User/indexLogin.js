@@ -40,6 +40,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    if (typeof successMessage !== 'undefined' && successMessage && successMessage !== '') {
+        showSuccessAlert(successMessage);
+    }
+
     
     
     // Initialize the page functionality
@@ -408,37 +412,60 @@ function initializePage() {
   }
 
     if (facultyRegisterForm) {
-    facultyRegisterForm.addEventListener('submit', function (e) {
-        e.preventDefault();
-        
-        const email = document.getElementById('facEmail').value.trim().toLowerCase();
-        const pass = document.getElementById('facPassword').value;
-        const confirm = document.getElementById('facConfirmPassword').value;
-        
-        if (!email.endsWith('@usep.edu.ph')) {
-            Swal.fire('Invalid email', 'Please use your USeP (@usep.edu.ph) email.', 'error');
-            return;
-        }
-        
-        if (pass !== confirm) {
-            Swal.fire('Passwords do not match', 'Please re-enter your password.', 'error');
-            return;
-        }
-        
-        // Show loading state
-        Swal.fire({
-            title: 'Processing...',
-            text: 'Please wait while we create your account',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
+        facultyRegisterForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('facEmail').value.trim().toLowerCase();
+            const pass = document.getElementById('facPassword').value;
+            const confirm = document.getElementById('facConfirmPassword').value;
+            
+            // Validate USeP email
+            if (!email.endsWith('@usep.edu.ph')) {
+                Swal.fire('Invalid email', 'Please use your USeP (@usep.edu.ph) email.', 'error');
+                return;
             }
+            
+            // Validate password match
+            if (pass !== confirm) {
+                Swal.fire('Passwords do not match', 'Please re-enter your password.', 'error');
+                return;
+            }
+            
+            // Validate password length
+            if (pass.length < 8) {
+                Swal.fire('Password too short', 'Password must be at least 8 characters long.', 'error');
+                return;
+            }
+            
+            // Validate required fields
+            const requiredFields = [
+                'facFirstName', 'facLastName', 'facEmployeeId', 
+                'facDepartment', 'facDesignation'
+            ];
+            
+            for (const fieldId of requiredFields) {
+                const field = document.getElementById(fieldId);
+                if (!field.value.trim()) {
+                    Swal.fire('Missing information', `Please fill in the ${field.labels[0].textContent}`, 'error');
+                    field.focus();
+                    return;
+                }
+            }
+            
+            // Show loading state
+            Swal.fire({
+                title: 'Processing...',
+                text: 'Please wait while we create your faculty account',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Submit the form to RegistrationController
+            this.submit();
         });
-        
-        // Submit the form to AuthController
-        this.submit();
-    });
-}
+    }
 
     function wireToggle(btn, input) {
       if (btn && input) {

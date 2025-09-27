@@ -82,6 +82,7 @@ if ($setupError) {
 
     <script>
         const errorMessage = "<?php echo addslashes($errorMessage); ?>";
+        const errorModal = "<?php echo addslashes($errorModal); ?>";
         const showModal = <?php echo $showModal ? 'true' : 'false'; ?>;
         const successMessage = "<?php echo addslashes($successMessage); ?>";
     </script>
@@ -273,7 +274,9 @@ if ($setupError) {
         <button type="button" class="btn btn-link text-muted position-absolute" style="top:8px; right:10px; font-size:24px; text-decoration:none;" data-bs-dismiss="modal" aria-label="Close">&times;</button>
       </div>
       <div class="modal-body">
-      <form id="facultyRegisterForm" method="POST" action="../../Controllers/RegistrationController.php">
+      <form id="facultyRegisterForm" method="POST" action="../../Controllers/RegistrationController.php" enctype="multipart/form-data">
+         
+          <input type="hidden" name="action" value="faculty_register">
           <div class="row g-3">
             <!-- Separate Name Fields -->
             <div class="col-md-4">
@@ -334,6 +337,11 @@ if ($setupError) {
                   <i class="far fa-eye"></i>
                 </button>
               </div>
+            </div>
+            <div class="col-12">
+              <label for="facProfilePic" class="form-label">Profile picture (Optional)</label>
+              <input type="file" id="facProfilePic" name="profilePic" class="form-control" accept="image/*">
+              <small class="text-muted">Max 5MB. JPG/PNG preferred.</small>
             </div>
             <div class="col-12 d-grid gap-2">
               <button type="submit" class="btn btn-primary">Create account</button>
