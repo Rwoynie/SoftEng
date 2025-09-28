@@ -18,7 +18,17 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (typeof errorMessage !== 'undefined' && errorMessage && errorMessage !== '') {
-        showErrorAlert(errorMessage);
+        // Determine if it's a login error or registration error
+        if (window.location.href.includes('AuthController') || 
+            errorMessage.includes('login') || 
+            errorMessage.includes('Login') ||
+            errorMessage.includes('credentials') ||
+            errorMessage.includes('pending') ||
+            errorMessage.includes('rejected')) {
+            showLoginErrorAlert(errorMessage);
+        } else {
+            showErrorAlert(errorMessage); // Keep the original for now
+        }
         
         // Safely check errorModal with proper undefined handling
         const modalType = typeof errorModal !== 'undefined' ? errorModal : '';
@@ -180,6 +190,64 @@ function showErrorAlert(message) {
         });
     } else {
         // Show the actual error message
+        Swal.fire({
+            title: 'Registration Failed',
+            text: msg,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+function showLoginErrorAlert(message) {
+    console.log('Login error message:', message);
+    
+    const msg = String(message || '').trim();
+    const emptyValues = ['undefined', 'null', "'undefined'", "'null'", '"undefined"', '"null"', 'false', '0', '', '[]', '{}', 'NaN'];
+    
+    if (!msg || emptyValues.includes(msg)) {
+        Swal.fire({
+            title: 'Login Failed',
+            text: 'Login failed. Please try again.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    } else {
+        let title = 'Login Failed';
+        let icon = 'error';
+        
+        // Customize based on message content
+        if (msg.includes('pending') || msg.includes('approval')) {
+            title = 'Account Pending';
+            icon = 'info'; // Change to info icon for pending accounts
+        } else if (msg.includes('rejected')) {
+            title = 'Account Rejected';
+            icon = 'warning'; // Change to warning icon for rejected accounts
+        }
+        
+        Swal.fire({
+            title: title,
+            html: msg, // Use html instead of text to render HTML tags
+            icon: icon,
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+function showRegistrationErrorAlert(message) {
+    console.log('Registration error message:', message);
+    
+    const msg = String(message || '').trim();
+    const emptyValues = ['undefined', 'null', "'undefined'", "'null'", '"undefined"', '"null"', 'false', '0', '', '[]', '{}', 'NaN'];
+    
+    if (!msg || emptyValues.includes(msg)) {
+        Swal.fire({
+            title: 'Registration Failed',
+            text: 'Registration failed. Please try again.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    } else {
         Swal.fire({
             title: 'Registration Failed',
             text: msg,

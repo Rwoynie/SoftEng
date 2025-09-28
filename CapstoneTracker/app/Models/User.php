@@ -227,6 +227,70 @@ class User extends Model {
     public function getError() {
         return $this->error ?? null;
     }
+
+    /**
+     * Check if a user exists (regardless of status)
+     */
+    public function checkUserExists($identifier) {
+        try {
+            $this->db->query('SELECT ID FROM USER_INFORMATION WHERE Email = :identifier OR User_ID = :identifier OR Student_ID = :identifier OR Employee_ID = :identifier');
+            $this->db->bind(':identifier', $identifier);
+            $this->db->execute();
+            return $this->db->rowCount() > 0;
+        } catch (Exception $e) {
+            error_log("User exists check error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get user account status
+     */
+    public function getUserStatus($identifier) {
+        try {
+            $this->db->query('SELECT Acc_Status FROM USER_INFORMATION WHERE Email = :identifier OR User_ID = :identifier OR Student_ID = :identifier OR Employee_ID = :identifier');
+            $this->db->bind(':identifier', $identifier);
+            $result = $this->db->single();
+            
+            if ($result) {
+                return $result->Acc_Status;
+            }
+            return null;
+        } catch (Exception $e) {
+            error_log("Get user status error: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Enhanced login method that returns more detailed information
+     */
+    public function loginWithStatus($identifier, $password) {
+        try {
+            // Get user regardless of status
+            $this->db->query('SELECT * FROM USER_INFORMATION WHERE Email = :identifier OR User_ID = :identifier OR Student_ID = :identifier OR Employee_ID = :identifier');
+            $this->db->bind(':identifier', $identifier);
+            $result = $this->db->single();
+            
+            if ($result) {
+                // Verify password first
+                $hashedPassword = $result->pswrd;
+                $salt = $result->Salt;
+                
+                if (password_verify($password . $salt, $hashedPassword)) {
+                    return $result;
+                }
+            }
+            
+            return false;
+            
+        } catch (Exception $e) {
+            error_log("User login with status error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    
 }
 ?>
 ?>

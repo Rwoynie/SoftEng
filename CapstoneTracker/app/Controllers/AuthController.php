@@ -38,6 +38,8 @@ class AuthController extends Controller {
     
     public function processLogin() {
         // Get form data
+        error_log("Login attempt - Username: " . ($_POST['email'] ?? 'empty'));
+    error_log("Login attempt - Role: " . ($_POST['role'] ?? 'empty'));
         $username = $_POST['email'] ?? '';
         $password = $_POST['password'] ?? '';
         $role = $_POST['role'] ?? '';
@@ -55,7 +57,15 @@ class AuthController extends Controller {
             $this->createUserSession($user);
             $this->redirect('../../app/Views/User/userViewPage.php');
         } else {
-            $this->redirectWithError('Invalid credentials. Please try again.');
+            // Only redirect with error if no specific error message was already set
+            if (!isset($_SESSION['error_message']) || empty($_SESSION['error_message'])) {
+                $this->redirectWithError('Invalid credentials. Please try again.');
+            } else {
+                // Redirect with the existing error message
+                
+                header('Location: ../../app/Views/User/indexLogin.php');
+                exit();
+            }
         }
     }
 
@@ -79,8 +89,25 @@ class AuthController extends Controller {
         try {
             $userModel = new User();
             
-            // For now, using email as username - adjust based on your needs
-            $user = $userModel->login($username, $password);
+            // First, check if user exists and get their status (regardless of approval)
+            $userStatus = $userModel->getUserStatus($username);
+            error_log("User status for $username: " . ($userStatus ?? 'null'));
+            
+            if ($userStatus === 'pending') {
+                $_SESSION['error_message'] = "Your account is pending for approval. <br>Please wait for administrator approval before logging in.";
+                error_log("Setting pending message for user: $username");
+                return false;
+            }
+            
+            if ($userStatus === 'rejected') {
+                $_SESSION['error_message'] = "Your account has been rejected. Please contact the administrator for more information.";
+                error_log("Setting rejected message for user: $username");
+                return false;
+            }
+            
+            // If account status is approved or we don't know the status, try to login
+            // Use loginWithStatus to get user regardless of approval status
+            $user = $userModel->loginWithStatus($username, $password);
             
             if ($user) {
                 // Check if user role matches the selected role
@@ -96,21 +123,36 @@ class AuthController extends Controller {
                 $mappedRole = $roleMapping[$selectedRole] ?? $selectedRole;
                 
                 if ($userRole === $mappedRole) {
-                    return [
-                        'id' => $user->ID,
-                        'username' => $user->Email, // Using email as username
-                        'email' => $user->Email,
-                        'name' => $user->First_Name . ' ' . $user->Last_Name,
-                        'role' => $user->User_Role
-                    ];
+                    // Double-check that the account is approved before allowing login
+                    if ($user->Acc_Status === 'approved') {
+                        return [
+                            'id' => $user->ID,
+                            'username' => $user->Email, // Using email as username
+                            'email' => $user->Email,
+                            'name' => $user->First_Name . ' ' . $user->Last_Name,
+                            'role' => $user->User_Role
+                        ];
+                    } else {
+                        // Account exists but not approved
+                        $_SESSION['error_message'] = "Your account is pending approval. Please wait for approval before logging in.";
+                        return false;
+                    }
                 } else {
                     error_log("Role mismatch: User role is $userRole, but selected role is $selectedRole");
                 }
             }
         } catch (Exception $e) {
             error_log("Authentication error: " . $e->getMessage());
+            $_SESSION['error_message'] = 'Authentication error: ' . $e->getMessage();
         }
         
+        // Only set default error message if no specific error was already set
+        if (!isset($_SESSION['error_message']) || empty($_SESSION['error_message'])) {
+            $_SESSION['error_message'] = 'Invalid credentials. Please try again.';
+        } else {
+            // Debug: Log what error message is being set
+            error_log("Setting error message: " . $_SESSION['error_message']);
+        }
         return false;
     }
 

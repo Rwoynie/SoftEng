@@ -127,18 +127,17 @@ if ($setupError) {
         <button type="button" class="btn btn-link text-muted position-absolute" style="top:8px; right:10px; font-size:24px; text-decoration:none;" data-bs-dismiss="modal" aria-label="Close">&times;</button>
       </div>
       <div class="modal-body">
-        <form method="POST" action="../../../app/Controllers/AuthController.php">
-<!-- login action handler -->
-        <input type="hidden" name="action" value="login">
+        <form method="POST" action="../../Controllers/AuthController.php" enctype="multipart/form-data">
+          <input type="hidden" name="action" value="login">
           <input type="hidden" id="roleField" name="role">
           <div class="mb-3">
             <label for="email" class="form-label">Email</label>
-            <input type="text" id="username" class="form-control" placeholder="Enter USeP email" required>
+            <input type="text" id="username" name="email" class="form-control" placeholder="Enter USeP email" required>
           </div>
           <div class="mb-3">
             <label for="password" class="form-label">Password</label>
             <div class="input-group">
-              <input type="password" id="password" class="form-control" placeholder="Enter password" required>
+              <input type="password" id="password" name="password" class="form-control" placeholder="Enter password" required>
               <button class="btn btn-outline-secondary" type="button" id="togglePasswordBtn" aria-label="Show password">
                 <i class="far fa-eye"></i>
               </button>
