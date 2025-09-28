@@ -1076,7 +1076,6 @@ document.addEventListener('DOMContentLoaded', function() {
         let foundResults = false;
         
         userItems.forEach(item => {
-            // Check if user has the selected role
             const roleCheckbox = item.querySelector(`.role-checkbox input[name="${role}"]`);
             if (roleCheckbox && roleCheckbox.checked) {
                 item.style.display = 'flex';
@@ -1086,7 +1085,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Show/hide the "No Results Found" message
         const notFound = document.getElementById('adminNotFound');
         if (foundResults) {
             notFound.style.display = 'none';
@@ -1219,41 +1217,67 @@ document.addEventListener('DOMContentLoaded', function() {
         const roleCheckboxes = document.querySelectorAll('.role-checkbox input');
         
         roleCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
+            checkbox.addEventListener('change', async function() {
                 const userId = this.getAttribute('data-user-id');
                 const role = this.getAttribute('name');
                 const isChecked = this.checked;
                 
-                // Initialize user in roleChanges if not exists
-                if (!roleChanges[userId]) {
-                    roleChanges[userId] = {};
-                }
-                
-                // Track this change
-                roleChanges[userId][role] = isChecked;
-                changesMade = true;
-                
-                // If a role is selected, uncheck others in the same group
                 if (isChecked) {
+                    // Uncheck other roles for this user
                     const userItem = this.closest('.admin-user-item');
                     const otherCheckboxes = userItem.querySelectorAll(`.role-checkbox input:not([name="${role}"])`);
                     
                     otherCheckboxes.forEach(otherCheckbox => {
                         otherCheckbox.checked = false;
-                        
-                        // Also track these changes
-                        const otherRole = otherCheckbox.getAttribute('name');
-                        if (!roleChanges[userId]) {
-                            roleChanges[userId] = {};
-                        }
-                        roleChanges[userId][otherRole] = false;
                     });
+                    
+                    // Update the user role in database
+                    await updateUserRole(userId, role);
                 }
             });
         });
-        
-        // Initialize the checkboxes
-        initializeRoleCheckboxes();
+    }
+
+    // Function to update user role via API
+    async function updateUserRole(userId, newRole) {
+        try {
+            const response = await fetch('../../../app/Controllers/AdminDashboardController.php?action=updateUserRole', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    user_id: userId,
+                    role: newRole
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // Show success message
+                Swal.fire({
+                    title: 'Success!',
+                    text: result.message,
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                
+                // Refresh user counts
+                fetchAndDisplayUsers();
+            } else {
+                throw new Error(result.error || 'Failed to update user role');
+            }
+        } catch (error) {
+            console.error('Error updating user role:', error);
+            Swal.fire({
+                title: 'Error',
+                text: 'Failed to update user role',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        }
     }
 
     // Initialize role checkboxes to ensure only one is checked per user
@@ -1494,9 +1518,30 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    initializeUserData();
     
 
 });
+
+// Function to initialize user data
+function initializeUserData() {
+    // Load users when access management is shown
+    const usersOption = document.querySelector('.menu-options li[data-view="users"]');
+    if (usersOption) {
+        usersOption.addEventListener('click', function() {
+            // Small delay to ensure the container is visible
+            setTimeout(() => {
+                fetchAndDisplayUsers();
+            }, 100);
+        });
+    }
+    
+    // Also load when page loads if we're on the users view
+    const currentView = document.querySelector('.content-container-active');
+    if (currentView && currentView.id === 'access-container') {
+        fetchAndDisplayUsers();
+    }
+}
 
 //Thesis view abstract
 function handleProjectItemClick(projectItem) {
@@ -1653,6 +1698,102 @@ function updatePdfControls(pdfDoc, currentPageNum) {
     document.getElementById('prev-page').disabled = currentPageNum <= 1;
     document.getElementById('next-page').disabled = currentPageNum >= pdfDoc.numPages;
     document.getElementById('pdf-page-num').textContent = currentPageNum;
+}
+
+// Admin Access Management
+
+async function fetchAndDisplayUsers() {
+    try {
+        const response = await fetch('../../../app/Controllers/AdminDashboardController.php?action=getUsers');
+        const data = await response.json();
+        
+        if (data.users && data.users.length > 0) {
+            displayUsersInAccessManagement(data.users);
+            updateUserCounts(data.role_counts);
+        }
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to load user data',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+// Function to display users in access management
+function displayUsersInAccessManagement(users) {
+    const adminUserList = document.getElementById('adminUserList');
+    
+    if (!adminUserList) return;
+    
+    adminUserList.innerHTML = '';
+    
+    users.forEach(user => {
+        const userItem = createUserItem(user);
+        adminUserList.appendChild(userItem);
+    });
+}
+
+// Function to create user item HTML
+function createUserItem(user) {
+    const userItem = document.createElement('div');
+    userItem.className = 'access-item admin-user-item';
+    userItem.setAttribute('data-user-id', user.ID);
+    
+    const isAdmin = user.User_Role === 'admin' || user.User_Role === 'superAdmin';
+    const isFaculty = user.User_Role === 'faculty';
+    const isStudent = user.User_Role === 'student';
+    
+    userItem.innerHTML = `
+        <div class="access-info">
+            <h4>${user.First_Name} ${user.Middle_Name || ''} ${user.Last_Name} ${user.Extension || ''}</h4>
+            <p>${user.Email} • ${user.Department || 'No Department'} • Status: ${user.Acc_Status}</p>
+        </div>
+        <div class="access-roles">
+            <label class="role-checkbox">
+                <input class="checkbox" type="checkbox" name="admin" data-user-id="${user.ID}" ${isAdmin ? 'checked' : ''}> Admin
+            </label>
+            <label class="role-checkbox">
+                <input class="checkbox" type="checkbox" name="faculty" data-user-id="${user.ID}" ${isFaculty ? 'checked' : ''}> Faculty
+            </label>
+            <label class="role-checkbox">
+                <input class="checkbox" type="checkbox" name="student" data-user-id="${user.ID}" ${isStudent ? 'checked' : ''}> Student
+            </label>
+        </div>
+    `;
+    
+    return userItem;
+}
+
+// Function to update user counts in access cards
+function updateUserCounts(roleCounts) {
+    const counts = {
+        'admin': 0,
+        'faculty': 0,
+        'student': 0
+    };
+    
+    // Convert role counts to expected format
+    roleCounts.forEach(roleCount => {
+        if (roleCount.User_Role === 'admin' || roleCount.User_Role === 'superAdmin') {
+            counts.admin = roleCount.count;
+        } else if (roleCount.User_Role === 'faculty') {
+            counts.faculty = roleCount.count;
+        } else if (roleCount.User_Role === 'student') {
+            counts.student = roleCount.count;
+        }
+    });
+    
+    // Update the access cards
+    const adminCountElement = document.querySelector('#adminAccess .access-count');
+    const facultyCountElement = document.querySelector('#facultyAccess .access-count');
+    const studentCountElement = document.querySelector('#studentAccess .access-count');
+    
+    if (adminCountElement) adminCountElement.textContent = `${counts.admin} users`;
+    if (facultyCountElement) facultyCountElement.textContent = `${counts.faculty} users`;
+    if (studentCountElement) studentCountElement.textContent = `${counts.student} users`;
 }
 
 
