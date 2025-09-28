@@ -160,6 +160,10 @@ if ($setupError) {
       </div>
     </div>
   </div>
+
+  <div class="fab-icon save-fab" id="saveAdminChangesBtn" title="Save Changes">
+        <i class="fas fa-save"></i>
+    </div>
 </div>
 
 <!-- STUDENT REGISTRATION MODAL -->

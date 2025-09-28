@@ -474,6 +474,9 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
                         </div>
                     </div>
                 </div>
+                <div class="fab-icon save-fab" id="saveAdminChangesBtn" title="Save Changes">
+                    <i class="fas fa-save"></i>
+                </div>
             </div>
 
             <div id="accounts-container" class="content-container" style="display: none;">

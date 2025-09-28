@@ -47,8 +47,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const displayName = userName;
 
-    let changesMade = false;
-    let roleChanges = {};
+    
     
 
     // Changed to select buttons instead of li elements
@@ -1212,33 +1211,22 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 
-    // Role Change Handling
+    // Initialize role change handling
     function initializeRoleChangeHandling() {
         const roleCheckboxes = document.querySelectorAll('.role-checkbox input');
         
         roleCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', async function() {
+            checkbox.addEventListener('change', function() {
                 const userId = this.getAttribute('data-user-id');
                 const role = this.getAttribute('name');
                 const isChecked = this.checked;
                 
-                if (isChecked) {
-                    // Uncheck other roles for this user
-                    const userItem = this.closest('.admin-user-item');
-                    const otherCheckboxes = userItem.querySelectorAll(`.role-checkbox input:not([name="${role}"])`);
-                    
-                    otherCheckboxes.forEach(otherCheckbox => {
-                        otherCheckbox.checked = false;
-                    });
-                    
-                    // Update the user role in database
-                    await updateUserRole(userId, role);
-                }
+                trackRoleChange(userId, role, isChecked);
             });
         });
     }
 
-    // Function to update user role via API
+    // Enhanced updateUserRole function
     async function updateUserRole(userId, newRole) {
         try {
             const response = await fetch('../../../app/Controllers/AdminDashboardController.php?action=updateUserRole', {
@@ -1255,28 +1243,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const result = await response.json();
             
             if (result.success) {
-                // Show success message
-                Swal.fire({
-                    title: 'Success!',
-                    text: result.message,
-                    icon: 'success',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-                
-                // Refresh user counts
-                fetchAndDisplayUsers();
+                return result;
             } else {
                 throw new Error(result.error || 'Failed to update user role');
             }
         } catch (error) {
             console.error('Error updating user role:', error);
-            Swal.fire({
-                title: 'Error',
-                text: 'Failed to update user role',
-                icon: 'error',
-                confirmButtonText: 'OK'
-            });
+            throw error;
         }
     }
 
@@ -1505,6 +1478,31 @@ document.addEventListener('DOMContentLoaded', function() {
             logoutMenu.style.display = 'none';
         });
     }
+
+    
+    
+    // Function to track role changes
+    function trackRoleChange(userId, role, isChecked) {
+        if (!roleChanges[userId]) {
+            roleChanges[userId] = {};
+        }
+        
+        // If this role is being checked, uncheck others for this user
+        if (isChecked) {
+            const userItem = document.querySelector(`.admin-user-item[data-user-id="${userId}"]`);
+            const otherCheckboxes = userItem.querySelectorAll(`.role-checkbox input:not([name="${role}"])`);
+            
+            otherCheckboxes.forEach(otherCheckbox => {
+                const otherRole = otherCheckbox.getAttribute('name');
+                roleChanges[userId][otherRole] = false;
+                otherCheckbox.checked = false;
+            });
+        }
+        
+        roleChanges[userId][role] = isChecked;
+        changesMade = true;
+        updateSaveButtonVisibility();
+    }
     
 
     // Add hover effect to the ellipsis icon
@@ -1519,9 +1517,178 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     initializeUserData();
+
+    // Initialize save functionality
+    initializeSaveFunctionality();
+    
+    // Initialize role change handling
+    initializeRoleChangeHandling();
+    
+    // Hide save button initially
+    hideSaveButton();
+    
     
 
 });
+
+let changesMade = false;
+    let roleChanges = {};
+
+    
+
+    
+
+// Update the user item creation function to include proper event listeners
+function createUserItem(user) {
+    const userItem = document.createElement('div');
+    userItem.className = 'access-item admin-user-item';
+    userItem.setAttribute('data-user-id', user.ID);
+    
+    const isAdmin = user.User_Role === 'admin' || user.User_Role === 'superAdmin';
+    const isFaculty = user.User_Role === 'faculty';
+    const isStudent = user.User_Role === 'student';
+    
+    userItem.innerHTML = `
+        <div class="access-info">
+            <h4>${user.First_Name} ${user.Middle_Name || ''} ${user.Last_Name} ${user.Extension || ''}</h4>
+            <p>${user.Email} • ${user.Department || 'No Department'} • Status: ${user.Acc_Status}</p>
+        </div>
+        <div class="access-roles">
+            <label class="role-checkbox">
+                <input class="checkbox" type="checkbox" name="admin" data-user-id="${user.ID}" ${isAdmin ? 'checked' : ''}>
+                <span class="checkmark"></span>
+                Admin
+            </label>
+            <label class="role-checkbox">
+                <input class="checkbox" type="checkbox" name="faculty" data-user-id="${user.ID}" ${isFaculty ? 'checked' : ''}>
+                <span class="checkmark"></span>
+                Faculty
+            </label>
+            <label class="role-checkbox">
+                <input class="checkbox" type="checkbox" name="student" data-user-id="${user.ID}" ${isStudent ? 'checked' : ''}>
+                <span class="checkmark"></span>
+                Student
+            </label>
+        </div>
+    `;
+    
+    // Add event listeners to the checkboxes
+    const checkboxes = userItem.querySelectorAll('.role-checkbox input');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const userId = this.getAttribute('data-user-id');
+            const role = this.getAttribute('name');
+            const isChecked = this.checked;
+            
+            trackRoleChange(userId, role, isChecked);
+        });
+    });
+    
+    return userItem;
+}
+
+// Enhanced save functionality
+function initializeSaveFunctionality() {
+    const saveBtn = document.getElementById('saveAdminChangesBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', async function() {
+            if (!changesMade || Object.keys(roleChanges).length === 0) {
+                Swal.fire({
+                    title: 'No Changes',
+                    text: 'You haven\'t made any changes to save.',
+                    icon: 'info',
+                    confirmButtonColor: 'var(--primary-color)'
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: 'Confirm Changes',
+                html: `Are you sure you want to save ${Object.keys(roleChanges).length} user role change(s)?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: 'var(--primary-color)',
+                cancelButtonColor: 'var(--color-lite-grey)',
+                confirmButtonText: 'Yes, save changes!',
+                cancelButtonText: 'Cancel'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    // Show loading state
+                    const originalHtml = this.innerHTML;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    this.style.pointerEvents = 'none';
+                    
+                    try {
+                        // Save all changes
+                        const savePromises = [];
+                        let successCount = 0;
+                        let errorCount = 0;
+                        
+                        for (const [userId, roles] of Object.entries(roleChanges)) {
+                            // Find the selected role
+                            let selectedRole = null;
+                            for (const [role, isSelected] of Object.entries(roles)) {
+                                if (isSelected) {
+                                    selectedRole = role;
+                                    break;
+                                }
+                            }
+                            
+                            if (selectedRole) {
+                                try {
+                                    await updateUserRole(userId, selectedRole);
+                                    successCount++;
+                                } catch (error) {
+                                    console.error(`Failed to update user ${userId}:`, error);
+                                    errorCount++;
+                                }
+                            }
+                        }
+                        
+                        // Show result message
+                        if (errorCount === 0) {
+                            Swal.fire({
+                                title: 'Success!',
+                                text: `All ${successCount} user role changes saved successfully.`,
+                                icon: 'success',
+                                confirmButtonColor: 'var(--primary-color)',
+                                timer: 2000
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Partial Success',
+                                html: `Successfully updated ${successCount} users.<br>Failed to update ${errorCount} users.`,
+                                icon: 'warning',
+                                confirmButtonColor: 'var(--primary-color)'
+                            });
+                        }
+                        
+                        // Refresh user data to reflect changes
+                        await fetchAndDisplayUsers();
+                        
+                        // Reset changes
+                        roleChanges = {};
+                        changesMade = false;
+                        hideSaveButton();
+                        
+                    } catch (error) {
+                        console.error('Error saving changes:', error);
+                        Swal.fire({
+                            title: 'Error',
+                            text: 'Failed to save changes. Please try again.',
+                            icon: 'error',
+                            confirmButtonColor: 'var(--primary-color)'
+                        });
+                    } finally {
+                        // Restore button content
+                        this.innerHTML = originalHtml;
+                        this.style.pointerEvents = 'auto';
+                    }
+                }
+            });
+        });
+    }
+}
 
 // Function to initialize user data
 function initializeUserData() {
