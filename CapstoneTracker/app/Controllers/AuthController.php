@@ -42,10 +42,11 @@ class AuthController extends Controller {
     error_log("Login attempt - Role: " . ($_POST['role'] ?? 'empty'));
         $username = $_POST['email'] ?? '';
         $password = $_POST['password'] ?? '';
+        // Role may not always be posted (e.g., direct modal open after redirect) – handle gracefully
         $role = $_POST['role'] ?? '';
         
         // Validate input
-        if (empty($username) || empty($password) || empty($role)) {
+        if (empty($username) || empty($password)) {
             $this->redirectWithError('All fields are required.');
         }
         

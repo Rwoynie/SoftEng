@@ -12,6 +12,21 @@ class AdminDashboardController {
     }
 
     /**
+     * Get users data for direct PHP usage (not AJAX)
+     */
+    public function getUsersData() {
+        $users = $this->model->getAllUsers();
+        $roleCounts = $this->model->getUserCountByRole();
+        $statusCounts = $this->model->getUserCountByStatus();
+
+        return [
+            'users' => $users,
+            'role_counts' => $roleCounts,
+            'status_counts' => $statusCounts
+        ];
+    }
+
+    /**
      * Check if user has admin access
      */
     private function checkAdminAccess() {

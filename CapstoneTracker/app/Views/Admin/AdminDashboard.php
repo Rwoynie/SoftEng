@@ -526,88 +526,117 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Approved Account Example -->
-                            <tr>
-                                <td>John Smith</td>
-                                <td>john.smith@example.com</td>
-                                <td><span class="status-badge status-approved">Approved</span></td>
-                                <td><span class="role-badge role-admin">Admin</span></td>
-                                <td>Oct 15, 2023</td>
-                                <td class="action-buttons">
-                                    <button class="action-btn approve-btn disabled" title="Account Already Approved" disabled>
-                                        <i class="fa fa-check"></i>
-                                    </button>
-                                    <button class="action-btn delete-btn" title="Delete Account">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
+                        <?php
+            // Include the controller
+            require_once '../../../app/Controllers/AdminDashboardController.php';
+            
+            try {
+                // Create controller instance
+                $adminController = new AdminDashboardController();
+                
+                // Get users data through the controller
+                $usersData = $adminController->getUsersData();
+                $users = $usersData['users'] ?? [];
+                
+                if (count($users) > 0) {
+                    foreach ($users as $user) {
+                        // Format full name
+                        $fullName = htmlspecialchars($user->First_Name);
+                        if (!empty($user->Middle_Name)) {
+                            $fullName .= ' ' . htmlspecialchars($user->Middle_Name);
+                        }
+                        $fullName .= ' ' . htmlspecialchars($user->Last_Name);
+                        if (!empty($user->Extension)) {
+                            $fullName .= ' ' . htmlspecialchars($user->Extension);
+                        }
+                        
+                        // Format email
+                        $email = htmlspecialchars($user->Email);
+                        
+                        // Determine status badge class
+                        $statusClass = 'status-pending';
+                        $statusText = 'Pending';
+                        if ($user->Acc_Status === 'approved') {
+                            $statusClass = 'status-approved';
+                            $statusText = 'Approved';
+                        } elseif ($user->Acc_Status === 'rejected') {
+                            $statusClass = 'status-rejected';
+                            $statusText = 'Rejected';
+                        }
+                        
+                        // Determine role badge class and display text
+                        $roleClass = 'role-student';
+                        $roleText = 'Student';
+                        if ($user->User_Role === 'admin' || $user->User_Role === 'superAdmin') {
+                            $roleClass = 'role-admin';
+                            $roleText = 'Admin';
+                        } elseif ($user->User_Role === 'faculty') {
+                            $roleClass = 'role-faculty';
+                            $roleText = 'Faculty';
+                        }
+                        
+                        // Format join date
+                        $joinDate = date('M j, Y', strtotime($user->created_at));
+                        
+                        // Determine if approve button should be disabled
+                        $approveDisabled = $user->Acc_Status === 'approved' ? 'disabled' : '';
+                        $approveClass = $user->Acc_Status === 'approved' ? 'disabled' : '';
+                        
+                        ?>
+                        <tr>
+                            <td><?php echo $fullName; ?></td>
+                            <td><?php echo $email; ?></td>
+                            <td><span class="status-badge <?php echo $statusClass; ?>"><?php echo $statusText; ?></span></td>
+                            <td><span class="role-badge <?php echo $roleClass; ?>"><?php echo $roleText; ?></span></td>
+                            <td><?php echo $joinDate; ?></td>
+                            <td class="action-buttons">
+                                <button class="action-btn approve-btn <?php echo $approveClass; ?>" 
+                                        title="<?php echo $user->Acc_Status === 'approved' ? 'Account Already Approved' : 'Approve Account'; ?>"
+                                        data-user-id="<?php echo $user->ID; ?>"
+                                        data-user-status="<?php echo $user->Acc_Status; ?>"
+                                        <?php echo $approveDisabled; ?>>
+                                    <i class="fa fa-check"></i>
+                                </button>
+                                <button class="action-btn delete-btn" 
+                                        title="Delete Account"
+                                        data-user-id="<?php echo $user->ID; ?>"
+                                        data-user-name="<?php echo $fullName; ?>">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <?php
+                    }
+                } else {
+                    // No users found
+                    ?>
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 20px;">
+                            <div class="no-accounts-found">
+                                <i class="fas fa-users" style="font-size: 48px; color: #ccc; margin-bottom: 10px;"></i>
+                                <p>No accounts found in the database.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    <?php
+                }
+                
+            } catch (Exception $e) {
+                error_log("Error loading accounts: " . $e->getMessage());
+                ?>
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 20px; color: #d32f2f;">
+                        <div class="error-loading-accounts">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #d32f2f; margin-bottom: 10px;"></i>
+                            <p>Error loading accounts. Please try again later.</p>
+                            <small>Error: <?php echo htmlspecialchars($e->getMessage()); ?></small>
+                        </div>
+                    </td>
+                </tr>
+                <?php
+            }
+            ?>
                             
-                            <!-- Pending Account Example -->
-                            <tr>
-                                <td>Jane Doe</td>
-                                <td>jane.doe@example.com</td>
-                                <td><span class="status-badge status-pending">Pending</span></td>
-                                <td><span class="role-badge role-faculty">Faculty</span></td>
-                                <td>Oct 20, 2023</td>
-                                <td class="action-buttons">
-                                    <button class="action-btn approve-btn" title="Approve Account">
-                                        <i class="fa fa-check"></i>
-                                    </button>
-                                    <button class="action-btn delete-btn" title="Delete Account">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                            
-                            <!-- More account rows would go here -->
-                            <tr>
-                                <td>Robert Johnson</td>
-                                <td>robert.j@example.com</td>
-                                <td><span class="status-badge status-approved">Approved</span></td>
-                                <td><span class="role-badge role-student">Student</span></td>
-                                <td>Sep 5, 2023</td>
-                                <td class="action-buttons">
-                                    <button class="action-btn approve-btn disabled" title="Account Already Approved" disabled>
-                                        <i class="fa fa-check"></i>
-                                    </button>
-                                    <button class="action-btn delete-btn" title="Delete Account">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                            
-                            <tr>
-                                <td>Sarah Williams</td>
-                                <td>sarah.w@example.com</td>
-                                <td><span class="status-badge status-pending">Pending</span></td>
-                                <td><span class="role-badge role-student">Student</span></td>
-                                <td>Oct 22, 2023</td>
-                                <td class="action-buttons">
-                                    <button class="action-btn approve-btn" title="Approve Account">
-                                        <i class="fa fa-check"></i>
-                                    </button>
-                                    <button class="action-btn delete-btn" title="Delete Account">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                            
-                            <tr>
-                                <td>Michael Brown</td>
-                                <td>michael.b@example.com</td>
-                                <td><span class="status-badge status-approved">Approved</span></td>
-                                <td><span class="role-badge role-faculty">Faculty</span></td>
-                                <td>Aug 12, 2023</td>
-                                <td class="action-buttons">
-                                    <button class="action-btn approve-btn disabled" title="Account Already Approved" disabled>
-                                        <i class="fa fa-check"></i>
-                                    </button>
-                                    <button class="action-btn delete-btn" title="Delete Account">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
                         </tbody>
                     </table>
                 </div>

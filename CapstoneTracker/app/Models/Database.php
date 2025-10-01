@@ -72,12 +72,23 @@ class Database {
     
     public function resultSet() {
         $this->execute();
-        return $this->stmt->fetchAll();
+        return $this->stmt->fetchAll(PDO::FETCH_OBJ);
+    }
+    
+    // Additional helpers for callers that prefer associative arrays
+    public function resultSetAssoc() {
+        $this->execute();
+        return $this->stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     
     public function single() {
         $this->execute();
-        return $this->stmt->fetch();
+        return $this->stmt->fetch(PDO::FETCH_OBJ);
+    }
+    
+    public function singleAssoc() {
+        $this->execute();
+        return $this->stmt->fetch(PDO::FETCH_ASSOC);
     }
     
     public function rowCount() {

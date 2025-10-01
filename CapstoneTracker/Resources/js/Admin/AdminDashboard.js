@@ -1157,12 +1157,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function initializeAccessCards() {
-        // By default, select the Admin card
-        if (adminAccessBtn) {
-            adminAccessBtn.classList.add('active');
-        }
-    }
+    
     
 
     // Admin Access Management Search Functionality - FIXED
@@ -1513,6 +1508,166 @@ document.addEventListener('DOMContentLoaded', function() {
         
         moreOptionsIcon.addEventListener('mouseleave', function() {
             this.style.color = 'var(--color-lite)';
+        });
+    }
+    
+    // Function to approve account
+    async function approveAccount(userId, currentStatus, button) {
+        try {
+            Swal.fire({
+                title: 'Approve Account?',
+                text: 'Are you sure you want to approve this account?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, approve!',
+                cancelButtonText: 'Cancel'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    // Show loading state
+                    const originalHtml = button.innerHTML;
+                    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    button.disabled = true;
+                    
+                    try {
+                        const response = await fetch('../../../app/Controllers/AdminDashboardController.php?action=updateUserStatus', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                user_id: userId,
+                                status: 'approved'
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            Swal.fire({
+                                title: 'Approved!',
+                                text: result.message || 'Account has been approved successfully.',
+                                icon: 'success',
+                                confirmButtonColor: '#3085d6'
+                            }).then(() => {
+                                // Reload the page to reflect changes
+                                location.reload();
+                            });
+                        } else {
+                            throw new Error(result.error || 'Failed to approve account');
+                        }
+                    } catch (error) {
+                        console.error('Error approving account:', error);
+                        Swal.fire({
+                            title: 'Error',
+                            text: 'Failed to approve account. Please try again.',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                        
+                        // Restore button state
+                        button.innerHTML = originalHtml;
+                        button.disabled = false;
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error in approveAccount:', error);
+        }
+    }
+
+    // Function to delete account
+    async function deleteAccount(userId, userName, button) {
+        try {
+            Swal.fire({
+                title: 'Delete Account?',
+                html: `Are you sure you want to delete <strong>${userName}</strong>'s account? This action cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete!',
+                cancelButtonText: 'Cancel'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    // Show loading state
+                    const originalHtml = button.innerHTML;
+                    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    button.disabled = true;
+                    
+                    try {
+                        const response = await fetch('../../../app/Controllers/AdminDashboardController.php?action=deleteUser', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                user_id: userId
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            Swal.fire({
+                                title: 'Deleted!',
+                                text: result.message || 'Account has been deleted successfully.',
+                                icon: 'success',
+                                confirmButtonColor: '#3085d6'
+                            }).then(() => {
+                                // Reload the page to reflect changes
+                                location.reload();
+                            });
+                        } else {
+                            throw new Error(result.error || 'Failed to delete account');
+                        }
+                    } catch (error) {
+                        console.error('Error deleting account:', error);
+                        Swal.fire({
+                            title: 'Error',
+                            text: 'Failed to delete account. Please try again.',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                        
+                        // Restore button state
+                        button.innerHTML = originalHtml;
+                        button.disabled = false;
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error in deleteAccount:', error);
+        }
+    }
+
+    // Account management event listeners
+    document.addEventListener('click', function(e) {
+        // Approve account functionality
+        if (e.target.closest('.approve-btn') && !e.target.closest('.approve-btn').disabled) {
+            const button = e.target.closest('.approve-btn');
+            const userId = button.getAttribute('data-user-id');
+            const currentStatus = button.getAttribute('data-user-status');
+            approveAccount(userId, currentStatus, button);
+        }
+        
+        // Delete account functionality
+        if (e.target.closest('.delete-btn')) {
+            const button = e.target.closest('.delete-btn');
+            const userId = button.getAttribute('data-user-id');
+            const userName = button.getAttribute('data-user-name');
+            deleteAccount(userId, userName, button);
+        }
+    });
+
+    // Load users data when accounts section is shown
+    const accountsOption = document.querySelector('.menu-options li[data-view="accounts"]');
+    if (accountsOption) {
+        accountsOption.addEventListener('click', function() {
+            // The table is already populated with PHP, so no need to load via AJAX
+            // But you can add any initialization code here if needed
+            console.log('Accounts section loaded');
         });
     }
 
