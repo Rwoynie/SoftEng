@@ -583,28 +583,28 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
                         $approveClass = $user->Acc_Status === 'approved' ? 'disabled' : '';
                         
                         ?>
-                        <tr>
-                            <td><?php echo $fullName; ?></td>
-                            <td><?php echo $email; ?></td>
-                            <td><span class="status-badge <?php echo $statusClass; ?>"><?php echo $statusText; ?></span></td>
-                            <td><span class="role-badge <?php echo $roleClass; ?>"><?php echo $roleText; ?></span></td>
-                            <td><?php echo $joinDate; ?></td>
-                            <td class="action-buttons">
-                                <button class="action-btn approve-btn <?php echo $approveClass; ?>" 
-                                        title="<?php echo $user->Acc_Status === 'approved' ? 'Account Already Approved' : 'Approve Account'; ?>"
-                                        data-user-id="<?php echo $user->ID; ?>"
-                                        data-user-status="<?php echo $user->Acc_Status; ?>"
-                                        <?php echo $approveDisabled; ?>>
-                                    <i class="fa fa-check"></i>
-                                </button>
-                                <button class="action-btn delete-btn" 
-                                        title="Delete Account"
-                                        data-user-id="<?php echo $user->ID; ?>"
-                                        data-user-name="<?php echo $fullName; ?>">
-                                    <i class="fa fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
+                        <tr data-status="<?php echo strtolower($user->Acc_Status); ?>">
+    <td><?php echo $fullName; ?></td>
+    <td><?php echo $email; ?></td>
+    <td><span class="status-badge <?php echo $statusClass; ?>"><?php echo $statusText; ?></span></td>
+    <td><span class="role-badge <?php echo $roleClass; ?>"><?php echo $roleText; ?></span></td>
+    <td><?php echo $joinDate; ?></td>
+    <td class="action-buttons">
+        <button class="action-btn approve-btn <?php echo $approveClass; ?>" 
+                title="<?php echo $user->Acc_Status === 'approved' ? 'Account Already Approved' : 'Approve Account'; ?>"
+                data-user-id="<?php echo $user->ID; ?>"
+                data-user-status="<?php echo $user->Acc_Status; ?>"
+                <?php echo $approveDisabled; ?>>
+            <i class="fa fa-check"></i>
+        </button>
+        <button class="action-btn delete-btn" 
+                title="Delete Account"
+                data-user-id="<?php echo $user->ID; ?>"
+                data-user-name="<?php echo $fullName; ?>">
+            <i class="fa fa-trash"></i>
+        </button>
+    </td>
+</tr>
                         <?php
                     }
                 } else {

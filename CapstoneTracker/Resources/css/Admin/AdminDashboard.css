@@ -2388,11 +2388,13 @@ body {
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
     overflow: hidden;
     margin-bottom: 20px;
+    width: 100%;
 }
 
 .accounts-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed; /* Add this for consistent column widths */
 }
 
 .accounts-table th {
@@ -2402,7 +2404,16 @@ body {
     font-weight: 600;
     color: var(--color-dark-grey);
     border-bottom: 1px solid #eee;
+    position: sticky;
+    top: 0;
 }
+
+.accounts-table th:nth-child(1) { width: 20%; } /* Full Name */
+.accounts-table th:nth-child(2) { width: 25%; } /* Email */
+.accounts-table th:nth-child(3) { width: 12%; } /* Status */
+.accounts-table th:nth-child(4) { width: 12%; } /* Role */
+.accounts-table th:nth-child(5) { width: 15%; } /* Join Date */
+.accounts-table th:nth-child(6) { width: 16%; } /* Actions */
 
 .accounts-table td {
     padding: 15px;

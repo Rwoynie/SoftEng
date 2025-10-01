@@ -1354,9 +1354,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to switch account views
     function switchAccountView(viewToShow, buttonToSelect) {
         // Hide all account views
-        if (allAccountsContainer) allAccountsContainer.style.display = 'none';
-        if (pendingAccountsContainer) pendingAccountsContainer.style.display = 'none';
-        if (approvedAccountsContainer) approvedAccountsContainer.style.display = 'none';
+        const allAccountsView = document.getElementById('allAccounts-container');
+        const pendingAccountsView = document.getElementById('pendingAccounts-container');
+        const approvedAccountsView = document.getElementById('approvedAccounts-container');
+        
+        if (allAccountsView) allAccountsView.style.display = 'none';
+        if (pendingAccountsView) pendingAccountsView.style.display = 'none';
+        if (approvedAccountsView) approvedAccountsView.style.display = 'none';
         
         // Remove active class from all buttons
         const accountButtons = document.querySelectorAll('.logMenu button');
@@ -1367,20 +1371,67 @@ document.addEventListener('DOMContentLoaded', function() {
             viewToShow.style.display = 'block';
             buttonToSelect.classList.add('selected');
         }
+        
+        // Filter table rows based on selected view
+        filterTableRows(buttonToSelect.id);
     }
+
+    function filterTableRows(buttonId) {
+        const tableRows = document.querySelectorAll('.accounts-table tbody tr');
+        const notFound = document.getElementById('notFound'); // You might want to add this for accounts
+        
+        let foundResults = false;
+        
+        tableRows.forEach(row => {
+            const statusBadge = row.querySelector('.status-badge');
+            const status = statusBadge ? statusBadge.textContent.toLowerCase() : '';
+            
+            switch(buttonId) {
+                case 'allAccountsButton':
+                    row.style.display = '';
+                    foundResults = true;
+                    break;
+                case 'pendingButton':
+                    if (status === 'pending') {
+                        row.style.display = '';
+                        foundResults = true;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                    break;
+                case 'approvedButton':
+                    if (status === 'approved') {
+                        row.style.display = '';
+                        foundResults = true;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                    break;
+                default:
+                    row.style.display = '';
+                    foundResults = true;
+            }
+        });
+        
+        // Show/hide no results message if you add one
+        // if (notFound) {
+        //     notFound.style.display = foundResults ? 'none' : 'block';
+        // }
+    }
+    
 
     // Event listeners for account filter buttons
     if (allAccountsButton && pendingButton && approvedButton) {
         allAccountsButton.addEventListener('click', function() {
-            switchAccountView(allAccountsContainer, allAccountsButton);
+            switchAccountView(document.getElementById('allAccounts-container'), allAccountsButton);
         });
         
         pendingButton.addEventListener('click', function() {
-            switchAccountView(pendingAccountsContainer, pendingButton);
+            switchAccountView(document.getElementById('pendingAccounts-container'), pendingButton);
         });
         
         approvedButton.addEventListener('click', function() {
-            switchAccountView(approvedAccountsContainer, approvedButton);
+            switchAccountView(document.getElementById('approvedAccounts-container'), approvedButton);
         });
     }
 
@@ -1391,23 +1442,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Account search functionality
     const accountSearchInput = document.getElementById('accountSearchInput');
-    if (accountSearchInput) {
-        accountSearchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase().trim();
-            const accountRows = document.querySelectorAll('.accounts-table tbody tr');
+if (accountSearchInput) {
+    accountSearchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase().trim();
+        const accountRows = document.querySelectorAll('.accounts-table tbody tr');
+        const activeButton = document.querySelector('.logMenu button.selected');
+        const activeFilter = activeButton ? activeButton.id : 'allAccountsButton';
+        
+        accountRows.forEach(row => {
+            const name = row.querySelector('td:first-child').textContent.toLowerCase();
+            const email = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+            const statusBadge = row.querySelector('.status-badge');
+            const status = statusBadge ? statusBadge.textContent.toLowerCase() : '';
             
-            accountRows.forEach(row => {
-                const name = row.querySelector('td:first-child').textContent.toLowerCase();
-                const email = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-                
-                if (name.includes(searchTerm) || email.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
+            // Check if row matches search term
+            const matchesSearch = name.includes(searchTerm) || email.includes(searchTerm);
+            
+            // Check if row matches current filter
+            let matchesFilter = true;
+            switch(activeFilter) {
+                case 'pendingButton':
+                    matchesFilter = status === 'pending';
+                    break;
+                case 'approvedButton':
+                    matchesFilter = status === 'approved';
+                    break;
+                default:
+                    matchesFilter = true; // allAccountsButton shows all
+            }
+            
+            if (matchesSearch && matchesFilter) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
         });
-    }
+    });
+}
 
     //Logout Function
     logoutMenu.innerHTML = `
