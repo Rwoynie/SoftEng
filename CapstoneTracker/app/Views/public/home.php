@@ -7,11 +7,10 @@
   <link rel="icon" href="/CapstoneTracker/resources/Images/ThesisCompLogo.png" type="image/x-icon">
   <link rel="stylesheet" href="../../../resources/css/User/home.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Quicksand">
-  <script defer src="../../../resources/js/User/home.js"></script>
 </head>
 <body>
   <div class="dashboard-container">
@@ -61,76 +60,42 @@
       <section class="announcements-section">
         <div class="section-header">
           <h2>Announcements</h2>
-          
         </div>
         
         <div class="announcements-carousel">
+          <button class="carousel-control prev">
+            <i class="fas fa-chevron-left"></i>
+          </button>
           <div class="carousel-container">
             <div class="announcement-cards">
-              <div class="announcement-card">
-                <div class="card-badge important">Important</div>
-                <div class="card-image">
-                  <img class="Anncmnt_pic" src="../../../resources/images/Announcement_pic.png" alt="System Launch" />
-                </div>
-                <div class="card-content">
-                  <div class="card-header">
-                    <h3>System Launch</h3>
-                    <span class="date">September 15, 2025</span>
-                  </div>
-                  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-                  <a href="#" class="read-more">Read more</a>
-                </div>
-              </div>
               
-              <div class="announcement-card">
-                <div class="card-badge deadline">Deadline</div>
-                <div class="card-image">
-                  <img class="Anncmnt_pic" src="../../../resources/images/Announcement_pic.png" alt="Submission Deadline" />
-                </div>
-                <div class="card-content">
-                  <div class="card-header">
-                    <h3>Submission Deadline</h3>
-                    <span class="date">September 20, 2025</span>
-                  </div>
-                  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-                  <a href="#" class="read-more">Read more</a>
-                </div>
-              </div>
-              
-              <div class="announcement-card">
-                <div class="card-badge info">Information</div>
-                <div class="card-image">
-                  <img class="Anncmnt_pic" src="../../../resources/images/Announcement_pic.png" alt="Maintenance" />
-                </div>
-                <div class="card-content">
-                  <div class="card-header">
-                    <h3>System Maintenance</h3>
-                    <span class="date">September 25, 2025</span>
-                  </div>
-                  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-                  <a href="#" class="read-more">Read more</a>
-                </div>
-              </div>
-              
-              <div class="announcement-card">
-                <div class="card-badge event">Event</div>
-                <div class="card-image">
-                  <img class="Anncmnt_pic" src="../../../resources/images/Announcement_pic.png" alt="Workshop" />
-                </div>
-                <div class="card-content">
-                  <div class="card-header">
-                    <h3>Thesis Writing Workshop</h3>
-                    <span class="date">October 5, 2025</span>
-                  </div>
-                  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-                  <a href="#" class="read-more">Read more</a>
-                </div>
-              </div>
             </div>
           </div>
-          
-          
-          
+          <button class="carousel-control next">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+          <div class="carousel-indicators"></div>
+        </div>
+      </section>
+
+      <!-- Programs Logo Carousel -->
+      <section class="program-logos-section">
+        <div class="section-header">
+          <h2>Programs</h2>
+        </div>
+        
+        <div class="logo-carousel">
+          <button class="carousel-control prev">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <div class="carousel-container">
+            <div class="logo-cards">
+              
+            </div>
+          </div>
+          <button class="carousel-control next">
+            <i class="fas fa-chevron-right"></i>
+          </button>
           <div class="carousel-indicators"></div>
         </div>
       </section>
@@ -141,7 +106,6 @@
           <h2>Quick Access</h2>
         </div>
         <div class="action-cards">
-          
           <div class="action-card">
             <div class="action-icon">
               <i class="fas fa-book-open"></i>
@@ -170,7 +134,7 @@
     <!-- ================= Search Results Page ================= -->
     <section id="results-page" class="hidden">
       <header class="results-header">
-      <section class="search-filter">
+        <section class="search-filter">
           <div class="searchbox">
             <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
             <input type="text" id="results-search-input" placeholder="Search thesis...">
@@ -207,17 +171,14 @@
             </div>
             
             <div class="display-group">
-                            <div class="icon" id="listViewIcon"> <i class="fa fa-bars" aria-hidden="true"></i> </div>
-                            <div class="icon selected" id="gridViewIcon"> <i class="fa fa-th" aria-hidden="true"></i> </div>
-                        </div>
+              <div class="icon" id="listViewIcon"> <i class="fa fa-bars" aria-hidden="true"></i> </div>
+              <div class="icon selected" id="gridViewIcon"> <i class="fa fa-th" aria-hidden="true"></i> </div>
+            </div>
           </div>
         </section>
         <div class="results-title">
-          
           <p class="results-count">Showing <span id="results-number">0</span> results...</p>
         </div>
-        
-        
       </header>
 
       <section class="results-container">
@@ -242,8 +203,10 @@
     <footer class="main-footer">
       <div class="footer-content">
         <div class="footer-section">
-          <div >
+          <div>
             <img class="logo" src="../../../resources/images/ThesisCompLogo.png" alt="Logo" />
+           
+            <img class="logo" src="../../../resources/images/CTET_LOGO.png" alt="Logo" />
             <h3>Thesis Compendium System</h3>
           </div>
           <p class="footer-description">A comprehensive digital repository for thesis papers and capstone projects.</p>
@@ -296,5 +259,7 @@
       </div>
     </footer>
   </div>
+
+  <script src="../../../resources/js/User/home.js"></script>
 </body>
 </html>
