@@ -828,7 +828,6 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
 </div>
 
 
-
 <!-- Upload Thesis Modal -->
 <div class="modal-overlay" id="uploadModal">
     <form class="modal" action="../../../app/Controllers/ThesisController.php?action=upload" method="POST" enctype="multipart/form-data" id="uploadForm">
@@ -843,11 +842,33 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
                     <h3>Thesis Title *</h3>
                     <input type="text" name="thesistitle" placeholder="Enter thesis title" class="thesis-form-input" id="thesisTitle" required>
                 </div>
-                
+
                 <div class="thesis-form-group">
-                    <h3>Author/s</h3>
-                    <input type="text" name="thesisauthor" placeholder="Enter author name(s) separated with commas ','" class="thesis-form-input" id="thesisAuthor">
+                    <h3>Author Emails *</h3>
+                    <input type="text" name="thesisauthor" placeholder="Enter author emails separated by commas (e.g., author1@email.com, author2@email.com)" class="thesis-form-input" id="thesisAuthor" required>
+                    <small style="color: var(--color-lite-grey); font-size: 0.8rem; margin-top: 5px; display: block;">
+                        Separate multiple author emails with commas
+                    </small>
                 </div>
+
+                <div class="thesis-form-group">
+                    <h3>Department *</h3>
+                    <select name="department" class="thesis-form-input" id="departmentSelect" required>
+                        <option value="">Select Department</option>
+                        <option value="Computer Science">Computer Science</option>
+                        <option value="Information Technology">Information Technology</option>
+                        <option value="Computer Engineering">Computer Engineering</option>
+                        <option value="Electrical Engineering">Electrical Engineering</option>
+                        <option value="Mechanical Engineering">Mechanical Engineering</option>
+                    </select>
+                </div>
+
+                <div class="thesis-form-group">
+                    <h3>Course *</h3>
+                    <input type="text" name="course" placeholder="Enter course/program" class="thesis-form-input" id="courseInput" required>
+                </div>
+
+                <!-- Removed the separate email field since we're using author emails -->
             </div>
             
             <div class="upload-area" id="dropArea">
@@ -856,10 +877,10 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
                 </div>
                 <div class="upload-text">
                     <h3>Drag & Drop your files here</h3>
-                    <p>Supported files: pdf, docx, zip</p>
+                    <p>Supported files: PDF only</p>
                 </div>
                 <div class="browse-btn">Browse files</div>
-                <input type="file" class="file-input" id="fileInput" name="files[]" multiple accept=".pdf,.docx,.zip">
+                <input type="file" class="file-input" id="fileInput" name="files[]" multiple accept=".pdf">
             </div>
             
             <div class="file-previews">

@@ -35,9 +35,9 @@
                 Employee_ID VARCHAR(255) UNIQUE,
                 User_Role ENUM('student', 'faculty', 'admin', 'superAdmin') NOT NULL,
                 Acc_Status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
-                Year_Level VARCHAR(50),
-                Course VARCHAR(255),
                 Department VARCHAR(255),
+                Course VARCHAR(255),
+                
                 Designation VARCHAR(255),
                 Profile_Pic VARCHAR(500),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -54,6 +54,9 @@
             "CREATE TABLE IF NOT EXISTS THESIS (
                 ID INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 User_ID INT(11) UNSIGNED NOT NULL,
+                Department VARCHAR(255) NOT NULL,
+                Course VARCHAR(255) NOT NULL,
+                Email VARCHAR(255) NOT NULL,
                 Title VARCHAR(255) NOT NULL,
                 Author VARCHAR(255) NOT NULL,
                 File_Path VARCHAR(500) NOT NULL,
@@ -62,6 +65,9 @@
                 uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 FOREIGN KEY (User_ID) REFERENCES USER_INFORMATION(ID) ON DELETE CASCADE,
+                FOREIGN KEY (Department) REFERENCES USER_INFORMATION(Department) ON DELETE CASCADE,
+                FOREIGN KEY (Course) REFERENCES USER_INFORMATION(Course) ON DELETE CASCADE,
+                FOREIGN KEY (Email) REFERENCES USER_INFORMATION(Email) ON DELETE CASCADE,
                 INDEX (User_ID),
                 INDEX (Title)
             ) ENGINE=InnoDB;",

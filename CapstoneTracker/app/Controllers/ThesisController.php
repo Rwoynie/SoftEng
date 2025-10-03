@@ -2,14 +2,17 @@
 // ThesisController.php
 require_once __DIR__ . '/../Models/Database.php';
 require_once __DIR__ . '/../Models/Thesis.php';
+require_once __DIR__ . '/../Models/AdminDashboardModel.php';
 
 class ThesisController {
     private $thesisModel;
+    private $adminModel;
     private $db;
     
     public function __construct() {
         $this->db = new Database();
         $this->thesisModel = new Thesis($this->db);
+        $this->adminModel = new AdminDashboardModel();
     }
     
     /**
@@ -209,6 +212,119 @@ class ThesisController {
             ]);
         }
     }
+
+    /**
+     * Get theses by department
+     */
+    public function getThesesByDepartment() {
+        try {
+            $department = $_GET['department'] ?? null;
+            
+            if (!$department || $department === 'all') {
+                $theses = $this->thesisModel->getAllTheses();
+            } else {
+                $theses = $this->adminModel->getThesesByDepartment($department);
+            }
+            
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'theses' => $theses
+            ]);
+            
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Failed to fetch theses by department: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Get recent theses
+     */
+    public function getRecentTheses() {
+        try {
+            $theses = $this->adminModel->getRecentTheses();
+            
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'theses' => $theses
+            ]);
+            
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Failed to fetch recent theses: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Search theses
+     */
+    public function searchTheses() {
+        try {
+            $searchTerm = $_GET['q'] ?? '';
+            
+            if (empty($searchTerm)) {
+                http_response_code(200);
+                echo json_encode([
+                    'success' => true,
+                    'theses' => []
+                ]);
+                return;
+            }
+
+            $theses = $this->adminModel->searchTheses($searchTerm);
+            
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'theses' => $theses
+            ]);
+            
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Failed to search theses: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Get thesis statistics
+     */
+    public function getThesisStatistics() {
+        try {
+            $stats = $this->adminModel->getSystemStatistics();
+            
+            // Extract thesis-related statistics
+            $thesisStats = [
+                'total_theses' => $stats['total_theses'] ?? 0,
+                'theses_this_month' => $stats['theses_this_month'] ?? 0,
+                'theses_this_week' => $stats['theses_this_week'] ?? 0,
+                'departments' => $stats['departments'] ?? []
+            ];
+            
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'statistics' => $thesisStats
+            ]);
+            
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Failed to fetch thesis statistics: ' . $e->getMessage()
+            ]);
+        }
+    }
     
     /**
      * Log upload activity (placeholder for future implementation)
@@ -236,6 +352,18 @@ class ThesisController {
                 break;
             case 'deleteThesis':
                 $this->deleteThesis();
+                break;
+            case 'getThesesByDepartment':
+                $this->getThesesByDepartment();
+                break;
+            case 'getRecentTheses':
+                $this->getRecentTheses();
+                break;
+            case 'searchTheses':
+                $this->searchTheses();
+                break;
+            case 'getThesisStatistics':
+                $this->getThesisStatistics();
                 break;
             default:
                 http_response_code(404);

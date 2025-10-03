@@ -1774,6 +1774,291 @@ if (accountSearchInput) {
         });
     }
 
+    //Upload Functionality
+    function isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@usep\.edu\.ph$/;
+        return emailRegex.test(email.trim());
+    }
+
+    // Function to validate multiple USEP emails separated by commas
+    function validateAuthorEmails(emailString) {
+        if (!emailString.trim()) return { isValid: false, emails: [] };
+        
+        const emails = emailString.split(',').map(email => email.trim()).filter(email => email !== '');
+        
+        // Check if all emails are valid USEP emails
+        const invalidEmails = emails.filter(email => !isValidEmail(email));
+        
+        return {
+            isValid: invalidEmails.length === 0,
+            emails: emails,
+            invalidEmails: invalidEmails
+        };
+    }
+
+    // Update the upload button state function
+    function updateUploadButtonState() {
+        const thesisTitle = document.getElementById('thesisTitle');
+        const thesisAuthor = document.getElementById('thesisAuthor');
+        const departmentSelect = document.getElementById('departmentSelect');
+        const courseInput = document.getElementById('courseInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        
+        // Validate author emails
+        const emailValidation = validateAuthorEmails(thesisAuthor.value);
+        
+        const isFormValid = thesisTitle.value.trim() !== '' &&
+                           thesisAuthor.value.trim() !== '' &&
+                           emailValidation.isValid &&
+                           departmentSelect.value !== '' &&
+                           courseInput.value.trim() !== '' &&
+                           uploadedFiles.length > 0;
+        
+        uploadBtn.disabled = !isFormValid;
+        
+        // Update visual feedback for email field
+        if (thesisAuthor.value.trim() === '') {
+            thesisAuthor.style.borderColor = '#ddd';
+        } else if (!emailValidation.isValid) {
+            thesisAuthor.style.borderColor = 'var(--color-danger)';
+        } else {
+            thesisAuthor.style.borderColor = '#51cf66';
+        }
+    }
+
+    function initializeUploadFormValidation() {
+        const thesisAuthor = document.getElementById('thesisAuthor');
+        
+        if (thesisAuthor) {
+            thesisAuthor.addEventListener('blur', function() {
+                const emailValidation = validateAuthorEmails(this.value);
+                
+                if (this.value.trim() && !emailValidation.isValid) {
+                    const invalidEmailsList = emailValidation.invalidEmails.join(', ');
+                    Swal.fire({
+                        title: 'Invalid USEP Email',
+                        html: `The following emails are invalid: <strong>${invalidEmailsList}</strong><br><br>
+                               All author emails must be valid <strong>@usep.edu.ph</strong> email addresses.`,
+                        icon: 'warning',
+                        confirmButtonText: 'OK'
+                    });
+                }
+                
+                updateUploadButtonState();
+            });
+            
+            // Real-time validation as user types
+            thesisAuthor.addEventListener('input', function() {
+                updateUploadButtonState();
+            });
+            
+            // Add input formatting to help users
+            thesisAuthor.addEventListener('input', function(e) {
+                // Auto-suggest @usep.edu.ph when user types @
+                const cursorPosition = e.target.selectionStart;
+                const value = e.target.value;
+                
+                if (value[cursorPosition - 1] === '@' && !value.includes('@usep.edu.ph')) {
+                    // Don't auto-complete if they're in the middle of typing
+                    const beforeCursor = value.substring(0, cursorPosition);
+                    const afterCursor = value.substring(cursorPosition);
+                    
+                    // Only auto-complete if they just typed @ at the end
+                    if (afterCursor === '' && !beforeCursor.includes('@usep.edu.ph')) {
+                        e.target.value = beforeCursor + 'usep.edu.ph';
+                        // Move cursor to after the @
+                        e.target.setSelectionRange(cursorPosition, cursorPosition);
+                    }
+                }
+            });
+        }
+        
+        // Add event listeners to other form fields
+        const otherFormFields = [
+            'thesisTitle',
+            'departmentSelect',
+            'courseInput'
+        ];
+        
+        otherFormFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.addEventListener('input', updateUploadButtonState);
+                field.addEventListener('change', updateUploadButtonState);
+            }
+        });
+    }
+
+    function initializeUploadFormSubmission() {
+        const uploadForm = document.getElementById('uploadForm');
+        if (uploadForm && btnUpload) {
+            uploadForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                if (uploadedFiles.length === 0) {
+                    Swal.fire({
+                        title: 'No Files Selected',
+                        text: 'Please select at least one file to upload.',
+                        icon: 'warning',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+                
+                // Validate thesis title
+                const thesisTitleInput = document.getElementById('thesisTitle');
+                if (thesisTitleInput && !thesisTitleInput.value.trim()) {
+                    Swal.fire({
+                        title: 'Thesis Title Required',
+                        text: 'Please enter a title for your thesis.',
+                        icon: 'warning',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+                
+                // Validate author emails (must be @usep.edu.ph)
+                const thesisAuthorInput = document.getElementById('thesisAuthor');
+                const emailValidation = validateAuthorEmails(thesisAuthorInput.value);
+                
+                if (!emailValidation.isValid) {
+                    const invalidEmailsList = emailValidation.invalidEmails.join(', ');
+                    Swal.fire({
+                        title: 'Invalid USEP Email Addresses',
+                        html: `The following emails are not valid USEP email addresses: <strong>${invalidEmailsList}</strong><br><br>
+                               Please use only <strong>@usep.edu.ph</strong> email addresses for all authors.`,
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+                
+                // Validate department
+                const departmentSelect = document.getElementById('departmentSelect');
+                if (!departmentSelect.value) {
+                    Swal.fire({
+                        title: 'Department Required',
+                        text: 'Please select a department.',
+                        icon: 'warning',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+                
+                // Validate course
+                const courseInput = document.getElementById('courseInput');
+                if (!courseInput.value.trim()) {
+                    Swal.fire({
+                        title: 'Course Required',
+                        text: 'Please enter a course/program.',
+                        icon: 'warning',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+                
+                // Show confirmation dialog with author emails
+                const authorEmails = emailValidation.emails.join(', ');
+                Swal.fire({
+                    title: 'Confirm Upload',
+                    html: `Are you sure you want to upload <strong>${thesisTitleInput.value}</strong>?<br><br>
+                          <strong>Authors:</strong> ${authorEmails}<br>
+                          <strong>Department:</strong> ${departmentSelect.options[departmentSelect.selectedIndex].text}<br>
+                          <strong>Course:</strong> ${courseInput.value}<br>
+                          <strong>Files:</strong> ${uploadedFiles.length} file(s)`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Yes, upload it!',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Show loading state
+                        const originalText = btnUpload.textContent;
+                        btnUpload.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+                        btnUpload.disabled = true;
+                        
+                        // Submit form via AJAX
+                        const formData = new FormData(uploadForm);
+                        
+                        fetch(uploadForm.action, {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire({
+                                    title: 'Upload Successful!',
+                                    text: data.message || 'Your thesis has been uploaded successfully.',
+                                    icon: 'success',
+                                    confirmButtonText: 'OK'
+                                }).then(() => {
+                                    resetUploadForm();
+                                    closeModal(uploadModal);
+                                    // Optionally refresh the thesis list
+                                    // loadTheses();
+                                });
+                            } else {
+                                throw new Error(data.error || 'Upload failed');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Upload error:', error);
+                            Swal.fire({
+                                title: 'Upload Failed',
+                                text: error.message || 'Failed to upload thesis. Please try again.',
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        })
+                        .finally(() => {
+                            // Restore button state
+                            btnUpload.textContent = originalText;
+                            btnUpload.disabled = false;
+                        });
+                    }
+                });
+            });
+        }
+    }
+
+    function resetUploadForm() {
+        uploadedFiles = [];
+        showEmptyState();
+        updateUploadButtonState();
+        fileInput.value = '';
+        
+        // Clear all form fields
+        const formFields = [
+            'thesisTitle',
+            'thesisAuthor',
+            'departmentSelect', 
+            'courseInput'
+        ];
+        
+        formFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                if (field.tagName === 'SELECT') {
+                    field.selectedIndex = 0;
+                } else {
+                    field.value = '';
+                }
+                field.style.borderColor = '#ddd';
+            }
+        });
+    }
+
+    if (uploadModal) {
+        uploadModal.addEventListener('click', function(e) {
+            if (e.target === uploadModal || e.target.classList.contains('modal-close') || e.target.classList.contains('btn-cancel')) {
+                initializeUploadFormValidation();
+            }
+        });
+    }
+
     initializeUserData();
 
     // Initialize save functionality
@@ -1784,6 +2069,12 @@ if (accountSearchInput) {
     
     // Hide save button initially
     hideSaveButton();
+
+    // Initialize upload form submission
+    initializeUploadFormSubmission();
+
+    // Initialize upload form validation
+    initializeUploadFormValidation();
     
     
 
