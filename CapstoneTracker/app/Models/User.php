@@ -36,8 +36,8 @@ class User extends Model {
             }
             
             // Build the SQL query based on available data
-            $fields = ['pswrd', 'Salt', 'First_Name', 'Last_Name', 'Email', 'User_ID', 'User_Role', 'Acc_Status'];
-            $values = [':password', ':salt', ':first_name', ':last_name', ':email', ':user_id', ':user_role', ':acc_status'];
+            $fields = ['pswrd', 'Salt', 'First_Name', 'Last_Name', 'Email', 'User_ID', 'User_Role', 'Acc_Status', 'Profile_Pic'];
+            $values = [':password', ':salt', ':first_name', ':last_name', ':email', ':user_id', ':user_role', ':acc_status', ':profile_pic'];
             $bindings = [
                 ':password' => $hashedPassword,
                 ':salt' => $salt,
@@ -46,7 +46,8 @@ class User extends Model {
                 ':email' => $data['email'] ?? '',
                 ':user_id' => $userId,
                 ':user_role' => $userRole,
-                ':acc_status' => $data['acc_status'] ?? 'pending'
+                ':acc_status' => $data['acc_status'] ?? 'pending',
+                ':profile_pic' => $data['profile_pic']
             ];
             
             // Optional fields
@@ -56,7 +57,6 @@ class User extends Model {
                 'course' => 'Course',
                 'department' => 'Department',
                 'designation' => 'Designation',
-                'profile_pic' => 'Profile_Pic'
             ];
             
             foreach ($optionalFields as $dataKey => $dbField) {

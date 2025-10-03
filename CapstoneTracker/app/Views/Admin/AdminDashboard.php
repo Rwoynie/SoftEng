@@ -1,4 +1,6 @@
 <?php
+error_reporting(0); // Turn off error display
+ini_set('display_errors', 0);
 // AdminDashboard.php - At the VERY TOP of the file
 require_once '../../../Database/config.php'; 
 require_once '../../../app/Controllers/AdminDashboardController.php';
@@ -63,9 +65,9 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
         <div class="more-options">
         
             <i class="fa fa-ellipsis-h icon" aria-hidden="true"></i>
+
             
-            
-        </div>
+            </div>
         <div id="user-info-display" style="display: none;">
             <span id="user-full-name"><?php echo htmlspecialchars($displayUserData['user_name']); ?></span>
             <span id="user-role"><?php echo htmlspecialchars($displayUserData['user_role']); ?></span>
@@ -74,7 +76,7 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
     </section>
 
     <section class="main-content">
-    
+        
                 <header class="header" id="header">
                     <div class="title">Published Titles</div>
                     <div class="menu">
@@ -87,7 +89,7 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
                 </header>
 
         <section class="app-content">
-        <div class="app-content-header">
+                    <div class="app-content-header">
                     <div class="searchbox">
                         <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
                         <input type="text" name="search" placeholder="Search thesis..." class="search-text" id="searchInput">
@@ -115,26 +117,26 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
                 
                 <!-- Sort Dropdown (renamed from filterDropdown) -->
                 <div class="select" id="sortDropdown">
-                    <div class="selected">
+                            <div class="selected">
                         <span>Sort by: Recent</span>
-                        <i class="fa fa-filter" style="margin-left: 3vw; position: absolute; right: 2.5vw;" aria-hidden="true"></i>
-                        <svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 512 512" class="arrow">
-                            <path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path>
-                        </svg>
-                    </div>
-                    <div class="options">
+                                <i class="fa fa-filter" style="margin-left: 3vw; position: absolute; right: 2.5vw;" aria-hidden="true"></i>
+                                <svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 512 512" class="arrow">
+                                    <path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path>
+                                </svg>
+                            </div>
+                            <div class="options">
                         <div data-value="recent">Most Recent</div>
                         <div data-value="popular">Most Viewed</div>
                         <div data-value="title">Title (A-Z)</div>
                         <div data-value="department">Department</div>
-                    </div>
-                </div>
+                            </div>
+                        </div>
 
-                <div class="display-group">
-                    <div class="icon" id="listViewIcon"> <i class="fa fa-bars" aria-hidden="true"></i> </div>
-                    <div class="icon selected" id="gridViewIcon"> <i class="fa fa-th" aria-hidden="true"></i> </div>
-                </div>
-            </div>
+                        <div class="display-group">
+                            <div class="icon" id="listViewIcon"> <i class="fa fa-bars" aria-hidden="true"></i> </div>
+                            <div class="icon selected" id="gridViewIcon"> <i class="fa fa-th" aria-hidden="true"></i> </div>
+                        </div>
+                    </div>
                 </div>
     
 
@@ -420,12 +422,12 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
 
 
             <div id="access-container" class="content-container" style="display: none;">
-                <header class="header" id="header">
+            <header class="header" id="header">
                     <div class="title">Access Management</div>
                 </header>
 
                 <div id="accessHeader2" class="content-header">
-                    <div class="access-card" id="access-card">
+                <div class="access-card" id="access-card">
                         <div class="access-list">
                             <button id="adminAccess" class="access-item accessCard">
                                 <div class="access-info">
@@ -455,23 +457,23 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
                 </div>
                 
                 <div class="content-body">
-                    <div id="adminAccessPanel" class="access-card">
-                        <div class="searchbox" id="accessSearch">
-                            <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
-                            <input type="text" placeholder="Search users..." class="search-text" id="adminUserSearch">
-                        </div>
-                        
-                        <div class="adminUserListContainer">
-                            <div class="access-list" id="adminUserList">
+                <div id="adminAccessPanel" class="access-card">
+    <div class="searchbox" id="accessSearch">
+        <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
+        <input type="text" placeholder="Search users..." class="search-text" id="adminUserSearch">
+    </div>
+
+        <div class="adminUserListContainer">
+            <div class="access-list" id="adminUserList">
                                 <!-- Users will be populated dynamically -->
                                 <div class="loading-state">
                                     <i class="fas fa-spinner fa-spin"></i>
                                     <p>Loading users...</p>
-                                </div>
-                            </div>
-                            
+                    </div>
+                </div>
+                
                             <p class="notFound" id="adminNotFound">No users found matching your search.</p>
-                        </div>
+                    </div>
                     </div>
                 </div>
                 <div class="fab-icon save-fab" id="saveAdminChangesBtn" title="Save Changes">
@@ -508,8 +510,8 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
                                 <div data-value="admin">Administrator</div>
                                 <div data-value="faculty">Faculty</div>
                                 <div data-value="student">Student</div>
-                            </div>
-                        </div>
+                </div>
+                    </div>
                     </div>
                 </div>
                 
@@ -615,7 +617,7 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
                             <div class="no-accounts-found">
                                 <i class="fas fa-users" style="font-size: 48px; color: #ccc; margin-bottom: 10px;"></i>
                                 <p>No accounts found in the database.</p>
-                            </div>
+                    </div>
                         </td>
                     </tr>
                     <?php
@@ -630,7 +632,7 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
                             <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #d32f2f; margin-bottom: 10px;"></i>
                             <p>Error loading accounts. Please try again later.</p>
                             <small>Error: <?php echo htmlspecialchars($e->getMessage()); ?></small>
-                        </div>
+                    </div>
                     </td>
                 </tr>
                 <?php
@@ -643,16 +645,16 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
 
                 <div id="allAccounts-container" class="accounts-content">
                     <!-- All accounts table will be shown here -->
-                </div>
-
+            </div>
+            
                 <div id="pendingAccounts-container" class="accounts-content" style="display: none;">
                     <!-- Pending accounts table will be shown here -->
-                </div>
-
+        </div>
+        
                 <div id="approvedAccounts-container" class="accounts-content" style="display: none;">
                     <!-- Approved accounts table will be shown here -->
-                </div>
-                
+    </div>
+
                 <div class="table-pagination-container">
                     <div class="table-pagination">
                         <button class="pagination-btn" disabled>
@@ -667,16 +669,16 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
             </div>
 
             <div id="logs-container" class="content-container" style="display: none;">
-    <header class="logHeader" id="logHeader">
-        <div class="title">System Logs</div>
-        <div class="logMenu">
-            <button class="selected" id="userButton"> User </button>
-            <button id="adminButton"> Admin </button>
-        </div>
-    </header>
-    
-    <!-- User Log Container -->
-        <div id="userLog-container" class="log-content">
+                <header class="logHeader" id="logHeader">
+                    <div class="title">System Logs</div>
+                    <div class="logMenu">
+                        <button class="selected" id="userButton"> User </button>
+                        <button id="adminButton"> Admin </button>
+                    </div>
+                </header>
+                
+                <!-- User Log Container -->
+                <div id="userLog-container" class="log-content">
             <div class="log-filter-bar">
             <div class="searchbox">
                         <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
@@ -692,33 +694,33 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
             
             <div class="logs-table-container">
                 <table class="logs-table">
-                    <thead>
-                        <tr>
-                            <th>Date & Time</th>
-                            <th>User</th>
-                            <th>Action</th>
-                            <th>Details</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                                <thead>
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>User</th>
+                                        <th>Action</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
                         <tr data-log-type="login">
-                            <td>2023-10-15 14:32</td>
-                            <td>admin@example.com</td>
+                                        <td>2023-10-15 14:32</td>
+                                        <td>admin@example.com</td>
                             <td><span class="log-action action-login">Login</span></td>
                             <td>Successful login from IP 192.168.1.1</td>
-                        </tr>
+                                    </tr>
                         <tr data-log-type="upload">
-                            <td>2023-10-15 13:45</td>
-                            <td>editor@example.com</td>
+                                        <td>2023-10-15 13:45</td>
+                                        <td>editor@example.com</td>
                             <td><span class="log-action action-upload">Thesis Upload</span></td>
                             <td>Uploaded "Advanced AI Research" (3.2MB)</td>
-                        </tr>
+                                    </tr>
                         <tr data-log-type="management">
-                            <td>2023-10-15 12:18</td>
-                            <td>admin@example.com</td>
+                                        <td>2023-10-15 12:18</td>
+                                        <td>admin@example.com</td>
                             <td><span class="log-action action-management">User Management</span></td>
-                            <td>Updated permissions for editor@example.com</td>
-                        </tr>
+                                        <td>Updated permissions for editor@example.com</td>
+                                    </tr>
                         <tr data-log-type="login">
                             <td>2023-10-15 11:30</td>
                             <td>user@example.com</td>
@@ -755,13 +757,13 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
                             <td><span class="log-action action-upload">Thesis Update</span></td>
                             <td>Updated metadata for "Machine Learning Applications"</td>
                         </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        
-        <!-- Admin Log Container -->
-        <div id="adminLog-container" class="log-content" style="display: none;">
+                                </tbody>
+                            </table>
+                    </div>
+                </div>
+                
+                <!-- Admin Log Container -->
+                <div id="adminLog-container" class="log-content" style="display: none;">
             <div class="log-filter-bar">
             <div class="searchbox">
                         <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
@@ -777,30 +779,30 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
             
             <div class="logs-table-container">
                 <table class="logs-table">
-                    <thead>
-                        <tr>
-                            <th>Date & Time</th>
-                            <th>Admin</th>
-                            <th>Action</th>
-                            <th>Details</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                                <thead>
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>Admin</th>
+                                        <th>Action</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
                         <tr data-log-type="system">
-                            <td>2023-10-16 09:15</td>
-                            <td>superadmin@example.com</td>
+                                        <td>2023-10-16 09:15</td>
+                                        <td>superadmin@example.com</td>
                             <td><span class="log-action action-system">System Update</span></td>
                             <td>Applied security patches to database server</td>
-                        </tr>
+                                    </tr>
                         <tr data-log-type="management">
-                            <td>2023-10-15 16:30</td>
-                            <td>admin@example.com</td>
+                                        <td>2023-10-15 16:30</td>
+                                        <td>admin@example.com</td>
                             <td><span class="log-action action-management">User Creation</span></td>
                             <td>Created new editor account: editor2@example.com</td>
-                        </tr>
+                                    </tr>
                         <tr data-log-type="system">
-                            <td>2023-10-15 11:05</td>
-                            <td>superadmin@example.com</td>
+                                        <td>2023-10-15 11:05</td>
+                                        <td>superadmin@example.com</td>
                             <td><span class="log-action action-system">Database Backup</span></td>
                             <td>Performed full system backup (2.4GB)</td>
                         </tr>
@@ -815,12 +817,12 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
                             <td>admin@example.com</td>
                             <td><span class="log-action action-management">Role Update</span></td>
                             <td>Changed user permissions for research team</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
 
             
         </section>
@@ -831,6 +833,7 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
 <!-- Upload Thesis Modal -->
 <div class="modal-overlay" id="uploadModal">
     <form class="modal" action="../../../app/Controllers/ThesisController.php?action=upload" method="POST" enctype="multipart/form-data" id="uploadForm">
+            
         <div class="modal-header">
             <h2 class="modal-title">Upload Thesis</h2>
             <div id="uploadError" class="error-message" style="display: none;"></div>
@@ -842,7 +845,7 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
                     <h3>Thesis Title *</h3>
                     <input type="text" name="thesistitle" placeholder="Enter thesis title" class="thesis-form-input" id="thesisTitle" required>
                 </div>
-
+                
                 <div class="thesis-form-group">
                     <h3>Author Emails *</h3>
                     <input type="text" name="thesisauthor" placeholder="Enter author emails separated by commas (e.g., author1@email.com, author2@email.com)" class="thesis-form-input" id="thesisAuthor" required>

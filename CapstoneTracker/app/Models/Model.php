@@ -64,15 +64,12 @@ class Model {
 
     public function findByEmail($email) {
         try {
-            $query = "SELECT * FROM {$this->tableName} WHERE Email = :email LIMIT 1";
-            $this->db->query($query);
+            $this->db->query('SELECT * FROM USER_INFORMATION WHERE Email = :email');
             $this->db->bind(':email', $email);
-            
-            $result = $this->db->single();
-            return $result ?: null;
+            return $this->db->single();
         } catch (Exception $e) {
-            error_log("Error finding user by email: " . $e->getMessage());
-            return null;
+            error_log("Find by email error: " . $e->getMessage());
+            return false;
         }
     }
     

@@ -71,12 +71,15 @@ class RegistrationController {
             if (strlen($data['password']) < 8) {
                 throw new Exception("Password must be at least 8 characters long");
             }
-            
-            // Handle profile picture upload
-            $profilePicPath = null;
+
+            $profilePicData = null;
             if (!empty($files['profilePic']) && $files['profilePic']['error'] === UPLOAD_ERR_OK) {
-                $profilePicPath = $this->handleProfilePictureUpload($files['profilePic']);
+                $profilePicData = file_get_contents($files['profilePic']['tmp_name']);
+            } else {
+                // Create a default profile picture (small transparent pixel)
+                $profilePicData = base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
             }
+            
             
             // Prepare user data for registration
             $userData = [
@@ -90,8 +93,8 @@ class RegistrationController {
                 'user_role' => 'student',
                 'acc_status' => 'pending',
                 'course' => $data['course'],
-                'designation' => $data['designation'],
-                'profile_pic' => $profilePicPath
+                'designation' => $designation,
+                'profile_pic' => $profilePicData
             ];
             
             // Use the register function from User model
@@ -142,11 +145,15 @@ class RegistrationController {
                 throw new Exception("Password must be at least 8 characters long");
             }
             
-            // Handle profile picture upload (optional for faculty)
-            $profilePicPath = null;
+            $profilePicData = null;
             if (!empty($files['profilePic']) && $files['profilePic']['error'] === UPLOAD_ERR_OK) {
-                $profilePicPath = $this->handleProfilePictureUpload($files['profilePic']);
+                $profilePicData = file_get_contents($files['profilePic']['tmp_name']);
+            } else {
+                // Create a default profile picture (small transparent pixel)
+                $profilePicData = base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
             }
+            
+            
             
             // Prepare user data for registration
             $userData = [
@@ -161,7 +168,7 @@ class RegistrationController {
                 'acc_status' => 'pending',
                 'department' => $data['department'],
                 'designation' => $data['designation'],
-                'profile_pic' => $profilePicPath  // Added profile picture for faculty
+                'profile_pic' => $profilePicData
             ];
             
             // Use the register function from User model

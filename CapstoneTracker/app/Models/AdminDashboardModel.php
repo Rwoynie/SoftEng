@@ -30,7 +30,6 @@ class AdminDashboardModel {
                     Department,
                     Course,
                     Designation,
-                    Profile_Pic,
                     created_at,
                     updated_at
                 FROM USER_INFORMATION 
@@ -64,7 +63,6 @@ class AdminDashboardModel {
                     Department,
                     Course,
                     Designation,
-                    Profile_Pic,
                     created_at,
                     updated_at
                 FROM USER_INFORMATION 
@@ -100,7 +98,6 @@ class AdminDashboardModel {
                     Department,
                     Course,
                     Designation,
-                    Profile_Pic,
                     created_at,
                     updated_at
                 FROM USER_INFORMATION 

@@ -1,5 +1,10 @@
 <?php
-// ThesisController.php
+ob_start();
+
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+header('Content-Type: application/json');
+
 require_once __DIR__ . '/../Models/Database.php';
 require_once __DIR__ . '/../Models/Thesis.php';
 require_once __DIR__ . '/../Models/AdminDashboardModel.php';
@@ -19,6 +24,7 @@ class ThesisController {
      * Handle thesis upload
      */
     public function uploadThesis() {
+       
         // Start session if not already started
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
@@ -47,25 +53,30 @@ class ThesisController {
         
         try {
             // Validate required fields
-            if (empty($_POST['thesistitle'])) {
-                throw new Exception('Thesis title is required');
+            $requiredFields = ['thesistitle', 'thesisauthor', 'department', 'course'];
+            foreach ($requiredFields as $field) {
+                if (empty($_POST[$field])) {
+                    throw new Exception(ucfirst($field) . ' is required');
+                }
             }
             
-            if (empty($_FILES['files'])) {
-                throw new Exception('Please select at least one file');
+            if (empty($_FILES['files']) || $_FILES['files']['error'] === UPLOAD_ERR_NO_FILE) {
+                throw new Exception('Please select a file to upload');
             }
-            
+
             $userId = $_SESSION['user_db_id'];
             $postData = [
                 'thesistitle' => trim($_POST['thesistitle']),
-                'thesisauthor' => isset($_POST['thesisauthor']) ? trim($_POST['thesisauthor']) : ''
+                'thesisauthor' => trim($_POST['thesisauthor']),
+                'department' => trim($_POST['department']),
+                'course' => trim($_POST['course'])
             ];
             
             // Upload thesis using the model
             $success = $this->thesisModel->uploadThesis($postData, $_FILES, $userId);
             
             if ($success) {
-                // Log the upload activity (you can implement this later)
+                // Log the upload activity
                 $this->logUploadActivity($userId, $postData['thesistitle']);
                 
                 http_response_code(200);
@@ -325,6 +336,42 @@ class ThesisController {
             ]);
         }
     }
+
+    /**
+     * Serve thesis file from BLOB
+     */
+    public function serveThesisFile() {
+        try {
+            $thesisId = $_GET['id'] ?? null;
+            
+            if (!$thesisId) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Thesis ID is required']);
+                return;
+            }
+            
+            $thesisFile = $this->thesisModel->getThesisFile($thesisId);
+            
+            if (!$thesisFile) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'Thesis file not found']);
+                return;
+            }
+            
+            // Set appropriate headers for PDF
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="thesis_' . $thesisId . '.pdf"');
+            header('Content-Length: ' . strlen($thesisFile->Thesis_File));
+            
+            // Output the BLOB data
+            echo $thesisFile->Thesis_File;
+            exit;
+            
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Failed to serve file: ' . $e->getMessage()]);
+        }
+    }
     
     /**
      * Log upload activity (placeholder for future implementation)
@@ -365,11 +412,15 @@ class ThesisController {
             case 'getThesisStatistics':
                 $this->getThesisStatistics();
                 break;
+            case 'download':
+                $this->serveThesisFile();
+                break;
             default:
                 http_response_code(404);
                 echo json_encode(['success' => false, 'error' => 'Action not found']);
                 break;
         }
+        ob_end_flush();
     }
 }
 

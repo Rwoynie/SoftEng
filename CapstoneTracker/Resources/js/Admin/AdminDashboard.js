@@ -317,7 +317,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // File input change event
     if (fileInput) {
         fileInput.addEventListener('change', function(e) {
-            handleFiles(e.target.files);
+            if (this.files && this.files.length > 0) {
+                handleFiles(this.files);
+            }
         });
     }
     
@@ -360,12 +362,34 @@ document.addEventListener('DOMContentLoaded', function() {
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             
-            // Check if file type is supported
+            // Check if file type is supported (only PDF)
             const fileExtension = file.name.split('.').pop().toLowerCase();
-            if (!'pdf'.includes(fileExtension)) {
+            if (fileExtension !== 'pdf') {
                 Swal.fire({
                     title: 'Unsupported File Type',
-                    text: 'Please upload only pdf files.',
+                    text: 'Please upload only PDF files.',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+                continue;
+            }
+            
+            // Check file size (max 50MB)
+            const maxFileSize = 50 * 1024 * 1024; // 50MB in bytes
+            if (file.size > maxFileSize) {
+                Swal.fire({
+                    title: 'File Too Large',
+                    text: 'Please upload files smaller than 50MB.',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+                continue;
+            }
+            
+            if (file.size === 0) {
+                Swal.fire({
+                    title: 'Empty File',
+                    text: 'The selected file is empty.',
                     icon: 'error',
                     confirmButtonText: 'OK'
                 });
@@ -374,6 +398,12 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Check if file is already in the list
             if (uploadedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                Swal.fire({
+                    title: 'File Already Added',
+                    text: 'This file has already been added to the upload list.',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
                 continue;
             }
             
@@ -391,6 +421,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 emptyState.remove();
             }
         }
+        
+        // Update upload button state
+        updateUploadButtonState();
+    }
+
+    function handleFileError(error) {
+        console.error('File processing error:', error);
+        Swal.fire({
+            title: 'File Error',
+            text: error.message || 'An error occurred while processing the file.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
     }
     
     // Display file in the list with preview
@@ -637,31 +680,31 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                     return;
                 }
-                
-                // Validate thesis title
-                const thesisTitleInput = document.getElementById('thesisTitle');
-                if (thesisTitleInput && !thesisTitleInput.value.trim()) {
-                    Swal.fire({
-                        title: 'Thesis Title Required',
-                        text: 'Please enter a title for your thesis.',
-                        icon: 'warning',
-                        confirmButtonText: 'OK'
-                    });
-                    return;
-                }
-                
-                // Show confirmation dialog
+            
+            // Validate thesis title
+            const thesisTitleInput = document.getElementById('thesisTitle');
+            if (thesisTitleInput && !thesisTitleInput.value.trim()) {
                 Swal.fire({
-                    title: 'Confirm Upload',
-                    html: `Are you sure you want to upload <strong>${thesisTitleInput.value}</strong> with ${uploadedFiles.length} file(s)?`,
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Yes, upload it!',
-                    cancelButtonText: 'Cancel'
-                }).then((result) => {
-                    if (result.isConfirmed) {
+                    title: 'Thesis Title Required',
+                    text: 'Please enter a title for your thesis.',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+            
+                // Show confirmation dialog
+            Swal.fire({
+                title: 'Confirm Upload',
+                html: `Are you sure you want to upload <strong>${thesisTitleInput.value}</strong> with ${uploadedFiles.length} file(s)?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, upload it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
                         // Show loading state
                         const originalText = btnUpload.textContent;
                         btnUpload.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
@@ -674,8 +717,38 @@ document.addEventListener('DOMContentLoaded', function() {
                             method: 'POST',
                             body: formData
                         })
-                        .then(response => response.json())
+                        .then(response => {
+                            console.log('Response status:', response.status);
+                            
+                            // Get raw text first
+                            return response.text().then(text => {
+                                console.log('Raw response:', text);
+                                
+                                let data;
+                                try {
+                                    // Try to parse as JSON directly
+                                    data = JSON.parse(text);
+                                } catch (e) {
+                                    // If direct parsing fails, try to extract JSON
+                                    const jsonMatch = text.match(/\{.*\}/s);
+                                    if (jsonMatch) {
+                                        try {
+                                            data = JSON.parse(jsonMatch[0]);
+                                        } catch (e2) {
+                                            console.error('Extracted JSON parse error:', e2);
+                                            throw new Error('Invalid server response format');
+                                        }
+                                    } else {
+                                        throw new Error('Invalid server response format');
+                                    }
+                                }
+                                
+                                return data;
+                            });
+                        })
                         .then(data => {
+                            console.log('Upload response:', data);
+                            
                             if (data.success) {
                                 Swal.fire({
                                     title: 'Upload Successful!',
@@ -686,19 +759,20 @@ document.addEventListener('DOMContentLoaded', function() {
                                     resetUploadForm();
                                     closeModal(uploadModal);
                                     // Optionally refresh the thesis list
-                                    // loadTheses();
+                                    // refreshThesisList();
                                 });
                             } else {
                                 throw new Error(data.error || 'Upload failed');
                             }
                         })
+                            
                         .catch(error => {
                             console.error('Upload error:', error);
-                            Swal.fire({
+                        Swal.fire({
                                 title: 'Upload Failed',
                                 text: error.message || 'Failed to upload thesis. Please try again.',
                                 icon: 'error',
-                                confirmButtonText: 'OK'
+                            confirmButtonText: 'OK'
                             });
                         })
                         .finally(() => {
@@ -1807,12 +1881,15 @@ if (accountSearchInput) {
         // Validate author emails
         const emailValidation = validateAuthorEmails(thesisAuthor.value);
         
+        // Check if department has a selected value
+        const isDepartmentSelected = departmentSelect && departmentSelect.value !== '';
+        
         const isFormValid = thesisTitle.value.trim() !== '' &&
                            thesisAuthor.value.trim() !== '' &&
                            emailValidation.isValid &&
-                           departmentSelect.value !== '' &&
+                           isDepartmentSelected &&
                            courseInput.value.trim() !== '' &&
-                           uploadedFiles.length > 0;
+                           uploadedFiles.length > 0; // This is important!
         
         uploadBtn.disabled = !isFormValid;
         
@@ -1823,6 +1900,15 @@ if (accountSearchInput) {
             thesisAuthor.style.borderColor = 'var(--color-danger)';
         } else {
             thesisAuthor.style.borderColor = '#51cf66';
+        }
+        
+        // Add visual feedback for department
+        if (departmentSelect) {
+            if (!isDepartmentSelected) {
+                departmentSelect.style.borderColor = 'var(--color-danger)';
+            } else {
+                departmentSelect.style.borderColor = '#51cf66';
+            }
         }
     }
 
@@ -1917,16 +2003,16 @@ if (accountSearchInput) {
                     return;
                 }
                 
-                // Validate author emails (must be @usep.edu.ph)
+                // Validate author emails
                 const thesisAuthorInput = document.getElementById('thesisAuthor');
                 const emailValidation = validateAuthorEmails(thesisAuthorInput.value);
                 
                 if (!emailValidation.isValid) {
                     const invalidEmailsList = emailValidation.invalidEmails.join(', ');
                     Swal.fire({
-                        title: 'Invalid USEP Email Addresses',
-                        html: `The following emails are not valid USEP email addresses: <strong>${invalidEmailsList}</strong><br><br>
-                               Please use only <strong>@usep.edu.ph</strong> email addresses for all authors.`,
+                        title: 'Invalid Email Addresses',
+                        html: `The following emails are not valid: <strong>${invalidEmailsList}</strong><br><br>
+                               Please use valid email addresses for all authors.`,
                         icon: 'error',
                         confirmButtonText: 'OK'
                     });
@@ -1935,7 +2021,7 @@ if (accountSearchInput) {
                 
                 // Validate department
                 const departmentSelect = document.getElementById('departmentSelect');
-                if (!departmentSelect.value) {
+                if (!departmentSelect || !departmentSelect.value) {
                     Swal.fire({
                         title: 'Department Required',
                         text: 'Please select a department.',
@@ -1957,13 +2043,15 @@ if (accountSearchInput) {
                     return;
                 }
                 
-                // Show confirmation dialog with author emails
+                // Show confirmation dialog with all details
                 const authorEmails = emailValidation.emails.join(', ');
+                const departmentText = departmentSelect.options[departmentSelect.selectedIndex].text;
+                
                 Swal.fire({
                     title: 'Confirm Upload',
                     html: `Are you sure you want to upload <strong>${thesisTitleInput.value}</strong>?<br><br>
                           <strong>Authors:</strong> ${authorEmails}<br>
-                          <strong>Department:</strong> ${departmentSelect.options[departmentSelect.selectedIndex].text}<br>
+                          <strong>Department:</strong> ${departmentText}<br>
                           <strong>Course:</strong> ${courseInput.value}<br>
                           <strong>Files:</strong> ${uploadedFiles.length} file(s)`,
                     icon: 'question',
@@ -1979,15 +2067,44 @@ if (accountSearchInput) {
                         btnUpload.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
                         btnUpload.disabled = true;
                         
-                        // Submit form via AJAX
-                        const formData = new FormData(uploadForm);
+                        // Create FormData and append all fields
+                        const formData = new FormData();
                         
+                        // Append text fields
+                        formData.append('thesistitle', thesisTitleInput.value.trim());
+                        formData.append('thesisauthor', thesisAuthorInput.value.trim());
+                        formData.append('department', departmentSelect.value);
+                        formData.append('course', courseInput.value.trim());
+                        
+                        // Append files - only the first file since your backend expects single file
+                        if (uploadedFiles.length > 0) {
+                            formData.append('files[]', uploadedFiles[0]);
+                        }
+                        
+                        // Debug: Log form data before sending
+                        console.log('Form data being sent:');
+                        for (let [key, value] of formData.entries()) {
+                            if (key === 'files[]') {
+                                console.log(key + ': ' + value.name + ' (' + value.size + ' bytes)');
+                            } else {
+                                console.log(key + ': ' + value);
+                            }
+                        }
+                        
+                        // Send the request
                         fetch(uploadForm.action, {
                             method: 'POST',
                             body: formData
                         })
-                        .then(response => response.json())
+                        .then(response => {
+                            console.log('Response status:', response.status);
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
                         .then(data => {
+                            console.log('Upload response:', data);
                             if (data.success) {
                                 Swal.fire({
                                     title: 'Upload Successful!',
@@ -1998,7 +2115,7 @@ if (accountSearchInput) {
                                     resetUploadForm();
                                     closeModal(uploadModal);
                                     // Optionally refresh the thesis list
-                                    // loadTheses();
+                                    // refreshThesisList();
                                 });
                             } else {
                                 throw new Error(data.error || 'Upload failed');
@@ -2034,21 +2151,23 @@ if (accountSearchInput) {
         const formFields = [
             'thesisTitle',
             'thesisAuthor',
-            'departmentSelect', 
             'courseInput'
         ];
         
         formFields.forEach(fieldId => {
             const field = document.getElementById(fieldId);
             if (field) {
-                if (field.tagName === 'SELECT') {
-                    field.selectedIndex = 0;
-                } else {
-                    field.value = '';
-                }
+                field.value = '';
                 field.style.borderColor = '#ddd';
             }
         });
+        
+        // Reset department select
+        const departmentSelect = document.getElementById('departmentSelect');
+        if (departmentSelect) {
+            departmentSelect.selectedIndex = 0;
+            departmentSelect.style.borderColor = '#ddd';
+        }
     }
 
     if (uploadModal) {
