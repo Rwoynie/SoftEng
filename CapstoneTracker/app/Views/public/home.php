@@ -18,7 +18,12 @@
     <header class="main-header">
       <div class="logo">
         <img href="javascript:window.location.reload(true)" src="../../../resources/images/ThesisCompLogo.png" alt="Logo" />
-        <h1>Thesis Compendium System</h1>
+        <div>
+          <h1>Thesis Compendium System</h1>
+          <h3>University of Southeastern Philippines</h3>
+
+        </div>
+        
       </div>
       <nav class="tabs">
         <a href="#" class="btn-login">Login</a>
@@ -31,7 +36,7 @@
       <section class="search-banner">
         <div class="banner-content">
           <h2>Discover Academic Excellence</h2>
-          <p>Access hundreds of thesis papers from IT department</p>
+          <p>Access hundreds of thesis papers from different departments</p>
           <div class="search-container">
             <div class="searchbox">
               <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
@@ -41,11 +46,11 @@
           </div>
           <div class="stats">
             <div class="stat-item">
-              <span class="stat-number">600+</span>
+              <span class="stat-number">200+</span>
               <span class="stat-label">Thesis Papers</span>
             </div>
             <div class="stat-item">
-              <span class="stat-number">350+</span>
+              <span class="stat-number">150+</span>
               <span class="stat-label">Active Researchers</span>
             </div>
             <div class="stat-item">
@@ -148,12 +153,16 @@
                 <i class="fa fa-chevron-down" aria-hidden="true"></i>
               </div>
               <div class="options">
-                <div data-value="all">All Departments</div>
-                <div data-value="cs">Computer Science</div>
-                <div data-value="it">Information Technology</div>
-                <div data-value="ce">Computer Engineering</div>
-                <div data-value="ee">Electrical Engineering</div>
-                <div data-value="me">Mechanical Engineering</div>
+                <div data-value="all">All Departments (200)</div>
+                <div data-value="cs">BECED | AECES (25)</div>
+                <div data-value="it">BSED English | AFSET (30)</div>
+                <div data-value="ce">BSED Filipino | AFSET (28)</div>
+                <div data-value="ee">BSED Math | AFSET (32)</div>
+                <div data-value="me">BTVTED | FTVETS (35)</div>
+                <div data-value="ee">BEED | OFEE (20)</div>
+                <div data-value="me">BSNED | OFSET (15)</div>
+                <div data-value="ce">BSABE | SABES (25)</div>
+                <div data-value="it">BSIT | SITS (40)</div>
               </div>
             </div>
             

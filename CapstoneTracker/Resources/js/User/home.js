@@ -1,745 +1,490 @@
-// Carousel functionality
-class Carousel {
-  constructor(container, options = {}) {
-    this.container = container;
-    this.cardsContainer = container.querySelector('.carousel-container > div');
-    this.cards = Array.from(this.cardsContainer.children);
-    this.prevBtn = container.querySelector('.carousel-control.prev');
-    this.nextBtn = container.querySelector('.carousel-control.next');
-    this.indicatorsContainer = container.querySelector('.carousel-indicators');
-    
-    this.currentIndex = 0;
-    this.cardsPerView = 3; // Fixed to 3 cards
-    this.autoPlay = options.autoPlay || false;
-    this.autoPlayInterval = options.autoPlayInterval || 5000;
-    this.autoPlayTimer = null;
-    this.isTransitioning = false;
-    
-    this.init();
+// Sample data for programs
+const programs = [
+  {
+    name: "SITS",
+    meaning: "Society of Information Technology Students",
+    image: "../../../resources/images/SITS_LOGO.png"
+  },
+  {
+    name: "AECES",
+    meaning: "Association of Early Childhood Education",
+    image: "../../../resources/images/AECES_LOGO.png"
+  },
+  {
+    name: "AFSET",
+    meaning: "Association of Future Secondary Teachers",
+    image: "../../../resources/images/AFSET_LOGO.png"
+  },
+  {
+    name: "FTVETS",
+    meaning: "Future Technical-Vocational Educators' and Trainers' Society",
+    image: "../../../resources/images/FTVETS_LOGO.png"
+  },
+  {
+    name: "OFEE",
+    meaning: "Organization of Future Elementary Educators",
+    image: "../../../resources/images/OFEE_LOGO.png"
+  },
+  {
+    name: "OFSET",
+    meaning: "Organization of Future Special Education Teachers",
+    image: "../../../resources/images/OFSET_LOGO.png"
+  },
+  {
+    name: "SABES",
+    meaning: "Society of Agricultural and Biosystems Engineering Students",
+    image: "../../../resources/images/SABES_LOGO.png"
   }
+];
 
-  init() {
-    this.setupCarousel();
-    this.createIndicators();
-    this.setupEventListeners();
-    this.updateCarousel();
-    
-    if (this.autoPlay) {
-      this.startAutoPlay();
-    }
+// Sample data for announcements
+const announcements = [
+  {
+    title: "Thesis Submission Deadline",
+    description: "Final submission for all undergraduate thesis papers is on December 15, 2024. Please ensure all requirements are met.",
+    date: "2024-11-20",
+    image: "../../../resources/images/Announcement_pic.png",
+    type: "deadline"
+  },
+  {
+    title: "Research Methodology Workshop",
+    description: "Join our workshop on advanced research methodologies for thesis writing. Open to all students.",
+    date: "2024-11-25",
+    image: "../../../resources/images/Announcement_pic.png",
+    type: "event"
+  },
+  {
+    title: "System Maintenance",
+    description: "The Thesis Compendium System will be undergoing maintenance on November 30, 2024 from 10 PM to 2 AM.",
+    date: "2024-11-28",
+    image: "../../../resources/images/Announcement_pic.png",
+    type: "info"
+  },
+  {
+    title: "New Thesis Guidelines",
+    description: "Updated thesis formatting guidelines have been released. Please review before submission.",
+    date: "2024-12-01",
+    image: "../../../resources/images/Announcement_pic.png",
+    type: "important"
+  },
+  {
+    title: "Research Grant Applications",
+    description: "Applications for research grants are now open. Deadline for submission is January 15, 2025.",
+    date: "2024-12-05",
+    image: "../../../resources/images/Announcement_pic.png",
+    type: "deadline"
   }
+];
 
-  setupCarousel() {
-    // Clone cards for infinite loop effect
-    const firstCards = Array.from(this.cards.slice(0, this.cardsPerView));
-    const lastCards = Array.from(this.cards.slice(-this.cardsPerView));
-    
-    // Append clones to beginning and end
-    lastCards.forEach(card => {
-      const clone = card.cloneNode(true);
-      clone.classList.add('clone');
-      this.cardsContainer.insertBefore(clone, this.cardsContainer.firstChild);
-    });
-    
-    firstCards.forEach(card => {
-      const clone = card.cloneNode(true);
-      clone.classList.add('clone');
-      this.cardsContainer.appendChild(clone);
-    });
-    
-    // Update cards reference
-    this.cards = Array.from(this.cardsContainer.children);
-    
-    // Start at the first original card (after clones)
-    this.currentIndex = this.cardsPerView;
-    this.cardsContainer.style.transform = `translateX(-${this.currentIndex * this.getCardWidth()}px)`;
+// Sample data for thesis papers
+const thesisPapers = [
+  {
+    id: 1,
+    title: "Machine Learning-Based Student Performance Prediction",
+    authors: "John Smith, Maria Garcia",
+    adviser: "Dr. Robert Johnson",
+    abstract: "This study explores the application of machine learning algorithms to predict student academic performance based on various factors...",
+    department: "BSIT | SITS",
+    uploadDate: "2024-11-15",
+    logo: "../../../resources/images/SITS_LOGO.png"
+  },
+  {
+    id: 2,
+    title: "Sustainable Agricultural Practices in Mindanao",
+    authors: "Carlos Reyes, Anna Lopez",
+    adviser: "Dr. Elizabeth Tan",
+    abstract: "Research on sustainable farming methods and their impact on crop yield and environmental conservation...",
+    department: "BSABE | SABES",
+    uploadDate: "2024-11-10",
+    logo: "../../../resources/images/SABES_LOGO.png"
+  },
+  {
+    id: 3,
+    title: "Early Childhood Education Curriculum Development",
+    authors: "Sarah Miller, James Wilson",
+    adviser: "Prof. Patricia Davis",
+    abstract: "Analysis of modern early childhood education approaches and development of an enhanced curriculum model...",
+    department: "BECED | AECES",
+    uploadDate: "2024-11-08",
+    logo: "../../../resources/images/AECES_LOGO.png"
+  },
+  {
+    id: 4,
+    title: "Inclusive Education Strategies for Special Needs",
+    authors: "Emily Chen, David Brown",
+    adviser: "Dr. Michael Anderson",
+    abstract: "Comprehensive study on inclusive education methodologies and their implementation in public schools...",
+    department: "BSNED | OFSET",
+    uploadDate: "2024-11-05",
+    logo: "../../../resources/images/OFSET_LOGO.png"
+  },
+  {
+    id: 5,
+    title: "Technical-Vocational Education Enhancement",
+    authors: "Mark Thompson, Lisa Rodriguez",
+    adviser: "Prof. Susan White",
+    abstract: "Evaluation of technical-vocational education programs and recommendations for curriculum improvement...",
+    department: "BTVTED | FTVETS",
+    uploadDate: "2024-11-03",
+    logo: "../../../resources/images/FTVETS_LOGO.png"
+  },
+  {
+    id: 6,
+    title: "Elementary Education Teaching Methodologies",
+    authors: "Jennifer Lee, Kevin Martinez",
+    adviser: "Dr. Amanda Harris",
+    abstract: "Research on innovative teaching methodologies for elementary education and their effectiveness...",
+    department: "BEED | OFEE",
+    uploadDate: "2024-10-28",
+    logo: "../../../resources/images/OFEE_LOGO.png"
+  },
+  {
+    id: 7,
+    title: "Science Education in Digital Age",
+    authors: "Daniel Kim, Sophia Garcia",
+    adviser: "Prof. Richard Clark",
+    abstract: "Study on integrating digital tools in science education and its impact on student learning outcomes...",
+    department: "BSED Science | AFSET",
+    uploadDate: "2024-10-25",
+    logo: "../../../resources/images/AFSET_LOGO.png"
+  },
+  {
+    id: 8,
+    title: "Mathematics Education Innovation",
+    authors: "Andrew Wilson, Michelle Tan",
+    adviser: "Dr. Christopher Lee",
+    abstract: "Development of innovative approaches to mathematics education focusing on problem-solving skills...",
+    department: "BSED Math | AFSET",
+    uploadDate: "2024-10-20",
+    logo: "../../../resources/images/AFSET_LOGO.png"
   }
+];
 
-  getCardWidth() {
-    if (this.cards.length === 0) return 0;
-    const card = this.cards[0];
-    const cardStyle = getComputedStyle(card);
-    const gap = parseInt(getComputedStyle(this.cardsContainer).gap) || 0;
-    return card.offsetWidth + gap;
-  }
+// DOM Elements
+const landingPage = document.getElementById('landing-page');
+const resultsPage = document.getElementById('results-page');
+const searchInput = document.getElementById('search-input');
+const searchBtn = document.getElementById('search-btn');
+const resultsSearchInput = document.getElementById('results-search-input');
+const resultsSearchBtn = document.getElementById('results-search-btn');
+const thesisResults = document.getElementById('thesis-results');
+const resultsNumber = document.getElementById('results-number');
+const filterDropdown = document.getElementById('filterDropdown');
+const listViewIcon = document.getElementById('listViewIcon');
+const gridViewIcon = document.getElementById('gridViewIcon');
 
-  createIndicators() {
-    if (!this.indicatorsContainer) return;
-    
-    const originalCardsCount = this.cards.length - (2 * this.cardsPerView);
-    const totalSlides = Math.ceil(originalCardsCount / this.cardsPerView);
-    this.indicatorsContainer.innerHTML = '';
-    
-    for (let i = 0; i < totalSlides; i++) {
-      const indicator = document.createElement('div');
-      indicator.className = `indicator ${i === 0 ? 'active' : ''}`;
-      indicator.addEventListener('click', () => this.goToSlide(i));
-      this.indicatorsContainer.appendChild(indicator);
-    }
-  }
-
-  setupEventListeners() {
-    this.prevBtn?.addEventListener('click', () => this.prev());
-    this.nextBtn?.addEventListener('click', () => this.next());
-    
-    // Touch/swipe support
-    let startX = 0;
-    let endX = 0;
-    
-    this.cardsContainer.addEventListener('touchstart', (e) => {
-      startX = e.touches[0].clientX;
-    });
-    
-    this.cardsContainer.addEventListener('touchmove', (e) => {
-      endX = e.touches[0].clientX;
-    });
-    
-    this.cardsContainer.addEventListener('touchend', () => {
-      const diff = startX - endX;
-      if (Math.abs(diff) > 50 && !this.isTransitioning) {
-        if (diff > 0) {
-          this.next();
-        } else {
-          this.prev();
-        }
-      }
-    });
-    
-    // Window resize
-    window.addEventListener('resize', () => {
-      this.updateCarousel();
-    });
-    
-    // Transition end event for loop handling
-    this.cardsContainer.addEventListener('transitionend', () => {
-      this.isTransitioning = false;
-      this.handleLoop();
-    });
-    
-    // Pause autoplay on hover
-    if (this.autoPlay) {
-      this.container.addEventListener('mouseenter', () => this.stopAutoPlay());
-      this.container.addEventListener('mouseleave', () => this.startAutoPlay());
-    }
-  }
-
-  updateCarousel() {
-    if (this.isTransitioning) return;
-    
-    const translateX = -this.currentIndex * this.getCardWidth();
-    this.cardsContainer.style.transition = 'transform 0.5s ease';
-    this.cardsContainer.style.transform = `translateX(${translateX}px)`;
-    this.updateIndicators();
-  }
-
-  updateIndicators() {
-    if (!this.indicatorsContainer) return;
-    
-    const indicators = this.indicatorsContainer.querySelectorAll('.indicator');
-    const originalCardsCount = this.cards.length - (2 * this.cardsPerView);
-    const totalSlides = Math.ceil(originalCardsCount / this.cardsPerView);
-    
-    // Calculate actual slide index (excluding clones)
-    let actualIndex = this.currentIndex - this.cardsPerView;
-    if (actualIndex < 0) {
-      actualIndex = totalSlides - 1;
-    } else if (actualIndex >= originalCardsCount) {
-      actualIndex = 0;
-    } else {
-      actualIndex = Math.floor(actualIndex / this.cardsPerView);
-    }
-    
-    indicators.forEach((indicator, index) => {
-      indicator.classList.toggle('active', index === actualIndex);
-    });
-  }
-
-  next() {
-    if (this.isTransitioning) return;
-    
-    this.isTransitioning = true;
-    this.currentIndex++;
-    this.updateCarousel();
-    this.resetAutoPlay();
-  }
-
-  prev() {
-    if (this.isTransitioning) return;
-    
-    this.isTransitioning = true;
-    this.currentIndex--;
-    this.updateCarousel();
-    this.resetAutoPlay();
-  }
-
-  handleLoop() {
-    const originalCardsCount = this.cards.length - (2 * this.cardsPerView);
-    
-    // If at the beginning clones, jump to end
-    if (this.currentIndex < this.cardsPerView) {
-      this.cardsContainer.style.transition = 'none';
-      this.currentIndex = this.cardsPerView + originalCardsCount - this.cardsPerView;
-      this.cardsContainer.style.transform = `translateX(-${this.currentIndex * this.getCardWidth()}px)`;
-      this.isTransitioning = false;
-    }
-    // If at the end clones, jump to beginning
-    else if (this.currentIndex >= this.cardsPerView + originalCardsCount) {
-      this.cardsContainer.style.transition = 'none';
-      this.currentIndex = this.cardsPerView;
-      this.cardsContainer.style.transform = `translateX(-${this.currentIndex * this.getCardWidth()}px)`;
-      this.isTransitioning = false;
-    }
-  }
-
-  goToSlide(slideIndex) {
-    if (this.isTransitioning) return;
-    
-    this.isTransitioning = true;
-    this.currentIndex = this.cardsPerView + (slideIndex * this.cardsPerView);
-    this.updateCarousel();
-    this.resetAutoPlay();
-  }
-
-  startAutoPlay() {
-    if (this.autoPlay && !this.autoPlayTimer) {
-      this.autoPlayTimer = setInterval(() => {
-        this.next();
-      }, this.autoPlayInterval);
-    }
-  }
-
-  stopAutoPlay() {
-    if (this.autoPlayTimer) {
-      clearInterval(this.autoPlayTimer);
-      this.autoPlayTimer = null;
-    }
-  }
-
-  resetAutoPlay() {
-    if (this.autoPlay) {
-      this.stopAutoPlay();
-      this.startAutoPlay();
-    }
-  }
-}
-
-// Dropdown functionality
-class Dropdown {
-  constructor(container) {
-    this.container = container;
-    this.selected = container.querySelector('.selected');
-    this.options = container.querySelector('.options');
-    this.optionsList = container.querySelectorAll('.options div');
-    
-    this.init();
-  }
-
-  init() {
-    this.setupEventListeners();
-  }
-
-  setupEventListeners() {
-    this.selected.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.toggle();
-    });
-
-    this.optionsList.forEach(option => {
-      option.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.select(option);
-      });
-    });
-
-    // Close dropdown when clicking outside
-    document.addEventListener('click', () => {
-      this.close();
-    });
-
-    // Prevent closing when clicking inside dropdown
-    this.options.addEventListener('click', (e) => {
-      e.stopPropagation();
-    });
-  }
-
-  toggle() {
-    this.container.classList.toggle('active');
-  }
-
-  close() {
-    this.container.classList.remove('active');
-  }
-
-  select(option) {
-    const value = option.getAttribute('data-value');
-    const text = option.textContent;
-    
-    this.selected.innerHTML = `
-      <span>${text}</span>
-      <i class="fa fa-chevron-down" aria-hidden="true"></i>
-    `;
-    
-    this.close();
-    
-    // Dispatch custom event
-    this.container.dispatchEvent(new CustomEvent('change', {
-      detail: { value, text }
-    }));
-  }
-
-  getValue() {
-    return this.selected.querySelector('span').textContent;
-  }
-}
-
-// Main application
-class ThesisCompendiumApp {
-  constructor() {
-    this.currentPage = 'landing';
-    this.carousels = [];
-    this.dropdowns = [];
-    this.init();
-  }
-
-  init() {
-    this.initializeCarousels();
-    this.initializeDropdowns();
-    this.setupEventListeners();
-    this.loadSampleData();
-  }
-
-  initializeCarousels() {
-    // Announcements carousel
-    const announcementsCarousel = document.querySelector('.announcements-carousel');
-    if (announcementsCarousel) {
-      this.carousels.push(new Carousel(announcementsCarousel, {
-        autoPlay: true,
-        autoPlayInterval: 6000
-      }));
-    }
-
-    // Programs carousel
-    const programsCarousel = document.querySelector('.logo-carousel');
-    if (programsCarousel) {
-      this.carousels.push(new Carousel(programsCarousel, {
-        autoPlay: true,
-        autoPlayInterval: 5000
-      }));
-    }
-  }
-
-  initializeDropdowns() {
-    const dropdownContainers = document.querySelectorAll('.select');
-    dropdownContainers.forEach(container => {
-      this.dropdowns.push(new Dropdown(container));
-    });
-  }
-
-  setupEventListeners() {
-    // Search functionality
-    const searchBtn = document.getElementById('search-btn');
-    const searchInput = document.getElementById('search-input');
-    const resultsSearchBtn = document.getElementById('results-search-btn');
-    const resultsSearchInput = document.getElementById('results-search-input');
-
-    const performSearch = () => {
-      const query = searchInput?.value || resultsSearchInput?.value;
-      if (query && query.trim()) {
-        this.showResultsPage();
-        this.performSearch(query);
-      }
-    };
-
-    searchBtn?.addEventListener('click', performSearch);
-    resultsSearchBtn?.addEventListener('click', performSearch);
-
-    searchInput?.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') performSearch();
-    });
-
-    resultsSearchInput?.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') performSearch();
-    });
-
-    // View toggle
-    const listViewIcon = document.getElementById('listViewIcon');
-    const gridViewIcon = document.getElementById('gridViewIcon');
-    const resultsContainer = document.getElementById('thesis-results');
-
-    listViewIcon?.addEventListener('click', () => {
-      listViewIcon.classList.add('selected');
-      gridViewIcon.classList.remove('selected');
-      resultsContainer?.classList.remove('grid');
-      resultsContainer?.classList.add('list');
-    });
-
-    gridViewIcon?.addEventListener('click', () => {
-      gridViewIcon.classList.add('selected');
-      listViewIcon.classList.remove('selected');
-      resultsContainer?.classList.remove('list');
-      resultsContainer?.classList.add('grid');
-    });
-
-    // Logo click to reload
-    document.querySelector('.logo img')?.addEventListener('click', () => {
-      window.location.reload();
-    });
-
-    // Login button
-    document.querySelector('.btn-login')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      alert('Login functionality would go here');
-    });
-
-    // Filter and sort dropdown events
-    const filterDropdown = document.getElementById('filterDropdown');
-    const sortDropdown = document.getElementById('sortDropdown');
-
-    filterDropdown?.addEventListener('change', (e) => {
-      this.filterResults(e.detail.value);
-    });
-
-    sortDropdown?.addEventListener('change', (e) => {
-      this.sortResults(e.detail.value);
-    });
-  }
-
-  showResultsPage() {
-    document.getElementById('landing-page').classList.add('hidden');
-    document.getElementById('results-page').classList.remove('hidden');
-  }
-
-  showLandingPage() {
-    document.getElementById('landing-page').classList.remove('hidden');
-    document.getElementById('results-page').classList.add('hidden');
-  }
-
-  performSearch(query) {
-    // Simulate search results
-    const resultsContainer = document.getElementById('thesis-results');
-    const resultsCount = document.getElementById('results-number');
-    
-    if (resultsContainer && resultsCount) {
-      // In a real application, this would be an API call
-      const results = this.generateSampleResults(query);
-      this.displayResults(results);
-      resultsCount.textContent = results.length;
-    }
-  }
-
-  filterResults(department) {
-    const query = document.getElementById('results-search-input')?.value || '';
-    let results = this.generateSampleResults(query);
-    
-    if (department !== 'all') {
-      results = results.filter(thesis => 
-        thesis.department.toLowerCase().includes(department.toLowerCase())
-      );
-    }
-    
-    this.displayResults(results);
-    document.getElementById('results-number').textContent = results.length;
-  }
-
-  sortResults(criteria) {
-    const query = document.getElementById('results-search-input')?.value || '';
-    let results = this.generateSampleResults(query);
-    
-    switch(criteria) {
-      case 'recent':
-        results.sort((a, b) => new Date(b.date) - new Date(a.date));
-        break;
-      case 'popular':
-        results.sort((a, b) => b.views - a.views);
-        break;
-      case 'title':
-        results.sort((a, b) => a.title.localeCompare(b.title));
-        break;
-      case 'department':
-        results.sort((a, b) => a.department.localeCompare(b.department));
-        break;
-    }
-    
-    this.displayResults(results);
-  }
-
-  generateSampleResults(query) {
-    // Sample data for demonstration
-    const allResults = [
-      {
-        id: 1,
-        title: "Machine Learning for Predictive Analysis",
-        authors: "John Smith, Sarah Johnson",
-        abstract: "This research explores the application of machine learning algorithms for predictive analysis in healthcare data.",
-        progress: 85,
-        deadline: "2024-06-15",
-        department: "Computer Science",
-        date: "2024-01-15",
-        views: 245
-      },
-      {
-        id: 2,
-        title: "Blockchain Implementation for Secure Voting",
-        authors: "Michael Brown, Emily Davis",
-        abstract: "A comprehensive study on implementing blockchain technology for secure and transparent voting systems.",
-        progress: 60,
-        deadline: "2024-07-20",
-        department: "Information Technology",
-        date: "2024-02-10",
-        views: 189
-      },
-      {
-        id: 3,
-        title: "IoT-based Smart Home Automation",
-        authors: "Robert Wilson, Lisa Anderson",
-        abstract: "Development of an IoT-based system for smart home automation with energy efficiency optimization.",
-        progress: 90,
-        deadline: "2024-05-30",
-        department: "Computer Engineering",
-        date: "2024-01-30",
-        views: 312
-      },
-      {
-        id: 4,
-        title: "Renewable Energy Monitoring System",
-        authors: "David Miller, Jennifer Taylor",
-        abstract: "A monitoring system for renewable energy sources with real-time data analysis and reporting.",
-        progress: 75,
-        deadline: "2024-08-10",
-        department: "Electrical Engineering",
-        date: "2024-03-05",
-        views: 167
-      },
-      {
-        id: 5,
-        title: "Automated Manufacturing Process",
-        authors: "Christopher Lee, Amanda White",
-        abstract: "Automation of manufacturing processes using robotics and AI for improved efficiency.",
-        progress: 45,
-        deadline: "2024-09-15",
-        department: "Mechanical Engineering",
-        date: "2024-02-28",
-        views: 134
-      }
-    ];
-
-    if (!query) return allResults;
-
-    const searchTerm = query.toLowerCase();
-    return allResults.filter(result => 
-      result.title.toLowerCase().includes(searchTerm) ||
-      result.abstract.toLowerCase().includes(searchTerm) ||
-      result.authors.toLowerCase().includes(searchTerm) ||
-      result.department.toLowerCase().includes(searchTerm)
-    );
-  }
-
-  displayResults(results) {
-    const resultsContainer = document.getElementById('thesis-results');
-    if (!resultsContainer) return;
-
-    if (results.length === 0) {
-      resultsContainer.innerHTML = `
-        <div class="no-results">
-          <i class="fas fa-search"></i>
-          <h3>No results found</h3>
-          <p>Try different keywords or check your spelling</p>
-        </div>
-      `;
-      return;
-    }
-
-    resultsContainer.innerHTML = results.map(result => `
-      <div class="thesis-card" onclick="app.viewThesisDetail(${result.id})">
-        <div class="card-header">
-          <div class="card-logo">
-            <i class="fas fa-graduation-cap"></i>
-          </div>
-          <div class="card-menu">
-            <i class="fas fa-ellipsis-v"></i>
-          </div>
-        </div>
-        <div class="card-content">
-          <h3>${result.title}</h3>
-          <a href="#">${result.authors}</a>
-          <p>${result.abstract}</p>
-          <div class="progress-container">
-            <div class="progress-info">
-              <span>Progress</span>
-              <span>${result.progress}%</span>
-            </div>
-            <div class="progress-bar">
-              <div class="progress-fill" style="width: ${result.progress}%"></div>
-            </div>
-          </div>
-        </div>
-        <div class="card-footer">
-          <div class="deadline">
-            <i class="fas fa-clock"></i>
-            <span>Due: ${new Date(result.deadline).toLocaleDateString()}</span>
-          </div>
-          <div class="available">
-            <i class="fas fa-check-circle"></i>
-            <span>Available</span>
-          </div>
-        </div>
-      </div>
-    `).join('');
-  }
-
-  viewThesisDetail(id) {
-    alert(`Viewing thesis details for ID: ${id}\n\nIn a real application, this would navigate to the thesis detail page.`);
-  }
-
-  loadSampleData() {
-    // Load sample announcements
-    this.loadSampleAnnouncements();
-    // Load sample programs
-    this.loadSamplePrograms();
-  }
-
-  loadSampleAnnouncements() {
-    const announcementsContainer = document.querySelector('.announcement-cards');
-    if (!announcementsContainer) return;
-
-    const announcements = [
-      {
-        title: "Thesis Submission Deadline",
-        date: "June 15, 2024",
-        description: "Final submission deadline for all undergraduate thesis papers. Make sure to complete all requirements.",
-        badge: "deadline",
-        image: "../../../resources/images/Announcement_pic.png"
-      },
-      {
-        title: "Research Methodology Workshop",
-        date: "June 20, 2024",
-        description: "Join our workshop on advanced research methodologies and statistical analysis techniques.",
-        badge: "event",
-        image: "../../../resources/images/Announcement_pic.png"
-      },
-      {
-        title: "System Maintenance",
-        date: "June 10, 2024",
-        description: "The system will be undergoing maintenance from 2:00 AM to 4:00 AM. Please save your work.",
-        badge: "info",
-        image: "../../../resources/images/Announcement_pic.png"
-      },
-      {
-        title: "New Features Added",
-        date: "June 5, 2024",
-        description: "We've added new features including advanced search filters and citation tools.",
-        badge: "info",
-        image: "../../../resources/images/Announcement_pic.png"
-      },
-      {
-        title: "Research Grant Opportunities",
-        date: "July 1, 2024",
-        description: "Apply for research grants available for innovative projects in computer science.",
-        badge: "important",
-        image: "../../../resources/images/Announcement_pic.png"
-      }
-    ];
-
-    announcementsContainer.innerHTML = announcements.map(announcement => `
-      <div class="announcement-card">
-        <div class="card-badge ${announcement.badge}">${announcement.badge.toUpperCase()}</div>
-        <div class="card-image">
-          <img src="${announcement.image}" alt="${announcement.title}" class="Anncmnt_pic" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE4MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjdmYWZjIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0jOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+QW5ub3VuY2VtZW50IEltYWdlPC90ZXh0Pjwvc3ZnPg=='">
-        </div>
-        <div class="card-content">
-          <div class="card-header">
-            <h3>${announcement.title}</h3>
-            <span class="date">${announcement.date}</span>
-          </div>
-          <p>${announcement.description}</p>
-          <a href="#" class="read-more">
-            Read More <i class="fas fa-arrow-right"></i>
-          </a>
-        </div>
-      </div>
-    `).join('');
-
-    // Reinitialize carousel with new cards
-    const announcementsCarousel = document.querySelector('.announcements-carousel');
-    if (announcementsCarousel) {
-      this.carousels[0] = new Carousel(announcementsCarousel, {
-        autoPlay: true,
-        autoPlayInterval: 6000
-      });
-    }
-  }
-
-  loadSamplePrograms() {
-    const programsContainer = document.querySelector('.logo-cards');
-    if (!programsContainer) return;
-
-    const programs = [
-      {
-        name: "AECES",
-        meaning: "Association of Early Childhood Education",
-        image: "../../../resources/images/AECES_LOGO.png"
-      },
-      {
-        name: "AFSET",
-        meaning: "Association of Future Secondary Teachers",
-        image: "../../../resources/images/AFSET_LOGO.png"
-      },
-      {
-        name: "FTVETS",
-        meaning: "Future Technical-Vocational Educators' and Trainers' Society",
-        image: "../../../resources/images/FTVETS_LOGO.png"
-      },
-      {
-        name: "OFEE",
-        meaning: "Organization of Future Elementary Educators",
-        image: "../../../resources/images/OFEE_LOGO.png"
-      },
-      {
-        name: "OFSET",
-        meaning: "Organization of Future Special Education Teachers",
-        image: "../../../resources/images/OFSET_LOGO.png"
-      },
-      {
-        name: "SABES",
-        meaning: "Society of Agricultural and Biosystems Engineering Students",
-        image: "../../../resources/images/SABES_LOGO.png"
-      },
-      {
-        name: "SITS",
-        meaning: "Society of Information Technology Students",
-        image: "../../../resources/images/SITS_LOGO.png"
-      }
-    ];
-
-    programsContainer.innerHTML = programs.map(program => `
-      <div class="logo-card">
-        <div class="card-image">
-          <img src="${program.image}" alt="${program.name}" class="dept_pic" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE4MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjdmYWZjIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0jOTk5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+UHJvZ3JhbSBMb2dvPC90ZXh0Pjwvc3ZnPg=='">
-        </div>
-        <div class="card-content">
-          <h3>${program.name}</h3>
-          <span class="meaning">${program.meaning}</span>
-        </div>
-      </div>
-    `).join('');
-
-    // Reinitialize carousel with new cards
-    const programsCarousel = document.querySelector('.logo-carousel');
-    if (programsCarousel) {
-      this.carousels[1] = new Carousel(programsCarousel, {
-        autoPlay: true,
-        autoPlayInterval: 5000
-      });
-    }
-  }
-}
-
-// Initialize the application when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-  window.app = new ThesisCompendiumApp();
+// Initialize the page
+document.addEventListener('DOMContentLoaded', function() {
+  initializeAnnouncements();
+  initializePrograms();
+  initializeEventListeners();
 });
 
-// Export for potential module usage
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { Carousel, Dropdown, ThesisCompendiumApp };
+// Initialize announcements carousel
+function initializeAnnouncements() {
+  const announcementsContainer = document.querySelector('.announcement-cards');
+  const indicatorsContainer = document.querySelector('.announcements-carousel .carousel-indicators');
+  
+  announcements.forEach((announcement, index) => {
+    // Create announcement card
+    const card = document.createElement('div');
+    card.className = 'announcement-card';
+    card.innerHTML = `
+      <div class="card-badge ${announcement.type}">${getBadgeText(announcement.type)}</div>
+      <div class="card-image">
+        <img src="${announcement.image}" alt="${announcement.title}" class="Anncmnt_pic">
+      </div>
+      <div class="card-content">
+        <div class="card-header">
+          <h3>${announcement.title}</h3>
+          <div class="date">${formatDate(announcement.date)}</div>
+        </div>
+        <p>${announcement.description}</p>
+        <a href="#" class="read-more">Read More <i class="fas fa-arrow-right"></i></a>
+      </div>
+    `;
+    announcementsContainer.appendChild(card);
+    
+    // Create indicator
+    const indicator = document.createElement('div');
+    indicator.className = `indicator ${index === 0 ? 'active' : ''}`;
+    indicator.addEventListener('click', () => scrollToAnnouncement(index));
+    indicatorsContainer.appendChild(indicator);
+  });
+  
+  // Initialize carousel controls
+  initializeCarouselControls('.announcements-carousel');
+}
+
+// Initialize programs carousel
+function initializePrograms() {
+  const programsContainer = document.querySelector('.logo-cards');
+  const indicatorsContainer = document.querySelector('.program-logos-section .carousel-indicators');
+  
+  programs.forEach((program, index) => {
+    // Create program card
+    const card = document.createElement('div');
+    card.className = 'logo-card';
+    card.innerHTML = `
+      <div class="card-image">
+        <img src="${program.image}" alt="${program.name}" class="dept_pic">
+      </div>
+      <div class="card-content">
+        <div class="card-header">
+          <h3>${program.name}</h3>
+          <div class="meaning">${program.meaning}</div>
+        </div>
+        <a href="#" class="read-more">View Department <i class="fas fa-arrow-right"></i></a>
+      </div>
+    `;
+    programsContainer.appendChild(card);
+    
+    // Create indicator
+    const indicator = document.createElement('div');
+    indicator.className = `indicator ${index === 0 ? 'active' : ''}`;
+    indicator.addEventListener('click', () => scrollToProgram(index));
+    indicatorsContainer.appendChild(indicator);
+  });
+  
+  // Initialize carousel controls
+  initializeCarouselControls('.program-logos-section');
+}
+
+// Initialize carousel controls
+function initializeCarouselControls(carouselSelector) {
+  const carousel = document.querySelector(carouselSelector);
+  const container = carousel.querySelector('.carousel-container');
+  const cards = carousel.querySelector('.announcement-cards') || carousel.querySelector('.logo-cards');
+  const prevBtn = carousel.querySelector('.carousel-control.prev');
+  const nextBtn = carousel.querySelector('.carousel-control.next');
+  const indicators = carousel.querySelectorAll('.indicator');
+  
+  let currentIndex = 0;
+  const cardCount = cards.children.length;
+  const cardWidth = cards.children[0].offsetWidth + 24; // width + gap
+  
+  function updateCarousel() {
+    const scrollPosition = currentIndex * cardWidth;
+    cards.scrollTo({
+      left: scrollPosition,
+      behavior: 'smooth'
+    });
+    
+    // Update indicators
+    indicators.forEach((indicator, index) => {
+      indicator.classList.toggle('active', index === currentIndex);
+    });
+  }
+  
+  prevBtn.addEventListener('click', () => {
+    if (currentIndex > 0) {
+      currentIndex--;
+      updateCarousel();
+    }
+  });
+  
+  nextBtn.addEventListener('click', () => {
+    if (currentIndex < cardCount - 1) {
+      currentIndex++;
+      updateCarousel();
+    }
+  });
+  
+  // Update indicators on scroll
+  cards.addEventListener('scroll', () => {
+    const scrollPos = cards.scrollLeft;
+    currentIndex = Math.round(scrollPos / cardWidth);
+    
+    indicators.forEach((indicator, index) => {
+      indicator.classList.toggle('active', index === currentIndex);
+    });
+  });
+}
+
+// Scroll to specific announcement
+function scrollToAnnouncement(index) {
+  const announcementsCarousel = document.querySelector('.announcements-carousel');
+  const cards = announcementsCarousel.querySelector('.announcement-cards');
+  const cardWidth = cards.children[0].offsetWidth + 24;
+  
+  cards.scrollTo({
+    left: index * cardWidth,
+    behavior: 'smooth'
+  });
+}
+
+// Scroll to specific program
+function scrollToProgram(index) {
+  const programsCarousel = document.querySelector('.program-logos-section');
+  const cards = programsCarousel.querySelector('.logo-cards');
+  const cardWidth = cards.children[0].offsetWidth + 24;
+  
+  cards.scrollTo({
+    left: index * cardWidth,
+    behavior: 'smooth'
+  });
+}
+
+// Initialize event listeners
+function initializeEventListeners() {
+  // Search functionality
+  searchBtn.addEventListener('click', performSearch);
+  searchInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') performSearch();
+  });
+  
+  resultsSearchBtn.addEventListener('click', performResultsSearch);
+  resultsSearchInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') performResultsSearch();
+  });
+  
+  // Filter dropdown
+  filterDropdown.addEventListener('click', toggleDropdown);
+  
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!filterDropdown.contains(e.target)) {
+      filterDropdown.classList.remove('active');
+    }
+  });
+  
+  // View toggle
+  listViewIcon.addEventListener('click', () => toggleView('list'));
+  gridViewIcon.addEventListener('click', () => toggleView('grid'));
+  
+  // Login button
+  document.querySelector('.btn-login').addEventListener('click', function(e) {
+    e.preventDefault();
+    alert('Login functionality would be implemented here');
+  });
+}
+
+// Perform search from landing page
+function performSearch() {
+  const query = searchInput.value.trim();
+  if (query) {
+    showResultsPage();
+    displaySearchResults(query);
+  }
+}
+
+// Perform search from results page
+function performResultsSearch() {
+  const query = resultsSearchInput.value.trim();
+  if (query) {
+    displaySearchResults(query);
+  }
+}
+
+// Show results page
+function showResultsPage() {
+  landingPage.classList.add('hidden');
+  resultsPage.classList.remove('hidden');
+}
+
+// Display search results
+function displaySearchResults(query) {
+  // Filter thesis papers based on query
+  const filteredResults = thesisPapers.filter(paper => 
+    paper.title.toLowerCase().includes(query.toLowerCase()) ||
+    paper.authors.toLowerCase().includes(query.toLowerCase()) ||
+    paper.adviser.toLowerCase().includes(query.toLowerCase()) ||
+    paper.department.toLowerCase().includes(query.toLowerCase()) ||
+    paper.abstract.toLowerCase().includes(query.toLowerCase())
+  );
+  
+  // Update results count
+  resultsNumber.textContent = filteredResults.length;
+  
+  // Clear previous results
+  thesisResults.innerHTML = '';
+  
+  // Display results
+  if (filteredResults.length === 0) {
+    thesisResults.innerHTML = `
+      <div class="no-results">
+        <i class="fas fa-search fa-3x"></i>
+        <h3>No results found</h3>
+        <p>Try different keywords or browse all departments</p>
+      </div>
+    `;
+  } else {
+    filteredResults.forEach(paper => {
+      const card = createThesisCard(paper);
+      thesisResults.appendChild(card);
+    });
+  }
+}
+
+// Create thesis card element
+function createThesisCard(paper) {
+  const card = document.createElement('div');
+  card.className = 'thesis-card';
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="card-logo">
+        <img src="${paper.logo}" alt="${paper.department}" style="width: 100%; height: 100%; object-fit: contain;">
+      </div>
+      <div class="card-menu">
+        <i class="fas fa-ellipsis-v"></i>
+      </div>
+    </div>
+    <h3>${paper.title}</h3>
+    <a href="#">${paper.authors}</a>
+    <p>${paper.abstract.substring(0, 150)}...</p>
+    <div class="card-footer">
+      <div class="upload-date">
+        <i class="far fa-calendar-alt"></i>
+        <span>Uploaded: ${formatDate(paper.uploadDate)}</span>
+      </div>
+      <div class="available">
+        <i class="fas fa-check-circle"></i>
+        <span>Available</span>
+      </div>
+    </div>
+  `;
+  
+  card.addEventListener('click', () => {
+    alert(`Viewing details for: ${paper.title}`);
+    // In a real application, this would navigate to the thesis detail page
+  });
+  
+  return card;
+}
+
+// Toggle dropdown
+function toggleDropdown() {
+  this.classList.toggle('active');
+}
+
+// Toggle view between list and grid
+function toggleView(view) {
+  if (view === 'list') {
+    thesisResults.classList.remove('grid');
+    thesisResults.classList.add('list');
+    listViewIcon.classList.add('selected');
+    gridViewIcon.classList.remove('selected');
+  } else {
+    thesisResults.classList.remove('list');
+    thesisResults.classList.add('grid');
+    gridViewIcon.classList.add('selected');
+    listViewIcon.classList.remove('selected');
+  }
+}
+
+// Utility function to format date
+function formatDate(dateString) {
+  const options = { year: 'numeric', month: 'long', day: 'numeric' };
+  return new Date(dateString).toLocaleDateString('en-US', options);
+}
+
+// Utility function to get badge text
+function getBadgeText(type) {
+  const badgeTexts = {
+    'important': 'Important',
+    'deadline': 'Deadline',
+    'info': 'Information',
+    'event': 'Event'
+  };
+  return badgeTexts[type] || 'Announcement';
 }
