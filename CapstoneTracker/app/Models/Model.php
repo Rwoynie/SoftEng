@@ -61,6 +61,20 @@ class Model {
             return false;
         }
     }
+
+    public function findByEmail($email) {
+        try {
+            $query = "SELECT * FROM {$this->tableName} WHERE Email = :email LIMIT 1";
+            $this->db->query($query);
+            $this->db->bind(':email', $email);
+            
+            $result = $this->db->single();
+            return $result ?: null;
+        } catch (Exception $e) {
+            error_log("Error finding user by email: " . $e->getMessage());
+            return null;
+        }
+    }
     
     public function delete($id) {
         try {

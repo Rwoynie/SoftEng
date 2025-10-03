@@ -1776,7 +1776,7 @@ if (accountSearchInput) {
 
     //Upload Functionality
     function isValidEmail(email) {
-        const emailRegex = /^[^\s@]+@usep\.edu\.ph$/;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(email.trim());
     }
 
@@ -1836,9 +1836,9 @@ if (accountSearchInput) {
                 if (this.value.trim() && !emailValidation.isValid) {
                     const invalidEmailsList = emailValidation.invalidEmails.join(', ');
                     Swal.fire({
-                        title: 'Invalid USEP Email',
+                        title: 'Invalid Email Format',
                         html: `The following emails are invalid: <strong>${invalidEmailsList}</strong><br><br>
-                               All author emails must be valid <strong>@usep.edu.ph</strong> email addresses.`,
+                               Please enter valid email addresses separated by commas.`,
                         icon: 'warning',
                         confirmButtonText: 'OK'
                     });

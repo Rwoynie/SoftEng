@@ -1,12 +1,22 @@
 <?php
+
+require_once 'Model.php';
+require_once 'User.php';
+
 class Thesis extends Model {
     protected $tableName = 'THESIS';
     private $error = null;
-    
+    private $userModel;
+
+    public function __construct() {
+        parent::__construct();
+        $this->userModel = new User();
+    }
+
     /**
-     * Upload thesis file and save to database
+     * Upload thesis file and save to database (ADMIN VERSION)
      */
-    public function uploadThesis($postData, $files, $userId) {
+    public function uploadThesis($postData, $files, $adminUserId) {
         try {
             // Validate input
             if (empty($postData['thesistitle'])) {
@@ -18,25 +28,70 @@ class Thesis extends Model {
                 $this->error = 'Please select at least one file';
                 return false;
             }
-            
+
+            // Validate and process author emails
+            if (empty($postData['thesisauthor'])) {
+                $this->error = 'Author emails are required';
+                return false;
+            }
+
+            // Get author information from emails
+            $authorEmails = array_map('trim', explode(',', $postData['thesisauthor']));
+            $authorNames = [];
+            $authorIds = [];
+
+            foreach ($authorEmails as $email) {
+                if (!empty($email)) {
+                    // Find user by email
+                    $author = $this->userModel->findByEmail($email);
+                    if ($author) {
+                        // Build author name
+                        $authorName = $author['First_Name'];
+                        if (!empty($author['Middle_Name'])) {
+                            $authorName .= ' ' . $author['Middle_Name'];
+                        }
+                        $authorName .= ' ' . $author['Last_Name'];
+                        if (!empty($author['Extension'])) {
+                            $authorName .= ' ' . $author['Extension'];
+                        }
+                        
+                        $authorNames[] = $authorName;
+                        $authorIds[] = $author['ID'];
+                    } else {
+                        // If user not found, use email as name
+                        $authorNames[] = $email;
+                        $authorIds[] = null; // No user ID for non-existent users
+                    }
+                }
+            }
+
+            if (empty($authorNames)) {
+                $this->error = 'No valid authors found for the provided emails';
+                return false;
+            }
+
             // Process file upload
             $uploadedFiles = $this->processFiles($files['files']);
             if (!$uploadedFiles) {
                 return false;
             }
             
-            // Save to database
+            // Save to database - use the first author's ID as the main User_ID
+            // or the admin's ID if no valid authors found
+            $mainUserId = !empty($authorIds[0]) ? $authorIds[0] : $adminUserId;
+            $authorString = implode(', ', $authorNames);
+            
             foreach ($uploadedFiles as $fileInfo) {
                 $success = $this->saveThesisToDatabase([
-                    'User_ID' => $userId,
-                    'Thesis_Department' => $postData['department'],
-                    'Thesis_Course' => $postData['course'],
-                    'Thesis_Email' => $postData['thesisauthor'],
-                    'title' => $postData['thesistitle'],
-                    'author' => !empty($postData['First_Name, Middle_Name, Last_Name, Extension']) ? $postData['First_Name, Middle_Name, Last_Name, Extension'] : '',
-                    'file_path' => $fileInfo['file_path'],
-                    'file_size' => $fileInfo['file_size'],
-                    'file_type' => $fileInfo['file_type'],
+                    'User_ID' => $mainUserId,
+                    'Thesis_Department' => $postData['department'] ?? '',
+                    'Thesis_Course' => $postData['course'] ?? '',
+                    'Thesis_Email' => $postData['thesisauthor'] ?? '', // Store original email string
+                    'Title' => $postData['thesistitle'],
+                    'Author' => $authorString,
+                    'File_Path' => $fileInfo['file_path'],
+                    'File_Size' => $fileInfo['file_size'],
+                    'File_Type' => $fileInfo['file_type'],
                     'uploaded_at' => date('Y-m-d H:i:s')
                 ]);
                 
@@ -55,14 +110,12 @@ class Thesis extends Model {
     }
 
     /**
-     * Process uploaded files
+     * Process uploaded files (same as before)
      */
     private function processFiles($files) {
-
-        
         $uploadedFiles = [];
-        $uploadDir = '../../../uploads/theses/'; // Updated path
-    
+        $uploadDir = '../../../uploads/theses/';
+
         // Create upload directory if it doesn't exist
         if (!file_exists($uploadDir)) {
             if (!mkdir($uploadDir, 0755, true)) {
@@ -128,13 +181,16 @@ class Thesis extends Model {
      */
     private function saveThesisToDatabase($data) {
         try {
-            $query = "INSERT INTO THESIS (User_ID, Title, Author, File_Path, File_Size, File_Type, uploaded_at) 
-                      VALUES (:User_ID, :title, :author, :file_path, :file_size, :file_type, :uploaded_at)";
+            $query = "INSERT INTO THESIS (User_ID, Thesis_Department, Thesis_Course, Thesis_Email, Title, Author, File_Path, File_Size, File_Type, uploaded_at) 
+                      VALUES (:User_ID, :thesis_department, :thesis_course, :thesis_email, :title, :author, :file_path, :file_size, :file_type, :uploaded_at)";
             
             $this->db->query($query);
             $this->db->bind(':User_ID', $data['User_ID']);
-            $this->db->bind(':title', $data['title']);
-            $this->db->bind(':author', $data['author']);
+            $this->db->bind(':thesis_department', $data['Thesis_Department']);
+            $this->db->bind(':thesis_course', $data['Thesis_Course']);
+            $this->db->bind(':thesis_email', $data['Thesis_Email']);
+            $this->db->bind(':title', $data['Title']);
+            $this->db->bind(':author', $data['Author']);
             $this->db->bind(':file_path', $data['file_path']);
             $this->db->bind(':file_size', $data['file_size']);
             $this->db->bind(':file_type', $data['file_type']);
@@ -143,21 +199,24 @@ class Thesis extends Model {
             return $this->db->execute();
         } catch (Exception $e) {
             error_log("Database error: " . $e->getMessage());
+            $this->error = "Database error: " . $e->getMessage();
             return false;
         }
     }
-    
+
     /**
      * Get all theses for admin view
      */
     public function getAllTheses() {
-        $query = "SELECT * FROM THESIS ORDER BY uploaded_at DESC";
+        $query = "SELECT t.*, u.First_Name, u.Middle_Name, u.Last_Name, u.Extension 
+                  FROM THESIS t 
+                  LEFT JOIN USER_INFORMATION u ON t.User_ID = u.ID 
+                  ORDER BY t.uploaded_at DESC";
         
         $this->db->query($query);
         return $this->db->resultSet();
     }
 
-    
     /**
      * Get user's theses
      */
@@ -190,10 +249,5 @@ class Thesis extends Model {
     public function getError() {
         return $this->error;
     }
-    
-    // But also gets these for free from parent:
-    // - findAll() to get all theses
-    // - findById() to get specific thesis
-    // - delete() to delete a thesis
 }
-?>  
+?>
