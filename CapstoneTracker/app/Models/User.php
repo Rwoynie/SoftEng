@@ -53,7 +53,6 @@ class User extends Model {
             $optionalFields = [
                 'middle_name' => 'Middle_Name',
                 'extension' => 'Extension',
-                'year_level' => 'Year_Level',
                 'course' => 'Course',
                 'department' => 'Department',
                 'designation' => 'Designation',

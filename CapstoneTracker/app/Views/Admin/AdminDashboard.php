@@ -868,7 +868,7 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
                     <input type="text" name="course" placeholder="Enter course/program" class="thesis-form-input" id="courseInput" required>
                 </div>
 
-                <!-- Removed the separate email field since we're using author emails -->
+                
             </div>
             
             <div class="upload-area" id="dropArea">

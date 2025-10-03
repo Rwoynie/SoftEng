@@ -43,8 +43,10 @@ class RegistrationController {
      */
     public function registerStudent($data, $files = []) {
         try {
+
+            $designation = 'Student';
             // Validate required fields
-            $required = ['firstName', 'lastName', 'studentId', 'yearLevel', 'course', 'email', 'password', 'confirmPassword'];
+            $required = ['firstName', 'lastName', 'studentId', 'course', 'email', 'password', 'confirmPassword'];
             foreach ($required as $field) {
                 if (empty($data[$field])) {
                     throw new Exception("All required fields must be filled. Missing: " . $field);
@@ -87,8 +89,8 @@ class RegistrationController {
                 'student_id' => trim($data['studentId']),
                 'user_role' => 'student',
                 'acc_status' => 'pending',
-                'year_level' => $data['yearLevel'],
                 'course' => $data['course'],
+                'designation' => $data['designation'],
                 'profile_pic' => $profilePicPath
             ];
             

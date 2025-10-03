@@ -201,17 +201,7 @@ if ($setupError) {
               <label for="regStudentId" class="form-label">Student ID number</label>
               <input type="text" id="regStudentId" name="studentId" class="form-control" placeholder="e.g., 2025-12345" required>
             </div>
-            <div class="col-md-6">
-              <label for="regYearLevel" class="form-label">Year Level</label>
-              <select id="regYearLevel" name="yearLevel" class="form-select" required>
-                <option value="" selected disabled>Select year level</option>
-                <option>1st year</option>
-                <option>2nd year</option>
-                <option>3rd year</option>
-                <option>4th year</option>
-                <option>5th year</option>
-              </select>
-            </div>
+            
             <div class="col-12">
               <label for="regCourse" class="form-label">Course / Program</label>
               <select id="regCourse" name="course" class="form-select" required>

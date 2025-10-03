@@ -35,9 +35,8 @@
                 Employee_ID VARCHAR(255) UNIQUE,
                 User_Role ENUM('student', 'faculty', 'admin', 'superAdmin') NOT NULL,
                 Acc_Status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
-                Department VARCHAR(255),
-                Course VARCHAR(255),
-                
+                Department VARCHAR(255) NOT NULL,
+                Course VARCHAR(255) NOT NULL,   
                 Designation VARCHAR(255),
                 Profile_Pic VARCHAR(500),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -54,9 +53,9 @@
             "CREATE TABLE IF NOT EXISTS THESIS (
                 ID INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 User_ID INT(11) UNSIGNED NOT NULL,
-                Department VARCHAR(255) NOT NULL,
-                Course VARCHAR(255) NOT NULL,
-                Email VARCHAR(255) NOT NULL,
+                Thesis_Department VARCHAR(255) NOT NULL,
+                Thesis_Course VARCHAR(255) NOT NULL,
+                Thesis_Email VARCHAR(255) NOT NULL,
                 Title VARCHAR(255) NOT NULL,
                 Author VARCHAR(255) NOT NULL,
                 File_Path VARCHAR(500) NOT NULL,
@@ -65,12 +64,11 @@
                 uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 FOREIGN KEY (User_ID) REFERENCES USER_INFORMATION(ID) ON DELETE CASCADE,
-                FOREIGN KEY (Department) REFERENCES USER_INFORMATION(Department) ON DELETE CASCADE,
-                FOREIGN KEY (Course) REFERENCES USER_INFORMATION(Course) ON DELETE CASCADE,
-                FOREIGN KEY (Email) REFERENCES USER_INFORMATION(Email) ON DELETE CASCADE,
                 INDEX (User_ID),
                 INDEX (Title)
             ) ENGINE=InnoDB;",
+
+            
 
             // THESIS_REVIEWS TABLE
             "CREATE TABLE IF NOT EXISTS THESIS_REVIEWS (
@@ -131,9 +129,9 @@
         return [
             'pswrd' => $hashedPassword,
             'Salt' => $salt,
-            'First_Name' => 'SuperAdmin',
+            'First_Name' => 'Super',
             'Middle_Name' => 'Admin',
-            'Last_Name' => 'SuperAdmin',
+            'Last_Name' => 'Admin',
             'Extension' => null,
             'Email' => 'admin@usep.edu.ph',
             'User_ID' => 'ADMIN001',
@@ -141,10 +139,9 @@
             'Employee_ID' => null,
             'User_Role' => 'superAdmin',
             'Acc_Status' => 'approved',
-            'Year_Level' => null,
-            'Course' => null,
-            'Department' => null,
-            'Designation' => null,
+            'Department' => 'Administration',
+            'Course' => 'Administration',
+            'Designation' => 'System Administrator',
             'Profile_Pic' => null
         ];
     }
@@ -212,9 +209,9 @@
             if ($this->db->rowCount() == 0) {
                 // Build the query with all fields
                 $this->db->query("INSERT INTO USER_INFORMATION 
-                    (pswrd, Salt, First_Name, Middle_Name, Last_Name, Extension, Email, User_ID, Student_ID, Employee_ID, User_Role, Acc_Status, Year_Level, Course, Department, Designation, Profile_Pic) 
+                    (pswrd, Salt, First_Name, Middle_Name, Last_Name, Extension, Email, User_ID, Student_ID, Employee_ID, User_Role, Acc_Status, Department, Course , Designation, Profile_Pic) 
                     VALUES 
-                    (:password, :salt, :first_name, :middle_name, :last_name, :extension, :email, :user_id, :student_id, :employee_id, :user_role, :acc_status, :year_level, :course, :department, :designation, :profile_pic)");
+                    (:password, :salt, :first_name, :middle_name, :last_name, :extension, :email, :user_id, :student_id, :employee_id, :user_role, :acc_status, :department, :course, :designation, :profile_pic)");
                 
                 // Bind all parameters
                 $this->db->bind(':password', $adminData['pswrd']);
@@ -229,9 +226,8 @@
                 $this->db->bind(':employee_id', $adminData['Employee_ID']);
                 $this->db->bind(':user_role', $adminData['User_Role']);
                 $this->db->bind(':acc_status', $adminData['Acc_Status']);
-                $this->db->bind(':year_level', $adminData['Year_Level']);
-                $this->db->bind(':course', $adminData['Course']);
                 $this->db->bind(':department', $adminData['Department']);
+                $this->db->bind(':course', $adminData['Course']);
                 $this->db->bind(':designation', $adminData['Designation']);
                 $this->db->bind(':profile_pic', $adminData['Profile_Pic']);
                 

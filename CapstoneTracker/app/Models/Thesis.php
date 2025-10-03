@@ -29,8 +29,11 @@ class Thesis extends Model {
             foreach ($uploadedFiles as $fileInfo) {
                 $success = $this->saveThesisToDatabase([
                     'User_ID' => $userId,
+                    'Thesis_Department' => $postData['department'],
+                    'Thesis_Course' => $postData['course'],
+                    'Thesis_Email' => $postData['thesisauthor'],
                     'title' => $postData['thesistitle'],
-                    'author' => !empty($postData['thesisauthor']) ? $postData['thesisauthor'] : '',
+                    'author' => !empty($postData['First_Name, Middle_Name, Last_Name, Extension']) ? $postData['First_Name, Middle_Name, Last_Name, Extension'] : '',
                     'file_path' => $fileInfo['file_path'],
                     'file_size' => $fileInfo['file_size'],
                     'file_type' => $fileInfo['file_type'],

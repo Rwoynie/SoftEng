@@ -57,6 +57,9 @@ class AdminDashboardController {
             case 'getUsers':
                 $this->getUsers();
                 break;
+            case 'getTheses':
+                $this->getTheses();
+                break;
             case 'updateUserRole':
                 $this->updateUserRole();
                 break;
@@ -71,6 +74,9 @@ class AdminDashboardController {
                 break;
             case 'getActivityLogs':
                 $this->getActivityLogs();
+                break;
+            case 'searchTheses':
+                $this->searchTheses();
                 break;
             case 'logout':
                 $this->logout();
@@ -118,6 +124,27 @@ class AdminDashboardController {
             'role_counts' => $roleCounts,
             'status_counts' => $statusCounts
         ]);
+    }
+
+    /**
+     * Get theses data
+     */
+    private function getTheses() {
+        $department = $_GET['department'] ?? null;
+        $search = $_GET['search'] ?? null;
+        $type = $_GET['type'] ?? 'all';
+
+        if ($search) {
+            $theses = $this->model->searchTheses($search);
+        } elseif ($department && $department !== 'all') {
+            $theses = $this->model->getThesesByDepartment($department);
+        } elseif ($type === 'recent') {
+            $theses = $this->model->getRecentTheses();
+        } else {
+            $theses = $this->model->getAllTheses();
+        }
+
+        $this->jsonResponse(['theses' => $theses]);
     }
 
     /**
@@ -233,6 +260,21 @@ class AdminDashboardController {
         $limit = $_GET['limit'] ?? 20;
         $activity = $this->model->getRecentActivity($limit);
         $this->jsonResponse(['activity' => $activity]);
+    }
+
+    /**
+     * Search theses
+     */
+    private function searchTheses() {
+        $searchTerm = $_GET['q'] ?? '';
+        
+        if (empty($searchTerm)) {
+            $this->jsonResponse(['theses' => []]);
+            return;
+        }
+
+        $theses = $this->model->searchTheses($searchTerm);
+        $this->jsonResponse(['theses' => $theses]);
     }
 
     /**
