@@ -55,9 +55,11 @@ class Thesis extends Model {
      * Process uploaded files
      */
     private function processFiles($files) {
-        $uploadedFiles = [];
-        $uploadDir = 'uploads/theses/';
+
         
+        $uploadedFiles = [];
+        $uploadDir = '../../../uploads/theses/'; // Updated path
+    
         // Create upload directory if it doesn't exist
         if (!file_exists($uploadDir)) {
             if (!mkdir($uploadDir, 0755, true)) {

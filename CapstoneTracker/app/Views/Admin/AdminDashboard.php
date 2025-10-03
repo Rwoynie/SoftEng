@@ -831,15 +831,10 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
 
 <!-- Upload Thesis Modal -->
 <div class="modal-overlay" id="uploadModal">
-<form class="modal" action="../../../app/Controllers/UserController.php?action=upload" method="POST" enctype="multipart/form-data" id="uploadForm">
-     <div class="modal-header">
+    <form class="modal" action="../../../app/Controllers/ThesisController.php?action=upload" method="POST" enctype="multipart/form-data" id="uploadForm">
+        <div class="modal-header">
             <h2 class="modal-title">Upload Thesis</h2>
-
-            <?php if (!empty($data['error'])): ?>
-            <div class="error-message">
-                <?php echo $data['error']; ?>
-            </div>
-            <?php endif; ?>
+            <div id="uploadError" class="error-message" style="display: none;"></div>
             <button type="button" class="modal-close">&times;</button>
         </div>
         <div class="modal-body">
@@ -853,7 +848,6 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
                     <h3>Author/s</h3>
                     <input type="text" name="thesisauthor" placeholder="Enter author name(s) separated with commas ','" class="thesis-form-input" id="thesisAuthor">
                 </div>
-                
             </div>
             
             <div class="upload-area" id="dropArea">
@@ -862,10 +856,10 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
                 </div>
                 <div class="upload-text">
                     <h3>Drag & Drop your files here</h3>
-                    <p>Supported files: docx, pdf, zip</p>
+                    <p>Supported files: pdf, docx, zip</p>
                 </div>
                 <div class="browse-btn">Browse files</div>
-                <input type="file" class="file-input" id="fileInput" name="files[]" multiple accept=".pdf">
+                <input type="file" class="file-input" id="fileInput" name="files[]" multiple accept=".pdf,.docx,.zip">
             </div>
             
             <div class="file-previews">
@@ -879,8 +873,8 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-cancel">Cancel</button>
-            <button onclick="" class="btn btn-upload" id="uploadBtn" disabled>Upload Thesis</button>
+            <button type="button" class="btn btn-cancel">Cancel</button>
+            <button type="submit" class="btn btn-upload" id="uploadBtn" disabled>Upload Thesis</button>
         </div>
     </form>
 </div>

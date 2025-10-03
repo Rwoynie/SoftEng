@@ -622,62 +622,94 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Upload button functionality
     if (btnUpload) {
-        btnUpload.addEventListener('click', function(e) {
-            // Always prevent default so upload only proceeds after confirmation
-            e.preventDefault();
-            if (uploadedFiles.length === 0) {
+        // Change to form submit event instead of button click
+        const uploadForm = document.getElementById('uploadForm');
+        if (uploadForm) {
+            uploadForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                if (uploadedFiles.length === 0) {
+                    Swal.fire({
+                        title: 'No Files Selected',
+                        text: 'Please select at least one file to upload.',
+                        icon: 'warning',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+                
+                // Validate thesis title
+                const thesisTitleInput = document.getElementById('thesisTitle');
+                if (thesisTitleInput && !thesisTitleInput.value.trim()) {
+                    Swal.fire({
+                        title: 'Thesis Title Required',
+                        text: 'Please enter a title for your thesis.',
+                        icon: 'warning',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+                
+                // Show confirmation dialog
                 Swal.fire({
-                    title: 'No Files Selected',
-                    text: 'Please select at least one file to upload.',
-                    icon: 'warning',
-                    confirmButtonText: 'OK'
-                });
-                return;
-            }
-            
-            // Validate thesis title
-            const thesisTitleInput = document.getElementById('thesisTitle');
-            if (thesisTitleInput && !thesisTitleInput.value.trim()) {
-                Swal.fire({
-                    title: 'Thesis Title Required',
-                    text: 'Please enter a title for your thesis.',
-                    icon: 'warning',
-                    confirmButtonText: 'OK'
-                });
-                return;
-            }
-            
-            // Show confirmation dialog
-            Swal.fire({
-                title: 'Confirm Upload',
-                html: `Are you sure you want to upload <strong>${thesisTitleInput.value}</strong> with ${uploadedFiles.length} file(s)?`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, upload it!',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Submit the actual form
-                    const uploadForm = document.getElementById('uploadForm');
-                    if (uploadForm) {
-                        uploadForm.submit();
-                    } else {
-                        // Fallback: Show success message
-                        Swal.fire({
-                            title: 'Upload Successful!',
-                            text: 'Your thesis has been uploaded successfully.',
-                            icon: 'success',
-                            confirmButtonText: 'OK'
-                        }).then(() => {
-                            resetUploadForm();
-                            closeModal(uploadModal);
+                    title: 'Confirm Upload',
+                    html: `Are you sure you want to upload <strong>${thesisTitleInput.value}</strong> with ${uploadedFiles.length} file(s)?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Yes, upload it!',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Show loading state
+                        const originalText = btnUpload.textContent;
+                        btnUpload.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+                        btnUpload.disabled = true;
+                        
+                        // Submit form via AJAX
+                        const formData = new FormData(uploadForm);
+                        
+                        fetch(uploadForm.action, {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire({
+                                    title: 'Upload Successful!',
+                                    text: data.message || 'Your thesis has been uploaded successfully.',
+                                    icon: 'success',
+                                    confirmButtonText: 'OK'
+                                }).then(() => {
+                                    resetUploadForm();
+                                    closeModal(uploadModal);
+                                    // Optionally refresh the thesis list
+                                    // loadTheses();
+                                });
+                            } else {
+                                throw new Error(data.error || 'Upload failed');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Upload error:', error);
+                            Swal.fire({
+                                title: 'Upload Failed',
+                                text: error.message || 'Failed to upload thesis. Please try again.',
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        })
+                        .finally(() => {
+                            // Restore button state
+                            btnUpload.textContent = originalText;
+                            btnUpload.disabled = false;
                         });
                     }
-                }
+                });
             });
-        });
+        }
     }
     
     // Function to reset upload form
@@ -2119,10 +2151,10 @@ async function fetchAndDisplayUsers() {
 function displayUsersInAccessManagement(users) {
     const adminUserList = document.getElementById('adminUserList');
     
-    if (!adminUserList) return;
-    
-    adminUserList.innerHTML = '';
-    
+        if (!adminUserList) return;
+        
+        adminUserList.innerHTML = '';
+        
     users.forEach(user => {
         const userItem = createUserItem(user);
         adminUserList.appendChild(userItem);
@@ -2140,10 +2172,10 @@ function createUserItem(user) {
     const isStudent = user.User_Role === 'student';
     
     userItem.innerHTML = `
-        <div class="access-info">
+                <div class="access-info">
             <h4>${user.First_Name} ${user.Middle_Name || ''} ${user.Last_Name} ${user.Extension || ''}</h4>
             <p>${user.Email} • ${user.Department || 'No Department'} • Status: ${user.Acc_Status}</p>
-        </div>
+                </div>
         <div class="access-roles">
             <label class="role-checkbox">
                 <input class="checkbox" type="checkbox" name="admin" data-user-id="${user.ID}" ${isAdmin ? 'checked' : ''}> Admin
@@ -2153,9 +2185,9 @@ function createUserItem(user) {
             </label>
             <label class="role-checkbox">
                 <input class="checkbox" type="checkbox" name="student" data-user-id="${user.ID}" ${isStudent ? 'checked' : ''}> Student
-            </label>
-        </div>
-    `;
+                    </label>
+                </div>
+            `;
     
     return userItem;
 }
