@@ -837,7 +837,7 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
         <div class="modal-header">
             <h2 class="modal-title">Upload Thesis</h2>
             <div id="uploadError" class="error-message" style="display: none;"></div>
-            <button type="button" class="modal-close">&times;</button>
+            <i class="fa-solid fa-file" id="notif"></i>
         </div>
         <div class="modal-body">
             <div class="thesis-form">
@@ -856,7 +856,7 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
 
                 <div class="thesis-form-group">
                     <h3>Department *</h3>
-                    <select name="department" class="thesis-form-input" id="departmentSelect" required>
+                    <select name="department" class="thesis-form-input dropdown" id="departmentSelect" required>
                         <option value="">Select Department</option>
                         <option value="Computer Science">Computer Science</option>
                         <option value="Information Technology">Information Technology</option>
@@ -868,24 +868,49 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
 
                 <div class="thesis-form-group">
                     <h3>Course *</h3>
-                    <input type="text" name="course" placeholder="Enter course/program" class="thesis-form-input" id="courseInput" required>
+                <select name="course" class="thesis-form-input dropdown" id="courseInput" required>
+                    <option value="" selected disabled>Select your program</option>
+                    <option>Bachelor of Technical-Vocational Teacher Education</option>
+                    <option>Bachelor of Special Need Education</option>
+                    <option>Bachelor of Early Childhood Education</option>
+                    <option>Bachelor of Secondary Education</option>
+                    <option>Bachelor of Science in Information Technology</option>
+                    <option>Bachelor of Elementary Education</option>
+                    <option>Bachelor Science in Agricultural and Biosystems Engineering</option>
+                </select>
                 </div>
 
                 
             </div>
-            
-            <div class="upload-area" id="dropArea">
-                <div class="upload-icon">
-                    <i class="fa fa-cloud-upload" aria-hidden="true"></i>
+            <div class="upload-area-container">
+                <!-- Abstract File Upload Area -->
+                <div class="upload-area" id="abstractDropArea">
+                    <div class="upload-icon">
+                        <i class="fa fa-cloud-upload" aria-hidden="true"></i>
+                    </div>
+                    <div class="upload-text">
+                        <h3>Abstract File</h3>
+                        <p>Supported files: PDF only</p>
+                    </div>
+                    <div class="browse-btn">Browse files</div>
+                    <input type="file" class="file-input" id="abstractFileInput" name="abstract_file" accept=".pdf">
                 </div>
-                <div class="upload-text">
-                    <h3>Drag & Drop your files here</h3>
-                    <p>Supported files: PDF only</p>
+                
+                <!-- Thesis File Upload Area -->
+                <div class="upload-area" id="thesisDropArea">
+                    <div class="upload-icon">
+                        <i class="fa fa-cloud-upload" aria-hidden="true"></i>
+                    </div>
+                    <div class="upload-text">
+                        <h3>Thesis File</h3>
+                        <p>Supported files: PDF only</p>
+                    </div>
+                    <div class="browse-btn">Browse files</div>
+                    <input type="file" class="file-input" id="thesisFileInput" name="thesis_file" accept=".pdf">
                 </div>
-                <div class="browse-btn">Browse files</div>
-                <input type="file" class="file-input" id="fileInput" name="files[]" multiple accept=".pdf">
             </div>
-            
+
+            <!-- Single File Previews Section -->
             <div class="file-previews">
                 <h4>Selected Files</h4>
                 <div class="file-list-grid" id="fileList">
@@ -895,6 +920,7 @@ error_log("AdminDashboard loaded for user: " . ($_SESSION['user_db_id'] ?? 'Unkn
                     </div>
                 </div>
             </div>
+            
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-cancel">Cancel</button>

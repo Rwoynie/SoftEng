@@ -29,8 +29,9 @@ class Thesis extends Model {
                 return false;
             }
             
-            if (empty($files['files'])) {
-                $this->error = 'Please select at least one file';
+            // Check if both abstract and thesis files are uploaded
+            if (empty($files['abstract_file']) || empty($files['thesis_file'])) {
+                $this->error = 'Both abstract and thesis files are required';
                 return false;
             }
 
@@ -85,9 +86,15 @@ class Thesis extends Model {
                 return false;
             }
 
-            // Process the uploaded file (just get the BLOB data)
-            $fileData = $this->processUploadedFile($files['files']);
-            if (!$fileData) {
+            // Process the uploaded abstract file
+            $abstractFileData = $this->processUploadedFile($files['abstract_file'], 'abstract');
+            if (!$abstractFileData) {
+                return false;
+            }
+
+            // Process the uploaded thesis file
+            $thesisFileData = $this->processUploadedFile($files['thesis_file'], 'thesis');
+            if (!$thesisFileData) {
                 return false;
             }
             
@@ -95,7 +102,7 @@ class Thesis extends Model {
             $mainUserId = !empty($authorIds[0]) ? $authorIds[0] : $adminUserId;
             $authorString = implode(', ', $authorNames);
             
-            // Save to database (only file BLOB, no metadata)
+            // Save to database with both abstract and thesis files
             $success = $this->saveThesisToDatabase([
                 'User_ID' => $mainUserId,
                 'Thesis_Department' => $postData['department'],
@@ -103,7 +110,8 @@ class Thesis extends Model {
                 'Thesis_Email' => $postData['thesisauthor'],
                 'Title' => $postData['thesistitle'],
                 'Author' => $authorString,
-                'Thesis_File' => $fileData, // Just the file BLOB data
+                'Thesis_AbstractFile' => $abstractFileData,
+                'Thesis_File' => $thesisFileData,
                 'uploaded_at' => date('Y-m-d H:i:s')
             ]);
             
@@ -125,14 +133,14 @@ class Thesis extends Model {
     /**
      * Process uploaded file and return BLOB data
      */
-    private function processUploadedFile($file) {
+    private function processUploadedFile($file, $fileType = 'thesis') {
         // Handle single file upload
         if (!is_array($file['name'])) {
-            return $this->validateAndProcessSingleFile($file);
+            return $this->validateAndProcessSingleFile($file, $fileType);
         } else {
             // Handle multiple files - take only the first file
             if ($file['error'][0] !== UPLOAD_ERR_OK) {
-                $this->error = 'File upload error: ' . $this->getUploadError($file['error'][0]);
+                $this->error = $fileType . ' file upload error: ' . $this->getUploadError($file['error'][0]);
                 return false;
             }
             
@@ -144,17 +152,17 @@ class Thesis extends Model {
                 'size' => $file['size'][0]
             ];
             
-            return $this->validateAndProcessSingleFile($singleFile);
+            return $this->validateAndProcessSingleFile($singleFile, $fileType);
         }
     }
 
     /**
      * Validate and process single file
      */
-    private function validateAndProcessSingleFile($file) {
+    private function validateAndProcessSingleFile($file, $fileType = 'thesis') {
         // Check for upload errors
         if ($file['error'] !== UPLOAD_ERR_OK) {
-            $this->error = 'File upload error: ' . $this->getUploadError($file['error']);
+            $this->error = $fileType . ' file upload error: ' . $this->getUploadError($file['error']);
             return false;
         }
         
@@ -163,26 +171,26 @@ class Thesis extends Model {
         $allowedExtensions = ['pdf'];
         
         if (!in_array($fileExtension, $allowedExtensions)) {
-            $this->error = 'Invalid file type. Only PDF files are allowed.';
+            $this->error = 'Invalid ' . $fileType . ' file type. Only PDF files are allowed.';
             return false;
         }
         
         // Validate file size (max 50MB)
         $maxFileSize = 50 * 1024 * 1024;
         if ($file['size'] > $maxFileSize) {
-            $this->error = 'File size exceeds the maximum limit of 50MB.';
+            $this->error = $fileType . ' file size exceeds the maximum limit of 50MB.';
             return false;
         }
         
         if ($file['size'] == 0) {
-            $this->error = 'The uploaded file is empty.';
+            $this->error = 'The uploaded ' . $fileType . ' file is empty.';
             return false;
         }
         
         // Read file as binary data (just the BLOB, no metadata)
         $fileData = file_get_contents($file['tmp_name']);
         if ($fileData === false) {
-            $this->error = 'Failed to read file data.';
+            $this->error = 'Failed to read ' . $fileType . ' file data.';
             return false;
         }
         
@@ -190,12 +198,12 @@ class Thesis extends Model {
     }
 
     /**
-     * Save thesis information to database (SIMPLIFIED - no file metadata)
+     * Save thesis information to database with both abstract and thesis files
      */
     private function saveThesisToDatabase($data) {
         try {
-            $query = "INSERT INTO THESIS (User_ID, Thesis_Department, Thesis_Course, Thesis_Email, Title, Author, Thesis_File, uploaded_at) 
-                      VALUES (:User_ID, :thesis_department, :thesis_course, :thesis_email, :title, :author, :thesis_file, :uploaded_at)";
+            $query = "INSERT INTO THESIS (User_ID, Thesis_Department, Thesis_Course, Thesis_Email, Title, Author, Thesis_AbstractFile, Thesis_File, uploaded_at) 
+                      VALUES (:User_ID, :thesis_department, :thesis_course, :thesis_email, :title, :author, :thesis_abstract_file, :thesis_file, :uploaded_at)";
             
             $this->db->query($query);
             $this->db->bind(':User_ID', $data['User_ID']);
@@ -204,7 +212,8 @@ class Thesis extends Model {
             $this->db->bind(':thesis_email', $data['Thesis_Email']);
             $this->db->bind(':title', $data['Title']);
             $this->db->bind(':author', $data['Author']);
-            $this->db->bind(':thesis_file', $data['Thesis_File']); // Just the BLOB
+            $this->db->bind(':thesis_abstract_file', $data['Thesis_AbstractFile']); // Abstract file BLOB
+            $this->db->bind(':thesis_file', $data['Thesis_File']); // Thesis file BLOB
             $this->db->bind(':uploaded_at', $data['uploaded_at']);
             
             $result = $this->db->execute();
@@ -230,6 +239,30 @@ class Thesis extends Model {
      */
     public function getThesisFile($thesisId) {
         $query = "SELECT Thesis_File FROM THESIS WHERE ID = :id";
+        
+        $this->db->query($query);
+        $this->db->bind(':id', $thesisId);
+        
+        return $this->db->single();
+    }
+
+    /**
+     * Get abstract file by ID
+     */
+    public function getAbstractFile($thesisId) {
+        $query = "SELECT Thesis_AbstractFile FROM THESIS WHERE ID = :id";
+        
+        $this->db->query($query);
+        $this->db->bind(':id', $thesisId);
+        
+        return $this->db->single();
+    }
+
+    /**
+     * Get both abstract and thesis files by ID
+     */
+    public function getThesisFiles($thesisId) {
+        $query = "SELECT Thesis_AbstractFile, Thesis_File FROM THESIS WHERE ID = :id";
         
         $this->db->query($query);
         $this->db->bind(':id', $thesisId);

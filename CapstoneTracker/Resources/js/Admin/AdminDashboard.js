@@ -8,11 +8,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const previewModal = document.getElementById('previewModal');
     const modalClose = document.querySelectorAll('.modal-close');
     const btnCancel = document.querySelector('.btn-cancel');
-    const dropArea = document.getElementById('dropArea');
-    const fileInput = document.getElementById('fileInput');
+
+    const abstractDropArea = document.getElementById('abstractDropArea');
+    const thesisDropArea = document.getElementById('thesisDropArea');
+    const abstractFileInput = document.getElementById('abstractFileInput');
+    const thesisFileInput = document.getElementById('thesisFileInput');
+
     const fileList = document.getElementById('fileList');
     const btnUpload = document.querySelector('.btn-upload');
-    const browseBtn = document.querySelector('.browse-btn');
+    
     
     const closePreview = document.getElementById('closePreview');
     const downloadLink = document.getElementById('download-link');
@@ -233,6 +237,49 @@ document.addEventListener('DOMContentLoaded', function() {
     let pdfPageRendering = false;
     let pdfPageNumPending = null;
     
+    function initializeUploadArea(dropArea, fileInput) {
+        if (!dropArea || !fileInput) return;
+        
+        // File input change event
+        fileInput.addEventListener('change', function(e) {
+            if (this.files && this.files.length > 0) {
+                handleFiles(this.files);
+            }
+        });
+        
+        // Drag and drop functionality
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            dropArea.classList.add('dragover');
+        }
+        
+        function unhighlight() {
+            dropArea.classList.remove('dragover');
+        }
+        
+        dropArea.addEventListener('drop', function(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        });
+    }
+
     // Open modal when FAB is clicked
     if (fabIcon && uploadModal) {
         fabIcon.addEventListener('click', function() {
@@ -308,54 +355,23 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // File input handling via browse button
-    if (browseBtn) {
-        browseBtn.addEventListener('click', function() {
-            fileInput.click();
-        });
-    }
     
-    // File input change event
-    if (fileInput) {
-        fileInput.addEventListener('change', function(e) {
-            if (this.files && this.files.length > 0) {
-                handleFiles(this.files);
+    
+    // Initialize both upload areas
+    initializeUploadArea(abstractDropArea, abstractFileInput);
+    initializeUploadArea(thesisDropArea, thesisFileInput);
+
+    // File input handling via browse buttons
+    const browseBtns = document.querySelectorAll('.browse-btn');
+    browseBtns.forEach((browseBtn, index) => {
+        browseBtn.addEventListener('click', function() {
+            if (index === 0) {
+                abstractFileInput.click();
+            } else {
+                thesisFileInput.click();
             }
         });
-    }
-    
-    // Drag and drop functionality
-    if (dropArea) {
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropArea.addEventListener(eventName, preventDefaults, false);
-        });
-        
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-        
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropArea.addEventListener(eventName, highlight, false);
-        });
-        
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropArea.addEventListener(eventName, unhighlight, false);
-        });
-        
-        function highlight() {
-            dropArea.classList.add('dragover');
-        }
-        
-        function unhighlight() {
-            dropArea.classList.remove('dragover');
-        }
-        
-        dropArea.addEventListener('drop', function(e) {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            handleFiles(files);
-        });
-    }
+    });
     
     // Handle the selected files
     function handleFiles(files) {
@@ -411,9 +427,6 @@ document.addEventListener('DOMContentLoaded', function() {
             displayFile(file);
         }
         
-        // Enable upload button if there are files
-        btnUpload.disabled = uploadedFiles.length === 0;
-        
         // Remove empty state if files are added
         if (uploadedFiles.length > 0) {
             const emptyState = fileList.querySelector('.empty-state');
@@ -426,60 +439,49 @@ document.addEventListener('DOMContentLoaded', function() {
         updateUploadButtonState();
     }
 
-    function handleFileError(error) {
-        console.error('File processing error:', error);
-        Swal.fire({
-            title: 'File Error',
-            text: error.message || 'An error occurred while processing the file.',
-            icon: 'error',
-            confirmButtonText: 'OK'
-        });
-    }
     
     // Display file in the list with preview
     function displayFile(file) {
+        console.log('Displaying file:', file.name);
+        
         const fileItem = document.createElement('div');
         fileItem.className = 'file-item-card animate__animated animate__fadeInUp';
         
         // Get appropriate icon based on file type
-        let fileIconClass = 'file-icon-preview generic';
-        const fileExtension = file.name.split('.').pop().toLowerCase();
-        
-        if (fileExtension === 'pdf') {
-            fileIconClass = 'file-icon-preview pdf';
-        } else if (fileExtension === 'docx') {
-            fileIconClass = 'file-icon-preview word';
-        } else if (fileExtension === 'zip') {
-            fileIconClass = 'file-icon-preview zip';
-        }
+        let fileIconClass = 'file-icon-preview pdf'; // Since we only accept PDFs
         
         // Format file size
         const fileSize = formatFileSize(file.size);
         
         fileItem.innerHTML = `
             <div class="${fileIconClass}">
-                <i class="far fa-file-${fileExtension === 'docx' ? 'word' : fileExtension}"></i>
+                <i class="far fa-file-pdf"></i>
             </div>
             <div class="file-info-preview">
                 <div class="file-name-preview">${file.name}</div>
                 <div class="file-size-preview">${fileSize}</div>
             </div>
             <div class="file-actions-preview">
-                <button class="file-action-btn-preview file-download-preview" data-filename="${file.name}">
+                <button type="button" class="file-action-btn-preview file-download-preview" data-filename="${file.name}">
                     <i class="fas fa-eye"></i>
                 </button>
-                <button class="file-action-btn-preview file-remove-preview" data-filename="${file.name}">
+                <button type="button" class="file-action-btn-preview file-remove-preview" data-filename="${file.name}">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
         `;
         
         fileList.appendChild(fileItem);
+        console.log('File item added to DOM');
         
         // Add event listener to remove button
         const removeBtn = fileItem.querySelector('.file-remove-preview');
-        removeBtn.addEventListener('click', function() {
+        removeBtn.addEventListener('click', function(e) {
+            e.preventDefault(); // Prevent form submission
+            e.stopPropagation(); // Stop event bubbling
+            
             const fileName = this.getAttribute('data-filename');
+            console.log('Removing file:', fileName);
             removeFile(fileName);
             fileItem.classList.add('animate__fadeOut');
             setTimeout(() => {
@@ -492,11 +494,15 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add event listener to preview button
         const previewBtn = fileItem.querySelector('.file-download-preview');
-        previewBtn.addEventListener('click', function() {
+        previewBtn.addEventListener('click', function(e) {
+            e.preventDefault(); // Prevent form submission
+            e.stopPropagation(); // Stop event bubbling
+            
             const fileName = this.getAttribute('data-filename');
             previewFile(fileName);
         });
     }
+    
 
     // Show empty state when no files
     function showEmptyState() {
@@ -522,7 +528,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Remove file from the list
     function removeFile(fileName) {
         uploadedFiles = uploadedFiles.filter(file => file.name !== fileName);
-        btnUpload.disabled = uploadedFiles.length === 0;
+        updateUploadButtonState();
     }
     
     // Preview file using Google Docs Viewer for docx and PDF.js for pdf
@@ -788,16 +794,37 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Function to reset upload form
     function resetUploadForm() {
-                            uploadedFiles = [];
-                            showEmptyState();
-                            btnUpload.disabled = true;
-                            fileInput.value = '';
-                            
-                            // Clear form fields
-        const thesisTitleInput = document.getElementById('thesisTitle');
-        const thesisAuthorInput = document.getElementById('thesisAuthor');
-                            if (thesisTitleInput) thesisTitleInput.value = '';
-                            if (thesisAuthorInput) thesisAuthorInput.value = '';
+        uploadedFiles = [];
+        showEmptyState();
+        
+        // Clear both file inputs
+        if (abstractFileInput) abstractFileInput.value = '';
+        if (thesisFileInput) thesisFileInput.value = '';
+        
+        // Clear all form fields
+        const formFields = [
+            'thesisTitle',
+            'thesisAuthor',
+            'courseInput'
+        ];
+        
+        formFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.value = '';
+                field.style.borderColor = '#ddd';
+            }
+        });
+        
+        // Reset department select
+        const departmentSelect = document.getElementById('departmentSelect');
+        if (departmentSelect) {
+            departmentSelect.selectedIndex = 0;
+            departmentSelect.style.borderColor = '#ddd';
+        }
+        
+        // Update button state
+        updateUploadButtonState();
     }
 
     if (logoutBtn) {
@@ -1870,6 +1897,38 @@ if (accountSearchInput) {
         };
     }
 
+    function updateFileIconState() {
+        const thesisTitle = document.getElementById('thesisTitle');
+        const thesisAuthor = document.getElementById('thesisAuthor');
+        const departmentSelect = document.getElementById('departmentSelect');
+        const courseInput = document.getElementById('courseInput');
+        const fileIcon = document.getElementById('notif');
+        
+        if (!fileIcon) return;
+        
+        // Validate author emails
+        const emailValidation = validateAuthorEmails(thesisAuthor.value);
+        
+        // Check if department has a selected value
+        const isDepartmentSelected = departmentSelect && departmentSelect.value !== '';
+        
+        const isFormValid = thesisTitle.value.trim() !== '' &&
+                           thesisAuthor.value.trim() !== '' &&
+                           emailValidation.isValid &&
+                           isDepartmentSelected &&
+                           courseInput.value.trim() !== '' &&
+                           uploadedFiles.length > 0;
+        
+        // Remove all state classes
+        fileIcon.classList.remove('ready', 'error', 'warning');
+        
+        if (isFormValid) {
+            // All requirements met - ready state (green)
+            fileIcon.classList.add('good');
+        } 
+        // Otherwise, it stays the default grey color
+    }
+
     // Update the upload button state function
     function updateUploadButtonState() {
         const thesisTitle = document.getElementById('thesisTitle');
@@ -1889,17 +1948,21 @@ if (accountSearchInput) {
                            emailValidation.isValid &&
                            isDepartmentSelected &&
                            courseInput.value.trim() !== '' &&
-                           uploadedFiles.length > 0; // This is important!
+                           uploadedFiles.length > 0;
         
-        uploadBtn.disabled = !isFormValid;
+        if (uploadBtn) {
+            uploadBtn.disabled = !isFormValid;
+        }
         
         // Update visual feedback for email field
-        if (thesisAuthor.value.trim() === '') {
-            thesisAuthor.style.borderColor = '#ddd';
-        } else if (!emailValidation.isValid) {
-            thesisAuthor.style.borderColor = 'var(--color-danger)';
-        } else {
-            thesisAuthor.style.borderColor = '#51cf66';
+        if (thesisAuthor) {
+            if (thesisAuthor.value.trim() === '') {
+                thesisAuthor.style.borderColor = '#ddd';
+            } else if (!emailValidation.isValid) {
+                thesisAuthor.style.borderColor = 'var(--color-danger)';
+            } else {
+                thesisAuthor.style.borderColor = '#51cf66';
+            }
         }
         
         // Add visual feedback for department
@@ -1910,6 +1973,8 @@ if (accountSearchInput) {
                 departmentSelect.style.borderColor = '#51cf66';
             }
         }
+
+        updateFileIconState();
     }
 
     function initializeUploadFormValidation() {
@@ -2145,7 +2210,10 @@ if (accountSearchInput) {
         uploadedFiles = [];
         showEmptyState();
         updateUploadButtonState();
-        fileInput.value = '';
+        
+        // Clear both file inputs
+        if (abstractFileInput) abstractFileInput.value = '';
+        if (thesisFileInput) thesisFileInput.value = '';
         
         // Clear all form fields
         const formFields = [

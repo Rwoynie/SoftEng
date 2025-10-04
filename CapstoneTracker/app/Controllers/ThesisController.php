@@ -60,8 +60,13 @@ class ThesisController {
                 }
             }
             
-            if (empty($_FILES['files']) || $_FILES['files']['error'] === UPLOAD_ERR_NO_FILE) {
-                throw new Exception('Please select a file to upload');
+            // Check for both abstract and thesis files
+            if (empty($_FILES['abstract_file']) || $_FILES['abstract_file']['error'] === UPLOAD_ERR_NO_FILE) {
+                throw new Exception('Please select an abstract file to upload');
+            }
+            
+            if (empty($_FILES['thesis_file']) || $_FILES['thesis_file']['error'] === UPLOAD_ERR_NO_FILE) {
+                throw new Exception('Please select a thesis file to upload');
             }
 
             $userId = $_SESSION['user_db_id'];
@@ -72,8 +77,14 @@ class ThesisController {
                 'course' => trim($_POST['course'])
             ];
             
+            // Prepare files array for the model
+            $files = [
+                'abstract_file' => $_FILES['abstract_file'],
+                'thesis_file' => $_FILES['thesis_file']
+            ];
+            
             // Upload thesis using the model
-            $success = $this->thesisModel->uploadThesis($postData, $_FILES, $userId);
+            $success = $this->thesisModel->uploadThesis($postData, $files, $userId);
             
             if ($success) {
                 // Log the upload activity
@@ -372,6 +383,42 @@ class ThesisController {
             echo json_encode(['success' => false, 'error' => 'Failed to serve file: ' . $e->getMessage()]);
         }
     }
+
+    /**
+     * Serve abstract file from BLOB
+     */
+    public function serveAbstractFile() {
+        try {
+            $thesisId = $_GET['id'] ?? null;
+            
+            if (!$thesisId) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Thesis ID is required']);
+                return;
+            }
+            
+            $abstractFile = $this->thesisModel->getAbstractFile($thesisId);
+            
+            if (!$abstractFile) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'Abstract file not found']);
+                return;
+            }
+            
+            // Set appropriate headers for PDF
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="abstract_' . $thesisId . '.pdf"');
+            header('Content-Length: ' . strlen($abstractFile->Thesis_AbstractFile));
+            
+            // Output the BLOB data
+            echo $abstractFile->Thesis_AbstractFile;
+            exit;
+            
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Failed to serve abstract file: ' . $e->getMessage()]);
+        }
+    }
     
     /**
      * Log upload activity (placeholder for future implementation)
@@ -414,6 +461,9 @@ class ThesisController {
                 break;
             case 'download':
                 $this->serveThesisFile();
+                break;
+            case 'downloadAbstract':
+                $this->serveAbstractFile();
                 break;
             default:
                 http_response_code(404);

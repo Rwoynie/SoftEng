@@ -58,6 +58,7 @@
                 Thesis_Email VARCHAR(255) NOT NULL,
                 Title VARCHAR(255) NOT NULL,
                 Author VARCHAR(255) NOT NULL,
+                Thesis_AbstractFile LONGBLOB NOT NULL,
                 Thesis_File LONGBLOB NOT NULL,    
                 uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
