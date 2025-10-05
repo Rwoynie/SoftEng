@@ -1,5 +1,6 @@
 <?php
 
+
 require_once 'Model.php';
 require_once 'User.php';
 
@@ -41,6 +42,11 @@ class Thesis extends Model {
                 return false;
             }
 
+            if (empty($postData['thesisadviser'])) {
+                $this->error = 'Adviser email is required';
+                return false;
+            }
+
             if (empty($postData['department'])) {
                 $this->error = 'Department is required';
                 return false;
@@ -55,6 +61,11 @@ class Thesis extends Model {
             $authorEmails = array_map('trim', explode(',', $postData['thesisauthor']));
             $authorNames = [];
             $authorIds = [];
+
+            // Get adviser email information from emails
+            $adviserEmails = array_map('trim', explode(',', $postData['thesisadviser']));
+            $adviserNames = [];
+            $adviserIds = [];
 
             foreach ($authorEmails as $email) {
                 if (!empty($email)) {
@@ -81,8 +92,38 @@ class Thesis extends Model {
                 }
             }
 
+            foreach ($adviserEmails as $Aemail) {
+                if (!empty($Aemail)) {
+                    // Find user by email
+                    $adviser = $this->userModel->findByEmail($Aemail);
+                    if ($adviser) {
+                        // Build adviser name
+                        $adviserName = $adviser->First_Name;  
+                        if (!empty($adviser->Middle_Name)) { 
+                            $adviserName .= ' ' . $adviser->Middle_Name;
+                        }
+                        $adviserName .= ' ' . $adviser->Last_Name; 
+                        if (!empty($adviser->Extension)) { 
+                            $adviserName .= ' ' . $adviser->Extension;
+                        }
+                        
+                        $adviserNames[] = $adviserName;
+                        $adviserIds[] = $adviser->ID; 
+                    } else {
+                        // If user not found, use email as name
+                        $adviserNames[] = $Aemail;
+                        $adviserIds[] = null;
+                    }
+                }
+            }
+
             if (empty($authorNames)) {
                 $this->error = 'No valid authors found for the provided emails';
+                return false;
+            }
+
+            if (empty($adviserNames)) {
+                $this->error = 'No valid advisers found for the provided emails';
                 return false;
             }
 
@@ -101,6 +142,9 @@ class Thesis extends Model {
             // Use the first valid author ID or admin ID as the main User_ID
             $mainUserId = !empty($authorIds[0]) ? $authorIds[0] : $adminUserId;
             $authorString = implode(', ', $authorNames);
+
+            $adviserUserID = !empty($adviserIds[0]) ? $adviserIds[0] : $adminUserId;
+            $adviserString = implode(',', $adviserNames);
             
             // Save to database with both abstract and thesis files
             $success = $this->saveThesisToDatabase([
@@ -110,6 +154,8 @@ class Thesis extends Model {
                 'Thesis_Email' => $postData['thesisauthor'],
                 'Title' => $postData['thesistitle'],
                 'Author' => $authorString,
+                'Adviser' => $adviserString, // Add the adviser data
+                'HardBound_Available' => 'Yes', // Default value for hardbound availability
                 'Thesis_AbstractFile' => $abstractFileData,
                 'Thesis_File' => $thesisFileData,
                 'uploaded_at' => date('Y-m-d H:i:s')
@@ -202,8 +248,8 @@ class Thesis extends Model {
      */
     private function saveThesisToDatabase($data) {
         try {
-            $query = "INSERT INTO THESIS (User_ID, Thesis_Department, Thesis_Course, Thesis_Email, Title, Author, Thesis_AbstractFile, Thesis_File, uploaded_at) 
-                      VALUES (:User_ID, :thesis_department, :thesis_course, :thesis_email, :title, :author, :thesis_abstract_file, :thesis_file, :uploaded_at)";
+            $query = "INSERT INTO THESIS (User_ID, Thesis_Department, Thesis_Course, Thesis_Email, Title, Author, Adviser, HardBound_Available, Thesis_AbstractFile, Thesis_File, uploaded_at) 
+                    VALUES (:User_ID, :thesis_department, :thesis_course, :thesis_email, :title, :author, :adviser, :hardbound_available, :thesis_abstract_file, :thesis_file, :uploaded_at)";
             
             $this->db->query($query);
             $this->db->bind(':User_ID', $data['User_ID']);
@@ -212,6 +258,8 @@ class Thesis extends Model {
             $this->db->bind(':thesis_email', $data['Thesis_Email']);
             $this->db->bind(':title', $data['Title']);
             $this->db->bind(':author', $data['Author']);
+            $this->db->bind(':adviser', $data['Adviser']);
+            $this->db->bind(':hardbound_available', $data['HardBound_Available'] ?? 'Yes'); // Default to 'Yes'
             $this->db->bind(':thesis_abstract_file', $data['Thesis_AbstractFile']); // Abstract file BLOB
             $this->db->bind(':thesis_file', $data['Thesis_File']); // Thesis file BLOB
             $this->db->bind(':uploaded_at', $data['uploaded_at']);
@@ -316,4 +364,3 @@ class Thesis extends Model {
         return $this->error;
     }
 }
-?>

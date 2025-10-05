@@ -53,7 +53,7 @@ class ThesisController {
         
         try {
             // Validate required fields
-            $requiredFields = ['thesistitle', 'thesisauthor', 'department', 'course'];
+            $requiredFields = ['thesistitle', 'thesisadviser' , 'thesisauthor', 'department', 'course'];
             foreach ($requiredFields as $field) {
                 if (empty($_POST[$field])) {
                     throw new Exception(ucfirst($field) . ' is required');
@@ -73,6 +73,7 @@ class ThesisController {
             $postData = [
                 'thesistitle' => trim($_POST['thesistitle']),
                 'thesisauthor' => trim($_POST['thesisauthor']),
+                'thesisadviser' => trim($_POST['thesisadviser']),
                 'department' => trim($_POST['department']),
                 'course' => trim($_POST['course'])
             ];
@@ -399,7 +400,7 @@ class ThesisController {
             
             $abstractFile = $this->thesisModel->getAbstractFile($thesisId);
             
-            if (!$abstractFile) {
+            if (!$abstractFile || empty($abstractFile->Thesis_AbstractFile)) {
                 http_response_code(404);
                 echo json_encode(['success' => false, 'error' => 'Abstract file not found']);
                 return;
@@ -410,7 +411,7 @@ class ThesisController {
             header('Content-Disposition: inline; filename="abstract_' . $thesisId . '.pdf"');
             header('Content-Length: ' . strlen($abstractFile->Thesis_AbstractFile));
             
-            // Output the BLOB data
+            // Output the abstract BLOB data
             echo $abstractFile->Thesis_AbstractFile;
             exit;
             
@@ -460,9 +461,9 @@ class ThesisController {
                 $this->getThesisStatistics();
                 break;
             case 'download':
-                $this->serveThesisFile();
+                $this->serveThesisFile(); // Full thesis download
                 break;
-            case 'downloadAbstract':
+            case 'downloadAbstract': // Add this case for abstract preview
                 $this->serveAbstractFile();
                 break;
             default:
@@ -480,4 +481,6 @@ if (isset($_GET['action'])) {
     $controller->handleRequest();
     exit;
 }
+
+
 ?>

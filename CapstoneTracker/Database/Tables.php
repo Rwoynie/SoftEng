@@ -58,6 +58,8 @@
                 Thesis_Email VARCHAR(255) NOT NULL,
                 Title VARCHAR(255) NOT NULL,
                 Author VARCHAR(255) NOT NULL,
+                Adviser VARCHAR(255) NOT NULL,
+                HardBound_Available ENUM('Yes', 'No') DEFAULT 'Yes',
                 Thesis_AbstractFile LONGBLOB NOT NULL,
                 Thesis_File LONGBLOB NOT NULL,    
                 uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -300,6 +302,8 @@
         
         return true;
     }
+
+    
 
     /**
      * Static method for manual setup (replaces old Tables.php)
