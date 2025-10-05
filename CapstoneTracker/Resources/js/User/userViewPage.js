@@ -1021,3 +1021,208 @@ function updatePdfControls(pdfDoc, currentPageNum) {
     document.getElementById('next-page').disabled = currentPageNum >= pdfDoc.numPages;
     document.getElementById('pdf-page-num').textContent = currentPageNum;
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Navigation elements
+    const dashboardSidebarIcon = document.getElementById('dashboardSidebarIcon');
+    const profileSidebarIcon = document.getElementById('profileSidebarIcon');
+    const dashboardContainer = document.getElementById('dashboardContainer');
+    const profileContainer = document.getElementById('profileContainer');
+    const projectsContainer = document.getElementById('projectsContainer');
+
+    // Initialize view
+    showDashboard();
+
+    // Navigation event listeners
+    dashboardSidebarIcon.addEventListener('click', function() {
+        showDashboard();
+        setActiveNav(this);
+    });
+
+    profileSidebarIcon.addEventListener('click', function() {
+        showProfile();
+        setActiveNav(this);
+    });
+
+    // Quick action buttons
+    const uploadThesisBtn = document.getElementById('uploadThesisBtn');
+    const browseCatalogBtn = document.getElementById('browseCatalogBtn');
+    const myThesisBtn = document.getElementById('myThesisBtn');
+    const researchResourcesBtn = document.getElementById('researchResourcesBtn');
+
+    if (uploadThesisBtn) {
+        uploadThesisBtn.addEventListener('click', function() {
+            // Handle upload thesis action
+            Swal.fire({
+                title: 'Upload Thesis',
+                text: 'Thesis upload functionality will be implemented here.',
+                icon: 'info',
+                confirmButtonText: 'OK'
+            });
+        });
+    }
+
+    if (browseCatalogBtn) {
+        browseCatalogBtn.addEventListener('click', function() {
+            showProjects();
+            setActiveNav(dashboardSidebarIcon);
+        });
+    }
+
+    if (myThesisBtn) {
+        myThesisBtn.addEventListener('click', function() {
+            // Handle my thesis action
+            Swal.fire({
+                title: 'My Thesis',
+                text: 'Viewing your thesis submissions.',
+                icon: 'info',
+                confirmButtonText: 'OK'
+            });
+        });
+    }
+
+    if (researchResourcesBtn) {
+        researchResourcesBtn.addEventListener('click', function() {
+            // Handle research resources action
+            Swal.fire({
+                title: 'Research Resources',
+                text: 'Accessing research guidelines and resources.',
+                icon: 'info',
+                confirmButtonText: 'OK'
+            });
+        });
+    }
+
+    // Carousel functionality
+    initCarousel();
+
+    // Search functionality
+    const dashboardSearchBtn = document.getElementById('dashboard-search-btn');
+    const dashboardSearchInput = document.getElementById('dashboard-search-input');
+
+    if (dashboardSearchBtn && dashboardSearchInput) {
+        dashboardSearchBtn.addEventListener('click', handleDashboardSearch);
+        dashboardSearchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                handleDashboardSearch();
+            }
+        });
+    }
+
+    function handleDashboardSearch() {
+        const searchTerm = dashboardSearchInput.value.trim();
+        if (searchTerm) {
+            showProjects();
+            setActiveNav(dashboardSidebarIcon);
+            // You can add search filtering logic here
+            console.log('Searching for:', searchTerm);
+        }
+    }
+
+    // View management functions
+    function showDashboard() {
+        dashboardContainer.style.display = 'block';
+        profileContainer.style.display = 'none';
+        projectsContainer.style.display = 'none';
+    }
+
+    function showProfile() {
+        dashboardContainer.style.display = 'none';
+        profileContainer.style.display = 'block';
+        projectsContainer.style.display = 'none';
+    }
+
+    function showProjects() {
+        dashboardContainer.style.display = 'none';
+        profileContainer.style.display = 'none';
+        projectsContainer.style.display = 'block';
+    }
+
+    function setActiveNav(activeElement) {
+        // Remove selected class from all nav items
+        const navItems = document.querySelectorAll('.menu-options li');
+        navItems.forEach(item => item.classList.remove('selected'));
+        
+        // Add selected class to active element
+        activeElement.classList.add('selected');
+    }
+
+    // Carousel initialization
+    function initCarousel() {
+        const carousel = document.querySelector('.announcements-carousel');
+        if (!carousel) return;
+
+        const container = carousel.querySelector('.carousel-container');
+        const cards = carousel.querySelector('.announcement-cards');
+        const prevBtn = carousel.querySelector('.carousel-control.prev');
+        const nextBtn = carousel.querySelector('.carousel-control.next');
+        const indicatorsContainer = carousel.querySelector('.carousel-indicators');
+
+        if (!container || !cards || !prevBtn || !nextBtn) return;
+
+        const cardCount = cards.children.length;
+        let currentIndex = 0;
+
+        // Create indicators
+        if (indicatorsContainer) {
+            for (let i = 0; i < cardCount; i++) {
+                const indicator = document.createElement('div');
+                indicator.className = 'indicator' + (i === 0 ? ' active' : '');
+                indicator.addEventListener('click', () => goToSlide(i));
+                indicatorsContainer.appendChild(indicator);
+            }
+        }
+
+        function updateCarousel() {
+            const cardWidth = cards.children[0].offsetWidth + 24; // width + gap
+            cards.style.transform = `translateX(-${currentIndex * cardWidth}px)`;
+            
+            // Update indicators
+            if (indicatorsContainer) {
+                const indicators = indicatorsContainer.querySelectorAll('.indicator');
+                indicators.forEach((indicator, index) => {
+                    indicator.classList.toggle('active', index === currentIndex);
+                });
+            }
+        }
+
+        function goToSlide(index) {
+            currentIndex = index;
+            updateCarousel();
+        }
+
+        function nextSlide() {
+            currentIndex = (currentIndex + 1) % cardCount;
+            updateCarousel();
+        }
+
+        function prevSlide() {
+            currentIndex = (currentIndex - 1 + cardCount) % cardCount;
+            updateCarousel();
+        }
+
+        prevBtn.addEventListener('click', prevSlide);
+        nextBtn.addEventListener('click', nextSlide);
+
+        // Auto-advance carousel
+        setInterval(nextSlide, 5000);
+
+        // Initialize carousel
+        updateCarousel();
+    }
+
+    // Thesis card click handlers
+    const thesisCards = document.querySelectorAll('.thesis-card');
+    thesisCards.forEach(card => {
+        card.addEventListener('click', function() {
+            // Handle thesis card click - you can implement preview or details view
+            const title = this.querySelector('h3').textContent;
+            Swal.fire({
+                title: title,
+                text: 'Thesis details and preview functionality.',
+                icon: 'info',
+                confirmButtonText: 'View Details'
+            });
+        });
+    });
+});

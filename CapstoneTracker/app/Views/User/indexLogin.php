@@ -110,7 +110,7 @@ if ($setupError) {
                 </button>
             </div>
             <div class="text-center mt-3">
-                <a href="../../../app/Views/User/publicView.php" class="text-decoration-none link-secondary" >View as guest</a>
+                <a href="../../../app/Views/public/home.php" class="text-decoration-none link-secondary" >View as guest</a>
             </div>
         </div>  
     </div>
@@ -151,8 +151,7 @@ if ($setupError) {
           <button type="button" id="googleModalBtn" class="btn w-100 mb-3" style="background:#db4437; color:white;">
             <i class="fab fa-google me-2"></i> Sign in with USeP Email
           </button>
-          <small class="text-muted d-block text-center">Use your USeP (@usep.edu.ph) email only</small>
-
+          
           <div class="text-center">
             <a href="#" id="openRegisterLink" class="btn btn-link">Not yet registered?</a>
           </div>
