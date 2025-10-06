@@ -1,13 +1,16 @@
 <?php
 // AdminDashboardController.php
 require_once __DIR__ . '/../Models/AdminDashboardModel.php';
+require_once __DIR__ . '/../Models/Model.php';
 
 class AdminDashboardController {
     private $model;
     private $currentUser;
+    private $modelMain;
 
     public function __construct() {
         $this->model = new AdminDashboardModel();
+        $this->modelMain = new Model();
         $this->checkAdminAccess();
     }
 
@@ -52,7 +55,7 @@ class AdminDashboardController {
      */
     public function handleRequest() {
         $action = $_GET['action'] ?? 'dashboard';
-
+    
         switch ($action) {
             case 'getUsers':
                 $this->getUsers();
@@ -77,6 +80,9 @@ class AdminDashboardController {
                 break;
             case 'searchTheses':
                 $this->searchTheses();
+                break;
+            case 'checkUserRoles': // ADD THIS NEW CASE
+                $this->checkUserRoles();
                 break;
             case 'logout':
                 $this->logout();
@@ -286,6 +292,61 @@ class AdminDashboardController {
         session_destroy();
         
         $this->jsonResponse(['success' => true, 'redirect' => '../User/indexLogin.php']);
+    }
+
+    /**
+     * Check user roles for validation (for upload form)
+     */
+    private function checkUserRoles() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['error' => 'Invalid request method'], 400);
+            return;
+        }
+
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+            $emails = $input['emails'] ?? [];
+            $checkType = $input['check_type'] ?? 'authors'; // 'authors' or 'advisers'
+            
+            $facultyUsers = [];
+            $nonFacultyUsers = [];
+            $userRoles = [];
+            
+            foreach ($emails as $email) {
+                $cleanEmail = trim($email);
+                if (empty($cleanEmail)) continue;
+                
+                $user = $this->modelMain->findByEmail($cleanEmail);
+                if ($user) {
+                    $userRoles[$cleanEmail] = $user->User_Role;
+                    
+                    if ($user->User_Role === 'faculty') {
+                        $facultyUsers[] = $cleanEmail;
+                    } else {
+                        $nonFacultyUsers[] = $cleanEmail;
+                    }
+                } else {
+                    // User not found in database
+                    $userRoles[$cleanEmail] = 'not_found';
+                    $nonFacultyUsers[] = $cleanEmail;
+                }
+            }
+            
+            $response = [
+                'success' => true,
+                'userRoles' => $userRoles,
+                'facultyUsers' => $facultyUsers,
+                'nonFacultyUsers' => $nonFacultyUsers
+            ];
+            
+            $this->jsonResponse($response);
+            
+        } catch (Exception $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

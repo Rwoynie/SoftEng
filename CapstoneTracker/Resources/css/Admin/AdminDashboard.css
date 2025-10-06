@@ -1372,7 +1372,10 @@ body {
 
     /* File Preview Styles */
 .file-previews {
+    display: flex;
+    flex-direction: row;
     margin-top: 20px;
+    gap: 1.5vw;
 }
 
 .file-previews h4 {
@@ -1490,6 +1493,60 @@ body {
     font-size: 2.5rem;
     margin-bottom: 10px;
     opacity: 0.5;
+}
+
+/* File Categories Styles */
+.file-category {
+    margin-bottom: 25px;
+    width: 100%;
+}
+
+.file-category h4 {
+    font-size: 1rem;
+    margin-bottom: 15px;
+    color: var(--color-dark-grey);
+    padding-bottom: 10px;
+    border-bottom: 2px solid #eee;
+    display: flex;
+    align-items: center;
+}
+
+.file-category h4 i {
+    margin-right: 8px;
+    font-size: 0.9rem;
+}
+
+.file-category:last-child {
+    margin-bottom: 0;
+}
+
+/* Category-specific colors */
+.file-category:nth-child(1) h4 {
+    border-bottom-color: var(--color-green);
+    color: var(--color-green);
+}
+
+.file-category:nth-child(2) h4 {
+    border-bottom-color: #e74c3c;
+    color: #c0392b;
+}
+
+.file-category .empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 30px 20px;
+    color: var(--color-lite-grey);
+}
+
+.file-category .empty-state i {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    opacity: 0.5;
+}
+
+.file-category .empty-state p {
+    margin: 0;
+    font-size: 0.9rem;
 }
 
 /* Thesis form styles */

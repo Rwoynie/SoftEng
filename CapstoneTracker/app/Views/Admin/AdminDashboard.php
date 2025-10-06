@@ -172,7 +172,7 @@ $displayUserData = [
                                 $Author = htmlspecialchars($theses->Author);
                                 $Adviser = htmlspecialchars($theses->Adviser ?? 'Not specified');
                                 $Title = htmlspecialchars($theses->Title);
-                                
+                             //   $currentDate =
                                 $Course = htmlspecialchars($theses->Thesis_Course);
                                 $Department = htmlspecialchars($theses->Thesis_Department);
                                 $formattedDate = date('M j, Y', strtotime($theses->uploaded_at));
@@ -202,7 +202,7 @@ $displayUserData = [
                                 echo '</div>';
                                 echo '<div class="footer-row">';
                                 echo '<div class="days warning">';
-                                echo '<i class="fa fa-clock-o icon" aria-hidden="true"></i> 2 days ago';
+                                echo '<i class="fa fa-clock-o icon" aria-hidden="true"></i> days ago';
                                 echo '</div>';
                                 echo '</div>';
                                 echo '</li>';
@@ -487,7 +487,7 @@ $displayUserData = [
             <div class="log-filter-bar">
             <div class="searchbox">
                         <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
-                        <input type="text" name="search" placeholder="Search thesis..." class="search-text" id="searchInput">
+                        <input type="text" name="search" placeholder="Search accounts..." class="search-text" id="userLogSearchInput">
                     </div>
                 <div class="log-filter-options">
                     <button class="log-filter-btn active" data-filter="all">All</button>
@@ -572,7 +572,7 @@ $displayUserData = [
             <div class="log-filter-bar">
             <div class="searchbox">
                         <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
-                        <input type="text" name="search" placeholder="Search thesis..." class="search-text" id="searchInput">
+                        <input type="text" name="search" placeholder="Search accounts..." class="search-text" id="adminLogSearchInput">
                     </div>
                 <div class="log-filter-options">
                     <button class="log-filter-btn active" data-filter="all">All</button>
@@ -717,13 +717,26 @@ $displayUserData = [
                 </div>
             </div>
 
-            <!-- Single File Previews Section -->
             <div class="file-previews">
-                <h4>Selected Files</h4>
-                <div class="file-list-grid" id="fileList">
-                    <div class="empty-state">
-                        <i class="far fa-folder-open"></i>
-                        <p>No files selected</p>
+                <!-- Abstract Files Section -->
+                <div class="file-category">
+                    <h4>Abstract Files</h4>
+                    <div class="file-list-grid" id="abstractFileList">
+                        <div class="empty-state">
+                            <i class="far fa-file-pdf"></i>
+                            <p>No abstract files selected</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Thesis Files Section -->
+                <div class="file-category">
+                    <h4>Thesis Files</h4>
+                    <div class="file-list-grid" id="thesisFileList">
+                        <div class="empty-state">
+                            <i class="far fa-file-pdf"></i>
+                            <p>No thesis files selected</p>
+                        </div>
                     </div>
                 </div>
             </div>

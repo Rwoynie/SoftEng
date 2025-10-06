@@ -1,24 +1,27 @@
+
+
 document.addEventListener('DOMContentLoaded', function() {
     // Profile functionality (existing code)
-    
+    let uploadedFiles = {
+        abstract: [],
+        thesis: []
+    };
     const logoutBtn = document.getElementById('logoutHeaderIcon');
 
     const fabIcon = document.querySelector('.fab-icon');
     const uploadModal = document.getElementById('uploadModal');
     const previewModal = document.getElementById('previewModal');
-    const modalClose = document.querySelectorAll('.modal-close');
-    const btnCancel = document.querySelector('.btn-cancel');
+
 
     const abstractDropArea = document.getElementById('abstractDropArea');
     const thesisDropArea = document.getElementById('thesisDropArea');
     const abstractFileInput = document.getElementById('abstractFileInput');
     const thesisFileInput = document.getElementById('thesisFileInput');
 
-    const fileList = document.getElementById('fileList');
+
     const btnUpload = document.querySelector('.btn-upload');
     
-    
-    const closePreview = document.getElementById('closePreview');
+  
     const downloadLink = document.getElementById('download-link');
     const docViewerIframe = document.getElementById('doc-viewer-iframe');
     const pdfViewer = document.getElementById('pdf-viewer');
@@ -44,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function() {
     logoutMenu.className = 'logout-menu';
 
     //session data
-    const sessionData = document.getElementById('session-data');
+ 
     const userName = userDisplayData ? userDisplayData.user_name : '';
     const userRole = userDisplayData ? userDisplayData.user_role : '';
  
@@ -231,19 +234,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    let uploadedFiles = [];
-    let currentPdfDoc = null;
-    let currentPageNum = 1;
-    let pdfPageRendering = false;
-    let pdfPageNumPending = null;
+    
+    
     
     function initializeUploadArea(dropArea, fileInput) {
         if (!dropArea || !fileInput) return;
         
+        const fileType = fileInput.id === 'abstractFileInput' ? 'abstract' : 'thesis';
+        
         // File input change event
         fileInput.addEventListener('change', function(e) {
             if (this.files && this.files.length > 0) {
-                handleFiles(this.files);
+                handleFiles(this.files, fileType);
             }
         });
         
@@ -276,7 +278,7 @@ document.addEventListener('DOMContentLoaded', function() {
         dropArea.addEventListener('drop', function(e) {
             const dt = e.dataTransfer;
             const files = dt.files;
-            handleFiles(files);
+            handleFiles(files, fileType);
         });
     }
 
@@ -404,7 +406,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Handle the selected files
-    function handleFiles(files) {
+    function handleFiles(files, fileType) {
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             
@@ -421,7 +423,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Check file size (max 50MB)
-            const maxFileSize = 50 * 1024 * 1024; // 50MB in bytes
+            const maxFileSize = 50 * 1024 * 1024;
             if (file.size > maxFileSize) {
                 Swal.fire({
                     title: 'File Too Large',
@@ -442,8 +444,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 continue;
             }
             
-            // Check if file is already in the list
-            if (uploadedFiles.some(f => f.name === file.name && f.size === file.size)) {
+            // FIX: Check if file is already in the list using a more reliable method
+            const isDuplicate = uploadedFiles[fileType].some(existingFile => 
+                existingFile.name === file.name && 
+                existingFile.size === file.size &&
+                existingFile.lastModified === file.lastModified
+            );
+            
+            if (isDuplicate) {
                 Swal.fire({
                     title: 'File Already Added',
                     text: 'This file has already been added to the upload list.',
@@ -453,34 +461,41 @@ document.addEventListener('DOMContentLoaded', function() {
                 continue;
             }
             
-            uploadedFiles.push(file);
-            displayFile(file);
-        }
-        
-        // Remove empty state if files are added
-        if (uploadedFiles.length > 0) {
-            const emptyState = fileList.querySelector('.empty-state');
-            if (emptyState) {
-                emptyState.remove();
-            }
+            // Add file to the appropriate array
+            uploadedFiles[fileType].push(file);
+            displayFile(file, fileType);
         }
         
         // Update upload button state
         updateUploadButtonState();
     }
+    
 
     
     // Display file in the list with preview
-    function displayFile(file) {
-        console.log('Displaying file:', file.name);
+    function displayFile(file, fileType) {
+        console.log('Displaying file:', file.name, 'Type:', fileType, 'Size:', file.size);
+        
+        const fileListId = fileType === 'abstract' ? 'abstractFileList' : 'thesisFileList';
+        const fileList = document.getElementById(fileListId);
+        
+        // FIX: Check if file already exists in the display before adding
+        const existingFileItems = fileList.querySelectorAll('.file-item-card');
+        for (let existingItem of existingFileItems) {
+            const existingFileName = existingItem.querySelector('.file-name-preview').textContent;
+            if (existingFileName === file.name) {
+                console.log('File already displayed:', file.name);
+                return; // Don't add duplicate display
+            }
+        }
         
         const fileItem = document.createElement('div');
         fileItem.className = 'file-item-card animate__animated animate__fadeInUp';
+        fileItem.setAttribute('data-file-type', fileType);
+        fileItem.setAttribute('data-file-name', file.name);
         
-        // Get appropriate icon based on file type
-        let fileIconClass = 'file-icon-preview pdf'; // Since we only accept PDFs
+        let fileIconClass = 'file-icon-preview pdf';
         
-        // Format file size
         const fileSize = formatFileSize(file.size);
         
         fileItem.innerHTML = `
@@ -492,32 +507,42 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="file-size-preview">${fileSize}</div>
             </div>
             <div class="file-actions-preview">
-                <button type="button" class="file-action-btn-preview file-download-preview" data-filename="${file.name}">
+                <button type="button" class="file-action-btn-preview file-download-preview" data-filename="${file.name}" data-filetype="${fileType}">
                     <i class="fas fa-eye"></i>
                 </button>
-                <button type="button" class="file-action-btn-preview file-remove-preview" data-filename="${file.name}">
+                <button type="button" class="file-action-btn-preview file-remove-preview" data-filename="${file.name}" data-filetype="${fileType}">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
         `;
         
         fileList.appendChild(fileItem);
-        console.log('File item added to DOM');
+        
+        // Remove empty state if files are added
+        const emptyState = fileList.querySelector('.empty-state');
+        if (emptyState) {
+            emptyState.remove();
+        }
         
         // Add event listener to remove button
         const removeBtn = fileItem.querySelector('.file-remove-preview');
         removeBtn.addEventListener('click', function(e) {
-            e.preventDefault(); // Prevent form submission
-            e.stopPropagation(); // Stop event bubbling
+            e.preventDefault();
+            e.stopPropagation();
             
             const fileName = this.getAttribute('data-filename');
-            console.log('Removing file:', fileName);
-            removeFile(fileName);
+            const fileType = this.getAttribute('data-filetype');
+            console.log('Removing file:', fileName, 'Type:', fileType);
+            
+            removeFile(fileName, fileType);
+            
+            // Animate removal
             fileItem.classList.add('animate__fadeOut');
             setTimeout(() => {
                 fileItem.remove();
-                if (uploadedFiles.length === 0) {
-                    showEmptyState();
+                // Show empty state if no files left in this category
+                if (uploadedFiles[fileType].length === 0) {
+                    showEmptyState(fileType);
                 }
             }, 500);
         });
@@ -525,21 +550,25 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add event listener to preview button
         const previewBtn = fileItem.querySelector('.file-download-preview');
         previewBtn.addEventListener('click', function(e) {
-            e.preventDefault(); // Prevent form submission
-            e.stopPropagation(); // Stop event bubbling
+            e.preventDefault();
+            e.stopPropagation();
             
             const fileName = this.getAttribute('data-filename');
-            previewFile(fileName);
+            const fileType = this.getAttribute('data-filetype');
+            previewFile(fileName, fileType);
         });
     }
     
 
     // Show empty state when no files
-    function showEmptyState() {
+    function showEmptyState(fileType) {
+        const fileListId = fileType === 'abstract' ? 'abstractFileList' : 'thesisFileList';
+        const fileList = document.getElementById(fileListId);
+        
         fileList.innerHTML = `
             <div class="empty-state">
-                <i class="far fa-folder-open"></i>
-                <p>No files selected</p>
+                <i class="far fa-file-pdf"></i>
+                <p>No ${fileType} files selected</p>
             </div>
         `;
     }
@@ -556,14 +585,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Remove file from the list
-    function removeFile(fileName) {
-        uploadedFiles = uploadedFiles.filter(file => file.name !== fileName);
+    function removeFile(fileName, fileType) {
+        // Remove from uploadedFiles array
+        uploadedFiles[fileType] = uploadedFiles[fileType].filter(file => file.name !== fileName);
+        
+        // FIX: Clear the file input value to allow re-selection of the same file
+        if (fileType === 'abstract' && abstractFileInput) {
+            abstractFileInput.value = '';
+        } else if (fileType === 'thesis' && thesisFileInput) {
+            thesisFileInput.value = '';
+        }
+        
         updateUploadButtonState();
     }
-    
+
     // Preview file using Google Docs Viewer for docx and PDF.js for pdf
-    function previewFile(fileName) {
-        const file = uploadedFiles.find(f => f.name === fileName);
+    function previewFile(fileName, fileType) {
+        const file = uploadedFiles[fileType].find(f => f.name === fileName);
         if (!file) return;
         
         // Reset viewer states
@@ -833,10 +871,21 @@ document.addEventListener('DOMContentLoaded', function() {
             uploadForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 
-                if (uploadedFiles.length === 0) {
+                // Check if both file types have files
+                if (uploadedFiles.abstract.length === 0) {
                     Swal.fire({
-                        title: 'No Files Selected',
-                        text: 'Please select at least one file to upload.',
+                        title: 'Abstract File Required',
+                        text: 'Please select at least one abstract file.',
+                        icon: 'warning',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+                
+                if (uploadedFiles.thesis.length === 0) {
+                    Swal.fire({
+                        title: 'Thesis File Required',
+                        text: 'Please select at least one thesis file.',
                         icon: 'warning',
                         confirmButtonText: 'OK'
                     });
@@ -855,10 +904,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-                // Show confirmation dialog
+            const totalFiles = (uploadedFiles.abstract.length + uploadedFiles.thesis.length);
+
             Swal.fire({
                 title: 'Confirm Upload',
-                html: `Are you sure you want to upload <strong>${thesisTitleInput.value}</strong> with ${uploadedFiles.length} file(s)?`,
+                html: `Are you sure you want to upload <strong>${thesisTitleInput.value}</strong>?<br><br>
+                    <strong>Abstract Files:</strong> ${uploadedFiles.abstract.length} file(s)<br>
+                    <strong>Thesis Files:</strong> ${uploadedFiles.thesis.length} file(s)<br>
+                    <strong>Total Files:</strong> ${totalFiles} file(s)`,
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
@@ -950,8 +1003,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Function to reset upload form
     function resetUploadForm() {
-        uploadedFiles = [];
-        showEmptyState();
+        // Clear uploaded files arrays
+        uploadedFiles.abstract = [];
+        uploadedFiles.thesis = [];
+        
+        // Clear file displays
+        showEmptyState('abstract');
+        showEmptyState('thesis');
         
         // Clear both file inputs
         if (abstractFileInput) abstractFileInput.value = '';
@@ -961,6 +1019,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const formFields = [
             'thesisTitle',
             'thesisAuthor',
+            'thesisAdviser',
             'courseInput'
         ];
         
@@ -2036,14 +2095,13 @@ if (accountSearchInput) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(email.trim());
     }
-
     // Function to validate multiple USEP emails separated by commas
     function validateAuthorEmails(emailString) {
         if (!emailString.trim()) return { isValid: false, emails: [] };
         
         const emails = emailString.split(',').map(email => email.trim()).filter(email => email !== '');
         
-        // Check if all emails are valid USEP emails
+        // Check if all emails are valid
         const invalidEmails = emails.filter(email => !isValidEmail(email));
         
         return {
@@ -2053,39 +2111,98 @@ if (accountSearchInput) {
         };
     }
 
-    function updateFileIconState() {
-        const thesisTitle = document.getElementById('thesisTitle');
-        const thesisAuthor = document.getElementById('thesisAuthor');
-        const departmentSelect = document.getElementById('departmentSelect');
-        const courseInput = document.getElementById('courseInput');
-        const fileIcon = document.getElementById('notif');
-        
-        if (!fileIcon) return;
-        
-        // Validate author emails
-        const emailValidation = validateAuthorEmails(thesisAuthor.value);
-        
-        // Check if department has a selected value
-        const isDepartmentSelected = departmentSelect && departmentSelect.value !== '';
-        
-        const isFormValid = thesisTitle.value.trim() !== '' &&
-                           thesisAuthor.value.trim() !== '' &&
-                           emailValidation.isValid &&
-                           isDepartmentSelected &&
-                           courseInput.value.trim() !== '' &&
-                           uploadedFiles.length > 0;
-        
-        // Remove all state classes
-        fileIcon.classList.remove('ready', 'error', 'warning');
-        
-        if (isFormValid) {
-            // All requirements met - ready state (green)
-            fileIcon.classList.add('good');
-        } 
-        // Otherwise, it stays the default grey color
+    function validateAuthorsBeforeUpload(authorEmails) {
+        return new Promise((resolve, reject) => {
+            const emails = authorEmails.split(',').map(email => email.trim()).filter(email => email !== '');
+            
+            if (emails.length === 0) {
+                resolve();
+                return;
+            }
+            
+            // Check if any emails belong to faculty
+            fetch('../../../app/Controllers/AdminDashboardController.php?action=checkUserRoles', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    emails: emails,
+                    check_type: 'authors'
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    if (data.facultyUsers && data.facultyUsers.length > 0) {
+                        reject(`Faculty users cannot be listed as authors. Please remove the following faculty emails: ${data.facultyUsers.join(', ')}`);
+                    } else {
+                        resolve();
+                    }
+                } else {
+                    reject(data.error || 'Error checking user roles');
+                }
+            })
+            .catch(error => {
+                console.error('Error validating authors:', error);
+                reject('Unable to verify user roles. Please try again.');
+            });
+        });
     }
 
-    // Update the upload button state function
+    function validateAdviserBeforeUpload(adviserEmail) {
+        return new Promise((resolve, reject) => {
+            if (!adviserEmail.trim()) {
+                resolve();
+                return;
+            }
+            
+            // Check if adviser email belongs to faculty
+            fetch('../../../app/Controllers/AdminDashboardController.php?action=checkUserRoles', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    emails: [adviserEmail.trim()],
+                    check_type: 'advisers'
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Check if the adviser is faculty
+                    const isFaculty = data.userRoles && data.userRoles[adviserEmail] === 'faculty';
+                    const userExists = data.userRoles && data.userRoles[adviserEmail] !== 'not_found';
+                    
+                    if (!userExists) {
+                        reject(`The adviser email "${adviserEmail}" was not found in the system.`);
+                    } else if (!isFaculty) {
+                        reject(`The adviser email must belong to a faculty member. "${adviserEmail}" is not a faculty user.`);
+                    } else {
+                        resolve();
+                    }
+                } else {
+                    reject(data.error || 'Error checking adviser role');
+                }
+            })
+            .catch(error => {
+                console.error('Error validating adviser:', error);
+                reject('Unable to verify adviser role. Please try again.');
+            });
+        });
+    }
+
     function updateUploadButtonState() {
         const thesisTitle = document.getElementById('thesisTitle');
         const thesisAuthor = document.getElementById('thesisAuthor');
@@ -2095,38 +2212,50 @@ if (accountSearchInput) {
         const uploadBtn = document.getElementById('uploadBtn');
         
         // Validate author emails
-        const emailValidation = validateAuthorEmails(thesisAuthor.value);
+        const authorEmailValidation = validateAuthorEmails(thesisAuthor.value);
+        
+        // Validate adviser email
+        const adviserEmailValidation = {
+            isValid: thesisAdviser.value.trim() === '' ? true : isValidEmail(thesisAdviser.value.trim())
+        };
         
         // Check if department has a selected value
         const isDepartmentSelected = departmentSelect && departmentSelect.value !== '';
         
+        // Check if both file types have at least one file
+        const hasAbstractFiles = uploadedFiles.abstract.length > 0;
+        const hasThesisFiles = uploadedFiles.thesis.length > 0;
+        
         const isFormValid = thesisTitle.value.trim() !== '' &&
                            thesisAuthor.value.trim() !== '' &&
                            thesisAdviser.value.trim() !== '' &&
-                           emailValidation.isValid &&
+                           authorEmailValidation.isValid &&
+                           adviserEmailValidation.isValid &&
                            isDepartmentSelected &&
                            courseInput.value.trim() !== '' &&
-                           uploadedFiles.length > 0;
+                           hasAbstractFiles &&
+                           hasThesisFiles;
         
         if (uploadBtn) {
             uploadBtn.disabled = !isFormValid;
         }
         
-        // Update visual feedback for email field
+        // Update visual feedback for author email field
         if (thesisAuthor) {
             if (thesisAuthor.value.trim() === '') {
                 thesisAuthor.style.borderColor = '#ddd';
-            } else if (!emailValidation.isValid) {
+            } else if (!authorEmailValidation.isValid) {
                 thesisAuthor.style.borderColor = 'var(--color-danger)';
             } else {
                 thesisAuthor.style.borderColor = '#51cf66';
             }
         }
-
+    
+        // Update visual feedback for adviser email field
         if (thesisAdviser) {
             if (thesisAdviser.value.trim() === '') {
                 thesisAdviser.style.borderColor = '#ddd';
-            } else if (!emailValidation.isValid) {
+            } else if (!adviserEmailValidation.isValid) {
                 thesisAdviser.style.borderColor = 'var(--color-danger)';
             } else {
                 thesisAdviser.style.borderColor = '#51cf66';
@@ -2141,13 +2270,130 @@ if (accountSearchInput) {
                 departmentSelect.style.borderColor = '#51cf66';
             }
         }
-
+    
+        // Update file icon state
         updateFileIconState();
     }
 
+    function updateFileIconState() {
+        const thesisTitle = document.getElementById('thesisTitle');
+        const thesisAuthor = document.getElementById('thesisAuthor');
+        const thesisAdviser = document.getElementById('thesisAdviser');
+        const departmentSelect = document.getElementById('departmentSelect');
+        const courseInput = document.getElementById('courseInput');
+        const fileIcon = document.getElementById('notif');
+        
+        if (!fileIcon) return;
+        
+        // Validate emails
+        const authorEmailValidation = validateAuthorEmails(thesisAuthor.value);
+        const adviserEmailValidation = {
+            isValid: thesisAdviser.value.trim() === '' ? true : isValidEmail(thesisAdviser.value.trim())
+        };
+        
+        // Check if department has a selected value
+        const isDepartmentSelected = departmentSelect && departmentSelect.value !== '';
+        
+        // Check file requirements
+        const hasAbstractFiles = uploadedFiles.abstract.length > 0;
+        const hasThesisFiles = uploadedFiles.thesis.length > 0;
+        
+        const isFormValid = thesisTitle.value.trim() !== '' &&
+                           thesisAuthor.value.trim() !== '' &&
+                           thesisAdviser.value.trim() !== '' &&
+                           authorEmailValidation.isValid &&
+                           adviserEmailValidation.isValid &&
+                           isDepartmentSelected &&
+                           courseInput.value.trim() !== '' &&
+                           hasAbstractFiles &&
+                           hasThesisFiles;
+        
+        const hasSomeFiles = hasAbstractFiles || hasThesisFiles;
+        const hasSomeFormData = thesisTitle.value.trim() !== '';
+        
+        // Remove all state classes
+        fileIcon.classList.remove('good', 'error', 'warning');
+        
+        if (isFormValid) {
+            // All requirements met - ready state (green)
+            fileIcon.classList.add('good');
+        } else if ((hasAbstractFiles || hasThesisFiles) && hasSomeFormData) {
+            // Some requirements met but not all - warning state (orange)
+            fileIcon.classList.add('warning');
+        }
+    }
+    
+
+    function validateAuthorsBeforeUpload(authorEmails) {
+        return new Promise((resolve, reject) => {
+            const emails = authorEmails.split(',').map(email => email.trim()).filter(email => email !== '');
+            
+            if (emails.length === 0) {
+                resolve();
+                return;
+            }
+            
+            // Check if any emails belong to faculty
+            fetch('../../../app/Controllers/AdminDashboardController.php?action=checkUserRoles', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ emails: emails })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    if (data.facultyUsers && data.facultyUsers.length > 0) {
+                        reject(`Faculty users cannot be listed as authors. Please remove the following faculty emails: ${data.facultyUsers.join(', ')}`);
+                    } else {
+                        resolve();
+                    }
+                } else {
+                    reject(data.error || 'Error checking user roles');
+                }
+            })
+            .catch(error => {
+                console.error('Error validating authors:', error);
+                reject('Unable to verify user roles. Please try again.');
+            });
+        });
+    }
+    
+    function initializeUploadModal() {
+        const fabIcon = document.querySelector('.fab-icon');
+        const uploadModal = document.getElementById('uploadModal');
+        
+        if (fabIcon && uploadModal) {
+            fabIcon.addEventListener('click', function() {
+                console.log('FAB clicked, opening modal');
+                try {
+                    // FIX: Reset file inputs when modal opens
+                    if (abstractFileInput) abstractFileInput.value = '';
+                    if (thesisFileInput) thesisFileInput.value = '';
+                    
+                    uploadModal.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                    console.log('Modal opened successfully');
+                } catch (error) {
+                    console.error('Error opening modal:', error);
+                }
+            });
+        }
+    }
+
+    initializeUploadModal();
+    
     function initializeUploadFormValidation() {
         const thesisAuthor = document.getElementById('thesisAuthor');
+        const thesisAdviser = document.getElementById('thesisAdviser');
         
+        // Author email validation
         if (thesisAuthor) {
             thesisAuthor.addEventListener('blur', function() {
                 const emailValidation = validateAuthorEmails(this.value);
@@ -2170,25 +2416,26 @@ if (accountSearchInput) {
             thesisAuthor.addEventListener('input', function() {
                 updateUploadButtonState();
             });
-            
-            // Add input formatting to help users
-            thesisAuthor.addEventListener('input', function(e) {
-                // Auto-suggest @usep.edu.ph when user types @
-                const cursorPosition = e.target.selectionStart;
-                const value = e.target.value;
-                
-                if (value[cursorPosition - 1] === '@' && !value.includes('@usep.edu.ph')) {
-                    // Don't auto-complete if they're in the middle of typing
-                    const beforeCursor = value.substring(0, cursorPosition);
-                    const afterCursor = value.substring(cursorPosition);
-                    
-                    // Only auto-complete if they just typed @ at the end
-                    if (afterCursor === '' && !beforeCursor.includes('@usep.edu.ph')) {
-                        e.target.value = beforeCursor + 'usep.edu.ph';
-                        // Move cursor to after the @
-                        e.target.setSelectionRange(cursorPosition, cursorPosition);
-                    }
+        }
+        
+        // Adviser email validation
+        if (thesisAdviser) {
+            thesisAdviser.addEventListener('blur', function() {
+                if (this.value.trim() && !isValidEmail(this.value.trim())) {
+                    Swal.fire({
+                        title: 'Invalid Email Format',
+                        text: 'Please enter a valid email address for the adviser.',
+                        icon: 'warning',
+                        confirmButtonText: 'OK'
+                    });
                 }
+                
+                updateUploadButtonState();
+            });
+            
+            // Real-time validation as user types
+            thesisAdviser.addEventListener('input', function() {
+                updateUploadButtonState();
             });
         }
         
@@ -2206,6 +2453,14 @@ if (accountSearchInput) {
                 field.addEventListener('change', updateUploadButtonState);
             }
         });
+        
+        // Add event listeners for file uploads
+        if (abstractFileInput) {
+            abstractFileInput.addEventListener('change', updateUploadButtonState);
+        }
+        if (thesisFileInput) {
+            thesisFileInput.addEventListener('change', updateUploadButtonState);
+        }
     }
 
     function initializeUploadFormSubmission() {
@@ -2238,14 +2493,26 @@ if (accountSearchInput) {
                 
                 // Validate author emails
                 const thesisAuthorInput = document.getElementById('thesisAuthor');
-                const emailValidation = validateAuthorEmails(thesisAuthorInput.value);
+                const authorEmailValidation = validateAuthorEmails(thesisAuthorInput.value);
                 
-                if (!emailValidation.isValid) {
-                    const invalidEmailsList = emailValidation.invalidEmails.join(', ');
+                if (!authorEmailValidation.isValid) {
+                    const invalidEmailsList = authorEmailValidation.invalidEmails.join(', ');
                     Swal.fire({
                         title: 'Invalid Email Addresses',
-                        html: `The following emails are not valid: <strong>${invalidEmailsList}</strong><br><br>
+                        html: `The following author emails are not valid: <strong>${invalidEmailsList}</strong><br><br>
                                Please use valid email addresses for all authors.`,
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+                
+                // Validate adviser email
+                const thesisAdviserInput = document.getElementById('thesisAdviser');
+                if (thesisAdviserInput.value.trim() && !isValidEmail(thesisAdviserInput.value.trim())) {
+                    Swal.fire({
+                        title: 'Invalid Adviser Email',
+                        text: 'Please enter a valid email address for the adviser.',
                         icon: 'error',
                         confirmButtonText: 'OK'
                     });
@@ -2276,100 +2543,127 @@ if (accountSearchInput) {
                     return;
                 }
                 
-                // Show confirmation dialog with all details
-                const authorEmails = emailValidation.emails.join(', ');
-                const departmentText = departmentSelect.options[departmentSelect.selectedIndex].text;
-                
-                Swal.fire({
-                    title: 'Confirm Upload',
-                    html: `Are you sure you want to upload <strong>${thesisTitleInput.value}</strong>?<br><br>
-                          <strong>Authors:</strong> ${authorEmails}<br>
-                          <strong>Department:</strong> ${departmentText}<br>
-                          <strong>Course:</strong> ${courseInput.value}<br>
-                          <strong>Files:</strong> ${uploadedFiles.length} file(s)`,
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Yes, upload it!',
-                    cancelButtonText: 'Cancel'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        // Show loading state
-                        const originalText = btnUpload.textContent;
-                        btnUpload.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
-                        btnUpload.disabled = true;
-                        
-                        // Create FormData and append all fields
-                        const formData = new FormData();
-                        
-                        // Append text fields
-                        formData.append('thesistitle', thesisTitleInput.value.trim());
-                        formData.append('thesisauthor', thesisAuthorInput.value.trim());
-                        formData.append('department', departmentSelect.value);
-                        formData.append('course', courseInput.value.trim());
-                        
-                        // Append files - only the first file since your backend expects single file
-                        if (uploadedFiles.length > 0) {
-                            formData.append('files[]', uploadedFiles[0]);
+                // NEW: Validate authors don't include faculty users
+                validateAuthorsBeforeUpload(thesisAuthorInput.value)
+                    .then(() => {
+                        // Validate adviser is faculty
+                        if (thesisAdviserInput.value.trim()) {
+                            return validateAdviserBeforeUpload(thesisAdviserInput.value.trim());
+                        } else {
+                            return Promise.resolve();
                         }
+                    })
+                    .then(() => {
+                        // Proceed with upload if validation passes
+                        const authorEmails = authorEmailValidation.emails.join(', ');
+                        const departmentText = departmentSelect.options[departmentSelect.selectedIndex].text;
                         
-                        // Debug: Log form data before sending
-                        console.log('Form data being sent:');
-                        for (let [key, value] of formData.entries()) {
-                            if (key === 'files[]') {
-                                console.log(key + ': ' + value.name + ' (' + value.size + ' bytes)');
-                            } else {
-                                console.log(key + ': ' + value);
-                            }
-                        }
-                        
-                        // Send the request
-                        fetch(uploadForm.action, {
-                            method: 'POST',
-                            body: formData
-                        })
-                        .then(response => {
-                            console.log('Response status:', response.status);
-                            if (!response.ok) {
-                                throw new Error('Network response was not ok');
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            console.log('Upload response:', data);
-                            if (data.success) {
-                                Swal.fire({
-                                    title: 'Upload Successful!',
-                                    text: data.message || 'Your thesis has been uploaded successfully.',
-                                    icon: 'success',
-                                    confirmButtonText: 'OK'
-                                }).then(() => {
-                                    resetUploadForm();
-                                    closeModal(uploadModal);
-                                    // Optionally refresh the thesis list
-                                    // refreshThesisList();
+                        const totalFiles = (uploadedFiles.abstract.length + uploadedFiles.thesis.length);
+
+                        Swal.fire({
+                            title: 'Confirm Upload',
+                            html: `Are you sure you want to upload <strong>${thesisTitleInput.value}</strong>?<br><br>
+                                <strong>Authors:</strong> ${authorEmails}<br>
+                                <strong>Adviser:</strong> ${thesisAdviserInput.value}<br>
+                                <strong>Department:</strong> ${departmentText}<br>
+                                <strong>Course:</strong> ${courseInput.value}<br>
+                                <strong>Abstract Files:</strong> ${uploadedFiles.abstract.length} file(s)<br>
+                                <strong>Thesis Files:</strong> ${uploadedFiles.thesis.length} file(s)<br>
+                                <strong>Total Files:</strong> ${totalFiles} file(s)`,
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonColor: '#3085d6',
+                            cancelButtonColor: '#d33',
+                            confirmButtonText: 'Yes, upload it!',
+                            cancelButtonText: 'Cancel'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                // Show loading state
+                                const originalText = btnUpload.textContent;
+                                btnUpload.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+                                btnUpload.disabled = true;
+                                
+                                // Create FormData and submit the form
+                                const formData = new FormData(uploadForm);
+                                
+                                // Debug: Log form data before sending
+                                console.log('Form data being sent:');
+                                for (let [key, value] of formData.entries()) {
+                                    if (value instanceof File) {
+                                        console.log(key + ': ' + value.name + ' (' + value.size + ' bytes)');
+                                    } else {
+                                        console.log(key + ': ' + value);
+                                    }
+                                }
+                                
+                                // Send the request
+                                fetch(uploadForm.action, {
+                                    method: 'POST',
+                                    body: formData
+                                })
+                                .then(response => {
+                                    console.log('Response status:', response.status);
+                                    return response.text().then(text => {
+                                        console.log('Raw response:', text);
+                                        let data;
+                                        try {
+                                            data = JSON.parse(text);
+                                        } catch (e) {
+                                            const jsonMatch = text.match(/\{.*\}/s);
+                                            if (jsonMatch) {
+                                                try {
+                                                    data = JSON.parse(jsonMatch[0]);
+                                                } catch (e2) {
+                                                    throw new Error('Invalid server response format');
+                                                }
+                                            } else {
+                                                throw new Error('Invalid server response format');
+                                            }
+                                        }
+                                        return data;
+                                    });
+                                })
+                                .then(data => {
+                                    console.log('Upload response:', data);
+                                    if (data.success) {
+                                        Swal.fire({
+                                            title: 'Upload Successful!',
+                                            text: data.message || 'Your thesis has been uploaded successfully.',
+                                            icon: 'success',
+                                            confirmButtonText: 'OK'
+                                        }).then(() => {
+                                            resetUploadForm();
+                                            closeModal(uploadModal);
+                                        });
+                                    } else {
+                                        throw new Error(data.error || 'Upload failed');
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Upload error:', error);
+                                    Swal.fire({
+                                        title: 'Upload Failed',
+                                        text: error.message || 'Failed to upload thesis. Please try again.',
+                                        icon: 'error',
+                                        confirmButtonText: 'OK'
+                                    });
+                                })
+                                .finally(() => {
+                                    // Restore button state
+                                    btnUpload.textContent = originalText;
+                                    btnUpload.disabled = false;
                                 });
-                            } else {
-                                throw new Error(data.error || 'Upload failed');
                             }
-                        })
-                        .catch(error => {
-                            console.error('Upload error:', error);
-                            Swal.fire({
-                                title: 'Upload Failed',
-                                text: error.message || 'Failed to upload thesis. Please try again.',
-                                icon: 'error',
-                                confirmButtonText: 'OK'
-                            });
-                        })
-                        .finally(() => {
-                            // Restore button state
-                            btnUpload.textContent = originalText;
-                            btnUpload.disabled = false;
                         });
-                    }
-                });
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            title: 'Validation Error',
+                            text: error,
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    });
             });
         }
     }

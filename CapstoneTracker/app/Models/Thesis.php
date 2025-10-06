@@ -61,17 +61,25 @@ class Thesis extends Model {
             $authorEmails = array_map('trim', explode(',', $postData['thesisauthor']));
             $authorNames = [];
             $authorIds = [];
+            $facultyAuthors = []; // Track faculty users
 
             // Get adviser email information from emails
             $adviserEmails = array_map('trim', explode(',', $postData['thesisadviser']));
             $adviserNames = [];
             $adviserIds = [];
+            $nonFacultyAdvisers = []; // Track non-faculty advisers
 
             foreach ($authorEmails as $email) {
                 if (!empty($email)) {
                     // Find user by email
                     $author = $this->userModel->findByEmail($email);
                     if ($author) {
+                        // Check if user has faculty role
+                        if ($author->User_Role === 'faculty') {
+                            $facultyAuthors[] = $email;
+                            continue; // Skip faculty users as authors
+                        }
+                        
                         // Build author name
                         $authorName = $author->First_Name;  
                         if (!empty($author->Middle_Name)) { 
@@ -92,11 +100,24 @@ class Thesis extends Model {
                 }
             }
 
+            // Check if any faculty users were found in authors
+            if (!empty($facultyAuthors)) {
+                $facultyEmails = implode(', ', $facultyAuthors);
+                $this->error = "Faculty users cannot be listed as authors. Please remove the following faculty emails: " . $facultyEmails;
+                return false;
+            }
+
             foreach ($adviserEmails as $Aemail) {
                 if (!empty($Aemail)) {
                     // Find user by email
                     $adviser = $this->userModel->findByEmail($Aemail);
                     if ($adviser) {
+                        // Check if user has faculty role
+                        if ($adviser->User_Role !== 'faculty') {
+                            $nonFacultyAdvisers[] = $Aemail;
+                            continue; // Skip non-faculty users as advisers
+                        }
+                        
                         // Build adviser name
                         $adviserName = $adviser->First_Name;  
                         if (!empty($adviser->Middle_Name)) { 
@@ -110,11 +131,17 @@ class Thesis extends Model {
                         $adviserNames[] = $adviserName;
                         $adviserIds[] = $adviser->ID; 
                     } else {
-                        // If user not found, use email as name
-                        $adviserNames[] = $Aemail;
-                        $adviserIds[] = null;
+                        // If user not found, add to non-faculty list
+                        $nonFacultyAdvisers[] = $Aemail;
                     }
                 }
+            }
+
+            // NEW: Check if any non-faculty users were found in advisers
+            if (!empty($nonFacultyAdvisers)) {
+                $nonFacultyEmails = implode(', ', $nonFacultyAdvisers);
+                $this->error = "Only faculty users can be assigned as advisers. Please remove the following non-faculty emails: " . $nonFacultyEmails;
+                return false;
             }
 
             if (empty($authorNames)) {
@@ -123,7 +150,7 @@ class Thesis extends Model {
             }
 
             if (empty($adviserNames)) {
-                $this->error = 'No valid advisers found for the provided emails';
+                $this->error = 'No valid faculty advisers found for the provided emails';
                 return false;
             }
 
@@ -154,8 +181,8 @@ class Thesis extends Model {
                 'Thesis_Email' => $postData['thesisauthor'],
                 'Title' => $postData['thesistitle'],
                 'Author' => $authorString,
-                'Adviser' => $adviserString, // Add the adviser data
-                'HardBound_Available' => 'Yes', // Default value for hardbound availability
+                'Adviser' => $adviserString,
+                'HardBound_Available' => 'Yes',
                 'Thesis_AbstractFile' => $abstractFileData,
                 'Thesis_File' => $thesisFileData,
                 'uploaded_at' => date('Y-m-d H:i:s')
