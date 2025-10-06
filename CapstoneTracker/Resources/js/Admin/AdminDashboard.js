@@ -904,99 +904,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            const totalFiles = (uploadedFiles.abstract.length + uploadedFiles.thesis.length);
-
-            Swal.fire({
-                title: 'Confirm Upload',
-                html: `Are you sure you want to upload <strong>${thesisTitleInput.value}</strong>?<br><br>
-                    <strong>Abstract Files:</strong> ${uploadedFiles.abstract.length} file(s)<br>
-                    <strong>Thesis Files:</strong> ${uploadedFiles.thesis.length} file(s)<br>
-                    <strong>Total Files:</strong> ${totalFiles} file(s)`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, upload it!',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                        // Show loading state
-                        const originalText = btnUpload.textContent;
-                        btnUpload.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
-                        btnUpload.disabled = true;
-                        
-                        // Submit form via AJAX
-                        const formData = new FormData(uploadForm);
-                        
-                        fetch(uploadForm.action, {
-                            method: 'POST',
-                            body: formData
-                        })
-                        .then(response => {
-                            console.log('Response status:', response.status);
-                            
-                            // Get raw text first
-                            return response.text().then(text => {
-                                console.log('Raw response:', text);
-                                
-                                let data;
-                                try {
-                                    // Try to parse as JSON directly
-                                    data = JSON.parse(text);
-                                } catch (e) {
-                                    // If direct parsing fails, try to extract JSON
-                                    const jsonMatch = text.match(/\{.*\}/s);
-                                    if (jsonMatch) {
-                                        try {
-                                            data = JSON.parse(jsonMatch[0]);
-                                        } catch (e2) {
-                                            console.error('Extracted JSON parse error:', e2);
-                                            throw new Error('Invalid server response format');
-                                        }
-                                    } else {
-                                        throw new Error('Invalid server response format');
-                                    }
-                                }
-                                
-                                return data;
-                            });
-                        })
-                        .then(data => {
-                            console.log('Upload response:', data);
-                            
-                            if (data.success) {
-                                Swal.fire({
-                                    title: 'Upload Successful!',
-                                    text: data.message || 'Your thesis has been uploaded successfully.',
-                                    icon: 'success',
-                                    confirmButtonText: 'OK'
-                                }).then(() => {
-                                    resetUploadForm();
-                                    closeModal(uploadModal);
-                                    // Optionally refresh the thesis list
-                                    // refreshThesisList();
-                                });
-                            } else {
-                                throw new Error(data.error || 'Upload failed');
-                            }
-                        })
-                            
-                        .catch(error => {
-                            console.error('Upload error:', error);
-                        Swal.fire({
-                                title: 'Upload Failed',
-                                text: error.message || 'Failed to upload thesis. Please try again.',
-                                icon: 'error',
-                            confirmButtonText: 'OK'
-                            });
-                        })
-                        .finally(() => {
-                            // Restore button state
-                            btnUpload.textContent = originalText;
-                            btnUpload.disabled = false;
-                        });
-                    }
-                });
             });
         }
     }
@@ -1019,8 +926,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const formFields = [
             'thesisTitle',
             'thesisAuthor',
-            'thesisAdviser',
-            'courseInput'
+            'thesisAdviser'
+           
         ];
         
         formFields.forEach(fieldId => {
@@ -1033,9 +940,17 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Reset department select
         const departmentSelect = document.getElementById('departmentSelect');
+        const courseInput = document.getElementById('courseInput');
+
         if (departmentSelect) {
             departmentSelect.selectedIndex = 0;
             departmentSelect.style.borderColor = '#ddd';
+        }
+
+        if (courseInput) {
+            courseInput.innerHTML = '<option value="" selected disabled>Select your program</option>';
+            courseInput.disabled = true;
+            courseInput.style.borderColor = '#ddd';
         }
         
         // Update button state
@@ -1569,6 +1484,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // NEED FIXING----------------------------------------------------------------------------
     // Enhanced updateUserRole function
     async function updateUserRole(userId, newRole) {
         try {
@@ -2090,6 +2006,8 @@ if (accountSearchInput) {
         });
     }
 
+    
+
     //Upload Functionality
     function isValidEmail(email) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -2221,7 +2139,7 @@ if (accountSearchInput) {
         
         // Check if department has a selected value
         const isDepartmentSelected = departmentSelect && departmentSelect.value !== '';
-        
+        const isCourseSelected = courseInput && courseInput.value !== '' && !courseInput.disabled;
         // Check if both file types have at least one file
         const hasAbstractFiles = uploadedFiles.abstract.length > 0;
         const hasThesisFiles = uploadedFiles.thesis.length > 0;
@@ -2234,7 +2152,7 @@ if (accountSearchInput) {
                        authorEmailValidation.isValid &&
                        adviserEmailValidation.isValid &&
                        isDepartmentSelected &&
-                       courseInput.value.trim() !== '' &&
+                       isCourseSelected &&
                        hasAbstractFiles &&
                        hasThesisFiles;
         
@@ -2313,9 +2231,29 @@ if (accountSearchInput) {
         // Add visual feedback for department
         if (departmentSelect) {
             if (!isDepartmentSelected) {
-                departmentSelect.style.borderColor = 'var(--color-danger)';
+                departmentSelect.style.borderColor = 'rgb(221, 221, 221)';
             } else {
                 departmentSelect.style.borderColor = '#51cf66';
+            }
+        }
+
+         // Update visual feedback for department field
+        if (departmentSelect) {
+            if (!isDepartmentSelected) {
+                departmentSelect.style.borderColor = 'rgb(221, 221, 221)';
+            } else {
+                departmentSelect.style.borderColor = '#51cf66';
+            }
+        }
+
+        // Update visual feedback for course field
+        if (courseInput) {
+            if (!isDepartmentSelected) {
+                courseInput.style.borderColor = '#ddd';
+            } else if (!isCourseSelected) {
+                courseInput.style.borderColor = 'var(--color-danger)';
+            } else {
+                courseInput.style.borderColor = '#51cf66';
             }
         }
     
@@ -2762,6 +2700,71 @@ if (accountSearchInput) {
         }
     }
 
+    function initializeDepartmentCourseLogic() {
+        const departmentSelect = document.getElementById('departmentSelect');
+        const courseInput = document.getElementById('courseInput');
+        
+        // Define courses for each department - CORRECTED to match your PHP
+        const departmentCourses = {
+            'COE': [
+                'Bachelor of Science in Agricultural and Biosystems Engineering'
+            ],
+            'CTET': [
+                'Bachelor of Science in Information Technology',
+                'Bachelor of Elementary Education',
+                'Bachelor of Early Childhood Education',
+                'Bachelor of Special Needs Education',
+                'Bachelor of Secondary Education',
+                'Bachelor of Technical-Vocational Teacher Education'
+            ]
+        };
+        
+        // Department change event
+        if (departmentSelect) {
+            departmentSelect.addEventListener('change', function() {
+                const selectedDepartment = this.value;
+                
+                // Reset and enable/disable course dropdown
+                if (courseInput) {
+                    courseInput.innerHTML = '<option value="" selected disabled>Select your program</option>';
+                    courseInput.disabled = !selectedDepartment;
+                    
+                    if (selectedDepartment && departmentCourses[selectedDepartment]) {
+                        // Add courses for selected department
+                        departmentCourses[selectedDepartment].forEach(course => {
+                            const option = document.createElement('option');
+                            option.value = course;
+                            option.textContent = course;
+                            courseInput.appendChild(option);
+                        });
+                        
+                        // Enable course selection
+                        courseInput.disabled = false;
+                    } else {
+                        // No department selected or invalid department
+                        courseInput.disabled = true;
+                    }
+                }
+                
+                // Update upload button state
+                updateUploadButtonState();
+            });
+        }
+        
+        // Course change event
+        if (courseInput) {
+            courseInput.addEventListener('change', function() {
+                updateUploadButtonState();
+            });
+        }
+        
+        // Initialize the state on page load
+        if (departmentSelect && courseInput) {
+            // Trigger change event to set initial state
+            departmentSelect.dispatchEvent(new Event('change'));
+        }
+    }
+
     function resetUploadForm() {
         uploadedFiles = [];
         showEmptyState();
@@ -2802,6 +2805,7 @@ if (accountSearchInput) {
         });
     }
 
+    // Initialize Functions inside DOM----------------------------------------------------------------------
     initializeUserData();
 
     // Initialize save functionality
@@ -2811,7 +2815,7 @@ if (accountSearchInput) {
     initializeRoleChangeHandling();
     
     // Hide save button initially
-    hideSaveButton();
+   
 
     // Initialize upload form submission
     initializeUploadFormSubmission();
@@ -2819,6 +2823,7 @@ if (accountSearchInput) {
     // Initialize upload form validation
     initializeUploadFormValidation();
     
+    initializeDepartmentCourseLogic();
     
 
 });
@@ -2961,7 +2966,7 @@ function initializeSaveFunctionality() {
                         // Reset changes
                         roleChanges = {};
                         changesMade = false;
-                        hideSaveButton();
+                     
                         
                     } catch (error) {
                         console.error('Error saving changes:', error);
@@ -3362,6 +3367,10 @@ function updatePdfControls() {
         nextBtn.disabled = window.currentPageNum >= window.currentPdfDoc.numPages;
     }
 }
+
+    
+
+    
 
 // Admin Access Management
 

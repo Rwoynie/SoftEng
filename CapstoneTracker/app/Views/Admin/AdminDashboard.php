@@ -650,24 +650,18 @@ $displayUserData = [
                 <div class="thesis-form-group">
                     <h3>Department *</h3>
                     <select name="department" class="thesis-form-input dropdown" id="departmentSelect" required>
-                        <option value="">Select Department</option>
-                        <option value="CTET">CTET</option>
+                        <option value="" selected disabled>Select Department</option>
                         <option value="COE">COE</option>
+                        <option value="CTET">CTET</option>
                     </select>
                 </div>
 
+                
                 <div class="thesis-form-group">
                     <h3>Course *</h3>
-                <select name="course" class="thesis-form-input dropdown" id="courseInput" required>
-                    <option value="" selected disabled>Select your program</option>
-                    <option>Bachelor of Technical-Vocational Teacher Education</option>
-                    <option>Bachelor of Special Need Education</option>
-                    <option>Bachelor of Early Childhood Education</option>
-                    <option>Bachelor of Secondary Education</option>
-                    <option>Bachelor of Science in Information Technology</option>
-                    <option>Bachelor of Elementary Education</option>
-                    <option>Bachelor Science in Agricultural and Biosystems Engineering</option>
-                </select>
+                    <select name="course" class="thesis-form-input dropdown" id="courseInput" required disabled>
+                        <option value="" selected disabled>Select your program</option>
+                    </select>
                 </div>
 
                 
