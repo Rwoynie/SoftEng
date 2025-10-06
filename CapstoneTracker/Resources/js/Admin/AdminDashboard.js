@@ -2495,18 +2495,27 @@ if (accountSearchInput) {
             uploadForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 
-                if (uploadedFiles.length === 0) {
+                // Check if both file types have files
+                if (uploadedFiles.abstract.length === 0) {
                     Swal.fire({
-                        title: 'No Files Selected',
-                        text: 'Please select at least one file to upload.',
+                        title: 'Abstract File Required',
+                        text: 'Please select at least one abstract file.',
                         icon: 'warning',
                         confirmButtonText: 'OK'
                     });
                     return;
                 }
-
                 
-                
+                if (uploadedFiles.thesis.length === 0) {
+                    Swal.fire({
+                        title: 'Thesis File Required',
+                        text: 'Please select at least one thesis file.',
+                        icon: 'warning',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+    
                 // Validate thesis title
                 const thesisTitleInput = document.getElementById('thesisTitle');
                 if (thesisTitleInput && !thesisTitleInput.value.trim()) {
@@ -2591,7 +2600,7 @@ if (accountSearchInput) {
                         const departmentText = departmentSelect.options[departmentSelect.selectedIndex].text;
                         
                         const totalFiles = (uploadedFiles.abstract.length + uploadedFiles.thesis.length);
-
+    
                         Swal.fire({
                             title: 'Confirm Upload',
                             html: `Are you sure you want to upload <strong>${thesisTitleInput.value}</strong>?<br><br>
@@ -2617,6 +2626,17 @@ if (accountSearchInput) {
                                 
                                 // Create FormData and submit the form
                                 const formData = new FormData(uploadForm);
+                                
+                                // Append the uploaded files to FormData
+                                // Append abstract files
+                                uploadedFiles.abstract.forEach((file, index) => {
+                                    formData.append(`abstract_files[]`, file);
+                                });
+                                
+                                // Append thesis files  
+                                uploadedFiles.thesis.forEach((file, index) => {
+                                    formData.append(`thesis_files[]`, file);
+                                });
                                 
                                 // Debug: Log form data before sending
                                 console.log('Form data being sent:');
@@ -2666,6 +2686,8 @@ if (accountSearchInput) {
                                         }).then(() => {
                                             resetUploadForm();
                                             closeModal(uploadModal);
+                                            // RELOAD THE PAGE HERE
+                                            location.reload();
                                         });
                                     } else {
                                         throw new Error(data.error || 'Upload failed');
@@ -2766,9 +2788,13 @@ if (accountSearchInput) {
     }
 
     function resetUploadForm() {
-        uploadedFiles = [];
-        showEmptyState();
-        updateUploadButtonState();
+        // Clear uploaded files arrays
+        uploadedFiles.abstract = [];
+        uploadedFiles.thesis = [];
+        
+        // Clear file displays
+        showEmptyState('abstract');
+        showEmptyState('thesis');
         
         // Clear both file inputs
         if (abstractFileInput) abstractFileInput.value = '';
@@ -2778,6 +2804,7 @@ if (accountSearchInput) {
         const formFields = [
             'thesisTitle',
             'thesisAuthor',
+            'thesisAdviser',
             'courseInput'
         ];
         
@@ -2795,6 +2822,17 @@ if (accountSearchInput) {
             departmentSelect.selectedIndex = 0;
             departmentSelect.style.borderColor = '#ddd';
         }
+    
+        // Reset course input
+        const courseInput = document.getElementById('courseInput');
+        if (courseInput) {
+            courseInput.innerHTML = '<option value="" selected disabled>Select your program</option>';
+            courseInput.disabled = true;
+            courseInput.style.borderColor = '#ddd';
+        }
+        
+        // Update button state
+        updateUploadButtonState();
     }
 
     if (uploadModal) {
