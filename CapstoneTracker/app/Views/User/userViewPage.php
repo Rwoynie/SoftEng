@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Quicksand">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    <link rel="stylesheet" href="../../../resources/css/User/userViewPage.css">
+    <link rel="stylesheet" href="../../../Resources/css/User/userViewPage.css">
     <script type="text/javascript" src="../../../resources/js/User/userViewPage.js"></script>
     
     </head>
