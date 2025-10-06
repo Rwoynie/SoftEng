@@ -59,6 +59,12 @@ class ThesisController {
                     throw new Exception(ucfirst($field) . ' is required');
                 }
             }
+
+            // Check for duplicate title
+            $title = trim($_POST['thesistitle']);
+            if ($this->thesisModel->titleExists($title)) {
+                throw new Exception('A thesis with this title already exists. Please choose a different title.');
+            }
             
             // Check for both abstract and thesis files
             if (empty($_FILES['abstract_file']) || $_FILES['abstract_file']['error'] === UPLOAD_ERR_NO_FILE) {
@@ -420,6 +426,40 @@ class ThesisController {
             echo json_encode(['success' => false, 'error' => 'Failed to serve abstract file: ' . $e->getMessage()]);
         }
     }
+
+    /**
+     * Check if thesis title exists
+     */
+    public function checkTitleExists() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+            return;
+        }
+        
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+            $title = $input['title'] ?? '';
+            
+            if (empty($title)) {
+                echo json_encode(['exists' => false]);
+                return;
+            }
+            
+            $exists = $this->thesisModel->titleExists($title);
+            
+            echo json_encode([
+                'success' => true,
+                'exists' => $exists
+            ]);
+            
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => 'Failed to check title: ' . $e->getMessage()
+            ]);
+        }
+    }
     
     /**
      * Log upload activity (placeholder for future implementation)
@@ -466,6 +506,9 @@ class ThesisController {
             case 'downloadAbstract': // Add this case for abstract preview
                 $this->serveAbstractFile();
                 break;
+            case 'checkTitleExists': // ADD THIS NEW CASE
+                $this->checkTitleExists();
+                break;    
             default:
                 http_response_code(404);
                 echo json_encode(['success' => false, 'error' => 'Action not found']);

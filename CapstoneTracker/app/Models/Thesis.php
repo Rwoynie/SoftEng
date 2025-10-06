@@ -30,6 +30,13 @@ class Thesis extends Model {
                 return false;
             }
             
+            // NEW: Check if title already exists
+            $title = trim($postData['thesistitle']);
+            if ($this->titleExists($title)) {
+                $this->error = 'A thesis with this title already exists. Please choose a different title.';
+                return false;
+            }
+            
             // Check if both abstract and thesis files are uploaded
             if (empty($files['abstract_file']) || empty($files['thesis_file'])) {
                 $this->error = 'Both abstract and thesis files are required';
@@ -99,6 +106,8 @@ class Thesis extends Model {
                     }
                 }
             }
+
+            
 
             // Check if any faculty users were found in authors
             if (!empty($facultyAuthors)) {
@@ -199,6 +208,33 @@ class Thesis extends Model {
         } catch (Exception $e) {
             error_log("Upload error: " . $e->getMessage());
             $this->error = 'Upload failed: ' . $e->getMessage();
+            return false;
+        }
+    }
+
+    /**
+     * Check if thesis title already exists
+     */
+    public function titleExists($title, $excludeId = null) {
+        try {
+            $query = "SELECT COUNT(*) as count FROM THESIS WHERE LOWER(Title) = LOWER(:title)";
+            
+            if ($excludeId) {
+                $query .= " AND ID != :exclude_id";
+            }
+            
+            $this->db->query($query);
+            $this->db->bind(':title', trim($title));
+            
+            if ($excludeId) {
+                $this->db->bind(':exclude_id', $excludeId);
+            }
+            
+            $result = $this->db->single();
+            return $result->count > 0;
+            
+        } catch (Exception $e) {
+            error_log("Error checking title existence: " . $e->getMessage());
             return false;
         }
     }

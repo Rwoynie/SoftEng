@@ -2225,16 +2225,18 @@ if (accountSearchInput) {
         // Check if both file types have at least one file
         const hasAbstractFiles = uploadedFiles.abstract.length > 0;
         const hasThesisFiles = uploadedFiles.thesis.length > 0;
+
+        const isTitleValid = thesisTitle.value.trim() !== '';
         
-        const isFormValid = thesisTitle.value.trim() !== '' &&
-                           thesisAuthor.value.trim() !== '' &&
-                           thesisAdviser.value.trim() !== '' &&
-                           authorEmailValidation.isValid &&
-                           adviserEmailValidation.isValid &&
-                           isDepartmentSelected &&
-                           courseInput.value.trim() !== '' &&
-                           hasAbstractFiles &&
-                           hasThesisFiles;
+        const isFormValid = isTitleValid &&
+                       thesisAuthor.value.trim() !== '' &&
+                       thesisAdviser.value.trim() !== '' &&
+                       authorEmailValidation.isValid &&
+                       adviserEmailValidation.isValid &&
+                       isDepartmentSelected &&
+                       courseInput.value.trim() !== '' &&
+                       hasAbstractFiles &&
+                       hasThesisFiles;
         
         if (uploadBtn) {
             uploadBtn.disabled = !isFormValid;
@@ -2250,7 +2252,53 @@ if (accountSearchInput) {
                 thesisAuthor.style.borderColor = '#51cf66';
             }
         }
-    
+        
+        // Update visual feedback for title field
+        if (thesisTitle) {
+            if (thesisTitle.value.trim() === '') {
+                thesisTitle.style.borderColor = '#ddd';
+            } else {
+                // Check title availability in real-time (debounced)
+                clearTimeout(window.titleCheckTimeout);
+                window.titleCheckTimeout = setTimeout(() => {
+                    checkTitleExists(thesisTitle.value.trim()).then(exists => {
+                        if (exists) {
+                            thesisTitle.style.borderColor = 'var(--color-danger)';
+                            // Show warning tooltip or message
+                            showTitleWarning('This title already exists');
+                        } else {
+                            thesisTitle.style.borderColor = '#51cf66';
+                            hideTitleWarning();
+                        }
+                    });
+                }, 500);
+            }
+        }
+
+        function showTitleWarning(message) {
+            let warningElement = document.getElementById('titleWarning');
+            if (!warningElement) {
+                warningElement = document.createElement('div');
+                warningElement.id = 'titleWarning';
+                warningElement.className = 'title-warning';
+                warningElement.style.color = 'var(--color-danger)';
+                warningElement.style.fontSize = '12px';
+                warningElement.style.marginTop = '5px';
+                
+                const titleInput = document.getElementById('thesisTitle');
+                titleInput.parentNode.appendChild(warningElement);
+            }
+            warningElement.textContent = message;
+            warningElement.style.display = 'block';
+        }
+        
+        function hideTitleWarning() {
+            const warningElement = document.getElementById('titleWarning');
+            if (warningElement) {
+                warningElement.style.display = 'none';
+            }
+        }
+        
         // Update visual feedback for adviser email field
         if (thesisAdviser) {
             if (thesisAdviser.value.trim() === '') {
@@ -2321,6 +2369,46 @@ if (accountSearchInput) {
             // Some requirements met but not all - warning state (orange)
             fileIcon.classList.add('warning');
         }
+    }
+
+    async function checkTitleExists(title) {
+        try {
+            const response = await fetch('../../../app/Controllers/ThesisController.php?action=checkTitleExists', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ title: title })
+            });
+            
+            const data = await response.json();
+            return data.exists;
+        } catch (error) {
+            console.error('Error checking title:', error);
+            return false;
+        }
+    }
+
+    // Function to validate title before upload
+    function validateTitleBeforeUpload(title) {
+        return new Promise((resolve, reject) => {
+            if (!title.trim()) {
+                reject('Thesis title is required');
+                return;
+            }
+            
+            checkTitleExists(title.trim())
+                .then(exists => {
+                    if (exists) {
+                        reject('A thesis with this title already exists. Please choose a different title.');
+                    } else {
+                        resolve();
+                    }
+                })
+                .catch(error => {
+                    reject('Unable to verify title availability. Please try again.');
+                });
+        });
     }
     
 
@@ -2478,6 +2566,8 @@ if (accountSearchInput) {
                     });
                     return;
                 }
+
+                
                 
                 // Validate thesis title
                 const thesisTitleInput = document.getElementById('thesisTitle');
@@ -2544,7 +2634,11 @@ if (accountSearchInput) {
                 }
                 
                 // NEW: Validate authors don't include faculty users
-                validateAuthorsBeforeUpload(thesisAuthorInput.value)
+                validateTitleBeforeUpload(thesisTitleInput.value)
+                    .then(() => {
+                        // Validate authors don't include faculty users
+                        return validateAuthorsBeforeUpload(thesisAuthorInput.value);
+                    })
                     .then(() => {
                         // Validate adviser is faculty
                         if (thesisAdviserInput.value.trim()) {

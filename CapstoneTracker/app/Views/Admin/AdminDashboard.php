@@ -13,6 +13,13 @@ try {
     $thesisModel = new Thesis($db);
     $thesis = $thesisModel->getAllTheses();
     
+    foreach ($thesis as $theses) {
+        $uploadDate = new DateTime($theses->uploaded_at);
+        $currentDate = new DateTime();
+        $interval = $currentDate->diff($uploadDate);
+        $theses->days_ago = $interval->days;
+        $theses->is_recent = $interval->days <= 7;
+    }
     
     
 } catch (Exception $e) {
@@ -168,54 +175,30 @@ $displayUserData = [
                         <?php
                         if (count($thesis) > 0) {
                             foreach ($thesis as $theses) {
-                                // Format data for each thesis
-                                $Author = htmlspecialchars($theses->Author);
-                                $Adviser = htmlspecialchars($theses->Adviser ?? 'Not specified');
-                                $Title = htmlspecialchars($theses->Title);
-                             //   $currentDate =
-                                $Course = htmlspecialchars($theses->Thesis_Course);
-                                $Department = htmlspecialchars($theses->Thesis_Department);
-                                $formattedDate = date('M j, Y', strtotime($theses->uploaded_at));
+                                if ($theses->is_recent) {
+                                    $hasRecentTheses = true;
+                                    displayThesisItem($theses);
+                                }
+
                                 
-                                // Display each thesis as a list item
-                                echo '<li class="project-item" data-tags="" data-thesis-id="' . $theses->ID . '">';
-                                echo '<div class="logo-row">';
-                                echo '<img src="/CapstoneTracker/resources/Images/usep-logo-small.png" alt="Logo" />';
-                                echo '<div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>';
-                               /* echo '<div class="moreOptions">
-                                <p>Edit</p>
-                                <p>Delete</p>
-                                </div>'; */
-                                echo '</div>';
-                                echo '<div class="title-row">';
-                                echo '<h3>' . $Title . '</h3>';
-                                echo '<div class="links">';
-                                echo '<p href="#">' . $formattedDate. '</p>';
-                                echo '</div>';
-                                echo '</div>';
-                                echo '<div class="desc-row">';
-                                echo '<p>' . $Author . '</p>';
-                                echo '<p class="adviser" data-adviser="' . htmlspecialchars($Adviser) . '"><strong>Adviser:</strong> ' . $Adviser . '</p>';
-                                echo '</div>';
-                                echo '<div class="users">';
-                                echo '<p class="available"><i class="fa-solid fa-circle-check" style="color: #63E6BE;"></i>&nbsp&nbspHardbound Available</p>';
-                                echo '</div>';
-                                echo '<div class="footer-row">';
-                                echo '<div class="days warning">';
-                                echo '<i class="fa fa-clock-o icon" aria-hidden="true"></i> days ago';
-                                echo '</div>';
-                                echo '</div>';
-                                echo '</li>';
                             }
                         } else {
                             echo '<li class="no-theses">No theses found.</li>';
                         }
                         ?>
-                    </ul> <!-- MOVED THE CLOSING UL TAG HERE -->
+                    </ul> 
 
                     <!-- Rest of your existing HTML for other project items -->
                     <ul class="projects all-projects" id="allView">
-                        <!-- Your existing allView content -->
+                    <?php
+                        if (count($thesis) > 0) {
+                            foreach ($thesis as $theses) {
+                                displayThesisItem($theses);
+                            }
+                        } else {
+                            echo '<li class="no-theses">No theses found.</li>';
+                        }
+                        ?>
                     </ul>
 
                     <p class="notFound" id="notFound">No Results Found.</p>
@@ -799,3 +782,50 @@ $displayUserData = [
 
 </html>
 
+<?php
+// Helper function to display thesis item
+function displayThesisItem($theses) {
+    $Author = htmlspecialchars($theses->Author);
+    $Adviser = htmlspecialchars($theses->Adviser ?? 'Not specified');
+    $Title = htmlspecialchars($theses->Title);
+    $Course = htmlspecialchars($theses->Thesis_Course);
+    $Department = htmlspecialchars($theses->Thesis_Department);
+    $formattedDate = date('M j, Y', strtotime($theses->uploaded_at));
+    $daysAgo = $theses->days_ago;
+    
+    // Determine days ago text
+    $daysAgoText = '';
+    if ($daysAgo == 0) {
+        $daysAgoText = 'Today';
+    } elseif ($daysAgo == 1) {
+        $daysAgoText = 'Yesterday';
+    } else {
+        $daysAgoText = $daysAgo . ' days ago';
+    }
+    
+    echo '<li class="project-item" data-tags="" data-thesis-id="' . $theses->ID . '" data-days-ago="' . $daysAgo . '" data-is-recent="' . ($theses->is_recent ? 'true' : 'false') . '">';
+    echo '<div class="logo-row">';
+    echo '<img src="/CapstoneTracker/resources/Images/usep-logo-small.png" alt="Logo" />';
+    echo '<div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>';
+    echo '</div>';
+    echo '<div class="title-row">';
+    echo '<h3>' . $Title . '</h3>';
+    echo '<div class="links">';
+    echo '<p href="#">' . $formattedDate . '</p>';
+    echo '</div>';
+    echo '</div>';
+    echo '<div class="desc-row">';
+    echo '<p>' . $Author . '</p>';
+    echo '<p class="adviser" data-adviser="' . htmlspecialchars($Adviser) . '"><strong>Adviser:</strong> ' . $Adviser . '</p>';
+    echo '</div>';
+    echo '<div class="users">';
+    echo '<p class="available"><i class="fa-solid fa-circle-check" style="color: #63E6BE;"></i>&nbsp&nbspHardbound Available</p>';
+    echo '</div>';
+    echo '<div class="footer-row">';
+    echo '<div class="days warning">';
+    echo '<i class="fa fa-clock-o icon" aria-hidden="true"></i> ' . $daysAgoText;
+    echo '</div>';
+    echo '</div>';
+    echo '</li>';
+}
+?>
