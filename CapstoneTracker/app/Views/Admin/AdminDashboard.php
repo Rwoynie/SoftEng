@@ -183,8 +183,6 @@ $displayUserData = [
 
                                 
                             }
-                        } else {
-                            echo '<li class="no-theses">No theses found.</li>';
                         }
                         ?>
                     </ul> 
