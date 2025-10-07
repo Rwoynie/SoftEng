@@ -835,4 +835,5 @@ function displayThesisItem($theses) {
     echo '</div>';
     echo '</li>';
 }
+
 ?>
