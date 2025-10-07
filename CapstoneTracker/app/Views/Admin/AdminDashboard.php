@@ -63,6 +63,7 @@ $displayUserData = [
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Quicksand">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <link rel="stylesheet" href="../../../resources/css/Admin/AdminDashboard.css">
@@ -734,7 +735,9 @@ $displayUserData = [
             <button class="modal-close">&times;</button>
         </div>
         <div class="modal-body">
-            <div id="project-info-preview" class="project-info-preview"></div>
+            <div id="project-info-preview" class="project-info-preview">
+
+            </div>
             <div id="document-viewer">
                 <iframe id="doc-viewer-iframe" style="width: 100%; height: 500px; border: none;"></iframe>
                 <div id="pdf-viewer" style="display: none; width: 100%; height: 500px;"></div>
@@ -761,10 +764,14 @@ $displayUserData = [
             
             <!-- Action buttons - positioned on the right -->
             <div class="modal-footer-actions">
-                <button class="btn btn-secondary btn-cancel">Close</button>
+                
                 <a id="download-link" class="btn btn-primary" style="display: none;">
                     <i class="fas fa-download"></i> Download Abstract
                 </a>
+                <button class="btn btn-tertiary"><i class="fa-solid fa-eye"></i>
+                    View Thesis
+                </button>
+                <button class="btn btn-secondary btn-cancel">Close</button>
             </div>
         </div>
     </div>
@@ -787,6 +794,12 @@ function displayThesisItem($theses) {
     $formattedDate = date('M j, Y', strtotime($theses->uploaded_at));
     $daysAgo = $theses->days_ago;
     
+    // Truncate title if too long using line-clamp (removed manual truncation)
+    $displayTitle = $Title;
+    
+    // Handle multiple authors display using line-clamp (removed manual truncation)
+    $displayAuthor = $Author;
+    
     // Determine days ago text
     $daysAgoText = '';
     if ($daysAgo == 0) {
@@ -803,14 +816,14 @@ function displayThesisItem($theses) {
     echo '<div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>';
     echo '</div>';
     echo '<div class="title-row">';
-    echo '<h3>' . $Title . '</h3>';
+    echo '<h3>' . $displayTitle . '</h3>';
     echo '<div class="links">';
     echo '<p href="#">' . $formattedDate . '</p>';
     echo '</div>';
     echo '</div>';
     echo '<div class="desc-row">';
-    echo '<p>' . $Author . '</p>';
-    echo '<p class="adviser" data-adviser="' . htmlspecialchars($Adviser) . '"><strong>Adviser:</strong> ' . $Adviser . '</p>';
+    echo '<p class="author"><strong>Author:</strong> ' . $displayAuthor . '</p>';
+    echo '<p class="adviser"><strong>Adviser:</strong> ' . $Adviser . '</p>';
     echo '</div>';
     echo '<div class="users">';
     echo '<p class="available"><i class="fa-solid fa-circle-check" style="color: #63E6BE;"></i>&nbsp&nbspHardbound Available</p>';

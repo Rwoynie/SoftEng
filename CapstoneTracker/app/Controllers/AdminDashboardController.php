@@ -306,7 +306,7 @@ class AdminDashboardController {
         try {
             $input = json_decode(file_get_contents('php://input'), true);
             $emails = $input['emails'] ?? [];
-            $checkType = $input['check_type'] ?? 'authors'; // 'authors' or 'advisers'
+           
             
             $facultyUsers = [];
             $nonFacultyUsers = [];

@@ -2843,6 +2843,8 @@ if (accountSearchInput) {
         });
     }
 
+    
+
     // Initialize Functions inside DOM----------------------------------------------------------------------
     initializeUserData();
 
@@ -2863,7 +2865,7 @@ if (accountSearchInput) {
     
     initializeDepartmentCourseLogic();
     
-
+   
 });
 
 let changesMade = false;
@@ -3084,18 +3086,27 @@ function showProjectPreview(thesisId, title, uploadedDate, authors, adviser, fal
     const projectInfo = document.getElementById('project-info-preview');
     if (projectInfo) {
         projectInfo.innerHTML = `
-            <div class="project-detail">
-                <strong>Uploaded:</strong> ${uploadedDate}
+            <div class="project-detail-container">
+                <div>
+                    <div class="project-detail">
+                        <strong>Uploaded:</strong> ${uploadedDate}
+                    </div>
+                    <div class="project-detail">
+                        <strong>Authors:</strong> ${authors}
+                    </div>
+                </div>
+
+                <div>
+                    <div class="project-detail">
+                        <strong>Adviser:</strong> ${adviser}
+                    </div>
+                    ${thesisId ? `<div class="project-detail">
+                        <strong>Thesis ID:</strong> ${thesisId}
+                    </div>` : ''}
+                </div>
             </div>
-            <div class="project-detail">
-                <strong>Authors:</strong> ${authors}
-            </div>
-            <div class="project-detail">
-                <strong>Adviser:</strong> ${adviser}
-            </div>
-            ${thesisId ? `<div class="project-detail">
-                <strong>Thesis ID:</strong> ${thesisId}
-            </div>` : ''}
+            
+            
         `;
     }
     
