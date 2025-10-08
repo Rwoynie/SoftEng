@@ -26,6 +26,112 @@ try {
     error_log("Error loading theses: " . $e->getMessage());
     $thesis = [];
 }
+
+// Department Manager Class for handling department counts
+// Updated Department Manager Class for handling department counts
+class DepartmentManager {
+    private $departments = [];
+    private $db;
+    
+    public function __construct($database) {
+        $this->db = $database;
+    }
+    
+    public function addDepartment($value, $name, $courseCodes = []) {
+        $this->departments[] = [
+            'value' => $value,
+            'name' => $name,
+            'course_codes' => $courseCodes
+        ];
+    }
+    
+    public function getDepartmentCount($courseCodes) {
+        if (empty($courseCodes)) {
+            return 0;
+        }
+        
+        try {
+            // Create placeholders for the IN clause
+            $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
+            $sql = "SELECT COUNT(*) as count FROM thesis WHERE Thesis_Course IN ($placeholders)";
+            
+            $this->db->query($sql);
+            
+            // Bind parameters
+            foreach ($courseCodes as $index => $courseCode) {
+                $this->db->bind($index + 1, $courseCode);
+            }
+            
+            $result = $this->db->singleAssoc();
+            return $result['count'] ?? 0;
+            
+        } catch (Exception $e) {
+            error_log("Error getting department count: " . $e->getMessage());
+            return 0;
+        }
+    }
+    
+    public function getTotalCount() {
+        try {
+            $sql = "SELECT COUNT(*) as count FROM thesis";
+            $this->db->query($sql);
+            $result = $this->db->singleAssoc();
+            
+            return $result['count'] ?? 0;
+            
+        } catch (Exception $e) {
+            error_log("Error getting total count: " . $e->getMessage());
+            return 0;
+        }
+    }
+    
+    public function displayOptions() {
+        // Get total count for "All Departments"
+        $totalCount = $this->getTotalCount();
+        
+        echo '<div class="options">';
+        printf(
+            '<div data-value="all">All Departments (%d)</div>',
+            $totalCount
+        );
+        
+        foreach ($this->departments as $dept) {
+            $count = $this->getDepartmentCount($dept['course_codes']);
+            printf(
+                '<div data-value="%s">%s (%d)</div>',
+                htmlspecialchars($dept['value']),
+                htmlspecialchars($dept['name']),
+                $count
+            );
+        }
+        echo '</div>';
+    }
+    
+    // Method to get all departments with their counts (useful for debugging)
+    public function getDepartmentsWithCounts() {
+        $result = [];
+        foreach ($this->departments as $dept) {
+            $result[] = [
+                'value' => $dept['value'],
+                'name' => $dept['name'],
+                'course_codes' => $dept['course_codes'],
+                'count' => $this->getDepartmentCount($dept['course_codes'])
+            ];
+        }
+        return $result;
+    }
+}
+
+$departmentManager = new DepartmentManager($db);
+
+$departmentManager->addDepartment('cs', 'BECED | AECES', ['Bachelor of Early Childhood Education']);
+$departmentManager->addDepartment('ee', 'BSED | AFSET', ['Bachelor of Secondary Education']);
+$departmentManager->addDepartment('me', 'BTVTED | FTVETS', ['Bachelor of Technical-Vocational Teacher Education']);
+$departmentManager->addDepartment('ee', 'BEED | OFEE', ['Bachelor of Elementary Education']);
+$departmentManager->addDepartment('me', 'BSNED | OFSET', ['Bachelor of Special Needs Education']);
+$departmentManager->addDepartment('ce', 'BSABE | SABES', ['Bachelor of Science in Agriculture and Biosystems Engineering']);
+$departmentManager->addDepartment('it', 'BSIT | SITS', ['Bachelor of Science in Information Technology']);
+
 // Start session
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -131,14 +237,7 @@ $displayUserData = [
                             <path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path>
                         </svg>
                     </div>
-                    <div class="options">
-                        <div data-value="all">All Departments</div>
-                        <div data-value="cs">Computer Science</div>
-                        <div data-value="it">Information Technology</div>
-                        <div data-value="ce">Computer Engineering</div>
-                        <div data-value="ee">Electrical Engineering</div>
-                        <div data-value="me">Mechanical Engineering</div>
-                    </div>
+                    <?php $departmentManager->displayOptions(); ?>
                 </div>
                 
                 <!-- Sort Dropdown (renamed from filterDropdown) -->
