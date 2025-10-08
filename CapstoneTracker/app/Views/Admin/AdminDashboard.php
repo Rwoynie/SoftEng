@@ -903,7 +903,11 @@ function displayThesisItem($theses) {
     $Adviser = htmlspecialchars($theses->Adviser ?? 'Not specified');
     $Title = htmlspecialchars($theses->Title);
     $hardboundValue =  htmlspecialchars($theses->HardBound_Available);
-    
+    $Department = htmlspecialchars($theses->Thesis_Department);
+    $depWeight = '900';
+    $depSize = '1vw';
+    $margin = '1vw';
+    $Course = htmlspecialchars($theses->Thesis_Course);
 
     $formattedDate = date('M j, Y', strtotime($theses->uploaded_at));
     $daysAgo = $theses->days_ago;
@@ -943,8 +947,12 @@ function displayThesisItem($theses) {
     echo '</div>';
     echo '<div class="title-row">';
     echo '<h3>' . $displayTitle . '</h3>';
+    
     echo '<div class="links">';
+    echo '<p style="font-weight: ' . $depWeight . '; font-size: ' . $depSize . '; ">' . $Department . '</p>';
+    echo '<p style="margin-bottom:'. $margin .'">' . $Course . '</p>';
     echo '<p href="#">' . $formattedDate . '</p>';
+    
     echo '</div>';
     echo '</div>';
     echo '<div class="desc-row">';

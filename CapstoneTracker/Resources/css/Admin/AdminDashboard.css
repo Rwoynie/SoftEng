@@ -706,7 +706,8 @@ body {
 
 .project-item .title-row .links {
     display: flex;
-    align-items: center;
+    
+    flex-direction: column;
     padding: 8px 0;
     color: var(--color-lite-grey);
     font-size: var(--size-medium);
