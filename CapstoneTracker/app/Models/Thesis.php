@@ -8,6 +8,7 @@ class Thesis extends Model {
     protected $tableName = 'THESIS';
     private $error = null;
     private $userModel;
+    
 
     public function __construct($db = null) {
         parent::__construct();
@@ -237,6 +238,331 @@ class Thesis extends Model {
             return false;
         }
     }
+
+    public function findById($thesisId) {
+        try {
+            // Custom query with join for thesis-specific needs
+            $query = "SELECT t.*, u.First_Name, u.Middle_Name, u.Last_Name, u.Extension 
+                      FROM THESIS t 
+                      LEFT JOIN USER_INFORMATION u ON t.User_ID = u.ID 
+                      WHERE t.ID = :id";
+            
+            $this->db->query($query);
+            $this->db->bind(':id', $thesisId);
+            
+            $result = $this->db->single();
+            
+            if (!$result) {
+                error_log("No thesis found with ID: " . $thesisId);
+                return false;
+            }
+            
+            return $result;
+            
+        } catch (Exception $e) {
+            error_log("Error finding thesis by ID: " . $e->getMessage());
+            return false;
+        }
+    }
+    /**
+     * Update thesis
+     */
+    public function updateThesis($thesisId, $postData, $files = null) {
+        try {
+            error_log("Starting thesis update process for ID: " . $thesisId);
+            
+            // Validate input
+            if (empty($postData['thesistitle'])) {
+                $this->error = 'Thesis title is required';
+                return false;
+            }
+            
+            // Check if title already exists (excluding current thesis)
+            $title = trim($postData['thesistitle']);
+            if ($this->titleExists($title, $thesisId)) {
+                $this->error = 'A thesis with this title already exists. Please choose a different title.';
+                return false;
+            }
+            
+            // Validate author emails
+            if (empty($postData['thesisauthor'])) {
+                $this->error = 'Author emails are required';
+                return false;
+            }
+
+            if (empty($postData['thesisadviser'])) {
+                $this->error = 'Adviser email is required';
+                return false;
+            }
+
+            if (empty($postData['department'])) {
+                $this->error = 'Department is required';
+                return false;
+            }
+
+            if (empty($postData['course'])) {
+                $this->error = 'Course is required';
+                return false;
+            }
+
+            // Get author information from emails (same logic as upload)
+            $authorEmails = array_map('trim', explode(',', $postData['thesisauthor']));
+            $authorNames = [];
+            $authorIds = [];
+            $facultyAuthors = [];
+            $pendingAuthors = [];
+
+            // Get adviser information from emails (same logic as upload)
+            $adviserEmails = array_map('trim', explode(',', $postData['thesisadviser']));
+            $adviserNames = [];
+            $adviserIds = [];
+            $nonFacultyAdvisers = [];
+            $pendingAdvisers = [];
+
+            foreach ($authorEmails as $email) {
+                if (!empty($email)) {
+                    // Find user by email
+                    $author = $this->userModel->findByEmail($email);
+                    if ($author) {
+                        // Check if user has pending status
+                        if ($author->Acc_Status === 'pending') {
+                            $pendingAuthors[] = $email;
+                            continue; // Skip pending users
+                        }
+                        
+                        // Check if user has faculty role
+                        if ($author->User_Role === 'faculty') {
+                            $facultyAuthors[] = $email;
+                            continue; // Skip faculty users as authors
+                        }
+                        
+                        // Build author name
+                        $authorName = $author->First_Name;  
+                        if (!empty($author->Middle_Name)) { 
+                            $authorName .= ' ' . $author->Middle_Name;
+                        }
+                        $authorName .= ' ' . $author->Last_Name; 
+                        if (!empty($author->Extension)) { 
+                            $authorName .= ' ' . $author->Extension;
+                        }
+                        
+                        $authorNames[] = $authorName;
+                        $authorIds[] = $author->ID; 
+                    } else {
+                        // If user not found, use email as name
+                        $authorNames[] = $email;
+                        $authorIds[] = null;
+                    }
+                }
+            }
+            
+            // Check if any pending accounts were found in authors
+            if (!empty($pendingAuthors)) {
+                $pendingEmails = implode(', ', $pendingAuthors);
+                $this->error = "Cannot add pending accounts as authors. Please approve the following accounts first: " . $pendingEmails;
+                return false;
+            }
+            
+            // Check if any faculty users were found in authors
+            if (!empty($facultyAuthors)) {
+                $facultyEmails = implode(', ', $facultyAuthors);
+                $this->error = "Faculty users cannot be listed as authors. Please remove the following faculty emails: " . $facultyEmails;
+                return false;
+            }
+            
+            foreach ($adviserEmails as $Aemail) {
+                if (!empty($Aemail)) {
+                    // Find user by email
+                    $adviser = $this->userModel->findByEmail($Aemail);
+                    if ($adviser) {
+                        // Check if user has pending status
+                        if ($adviser->Acc_Status === 'pending') {
+                            $pendingAdvisers[] = $Aemail;
+                            continue; // Skip pending users
+                        }
+                        
+                        // Check if user has faculty role
+                        if ($adviser->User_Role !== 'faculty') {
+                            $nonFacultyAdvisers[] = $Aemail;
+                            continue; // Skip non-faculty users as advisers
+                        }
+                        
+                        // Build adviser name
+                        $adviserName = $adviser->First_Name;  
+                        if (!empty($adviser->Middle_Name)) { 
+                            $adviserName .= ' ' . $adviser->Middle_Name;
+                        }
+                        $adviserName .= ' ' . $adviser->Last_Name; 
+                        if (!empty($adviser->Extension)) { 
+                            $adviserName .= ' ' . $adviser->Extension;
+                        }
+                        
+                        $adviserNames[] = $adviserName;
+                        $adviserIds[] = $adviser->ID; 
+                    } else {
+                        // If user not found, add to non-faculty list
+                        $nonFacultyAdvisers[] = $Aemail;
+                    }
+                }
+            }
+            
+            // Check if any pending accounts were found in advisers
+            if (!empty($pendingAdvisers)) {
+                $pendingEmails = implode(', ', $pendingAdvisers);
+                $this->error = "Cannot add pending accounts as advisers. Please approve the following accounts first: " . $pendingEmails;
+                return false;
+            }
+            
+            // Check if any non-faculty users were found in advisers
+            if (!empty($nonFacultyAdvisers)) {
+                $nonFacultyEmails = implode(', ', $nonFacultyAdvisers);
+                $this->error = "Only faculty users can be assigned as advisers. Please remove the following non-faculty emails: " . $nonFacultyEmails;
+                return false;
+            }
+            
+            if (empty($authorNames)) {
+                $this->error = 'No valid authors found for the provided emails';
+                return false;
+            }
+            
+            if (empty($adviserNames)) {
+                $this->error = 'No valid faculty advisers found for the provided emails';
+                return false;
+            }
+
+            // Process files if provided
+            $abstractFileData = null;
+            $thesisFileData = null;
+
+            if ($files && !empty($files['abstract_file']['name'])) {
+                $abstractFileData = $this->processUploadedFile($files['abstract_file'], 'abstract');
+                if (!$abstractFileData) {
+                    return false;
+                }
+            }
+
+            if ($files && !empty($files['thesis_file']['name'])) {
+                $thesisFileData = $this->processUploadedFile($files['thesis_file'], 'thesis');
+                if (!$thesisFileData) {
+                    return false;
+                }
+            }
+
+            // Update database
+            $success = $this->updateThesisInDatabase($thesisId, [
+                'Thesis_Department' => $postData['department'],
+                'Thesis_Course' => $postData['course'],
+                'Thesis_Email' => $postData['thesisauthor'],
+                'Title' => $postData['thesistitle'],
+                'Author' => implode(', ', $authorNames),
+                'Adviser' => implode(',', $adviserNames),
+                'Thesis_AbstractFile' => $abstractFileData,
+                'Thesis_File' => $thesisFileData,
+                'updated_at' => date('Y-m-d H:i:s')
+            ], $abstractFileData !== null, $thesisFileData !== null);
+            
+            if (!$success) {
+                error_log("Failed to update thesis in database: " . $this->error);
+                return false;
+            }
+            
+            error_log("Thesis updated successfully: " . $postData['thesistitle']);
+            return true;
+            
+        } catch (Exception $e) {
+            error_log("Update error: " . $e->getMessage());
+            $this->error = 'Update failed: ' . $e->getMessage();
+            return false;
+        }
+    }
+
+    /**
+     * Update thesis in database
+     */
+    private function updateThesisInDatabase($thesisId, $data, $updateAbstract = false, $updateThesis = false) {
+        try {
+            $query = "UPDATE THESIS SET 
+                    Thesis_Department = :thesis_department, 
+                    Thesis_Course = :thesis_course, 
+                    Thesis_Email = :thesis_email, 
+                    Title = :title, 
+                    Author = :author, 
+                    Adviser = :adviser, 
+                    updated_at = :updated_at";
+            
+            // Add file updates if provided
+            if ($updateAbstract) {
+                $query .= ", Thesis_AbstractFile = :thesis_abstract_file";
+            }
+            if ($updateThesis) {
+                $query .= ", Thesis_File = :thesis_file";
+            }
+            
+            $query .= " WHERE ID = :id";
+            
+            $this->db->query($query);
+            $this->db->bind(':thesis_department', $data['Thesis_Department']);
+            $this->db->bind(':thesis_course', $data['Thesis_Course']);
+            $this->db->bind(':thesis_email', $data['Thesis_Email']);
+            $this->db->bind(':title', $data['Title']);
+            $this->db->bind(':author', $data['Author']);
+            $this->db->bind(':adviser', $data['Adviser']);
+            $this->db->bind(':updated_at', $data['updated_at']);
+            $this->db->bind(':id', $thesisId);
+            
+            if ($updateAbstract) {
+                $this->db->bind(':thesis_abstract_file', $data['Thesis_AbstractFile']);
+            }
+            if ($updateThesis) {
+                $this->db->bind(':thesis_file', $data['Thesis_File']);
+            }
+            
+            $result = $this->db->execute();
+            
+            if (!$result) {
+                $errorInfo = $this->db->getError();
+                error_log("Database execution failed: " . print_r($errorInfo, true));
+                $this->error = "Database error: " . ($errorInfo['message'] ?? 'Unknown database error');
+                return false;
+            }
+            
+            return true;
+            
+        } catch (Exception $e) {
+            error_log("Database error in updateThesisInDatabase: " . $e->getMessage());
+            $this->error = "Database error: " . $e->getMessage();
+            return false;
+        }
+    }
+
+    /**
+     * Delete thesis
+     */
+    public function deleteThesis($thesisId) {
+        try {
+            $query = "DELETE FROM THESIS WHERE ID = :id";
+            
+            $this->db->query($query);
+            $this->db->bind(':id', $thesisId);
+            
+            $result = $this->db->execute();
+            
+            if (!$result) {
+                $errorInfo = $this->db->getError();
+                error_log("Database execution failed: " . print_r($errorInfo, true));
+                $this->error = "Database error: " . ($errorInfo['message'] ?? 'Unknown database error');
+                return false;
+            }
+            
+            return true;
+            
+        } catch (Exception $e) {
+            error_log("Database error in deleteThesis: " . $e->getMessage());
+            $this->error = "Database error: " . $e->getMessage();
+            return false;
+        }
+    }
+
 
     /**
      * Check if thesis title already exists

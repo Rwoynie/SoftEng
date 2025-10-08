@@ -227,11 +227,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    const projectItems = document.querySelectorAll('.project-item');
-    projectItems.forEach(item => {
-        item.addEventListener('click', function() {
-            handleProjectItemClick(this);
-        });
+    document.addEventListener('click', function(e) {
+        const projectItem = e.target.closest('.project-item');
+        if (projectItem && !e.target.closest('.project-item .logo-row .icon') && !e.target.closest('.moreOptions')) {
+            handleProjectItemClick(projectItem);
+        }
     });
 
     
@@ -320,6 +320,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 modal.addEventListener('click', function(e) {
                     if (e.target === this) {
                         closeModal(this);
+                        // Reset form when modal closes
+                        if (this.id === 'uploadModal') {
+                            resetUploadForm();
+                        }
                     }
                 });
             }
@@ -2176,20 +2180,29 @@ if (accountSearchInput) {
             if (thesisTitle.value.trim() === '') {
                 thesisTitle.style.borderColor = '#ddd';
             } else {
-                // Check title availability in real-time (debounced)
-                clearTimeout(window.titleCheckTimeout);
-                window.titleCheckTimeout = setTimeout(() => {
-                    checkTitleExists(thesisTitle.value.trim()).then(exists => {
-                        if (exists) {
-                            thesisTitle.style.borderColor = 'var(--color-danger)';
-                            // Show warning tooltip or message
-                            showTitleWarning('This title already exists');
-                        } else {
-                            thesisTitle.style.borderColor = '#51cf66';
-                            hideTitleWarning();
-                        }
-                    });
-                }, 500);
+                // Only check title existence if we're NOT in edit mode
+                const uploadBtn = document.getElementById('uploadBtn');
+                const isEditMode = uploadBtn && uploadBtn.getAttribute('data-thesis-id');
+                
+                if (!isEditMode) {
+                    // Check title availability in real-time (debounced) only for new uploads
+                    clearTimeout(window.titleCheckTimeout);
+                    window.titleCheckTimeout = setTimeout(() => {
+                        checkTitleExists(thesisTitle.value.trim()).then(exists => {
+                            if (exists) {
+                                thesisTitle.style.borderColor = 'var(--color-danger)';
+                                showTitleWarning('This title already exists');
+                            } else {
+                                thesisTitle.style.borderColor = '#51cf66';
+                                hideTitleWarning();
+                            }
+                        });
+                    }, 500);
+                } else {
+                    // In edit mode, just show valid state
+                    thesisTitle.style.borderColor = '#51cf66';
+                    hideTitleWarning();
+                }
             }
         }
 
@@ -2494,6 +2507,15 @@ if (accountSearchInput) {
         if (uploadForm && btnUpload) {
             uploadForm.addEventListener('submit', function(e) {
                 e.preventDefault();
+    
+                const uploadBtn = document.getElementById('uploadBtn');
+                const thesisId = uploadBtn.getAttribute('data-thesis-id');
+                
+                if (thesisId) {
+                    
+                    updateThesis(thesisId);
+                    return; // Stop further execution for update
+                }
                 
                 // Check if both file types have files
                 if (uploadedFiles.abstract.length === 0) {
@@ -2722,6 +2744,7 @@ if (accountSearchInput) {
         }
     }
 
+
     function initializeDepartmentCourseLogic() {
         const departmentSelect = document.getElementById('departmentSelect');
         const courseInput = document.getElementById('courseInput');
@@ -2787,6 +2810,582 @@ if (accountSearchInput) {
         }
     }
 
+    function initializeMoreOptions() {
+        // Close all moreOptions when clicking elsewhere
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.moreOptions') && !e.target.closest('.project-item .logo-row .icon')) {
+                document.querySelectorAll('.moreOptions').forEach(menu => {
+                    menu.style.display = 'none';
+                });
+            }
+        });
+    
+        // Toggle moreOptions when ellipsis is clicked
+        document.addEventListener('click', function(e) {
+            const ellipsisIcon = e.target.closest('.project-item .logo-row .icon');
+            if (ellipsisIcon) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const projectItem = ellipsisIcon.closest('.project-item');
+                const moreOptions = projectItem.querySelector('.moreOptions');
+                
+                // Close all other menus
+                document.querySelectorAll('.moreOptions').forEach(menu => {
+                    if (menu !== moreOptions) {
+                        menu.style.display = 'none';
+                    }
+                });
+                
+                // Toggle current menu
+                if (moreOptions.style.display === 'block') {
+                    moreOptions.style.display = 'none';
+                } else {
+                    moreOptions.style.display = 'block';
+                }
+            }
+        });
+    
+        // Handle moreOptions button clicks
+        document.addEventListener('click', function(e) {
+            const moreOptionsBtn = e.target.closest('.moreOptions button');
+            if (moreOptionsBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const moreOptions = moreOptionsBtn.closest('.moreOptions');
+                const projectItem = moreOptions.closest('.project-item');
+                const thesisId = projectItem.getAttribute('data-thesis-id');
+                const thesisTitle = projectItem.querySelector('h3').textContent;
+                
+                // Determine which button was clicked
+                if (moreOptionsBtn.innerHTML.includes('fa-pen')) {
+                    // Edit button clicked
+                    handleEditThesis(thesisId, thesisTitle);
+                } else if (moreOptionsBtn.innerHTML.includes('fa-trash-can')) {
+                    // Delete button clicked
+                    handleDeleteThesis(thesisId, thesisTitle);
+                }
+                
+                // Close the menu
+                moreOptions.style.display = 'none';
+            }
+        });
+    }
+    
+    async function handleEditThesis(thesisId, thesisTitle) {
+        try {
+            console.log('Starting edit process for thesis ID:', thesisId);
+            
+            // Fetch thesis data
+            const response = await fetch(`../../../app/Controllers/ThesisController.php?action=editThesis&id=${thesisId}`);
+            console.log('Response status:', response.status);
+            
+            const responseText = await response.text();
+            console.log('Raw response:', responseText);
+            
+            let data;
+            
+            // More robust JSON parsing
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('JSON parse error:', parseError);
+                
+                // Try to extract JSON from the response if there's extra output
+                const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    try {
+                        data = JSON.parse(jsonMatch[0]);
+                        console.log('Successfully extracted JSON from response');
+                    } catch (e2) {
+                        console.error('Failed to parse extracted JSON:', e2);
+                        throw new Error('Invalid JSON response from server');
+                    }
+                } else {
+                    // If no JSON found, check if it's an error message
+                    if (responseText.includes('error') || responseText.includes('Error')) {
+                        throw new Error('Server error: ' + responseText.substring(0, 100));
+                    } else {
+                        throw new Error('Invalid server response format');
+                    }
+                }
+            }
+            
+            console.log('Parsed data:', data);
+            
+            if (data.success) {
+                console.log('Thesis data loaded successfully:', data.thesis);
+                // Populate the upload modal with existing data
+                populateEditForm(data.thesis);
+                
+                // Change modal title and button text
+                const modalTitle = document.querySelector('.upload-modal .modal-title');
+                const uploadBtn = document.getElementById('uploadBtn');
+                
+                if (modalTitle) modalTitle.textContent = 'Edit Thesis';
+                if (uploadBtn) {
+                    uploadBtn.textContent = 'Update Thesis';
+                    uploadBtn.setAttribute('data-thesis-id', thesisId);
+                }
+                
+                // Show the upload modal in edit mode
+                const uploadModal = document.getElementById('uploadModal');
+                if (uploadModal) {
+                    uploadModal.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    throw new Error('Upload modal not found');
+                }
+                
+            } else {
+                throw new Error(data.error || 'Failed to load thesis data');
+            }
+        } catch (error) {
+            console.error('Error loading thesis for edit:', error);
+            Swal.fire({
+                title: 'Error',
+                text: `Failed to load thesis data for editing: ${error.message}`,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        }
+    }
+
+    // Populate form with existing thesis data
+    function populateEditForm(thesis) {
+        
+        
+        // Populate form fields
+        document.getElementById('thesisTitle').value = thesis.Title || '';
+        document.getElementById('thesisAuthor').value = thesis.Thesis_Email || '';
+        document.getElementById('thesisAdviser').value = thesis.Adviser || '';
+        
+        // Set department and trigger change event
+        const departmentSelect = document.getElementById('departmentSelect');
+        if (departmentSelect) {
+            departmentSelect.value = thesis.Thesis_Department || '';
+            
+            // Trigger department change to populate courses
+            departmentSelect.dispatchEvent(new Event('change'));
+            
+            // Set course after a short delay to ensure options are populated
+            setTimeout(() => {
+                const courseInput = document.getElementById('courseInput');
+                if (courseInput && thesis.Thesis_Course) {
+                    courseInput.value = thesis.Thesis_Course;
+                }
+            }, 200);
+        }
+        
+        // Clear existing files from upload arrays
+        uploadedFiles.abstract = [];
+        uploadedFiles.thesis = [];
+        
+        // Show existing files as read-only or with download links
+        showExistingFiles(thesis);
+        
+        // Update button state
+        updateUploadButtonState();
+        
+    }
+    
+    function showExistingFiles(thesis) {
+        const abstractList = document.getElementById('abstractFileList');
+        const thesisList = document.getElementById('thesisFileList');
+        
+        // Clear existing file displays
+        showEmptyState('abstract');
+        showEmptyState('thesis');
+        
+        // Add existing abstract file info
+        if (thesis.Thesis_AbstractFile) {
+            abstractList.innerHTML = `
+                <div class="file-item-card">
+                    <div class="file-icon-preview pdf">
+                        <i class="far fa-file-pdf"></i>
+                    </div>
+                    <div class="file-info-preview">
+                        <div class="file-name-preview">Existing Abstract File</div>
+                        <div class="file-size-preview">Uploaded previously</div>
+                    </div>
+                    <div class="file-actions-preview">
+                        <button type="button" class="file-action-btn-preview file-download-preview" onclick="downloadExistingFile(${thesis.ID}, 'abstract')">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Add existing thesis file info
+        if (thesis.Thesis_File) {
+            thesisList.innerHTML = `
+                <div class="file-item-card">
+                    <div class="file-icon-preview pdf">
+                        <i class="far fa-file-pdf"></i>
+                    </div>
+                    <div class="file-info-preview">
+                        <div class="file-name-preview">Existing Thesis File</div>
+                        <div class="file-size-preview">Uploaded previously</div>
+                    </div>
+                    <div class="file-actions-preview">
+                        <button type="button" class="file-action-btn-preview file-download-preview" onclick="downloadExistingFile(${thesis.ID}, 'thesis')">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    async function updateThesis(thesisId) {
+        try {
+            // Validate form data
+            const thesisTitleInput = document.getElementById('thesisTitle');
+            const thesisAuthorInput = document.getElementById('thesisAuthor');
+            const thesisAdviserInput = document.getElementById('thesisAdviser');
+            const departmentSelect = document.getElementById('departmentSelect');
+            const courseInput = document.getElementById('courseInput');
+            
+            // Basic validation
+            if (!thesisTitleInput.value.trim()) {
+                Swal.fire({
+                    title: 'Thesis Title Required',
+                    text: 'Please enter a title for your thesis.',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+            
+            // Validate author emails
+            const authorEmailValidation = validateAuthorEmails(thesisAuthorInput.value);
+            if (!authorEmailValidation.isValid) {
+                const invalidEmailsList = authorEmailValidation.invalidEmails.join(', ');
+                Swal.fire({
+                    title: 'Invalid Email Addresses',
+                    html: `The following author emails are not valid: <strong>${invalidEmailsList}</strong>`,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+            
+            // Validate adviser email
+            if (thesisAdviserInput.value.trim() && !isValidEmail(thesisAdviserInput.value.trim())) {
+                Swal.fire({
+                    title: 'Invalid Adviser Email',
+                    text: 'Please enter a valid email address for the adviser.',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+            
+            // Show confirmation dialog
+            const result = await Swal.fire({
+                title: 'Update Thesis?',
+                html: `Are you sure you want to update <strong>${thesisTitleInput.value}</strong>?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, update it!',
+                cancelButtonText: 'Cancel'
+            });
+            
+            if (result.isConfirmed) {
+                // Show loading state
+                const uploadBtn = document.getElementById('uploadBtn');
+                const originalText = uploadBtn.textContent;
+                uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+                uploadBtn.disabled = true;
+                
+                // Prepare form data for update
+                const formData = new FormData();
+                formData.append('thesis_id', thesisId);
+                formData.append('thesistitle', thesisTitleInput.value.trim());
+                formData.append('thesisauthor', thesisAuthorInput.value.trim());
+                formData.append('thesisadviser', thesisAdviserInput.value.trim());
+                formData.append('department', departmentSelect.value);
+                formData.append('course', courseInput.value);
+                
+                // Append new files if uploaded
+                if (uploadedFiles.abstract.length > 0) {
+                    uploadedFiles.abstract.forEach(file => {
+                        formData.append('abstract_file', file);
+                    });
+                }
+                
+                if (uploadedFiles.thesis.length > 0) {
+                    uploadedFiles.thesis.forEach(file => {
+                        formData.append('thesis_file', file);
+                    });
+                }
+                
+                console.log('Sending update request for thesis ID:', thesisId);
+                
+                // Send update request
+                const response = await fetch('../../../app/Controllers/ThesisController.php?action=updateThesis', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const responseText = await response.text();
+                console.log('Raw update response:', responseText);
+                
+                let data;
+                try {
+                    // Try to parse as JSON
+                    data = JSON.parse(responseText);
+                } catch (parseError) {
+                    // Try to extract JSON from response
+                    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        try {
+                            data = JSON.parse(jsonMatch[0]);
+                        } catch (e) {
+                            throw new Error('Invalid server response format');
+                        }
+                    } else {
+                        throw new Error('Server returned invalid response');
+                    }
+                }
+                
+                console.log('Parsed update response:', data);
+                
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Update Successful!',
+                        text: data.message || 'Your thesis has been updated successfully.',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        resetUploadForm();
+                        closeModal(document.getElementById('uploadModal'));
+                        location.reload();
+                    });
+                } else {
+                    throw new Error(data.error || 'Update failed');
+                }
+            }
+        } catch (error) {
+            console.error('Update error:', error);
+            Swal.fire({
+                title: 'Update Failed',
+                text: error.message || 'Failed to update thesis. Please try again.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        } finally {
+            // Restore button state
+            const uploadBtn = document.getElementById('uploadBtn');
+            if (uploadBtn) {
+                uploadBtn.textContent = 'Update Thesis';
+                uploadBtn.disabled = false;
+            }
+        }
+    }
+
+    async function handleEditThesis(thesisId, thesisTitle) {
+        try {
+            
+            
+            // Show loading state
+            Swal.fire({
+                title: 'Loading...',
+                text: 'Please wait while we load thesis data',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Fetch thesis data with error handling
+            const response = await fetch(`../../../app/Controllers/ThesisController.php?action=editThesis&id=${thesisId}`);
+            
+            
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const responseText = await response.text();
+            
+            
+            // Check if response is empty
+            if (!responseText.trim()) {
+                throw new Error('Server returned empty response');
+            }
+            
+            let data;
+            
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                
+                
+                // Try to extract JSON from any output buffering
+                const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    try {
+                        data = JSON.parse(jsonMatch[0]);
+                        console.log('Successfully extracted JSON from response');
+                    } catch (e2) {
+                        console.error('Failed to parse extracted JSON:', e2);
+                        throw new Error('Server returned invalid JSON format');
+                    }
+                } else {
+                    // If no JSON found, check common error patterns
+                    if (responseText.includes('Warning:') || responseText.includes('Notice:') || responseText.includes('Error:')) {
+                        throw new Error('PHP errors detected in response');
+                    } else {
+                        throw new Error('Server returned non-JSON response');
+                    }
+                }
+            }
+            
+            // Close loading SweetAlert
+            Swal.close();
+            
+            if (data.success && data.thesis) {
+                
+                
+                // Populate the upload modal with existing data
+                populateEditForm(data.thesis);
+                
+                // Change modal title and button text
+                const modalTitle = document.querySelector('.upload-modal .modal-title');
+                const uploadBtn = document.getElementById('uploadBtn');
+                
+                if (modalTitle) modalTitle.textContent = 'Edit Thesis';
+                if (uploadBtn) {
+                    uploadBtn.textContent = 'Update Thesis';
+                    uploadBtn.setAttribute('data-thesis-id', thesisId);
+                }
+                
+                // Show the upload modal in edit mode
+                const uploadModal = document.getElementById('uploadModal');
+                if (uploadModal) {
+                    uploadModal.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                }
+                
+            } else {
+                throw new Error(data.error || 'Failed to load thesis data');
+            }
+        } catch (error) {
+            
+            Swal.close(); // Ensure loading dialog is closed
+            
+            Swal.fire({
+                title: 'Error',
+                text: `Failed to load thesis data: ${error.message}`,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        }
+    }
+
+    
+
+    
+
+    function downloadExistingFile(thesisId, fileType) {
+        const url = fileType === 'abstract' 
+            ? `../../../app/Controllers/ThesisController.php?action=downloadAbstract&id=${thesisId}`
+            : `../../../app/Controllers/ThesisController.php?action=download&id=${thesisId}`;
+        
+        window.open(url, '_blank');
+    }
+
+    // Delete thesis function
+    async function handleDeleteThesis(thesisId, thesisTitle) {
+        try {
+            const result = await Swal.fire({
+                title: 'Delete Thesis?',
+                html: `Are you sure you want to delete <strong>"${thesisTitle}"</strong>?<br>This action cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel'
+            });
+            
+            if (result.isConfirmed) {
+                // Show loading
+                Swal.fire({
+                    title: 'Deleting...',
+                    text: 'Please wait while we delete the thesis.',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                // Send delete request
+                const response = await fetch('../../../app/Controllers/ThesisController.php?action=deleteThesis', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ thesis_id: thesisId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Deleted!',
+                        text: data.message || 'The thesis has been deleted successfully.',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        // FIX: Properly remove the item from DOM
+                        const projectItem = document.querySelector(`.project-item[data-thesis-id="${thesisId}"]`);
+                        if (projectItem) {
+                            // Add animation for removal
+                            projectItem.style.opacity = '0';
+                            projectItem.style.transform = 'translateX(-100%)';
+                            projectItem.style.transition = 'all 0.3s ease';
+                            
+                            setTimeout(() => {
+                                projectItem.remove();
+                                
+                                // Check if any items left
+                                const remainingItems = document.querySelectorAll('.project-item');
+                                if (remainingItems.length === 0) {
+                                    // No items left, reload the page to refresh everything
+                                    location.reload();
+                                } else {
+                                    // Re-run animations for remaining items
+                                    animateOnScroll();
+                                }
+                            }, 300);
+                        } else {
+                            // If we can't find the specific item, reload the page
+                            location.reload();
+                        }
+                    });
+                } else {
+                    throw new Error(data.error || 'Delete failed');
+                }
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            Swal.fire({
+                title: 'Delete Failed',
+                text: error.message || 'Failed to delete thesis. Please try again.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        }
+    }
+
+    
+
     function resetUploadForm() {
         // Clear uploaded files arrays
         uploadedFiles.abstract = [];
@@ -2822,13 +3421,26 @@ if (accountSearchInput) {
             departmentSelect.selectedIndex = 0;
             departmentSelect.style.borderColor = '#ddd';
         }
-    
+        
         // Reset course input
         const courseInput = document.getElementById('courseInput');
         if (courseInput) {
             courseInput.innerHTML = '<option value="" selected disabled>Select your program</option>';
             courseInput.disabled = true;
             courseInput.style.borderColor = '#ddd';
+        }
+        
+        // Reset modal to create mode
+        const uploadBtn = document.getElementById('uploadBtn');
+        const modalTitle = document.querySelector('.upload-modal .modal-title');
+        
+        if (uploadBtn) {
+            uploadBtn.textContent = 'Upload Thesis';
+            uploadBtn.removeAttribute('data-thesis-id');
+        }
+        
+        if (modalTitle) {
+            modalTitle.textContent = 'Upload New Thesis';
         }
         
         // Update button state
@@ -2865,6 +3477,7 @@ if (accountSearchInput) {
     
     initializeDepartmentCourseLogic();
     
+    initializeMoreOptions();
    
 });
 

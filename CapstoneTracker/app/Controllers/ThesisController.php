@@ -173,76 +173,6 @@ class ThesisController {
     }
     
     /**
-     * Delete a thesis
-     */
-    public function deleteThesis() {
-        // Start session if not already started
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        
-        // Check permissions
-        if (!isset($_SESSION['user_db_id']) && (!isset($_SESSION['is_admin']) || !$_SESSION['is_admin'])) {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'error' => 'Insufficient permissions']);
-            return;
-        }
-        
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            http_response_code(405);
-            echo json_encode(['success' => false, 'error' => 'Method not allowed']);
-            return;
-        }
-        
-        try {
-            $input = json_decode(file_get_contents('php://input'), true);
-            
-            if (!isset($input['thesis_id'])) {
-                throw new Exception('Thesis ID is required');
-            }
-            
-            $thesisId = (int)$input['thesis_id'];
-            
-            // Get thesis details first to check ownership and file path
-            $thesis = $this->thesisModel->findById($thesisId);
-            
-            if (!$thesis) {
-                throw new Exception('Thesis not found');
-            }
-            
-            // Check if user owns the thesis or is admin
-            if (!$_SESSION['is_admin'] && $thesis->User_ID != $_SESSION['user_db_id']) {
-                throw new Exception('You can only delete your own theses');
-            }
-            
-            // Delete the file from server
-            if (file_exists($thesis->File_Path)) {
-                unlink($thesis->File_Path);
-            }
-            
-            // Delete from database
-            $success = $this->thesisModel->delete($thesisId);
-            
-            if ($success) {
-                http_response_code(200);
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'Thesis deleted successfully'
-                ]);
-            } else {
-                throw new Exception('Failed to delete thesis from database');
-            }
-            
-        } catch (Exception $e) {
-            http_response_code(400);
-            echo json_encode([
-                'success' => false,
-                'error' => $e->getMessage()
-            ]);
-        }
-    }
-
-    /**
      * Get theses by department
      */
     public function getThesesByDepartment() {
@@ -321,6 +251,254 @@ class ThesisController {
             echo json_encode([
                 'success' => false,
                 'error' => 'Failed to search theses: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Edit thesis - load data for editing
+     */
+    public function editThesis() {
+        // COMPLETELY CLEAR EVERYTHING first
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        
+        // Start session
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        // Set headers IMMEDIATELY
+        header('Content-Type: application/json');
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        
+        try {
+            // Debug log
+            error_log("EDIT THESIS CALLED - ID: " . ($_GET['id'] ?? 'NULL'));
+            
+            // Check permissions
+            if (!isset($_SESSION['user_db_id'])) {
+                throw new Exception('User not authenticated');
+            }
+            
+            $thesisId = $_GET['id'] ?? null;
+            
+            if (!$thesisId) {
+                throw new Exception('Thesis ID is required');
+            }
+            
+            // Get thesis details
+            $thesis = $this->thesisModel->findById($thesisId);
+            
+            if (!$thesis) {
+                throw new Exception('Thesis not found for ID: ' . $thesisId);
+            }
+            
+            // Check if user is admin
+            if (!($_SESSION['is_admin'] ?? false)) {
+                throw new Exception('Admin privileges required');
+            }
+            
+            // Prepare response data
+            $response = [
+                'success' => true,
+                'thesis' => [
+                    'ID' => $thesis->ID,
+                    'Title' => $thesis->Title,
+                    'Thesis_Email' => $thesis->Thesis_Email,
+                    'Adviser' => $thesis->Adviser,
+                    'Thesis_Department' => $thesis->Thesis_Department,
+                    'Thesis_Course' => $thesis->Thesis_Course,
+                    'Author' => $thesis->Author
+                ]
+            ];
+            
+            // Output and exit IMMEDIATELY
+            echo json_encode($response);
+            exit;
+            
+        } catch (Exception $e) {
+            $errorResponse = [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+            
+            echo json_encode($errorResponse);
+            exit;
+        }
+    }
+
+    /**
+     * Update thesis - FIXED VERSION
+     */
+    public function updateThesis() {
+        // Start session if not already started
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        // Check permissions
+        if (!isset($_SESSION['user_db_id'])) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Insufficient permissions']);
+            return;
+        }
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+            return;
+        }
+        
+        try {
+            // Clear any previous output
+            if (ob_get_length()) {
+                ob_clean();
+            }
+            
+            // Handle both FormData and JSON input
+            $input = [];
+            
+            if (!empty($_POST['thesis_id'])) {
+                // FormData submission (with potential files)
+                $input = $_POST;
+            } else {
+                // JSON submission
+                $rawInput = file_get_contents('php://input');
+                $input = json_decode($rawInput, true);
+                
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    throw new Exception('Invalid JSON input');
+                }
+            }
+            
+            if (!isset($input['thesis_id'])) {
+                throw new Exception('Thesis ID is required');
+            }
+            
+            $thesisId = (int)$input['thesis_id'];
+            
+            // Get thesis details first to check ownership
+            $thesis = $this->thesisModel->findById($thesisId);
+            
+            if (!$thesis) {
+                throw new Exception('Thesis not found');
+            }
+            
+            // Check if user owns the thesis or is admin
+            if (!$_SESSION['is_admin'] && $thesis->User_ID != $_SESSION['user_db_id']) {
+                throw new Exception('You can only edit your own theses');
+            }
+            
+            // Prepare data for update
+            $postData = [
+                'thesistitle' => $input['thesistitle'] ?? '',
+                'thesisauthor' => $input['thesisauthor'] ?? '',
+                'thesisadviser' => $input['thesisadviser'] ?? '',
+                'department' => $input['department'] ?? '',
+                'course' => $input['course'] ?? ''
+            ];
+            
+            // Handle file uploads if provided
+            $files = [];
+            if (!empty($_FILES['abstract_file']['name'])) {
+                $files['abstract_file'] = $_FILES['abstract_file'];
+            }
+            if (!empty($_FILES['thesis_file']['name'])) {
+                $files['thesis_file'] = $_FILES['thesis_file'];
+            }
+            
+            // Update thesis - pass files only if they exist
+            $success = $this->thesisModel->updateThesis($thesisId, $postData, !empty($files) ? $files : null);
+            
+            // Ensure we only output JSON
+            header('Content-Type: application/json');
+            
+            if ($success) {
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Thesis updated successfully!'
+                ]);
+            } else {
+                throw new Exception($this->thesisModel->getError() ?: 'Failed to update thesis');
+            }
+            
+        } catch (Exception $e) {
+            // Ensure we only output JSON even for errors
+            header('Content-Type: application/json');
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]);
+        }
+        exit;
+    }
+
+    
+
+    /**
+     * Delete thesis
+     */
+    public function deleteThesis() {
+        // Start session if not already started
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        // Check permissions
+        if (!isset($_SESSION['user_db_id'])) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Insufficient permissions']);
+            return;
+        }
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+            return;
+        }
+        
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+            
+            if (!isset($input['thesis_id'])) {
+                throw new Exception('Thesis ID is required');
+            }
+            
+            $thesisId = (int)$input['thesis_id'];
+            
+            // Get thesis details first to check ownership
+            $thesis = $this->thesisModel->findById($thesisId);
+            
+            if (!$thesis) {
+                throw new Exception('Thesis not found');
+            }
+            
+            // Check if user owns the thesis or is admin
+            if (!$_SESSION['is_admin'] && $thesis->User_ID != $_SESSION['user_db_id']) {
+                throw new Exception('You can only delete your own theses');
+            }
+            
+            // Delete thesis
+            $success = $this->thesisModel->deleteThesis($thesisId);
+            
+            if ($success) {
+                http_response_code(200);
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Thesis deleted successfully'
+                ]);
+            } else {
+                throw new Exception($this->thesisModel->getError() ?: 'Failed to delete thesis');
+            }
+            
+        } catch (Exception $e) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
             ]);
         }
     }
@@ -461,6 +639,19 @@ class ThesisController {
         }
     }
     
+    public function debugThesis() {
+        header('Content-Type: application/json');
+        
+        $thesisId = $_GET['id'] ?? null;
+        echo json_encode([
+            'debug' => true,
+            'thesis_id' => $thesisId,
+            'session' => isset($_SESSION['user_db_id']),
+            'is_admin' => $_SESSION['is_admin'] ?? false
+        ]);
+        exit;
+    }
+    
     /**
      * Log upload activity (placeholder for future implementation)
      */
@@ -485,9 +676,6 @@ class ThesisController {
             case 'getUserTheses':
                 $this->getUserTheses();
                 break;
-            case 'deleteThesis':
-                $this->deleteThesis();
-                break;
             case 'getThesesByDepartment':
                 $this->getThesesByDepartment();
                 break;
@@ -501,14 +689,23 @@ class ThesisController {
                 $this->getThesisStatistics();
                 break;
             case 'download':
-                $this->serveThesisFile(); // Full thesis download
+                $this->serveThesisFile(); 
                 break;
-            case 'downloadAbstract': // Add this case for abstract preview
+            case 'downloadAbstract': 
                 $this->serveAbstractFile();
                 break;
-            case 'checkTitleExists': // ADD THIS NEW CASE
+            case 'checkTitleExists': 
                 $this->checkTitleExists();
                 break;    
+            case 'editThesis': 
+                $this->editThesis();
+                break;
+            case 'updateThesis': 
+                $this->updateThesis();
+                break;
+            case 'deleteThesis': 
+                $this->deleteThesis();
+                break;
             default:
                 http_response_code(404);
                 echo json_encode(['success' => false, 'error' => 'Action not found']);

@@ -784,6 +784,14 @@ $displayUserData = [
 <?php
 // Helper function to display thesis item
 function displayThesisItem($theses) {
+    // Debug: Check if ID exists
+    if (!isset($theses->ID) || empty($theses->ID)) {
+        error_log("Thesis ID missing for thesis: " . ($theses->Title ?? 'Unknown Title'));
+        // Use a fallback or skip this item
+        return; // Skip items without ID
+    }
+    
+    $thesisId = $theses->ID;
     $Author = htmlspecialchars($theses->Author);
     $Adviser = htmlspecialchars($theses->Adviser ?? 'Not specified');
     $Title = htmlspecialchars($theses->Title);
@@ -808,10 +816,14 @@ function displayThesisItem($theses) {
         $daysAgoText = $daysAgo . ' days ago';
     }
     
-    echo '<li class="project-item" data-tags="" data-thesis-id="' . $theses->ID . '" data-days-ago="' . $daysAgo . '" data-is-recent="' . ($theses->is_recent ? 'true' : 'false') . '">';
+    echo '<li class="project-item" data-tags="" data-thesis-id="' . $thesisId . '" data-days-ago="' . $daysAgo . '" data-is-recent="' . ($theses->is_recent ? 'true' : 'false') . '">';
     echo '<div class="logo-row">';
     echo '<img src="/CapstoneTracker/resources/Images/usep-logo-small.png" alt="Logo" />';
     echo '<div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>';
+    echo '<div class="moreOptions">';
+    echo '<button><i class="fa-solid fa-pen"></i>Edit</button>';
+    echo '<button><i class="fa-solid fa-trash-can"></i>Delete</button>';
+    echo '</div>';
     echo '</div>';
     echo '<div class="title-row">';
     echo '<h3>' . $displayTitle . '</h3>';
