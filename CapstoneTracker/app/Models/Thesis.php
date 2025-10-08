@@ -38,6 +38,7 @@ class Thesis extends Model {
                 return false;
             }
             
+            
             // Check if both abstract and thesis files are uploaded
             if (empty($files['abstract_file']) || empty($files['thesis_file'])) {
                 $this->error = 'Both abstract and thesis files are required';
@@ -62,6 +63,11 @@ class Thesis extends Model {
 
             if (empty($postData['course'])) {
                 $this->error = 'Course is required';
+                return false;
+            }
+
+            if (empty($postData['hardbound'])) {
+                $this->error = 'Hardbound availability is required';
                 return false;
             }
 
@@ -218,7 +224,7 @@ class Thesis extends Model {
                 'Title' => $postData['thesistitle'],
                 'Author' => $authorString,
                 'Adviser' => $adviserString,
-                'HardBound_Available' => 'Yes',
+                'HardBound_Available' => $postData['hardbound'] ?? 'Yes',
                 'Thesis_AbstractFile' => $abstractFileData,
                 'Thesis_File' => $thesisFileData,
                 'uploaded_at' => date('Y-m-d H:i:s')
@@ -302,6 +308,11 @@ class Thesis extends Model {
 
             if (empty($postData['course'])) {
                 $this->error = 'Course is required';
+                return false;
+            }
+
+            if (empty($postData['hardbound'])) {
+                $this->error = 'Hardbound availability is required';
                 return false;
             }
 
@@ -456,6 +467,7 @@ class Thesis extends Model {
                 'Title' => $postData['thesistitle'],
                 'Author' => implode(', ', $authorNames),
                 'Adviser' => implode(',', $adviserNames),
+                'HardBound_Available' => $postData['hardbound'] ?? 'Yes',
                 'Thesis_AbstractFile' => $abstractFileData,
                 'Thesis_File' => $thesisFileData,
                 'updated_at' => date('Y-m-d H:i:s')
@@ -488,6 +500,7 @@ class Thesis extends Model {
                     Title = :title, 
                     Author = :author, 
                     Adviser = :adviser, 
+                    HardBound_Available = :hardbound_available, 
                     updated_at = :updated_at";
             
             // Add file updates if provided
@@ -507,6 +520,7 @@ class Thesis extends Model {
             $this->db->bind(':title', $data['Title']);
             $this->db->bind(':author', $data['Author']);
             $this->db->bind(':adviser', $data['Adviser']);
+            $this->db->bind(':hardbound_available', $data['HardBound_Available']);
             $this->db->bind(':updated_at', $data['updated_at']);
             $this->db->bind(':id', $thesisId);
             

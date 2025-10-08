@@ -2131,6 +2131,7 @@ if (accountSearchInput) {
         const thesisAdviser = document.getElementById('thesisAdviser');
         const departmentSelect = document.getElementById('departmentSelect');
         const courseInput = document.getElementById('courseInput');
+        const hardboundSelect = document.getElementById('hardboundSelect');
         const uploadBtn = document.getElementById('uploadBtn');
         
         // Validate author emails
@@ -2144,6 +2145,7 @@ if (accountSearchInput) {
         // Check if department has a selected value
         const isDepartmentSelected = departmentSelect && departmentSelect.value !== '';
         const isCourseSelected = courseInput && courseInput.value !== '' && !courseInput.disabled;
+        
         // Check if both file types have at least one file
         const hasAbstractFiles = uploadedFiles.abstract.length > 0;
         const hasThesisFiles = uploadedFiles.thesis.length > 0;
@@ -2157,6 +2159,7 @@ if (accountSearchInput) {
                        adviserEmailValidation.isValid &&
                        isDepartmentSelected &&
                        isCourseSelected &&
+                      
                        hasAbstractFiles &&
                        hasThesisFiles;
         
@@ -2241,14 +2244,7 @@ if (accountSearchInput) {
             }
         }
         
-        // Add visual feedback for department
-        if (departmentSelect) {
-            if (!isDepartmentSelected) {
-                departmentSelect.style.borderColor = 'rgb(221, 221, 221)';
-            } else {
-                departmentSelect.style.borderColor = '#51cf66';
-            }
-        }
+      
 
          // Update visual feedback for department field
         if (departmentSelect) {
@@ -2269,6 +2265,13 @@ if (accountSearchInput) {
                 courseInput.style.borderColor = '#51cf66';
             }
         }
+
+        if(hardboundSelect.value == 'No') {
+            hardboundSelect.style.borderColor = '#ddd';
+            } else {
+                hardboundSelect.style.borderColor = '#51cf66';
+            }
+        
     
         // Update file icon state
         updateFileIconState();
@@ -2280,6 +2283,7 @@ if (accountSearchInput) {
         const thesisAdviser = document.getElementById('thesisAdviser');
         const departmentSelect = document.getElementById('departmentSelect');
         const courseInput = document.getElementById('courseInput');
+        
         const fileIcon = document.getElementById('notif');
         
         if (!fileIcon) return;
@@ -2304,6 +2308,7 @@ if (accountSearchInput) {
                            adviserEmailValidation.isValid &&
                            isDepartmentSelected &&
                            courseInput.value.trim() !== '' &&
+                           
                            hasAbstractFiles &&
                            hasThesisFiles;
         
@@ -2431,7 +2436,15 @@ if (accountSearchInput) {
     function initializeUploadFormValidation() {
         const thesisAuthor = document.getElementById('thesisAuthor');
         const thesisAdviser = document.getElementById('thesisAdviser');
-        
+        const hardboundSelect = document.getElementById('hardboundSelect');
+    
+        // Hardbound select change event
+        if (hardboundSelect) {
+            hardboundSelect.addEventListener('change', function() {
+                updateUploadButtonState();
+            });
+        }
+
         // Author email validation
         if (thesisAuthor) {
             thesisAuthor.addEventListener('blur', function() {
@@ -2482,7 +2495,8 @@ if (accountSearchInput) {
         const otherFormFields = [
             'thesisTitle',
             'departmentSelect',
-            'courseInput'
+            'courseInput',
+            'hardboundSelect'
         ];
         
         otherFormFields.forEach(fieldId => {
@@ -2601,6 +2615,9 @@ if (accountSearchInput) {
                     });
                     return;
                 }
+
+                const hardboundSelect = document.getElementById('hardboundSelect');
+                const hardboundValue = hardboundSelect ? hardboundSelect.value : 'Yes'; // Default to 'Yes'
                 
                 // NEW: Validate authors don't include faculty users
                 validateTitleBeforeUpload(thesisTitleInput.value)
@@ -2630,6 +2647,7 @@ if (accountSearchInput) {
                                 <strong>Adviser:</strong> ${thesisAdviserInput.value}<br>
                                 <strong>Department:</strong> ${departmentText}<br>
                                 <strong>Course:</strong> ${courseInput.value}<br>
+                                <strong>Hardbound Available:</strong> ${hardboundValue}<br>
                                 <strong>Abstract Files:</strong> ${uploadedFiles.abstract.length} file(s)<br>
                                 <strong>Thesis Files:</strong> ${uploadedFiles.thesis.length} file(s)<br>
                                 <strong>Total Files:</strong> ${totalFiles} file(s)`,
@@ -2954,13 +2972,25 @@ if (accountSearchInput) {
 
     // Populate form with existing thesis data
     function populateEditForm(thesis) {
-        
+        console.log('Thesis data received:', thesis);
         
         // Populate form fields
         document.getElementById('thesisTitle').value = thesis.Title || '';
         document.getElementById('thesisAuthor').value = thesis.Thesis_Email || '';
         document.getElementById('thesisAdviser').value = thesis.Adviser || '';
         
+        // FIX: Set hardbound availability - handle both property names and ensure proper value setting
+        const hardboundSelect = document.getElementById('hardboundSelect');
+        if (hardboundSelect) {
+            // Try all possible property names from your database
+            const hardboundValue = thesis.HardBound_Available || thesis.Hardbound || thesis.hardbound || thesis.Hardbound_Available || 'Yes';
+            console.log('Setting hardbound value:', hardboundValue); // Debug log
+            
+            // Set the value and trigger change event
+            hardboundSelect.value = hardboundValue;
+            hardboundSelect.dispatchEvent(new Event('change'));
+        }
+    
         // Set department and trigger change event
         const departmentSelect = document.getElementById('departmentSelect');
         if (departmentSelect) {
@@ -2974,6 +3004,7 @@ if (accountSearchInput) {
                 const courseInput = document.getElementById('courseInput');
                 if (courseInput && thesis.Thesis_Course) {
                     courseInput.value = thesis.Thesis_Course;
+                    courseInput.dispatchEvent(new Event('change'));
                 }
             }, 200);
         }
@@ -2987,7 +3018,6 @@ if (accountSearchInput) {
         
         // Update button state
         updateUploadButtonState();
-        
     }
     
     function showExistingFiles(thesis) {
@@ -3047,6 +3077,8 @@ if (accountSearchInput) {
             const thesisAdviserInput = document.getElementById('thesisAdviser');
             const departmentSelect = document.getElementById('departmentSelect');
             const courseInput = document.getElementById('courseInput');
+            const hardboundSelect = document.getElementById('hardboundSelect');
+            const hardboundValue = hardboundSelect ? hardboundSelect.value : 'Yes';
             
             // Basic validation
             if (!thesisTitleInput.value.trim()) {
@@ -3098,7 +3130,7 @@ if (accountSearchInput) {
             if (result.isConfirmed) {
                 // Show loading state
                 const uploadBtn = document.getElementById('uploadBtn');
-                const originalText = uploadBtn.textContent;
+               
                 uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
                 uploadBtn.disabled = true;
                 
@@ -3110,6 +3142,7 @@ if (accountSearchInput) {
                 formData.append('thesisadviser', thesisAdviserInput.value.trim());
                 formData.append('department', departmentSelect.value);
                 formData.append('course', courseInput.value);
+                formData.append('hardbound', hardboundValue);
                 
                 // Append new files if uploaded
                 if (uploadedFiles.abstract.length > 0) {
@@ -3428,6 +3461,12 @@ if (accountSearchInput) {
             courseInput.innerHTML = '<option value="" selected disabled>Select your program</option>';
             courseInput.disabled = true;
             courseInput.style.borderColor = '#ddd';
+        }
+
+        const hardboundSelect = document.getElementById('hardboundSelect');
+        if (hardboundSelect) {
+            hardboundSelect.value = 'Yes';
+            hardboundSelect.style.borderColor = '#51cf66';
         }
         
         // Reset modal to create mode

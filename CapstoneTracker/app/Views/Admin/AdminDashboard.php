@@ -663,6 +663,14 @@ $displayUserData = [
                     </select>
                 </div>
 
+                <div class="thesis-form-group">
+                    <h3>Hardbound Available *</h3>
+                    <select name="hardbound" class="thesis-form-input dropdown" id="hardboundSelect" required>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </div>
+
                 
             </div>
             <div class="upload-area-container">
@@ -795,11 +803,20 @@ function displayThesisItem($theses) {
     $Author = htmlspecialchars($theses->Author);
     $Adviser = htmlspecialchars($theses->Adviser ?? 'Not specified');
     $Title = htmlspecialchars($theses->Title);
-    $Course = htmlspecialchars($theses->Thesis_Course);
-    $Department = htmlspecialchars($theses->Thesis_Department);
+    $hardboundValue =  htmlspecialchars($theses->HardBound_Available);
+    
+
     $formattedDate = date('M j, Y', strtotime($theses->uploaded_at));
     $daysAgo = $theses->days_ago;
     
+    
+    $affirmativeValues = ['Yes', 'true', '1', 'available', 'y'];
+    $isHardboundAvailable = in_array($hardboundValue, $affirmativeValues);
+
+    $iconColor = $isHardboundAvailable ? '#55dcb3' : '#ff6b6b';
+    $statusText = $isHardboundAvailable ? 'Hardbound Available' : 'Hardbound Unavailable';
+    $iconClass = $isHardboundAvailable ? 'fa-circle-check' : 'fa-circle-xmark';
+
     // Truncate title if too long using line-clamp (removed manual truncation)
     $displayTitle = $Title;
     
@@ -836,7 +853,10 @@ function displayThesisItem($theses) {
     echo '<p class="adviser"><strong>Adviser:</strong> ' . $Adviser . '</p>';
     echo '</div>';
     echo '<div class="users">';
-    echo '<p class="available"><i class="fa-solid fa-circle-check" style="color: #63E6BE;"></i>&nbsp&nbspHardbound Available</p>';
+    echo '<p class="available" style="color: ' . $iconColor . ' !important;">';
+    echo '<i class="fa-solid ' . $iconClass . '" style="color: ' . $iconColor . ' !important;"></i>';
+    echo '&nbsp;&nbsp;' . $statusText;
+    echo '</p>';
     echo '</div>';
     echo '<div class="footer-row">';
     echo '<div class="days warning">';

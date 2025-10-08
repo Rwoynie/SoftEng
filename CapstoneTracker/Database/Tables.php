@@ -59,7 +59,7 @@
                 Title VARCHAR(255) NOT NULL,
                 Author VARCHAR(255) NOT NULL,
                 Adviser VARCHAR(255) NOT NULL,
-                HardBound_Available ENUM('Yes', 'No') DEFAULT 'Yes',
+                HardBound_Available ENUM('Yes', 'No') NOT NULL,
                 Thesis_AbstractFile LONGBLOB NOT NULL,
                 Thesis_File LONGBLOB NOT NULL,    
                 uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

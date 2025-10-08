@@ -53,7 +53,7 @@ class ThesisController {
         
         try {
             // Validate required fields
-            $requiredFields = ['thesistitle', 'thesisadviser' , 'thesisauthor', 'department', 'course'];
+            $requiredFields = ['thesistitle', 'thesisadviser', 'thesisauthor', 'department', 'course', 'hardbound'];
             foreach ($requiredFields as $field) {
                 if (empty($_POST[$field])) {
                     throw new Exception(ucfirst($field) . ' is required');
@@ -81,7 +81,8 @@ class ThesisController {
                 'thesisauthor' => trim($_POST['thesisauthor']),
                 'thesisadviser' => trim($_POST['thesisadviser']),
                 'department' => trim($_POST['department']),
-                'course' => trim($_POST['course'])
+                'course' => trim($_POST['course']),
+                'hardbound' => trim($_POST['hardbound'])
             ];
             
             // Prepare files array for the model
@@ -310,7 +311,8 @@ class ThesisController {
                     'Adviser' => $thesis->Adviser,
                     'Thesis_Department' => $thesis->Thesis_Department,
                     'Thesis_Course' => $thesis->Thesis_Course,
-                    'Author' => $thesis->Author
+                    'Author' => $thesis->Author,
+                    'HardBound_Available' => $thesis->HardBound_Available
                 ]
             ];
             
@@ -397,7 +399,8 @@ class ThesisController {
                 'thesisauthor' => $input['thesisauthor'] ?? '',
                 'thesisadviser' => $input['thesisadviser'] ?? '',
                 'department' => $input['department'] ?? '',
-                'course' => $input['course'] ?? ''
+                'course' => $input['course'] ?? '',
+                'hardbound' => $input['hardbound'] ?? 'Yes' 
             ];
             
             // Handle file uploads if provided
