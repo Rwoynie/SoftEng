@@ -91,7 +91,7 @@ class DepartmentManager {
         
         echo '<div class="options">';
         printf(
-            '<div data-value="all">All Departments (%d)</div>',
+            '<div data-value="all">All Courses (%d)</div>',
             $totalCount
         );
         
@@ -105,6 +105,21 @@ class DepartmentManager {
             );
         }
         echo '</div>';
+    }
+    
+    // Method to get course codes for a specific department
+    public function getCourseCodesByDepartment($departmentValue) {
+        if ($departmentValue === 'all') {
+            return []; // Empty array means all courses
+        }
+        
+        foreach ($this->departments as $dept) {
+            if ($dept['value'] === $departmentValue) {
+                return $dept['course_codes'];
+            }
+        }
+        
+        return []; // Return empty array if department not found
     }
     
     // Method to get all departments with their counts (useful for debugging)
@@ -231,7 +246,7 @@ $displayUserData = [
                 <!-- Department Filter Dropdown -->
                 <div class="select" id="departmentFilterDropdown">
                     <div class="selected">
-                        <span>All Departments</span>
+                        <span>All Courses</span>
                         
                         <svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 512 512" class="arrow">
                             <path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path>
@@ -250,10 +265,11 @@ $displayUserData = [
                                 </svg>
                             </div>
                             <div class="options">
-                        <div data-value="recent">Most Recent</div>
-                        <div data-value="popular">Most Viewed</div>
+                        <div data-value="recent">Recent</div>
+                        <div data-value="Oldest">Oldest</div>
                         <div data-value="title">Title (A-Z)</div>
-                        <div data-value="department">Department</div>
+                        <div data-value="titleReversed">Title (Z-A)</div>
+                        
                             </div>
                         </div>
 
@@ -314,31 +330,39 @@ $displayUserData = [
 
                 <div id="accessHeader2" class="content-header">
                 <div class="access-card" id="access-card">
-                        <div class="access-list">
-                            <button id="adminAccess" class="access-item accessCard">
-                                <div class="access-info">
-                                    <h4>Administrator</h4>
-                                    <p>Full system access</p>
-                                </div>
-                                <div class="access-count">0 users</div>
-                            </button>
+                    <div class="access-list">
+                        <!-- Add this "All" button -->
+                        <button id="allAccessBtn" class="access-item accessCard active">
+                            <div class="access-info">
+                                <h4>All</h4>
+                                
+                            </div>
+                            
+                        </button>
 
-                            <button id="facultyAccess" class="access-item accessCard">
-                                <div class="access-info">
-                                    <h4>Faculty</h4>
-                                    <p>Can edit content but not manage users</p>
-                                </div>
-                                <div class="access-count">0 users</div>
-                            </button>
+                        <button id="adminAccess" class="access-item accessCard">
+                            <div class="access-info">
+                                <h4>Administrator</h4>
+                                <p>Full system access</p>
+                            </div>
+                            <div class="access-count">0 users</div>
+                        </button>
 
-                            <button id="studentAccess" class="access-item accessCard">
-                                <div class="access-info">
-                                    <h4>Student</h4>
-                                    <p>Read-only and download access</p>
-                                </div>
-                                <div class="access-count">0 users</div>
-                            </button>
-                        </div>
+                        <button id="facultyAccess" class="access-item accessCard">
+                            <div class="access-info">
+                                <h4>Faculty</h4>
+                                <p>Can edit content but not manage users</p>
+                            </div>
+                            <div class="access-count">0 users</div>
+                        </button>
+
+                        <button id="studentAccess" class="access-item accessCard">
+                            <div class="access-info">
+                                <h4>Student</h4>
+                                <p>Read-only and download access</p>
+                            </div>
+                            <div class="access-count">0 users</div>
+                        </button>
                     </div>
                 </div>
                 
@@ -351,7 +375,7 @@ $displayUserData = [
 
         <div class="adminUserListContainer">
             <div class="access-list" id="adminUserList">
-                                <!-- Users will be populated dynamically -->
+            
                                 <div class="loading-state">
                                     <i class="fas fa-spinner fa-spin"></i>
                                     <p>Loading users...</p>
@@ -366,6 +390,19 @@ $displayUserData = [
                     <i class="fas fa-save"></i>
                 </div>
             </div>
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+            
 
             <div id="accounts-container" class="content-container" style="display: none;">
                 <header class="logHeader" id="accountHeader">

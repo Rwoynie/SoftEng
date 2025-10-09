@@ -115,12 +115,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 contentContainers[viewId].style.display = 'block';
                 contentContainers[viewId].classList.add('content-container-active');
         
-        // Show app-content-header only for dashboard view
-        if (viewId === 'dashboard') {
-            if (appContentHeader) appContentHeader.style.display = 'flex';
-        } else {
-            if (appContentHeader) appContentHeader.style.display = 'none';
-        }
+                // Show app-content-header only for dashboard view
+                if (viewId === 'dashboard') {
+                    if (appContentHeader) appContentHeader.style.display = 'flex';
+                } else {
+                    if (appContentHeader) appContentHeader.style.display = 'none';
+                }
                 
                 // Special handling for logs view
                 if (viewId === 'logs') {
@@ -130,6 +130,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (userLogView && userButton) {
                         switchLogView(userLogView, userButton);
                     }
+                }
+                
+                // NEW: Reset access management state when switching to users view
+                if (viewId === 'users') {
+                    resetAccessManagementState();
                 }
             }
             
@@ -172,17 +177,21 @@ document.addEventListener('DOMContentLoaded', function() {
         // Hide all views
         allView.style.display = 'none';
         recentView.style.display = 'none';
-
+    
         // Show selected view
         viewToShow.style.display = 'grid';
-
-        // Update button states
+    
+        // Update button states - ensure All button is always selected when showing all view
         menuButtons.forEach(button => button.classList.remove('selected'));
-        buttonToSelect.classList.add('selected');
-
-        //button states for log buttons
-        logMenuButtons.forEach(button => button.classList.remove('selected'));
-        buttonToSelect.classList.add('selected');
+        
+        if (viewToShow === allView) {
+            allButton.classList.add('selected');
+        } else {
+            buttonToSelect.classList.add('selected');
+        }
+    
+        // Reset sort when switching views
+        resetSortState();
         
         // Preserve list/grid view setting
         const isListView = listViewIcon.classList.contains('selected');
@@ -221,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function() {
         allButton.addEventListener('click', function() {
             switchView(allView, allButton);
         });
-
+    
         recentButton.addEventListener('click', function() {
             switchView(recentView, recentButton);
         });
@@ -1047,30 +1056,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add this function to initialize both dropdowns
     function initializeFilterDropdowns() {
         // Department Filter Dropdown
-        if (departmentFilterDropdown) {
-            const deptSelectedText = departmentFilterDropdown.querySelector('.selected span');
-            const deptOptions = departmentFilterDropdown.querySelectorAll('.options div');
-            
-            // Toggle dropdown on click
-            departmentFilterDropdown.querySelector('.selected').addEventListener('click', function(e) {
-                e.stopPropagation();
-                departmentFilterDropdown.classList.toggle('active');
-            });
-            
-            // Handle option selection
-            deptOptions.forEach(option => {
-                option.addEventListener('click', function() {
-                    const value = this.getAttribute('data-value');
-                    deptSelectedText.textContent = this.textContent;
-                    departmentFilterDropdown.classList.remove('active');
-                    
-                    // Filter projects based on selected department
-                    filterProjectsByDepartment(value);
-                });
-            });
-        }
+        initializeDepartmentFilter();
         
-        // Sort Dropdown
+        // Sort Dropdown - FIXED
         if (sortDropdown) {
             const sortSelectedText = sortDropdown.querySelector('.selected span');
             const sortOptions = sortDropdown.querySelectorAll('.options div');
@@ -1085,7 +1073,8 @@ document.addEventListener('DOMContentLoaded', function() {
             sortOptions.forEach(option => {
                 option.addEventListener('click', function() {
                     const value = this.getAttribute('data-value');
-                    sortSelectedText.textContent = "Sort by: " + this.textContent;
+                    const displayText = this.textContent;
+                    sortSelectedText.textContent = "Sort by: " + displayText;
                     sortDropdown.classList.remove('active');
                     
                     // Sort projects based on selected criteria
@@ -1135,47 +1124,106 @@ document.addEventListener('DOMContentLoaded', function() {
         animateOnScroll();
     }
 
-    function sortProjects(criteria) {
-        const projectsContainer = document.querySelector('.projects');
-        const projectItems = Array.from(document.querySelectorAll('.project-item'));
+    
+
+    function resetSortState() {
+        const sortDropdown = document.getElementById('sortDropdown');
+        if (sortDropdown) {
+            const sortSelectedText = sortDropdown.querySelector('.selected span');
+            sortSelectedText.textContent = "Sort by: Recent";
+        }
         
-        // Sort based on criteria
+        // Clear current sort criteria
+        window.currentSortCriteria = null;
+        
+        // Reset to default sorting (by date, most recent first)
+        const allView = document.getElementById('allView');
+        const recentView = document.getElementById('recentView');
+        const currentView = recentView.style.display !== 'none' ? recentView : allView;
+        
+        const projectItems = currentView.querySelectorAll('.project-item');
+        const projectItemsArray = Array.from(projectItems);
+        
+        // Sort by most recent by default
+        projectItemsArray.sort((a, b) => {
+            const dateA = new Date(a.getAttribute('data-upload-date'));
+            const dateB = new Date(b.getAttribute('data-upload-date'));
+            return dateB - dateA;
+        });
+        
+        // Re-insert items
+        currentView.innerHTML = '';
+        projectItemsArray.forEach(item => {
+            currentView.appendChild(item);
+        });
+    }
+    
+
+    function sortProjects(criteria) {
+        console.log('Sorting by:', criteria);
+        
+        // Get the current active view (allView or recentView)
+        const allView = document.getElementById('allView');
+        const recentView = document.getElementById('recentView');
+        const currentView = recentView.style.display !== 'none' ? recentView : allView;
+        
+        // Get project items from the CURRENTLY VISIBLE view only
+        const projectItems = currentView.querySelectorAll('.project-item');
+        const projectItemsArray = Array.from(projectItems);
+        
+        if (projectItemsArray.length === 0) {
+            console.log('No project items found in current view');
+            return;
+        }
+    
+        // Sort the array based on criteria
         switch(criteria) {
             case 'recent':
-                // Assuming you have a data-upload-date attribute with timestamp
-                projectItems.sort((a, b) => {
-                    return new Date(b.getAttribute('data-upload-date')) - new Date(a.getAttribute('data-upload-date'));
+                // Most recent first (newest dates first)
+                projectItemsArray.sort((a, b) => {
+                    const dateA = new Date(a.getAttribute('data-upload-date'));
+                    const dateB = new Date(b.getAttribute('data-upload-date'));
+                    return dateB - dateA;
                 });
                 break;
-            case 'popular':
-                // Assuming you have a data-views attribute
-                projectItems.sort((a, b) => {
-                    return parseInt(b.getAttribute('data-views')) - parseInt(a.getAttribute('data-views'));
+                
+            case 'Oldest':
+                // Oldest first (oldest dates first)
+                projectItemsArray.sort((a, b) => {
+                    const dateA = new Date(a.getAttribute('data-upload-date'));
+                    const dateB = new Date(b.getAttribute('data-upload-date'));
+                    return dateA - dateB;
                 });
                 break;
+                
             case 'title':
-                projectItems.sort((a, b) => {
-                    const titleA = a.querySelector('h3').textContent.toLowerCase();
-                    const titleB = b.querySelector('h3').textContent.toLowerCase();
+                // Title A-Z
+                projectItemsArray.sort((a, b) => {
+                    const titleA = a.querySelector('h3').textContent.toLowerCase().trim();
+                    const titleB = b.querySelector('h3').textContent.toLowerCase().trim();
                     return titleA.localeCompare(titleB);
                 });
                 break;
-            case 'department':
-                projectItems.sort((a, b) => {
-                    const deptA = a.getAttribute('data-department');
-                    const deptB = b.getAttribute('data-department');
-                    return deptA.localeCompare(deptB);
+                
+            case 'titleReversed':
+                // Title Z-A
+                projectItemsArray.sort((a, b) => {
+                    const titleA = a.querySelector('h3').textContent.toLowerCase().trim();
+                    const titleB = b.querySelector('h3').textContent.toLowerCase().trim();
+                    return titleB.localeCompare(titleA);
                 });
                 break;
         }
-        
-        // Clear the container and append sorted items
-        projectsContainer.innerHTML = '';
-        projectItems.forEach(item => {
-            projectsContainer.appendChild(item);
+    
+        // Clear and re-insert sorted items into the CURRENT view only
+        currentView.innerHTML = '';
+        projectItemsArray.forEach(item => {
+            currentView.appendChild(item);
         });
+    
+        console.log('Sorting completed for criteria:', criteria, 'in current view');
         
-        // Re-run animations after sorting
+        // Re-run animations
         animateOnScroll();
     }
 
@@ -1280,10 +1328,9 @@ document.addEventListener('DOMContentLoaded', function() {
     animateOnScroll();
 
     // Initialize with recent view visible
-    if (recentView && allView && recentButton) {
-        switchView(recentView, recentButton);
+    if (allView && allButton) {
+        switchView(allView, allButton);
     }
-
     //download functionality for logs with SweetAlert confirmation
     const logDownloadButtons = document.querySelectorAll('.fa-file-arrow-down');
     logDownloadButtons.forEach(button => {
@@ -1342,8 +1389,9 @@ document.addEventListener('DOMContentLoaded', function() {
         let foundResults = false;
         
         userItems.forEach(item => {
-            const roleCheckbox = item.querySelector(`.role-checkbox input[name="${role}"]`);
-            if (roleCheckbox && roleCheckbox.checked) {
+            const userRole = getUserRoleFromItem(item);
+            
+            if (role === 'all' || userRole === role) {
                 item.style.display = 'flex';
                 foundResults = true;
             } else {
@@ -1352,15 +1400,68 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         const notFound = document.getElementById('adminNotFound');
-        if (foundResults) {
-            notFound.style.display = 'none';
+        if (foundResults || role === 'all') {
+            if (notFound) notFound.style.display = 'none';
         } else {
-            notFound.style.display = 'block';
+            if (notFound) notFound.style.display = 'block';
         }
     }
 
+    function resetAccessManagementState() {
+        // Remove active class from all access cards
+        document.querySelectorAll('.accessCard').forEach(card => {
+            card.classList.remove('active');
+        });
+        
+        // Reset search input
+        const adminUserSearch = document.getElementById('adminUserSearch');
+        if (adminUserSearch) {
+            adminUserSearch.value = '';
+            adminUserSearch.setAttribute('data-current-filter', 'all');
+        }
+        
+        // Reset to show all users
+        filterUsersByRole('all');
+        
+        // Reset any other access management state if needed
+        const allAccessBtn = document.getElementById('allAccessBtn');
+        if (allAccessBtn) {
+            allAccessBtn.classList.add('active');
+        }
+        
+        // Reset role changes if any
+        roleChanges = {};
+        changesMade = false;
+        updateSaveButtonVisibility();
+    }
 
-    // Event listeners for access cards
+    function updateSaveButtonVisibility() {
+        const saveBtn = document.getElementById('saveAdminChangesBtn');
+        if (saveBtn) {
+            if (changesMade && Object.keys(roleChanges).length > 0) {
+                saveBtn.style.display = 'flex';
+            } else {
+                saveBtn.style.display = 'none';
+            }
+        }
+    }
+    
+    function getUserRoleFromItem(userItem) {
+        const roleText = userItem.querySelector('.role-checkbox p')?.textContent || '';
+        
+        if (roleText.includes('Admin')) {
+            return 'admin';
+        } else if (roleText.includes('Faculty')) {
+            return 'faculty';
+        } else if (roleText.includes('Student')) {
+            return 'student';
+        }
+        
+        return ''; // Default if no role found
+    }
+
+
+    // Event listeners for access cards---------------------------------------------------------------------------------------------
     if (adminAccessBtn) {
         adminAccessBtn.addEventListener('click', function() {
             // Remove active class from all cards
@@ -1403,6 +1504,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    
     if (studentAccessBtn) {
         studentAccessBtn.addEventListener('click', function() {
             // Remove active class from all cards
@@ -1424,21 +1526,40 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function initializeAllFilter() {
+        const allAccessBtn = document.getElementById('allAccessBtn'); 
+        if (allAccessBtn) {
+            allAccessBtn.addEventListener('click', function() {
+                // Remove active class from all cards
+                document.querySelectorAll('.accessCard').forEach(card => {
+                    card.classList.remove('active');
+                });
+                
+                // Add active class to clicked card
+                this.classList.add('active');
+                
+                filterUsersByRole('all');
+                
+                // Update search to work with current filter
+                const searchInput = document.getElementById('adminUserSearch');
+                if (searchInput) {
+                    searchInput.value = '';
+                    searchInput.setAttribute('data-current-filter', 'all');
+                }
+            });
+        }
+    }
     
     
 
     // Admin Access Management Search Functionality - FIXED
     const adminUserSearch = document.getElementById('adminUserSearch');
     if (adminUserSearch) {
-        // Store the original event listener function
-        const originalSearchHandler = adminUserSearch.oninput;
-        
-        // Replace with enhanced search that respects filters
         adminUserSearch.oninput = function() {
             const searchTerm = this.value.toLowerCase().trim();
             const userItems = document.querySelectorAll('.admin-user-item');
             const notFound = document.getElementById('adminNotFound');
-            const currentFilter = this.getAttribute('data-current-filter');
+            const currentFilter = this.getAttribute('data-current-filter') || 'all';
             
             let foundResults = false;
             
@@ -1449,11 +1570,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Check if item matches search term
                 const matchesSearch = userName.includes(searchTerm) || userEmail.includes(searchTerm);
                 
-                // Check if item matches current filter (if any)
+                // Check if item matches current filter
                 let matchesFilter = true;
-                if (currentFilter) {
-                    const roleCheckbox = item.querySelector(`.role-checkbox input[name="${currentFilter}"]`);
-                    matchesFilter = roleCheckbox && roleCheckbox.checked;
+                if (currentFilter && currentFilter !== 'all') {
+                    const userRole = getUserRoleFromItem(item);
+                    matchesFilter = userRole === currentFilter;
                 }
                 
                 if (matchesSearch && matchesFilter) {
@@ -1466,9 +1587,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Show/hide the "No Results Found" message
             if (foundResults || searchTerm === '') {
-                notFound.style.display = 'none';
+                if (notFound) notFound.style.display = 'none';
             } else {
-                notFound.style.display = 'block';
+                if (notFound) notFound.style.display = 'block';
             }
         };
     }
@@ -1488,72 +1609,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // NEED FIXING----------------------------------------------------------------------------
-    // Enhanced updateUserRole function
-    async function updateUserRole(userId, newRole) {
-        try {
-            const response = await fetch('../../../app/Controllers/AdminDashboardController.php?action=updateUserRole', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    user_id: userId,
-                    role: newRole
-                })
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                return result;
-            } else {
-                throw new Error(result.error || 'Failed to update user role');
-            }
-        } catch (error) {
-            console.error('Error updating user role:', error);
-            throw error;
-        }
-    }
-
-    // Initialize role checkboxes to ensure only one is checked per user
-    function initializeRoleCheckboxes() {
-        const userItems = document.querySelectorAll('.admin-user-item');
-        
-        userItems.forEach(userItem => {
-            const checkboxes = userItem.querySelectorAll('.role-checkbox input');
-            let checkedCount = 0;
-            
-            // Count how many are checked
-            checkboxes.forEach(checkbox => {
-                if (checkbox.checked) {
-                    checkedCount++;
-                }
-            });
-            
-            // If more than one is checked, keep only the first one
-            if (checkedCount > 1) {
-                let firstChecked = true;
-                checkboxes.forEach(checkbox => {
-                    if (checkbox.checked) {
-                        if (firstChecked) {
-                            firstChecked = false;
-                        } else {
-                            checkbox.checked = false;
-                        }
-                    }
-                });
-            }
-            
-            // If none are checked, check student by default
-            if (checkedCount === 0) {
-                const studentCheckbox = userItem.querySelector('.role-checkbox input[name="student"]');
-                if (studentCheckbox) {
-                    studentCheckbox.checked = true;
-                }
-            }
-        });
-    }
+    
 
     // Save Admin Changes Function - FIXED (moved inside DOMContentLoaded)
     const saveAdminChangesBtn = document.getElementById('saveAdminChangesBtn');
@@ -2762,6 +2818,102 @@ if (accountSearchInput) {
         }
     }
 
+    function initializeDepartmentFilter() {
+        const departmentDropdown = document.getElementById('departmentFilterDropdown');
+        if (!departmentDropdown) return;
+    
+        const selectedElement = departmentDropdown.querySelector('.selected');
+        const options = departmentDropdown.querySelectorAll('.options > div');
+        
+        // Toggle dropdown on click
+        selectedElement.addEventListener('click', function(e) {
+            e.stopPropagation();
+            departmentDropdown.classList.toggle('active');
+        });
+        
+        // Handle option selection
+        options.forEach(option => {
+            option.addEventListener('click', function() {
+                const value = this.getAttribute('data-value');
+                const text = this.textContent.split(' (')[0]; // Remove count from display
+                
+                // Update selected display
+                selectedElement.querySelector('span').textContent = text;
+                
+                // Close dropdown
+                departmentDropdown.classList.remove('active');
+                
+                // Filter theses based on department
+                filterThesesByDepartment(value);
+            });
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!departmentDropdown.contains(e.target)) {
+                departmentDropdown.classList.remove('active');
+            }
+        });
+    }
+
+    function filterThesesByDepartment(departmentValue) {
+        const projectItems = document.querySelectorAll('.project-item');
+        const notFound = document.getElementById('notFound');
+        let foundResults = false;
+        
+        console.log('Filtering by department:', departmentValue);
+        
+        projectItems.forEach(item => {
+            // Get the course from the project item
+            const courseElement = item.querySelector('.links p:nth-child(2)'); // Second paragraph in links div
+            const course = courseElement ? courseElement.textContent.trim() : '';
+            
+            console.log('Project course:', course);
+            
+            let shouldShow = false;
+            
+            if (departmentValue === 'all') {
+                shouldShow = true;
+            } else {
+                // Get course codes for the selected department
+                const courseCodes = getCourseCodesForDepartment(departmentValue);
+                console.log('Course codes for department:', courseCodes);
+                
+                // Check if this project's course matches any course in the department
+                shouldShow = courseCodes.some(courseCode => course.includes(courseCode) || courseCode.includes(course));
+            }
+            
+            if (shouldShow) {
+                item.style.display = 'flex';
+                foundResults = true;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        // Show/hide "No Results Found" message
+        if (foundResults || departmentValue === 'all') {
+            if (notFound) notFound.style.display = 'none';
+        } else {
+            if (notFound) notFound.style.display = 'flex';
+        }
+        
+        // Re-run animations after filtering
+        animateOnScroll();
+    }
+
+    function getCourseCodesForDepartment(departmentValue) {
+        // This should match the course codes defined in your PHP DepartmentManager
+        const departmentMap = {
+            'cs': ['Bachelor of Early Childhood Education'],
+            'ee': ['Bachelor of Secondary Education', 'Bachelor of Elementary Education'],
+            'me': ['Bachelor of Technical-Vocational Teacher Education', 'Bachelor of Special Needs Education'],
+            'ce': ['Bachelor of Science in Agriculture and Biosystems Engineering'],
+            'it': ['Bachelor of Science in Information Technology']
+        };
+        
+        return departmentMap[departmentValue] || [];
+    }
 
     function initializeDepartmentCourseLogic() {
         const departmentSelect = document.getElementById('departmentSelect');
@@ -3517,7 +3669,12 @@ if (accountSearchInput) {
     initializeDepartmentCourseLogic();
     
     initializeMoreOptions();
-   
+
+    initializeRoleBox();
+
+    initializeAllFilter();
+
+    
 });
 
 let changesMade = false;
@@ -3527,54 +3684,6 @@ let changesMade = false;
 
     
 
-// Update the user item creation function to include proper event listeners
-function createUserItem(user) {
-    const userItem = document.createElement('div');
-    userItem.className = 'access-item admin-user-item';
-    userItem.setAttribute('data-user-id', user.ID);
-    
-    const isAdmin = user.User_Role === 'admin' || user.User_Role === 'superAdmin';
-    const isFaculty = user.User_Role === 'faculty';
-    const isStudent = user.User_Role === 'student';
-    
-    userItem.innerHTML = `
-        <div class="access-info">
-            <h4>${user.First_Name} ${user.Middle_Name || ''} ${user.Last_Name} ${user.Extension || ''}</h4>
-            <p>${user.Email} • ${user.Department || 'No Department'} • Status: ${user.Acc_Status}</p>
-        </div>
-        <div class="access-roles">
-            <label class="role-checkbox">
-                <input class="checkbox" type="checkbox" name="admin" data-user-id="${user.ID}" ${isAdmin ? 'checked' : ''}>
-                <span class="checkmark"></span>
-                Admin
-            </label>
-            <label class="role-checkbox">
-                <input class="checkbox" type="checkbox" name="faculty" data-user-id="${user.ID}" ${isFaculty ? 'checked' : ''}>
-                <span class="checkmark"></span>
-                Faculty
-            </label>
-            <label class="role-checkbox">
-                <input class="checkbox" type="checkbox" name="student" data-user-id="${user.ID}" ${isStudent ? 'checked' : ''}>
-                <span class="checkmark"></span>
-                Student
-            </label>
-        </div>
-    `;
-    
-    // Add event listeners to the checkboxes
-    const checkboxes = userItem.querySelectorAll('.role-checkbox input');
-    checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            const userId = this.getAttribute('data-user-id');
-            const role = this.getAttribute('name');
-            const isChecked = this.checked;
-            
-            trackRoleChange(userId, role, isChecked);
-        });
-    });
-    
-    return userItem;
-}
 
 // Enhanced save functionality
 function initializeSaveFunctionality() {
@@ -4095,6 +4204,34 @@ async function fetchAndDisplayUsers() {
     }
 }
 
+function resetAccessManagementState() {
+    // Remove active class from all access cards
+    document.querySelectorAll('.accessCard').forEach(card => {
+        card.classList.remove('active');
+    });
+    
+    // Reset search input
+    const adminUserSearch = document.getElementById('adminUserSearch');
+    if (adminUserSearch) {
+        adminUserSearch.value = '';
+        adminUserSearch.setAttribute('data-current-filter', 'all');
+    }
+    
+    // Reset to show all users
+    filterUsersByRole('all');
+    
+    // Reset any other access management state if needed
+    const allAccessBtn = document.getElementById('allAccessBtn');
+    if (allAccessBtn) {
+        allAccessBtn.classList.add('active');
+    }
+    
+    // Reset role changes if any
+    roleChanges = {};
+    changesMade = false;
+    updateSaveButtonVisibility();
+}
+
 // Function to display users in access management
 function displayUsersInAccessManagement(users) {
     const adminUserList = document.getElementById('adminUserList');
@@ -4115,29 +4252,176 @@ function createUserItem(user) {
     userItem.className = 'access-item admin-user-item';
     userItem.setAttribute('data-user-id', user.ID);
     
-    const isAdmin = user.User_Role === 'admin' || user.User_Role === 'superAdmin';
-    const isFaculty = user.User_Role === 'faculty';
-    const isStudent = user.User_Role === 'student';
+    
+    $UserRoleDisplay = '';
+
+    if (user.User_Role == 'faculty') {
+        UserRoleDisplay = 'Faculty';
+    } else if (user.User_Role == 'student') {
+        UserRoleDisplay = 'Student';
+    } else if (user.User_Role == 'admin' || user.User_Role == 'superAdmin') {
+        UserRoleDisplay = 'Admin';
+    }
+    
     
     userItem.innerHTML = `
-                <div class="access-info">
+        <div class="access-info">
             <h4>${user.First_Name} ${user.Middle_Name || ''} ${user.Last_Name} ${user.Extension || ''}</h4>
             <p>${user.Email} • ${user.Department || 'No Department'} • Status: ${user.Acc_Status}</p>
-                </div>
-        <div class="access-roles">
+        </div>
+        <div class="role-checkbox-container">
             <label class="role-checkbox">
-                <input class="checkbox" type="checkbox" name="admin" data-user-id="${user.ID}" ${isAdmin ? 'checked' : ''}> Admin
+                
+                <p>${UserRoleDisplay}</p>
             </label>
-            <label class="role-checkbox">
-                <input class="checkbox" type="checkbox" name="faculty" data-user-id="${user.ID}" ${isFaculty ? 'checked' : ''}> Faculty
-            </label>
-            <label class="role-checkbox">
-                <input class="checkbox" type="checkbox" name="student" data-user-id="${user.ID}" ${isStudent ? 'checked' : ''}> Student
-                    </label>
-                </div>
-            `;
+            <button class="role-button" title="Manage Roles">
+                <i class="fa-solid fa-circle-plus"></i>
+            </button>
+            <div class="roleBox">
+                <button><i class="fa-solid fa-user-shield"></i> Sub-Admin</button>
+                <button><i class="fa-solid fa-file-pen"></i> Modify Thesis</button>
+                <button><i class="fa-solid fa-key"></i> Manage Access</button>
+            </div>
+        </div>
+    `;
     
     return userItem;
+}
+
+function initializeRoleBox() {
+    // Create overlay for closing roleBox when clicking outside
+    const overlay = document.createElement('div');
+    overlay.className = 'roleBox-overlay';
+    document.body.appendChild(overlay);
+    
+    // Close all roleBoxes when clicking overlay
+    overlay.addEventListener('click', function() {
+        closeAllRoleBoxes();
+    });
+    
+    // Handle role button clicks
+    document.addEventListener('click', function(e) {
+        const roleButton = e.target.closest('.role-button');
+        if (roleButton) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const accessItem = roleButton.closest('.access-item');
+            const roleBox = accessItem.querySelector('.roleBox');
+            
+            // Close all other roleBoxes
+            closeAllRoleBoxes();
+            
+            // Toggle current roleBox
+            if (roleBox) {
+                roleBox.classList.toggle('active');
+                overlay.classList.toggle('active');
+            }
+        }
+        
+        // Handle roleBox button clicks
+        const roleBoxButton = e.target.closest('.roleBox button');
+        if (roleBoxButton) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const roleBox = roleBoxButton.closest('.roleBox');
+            const accessItem = roleBox.closest('.access-item');
+            const userId = accessItem.getAttribute('data-user-id');
+            const userName = accessItem.querySelector('h4').textContent;
+            const action = roleBoxButton.textContent.trim();
+            
+            handleRoleAction(userId, userName, action);
+            
+            // Close the roleBox after action
+            closeAllRoleBoxes();
+        }
+    });
+    
+    // Close roleBox when pressing Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeAllRoleBoxes();
+        }
+    });
+}
+
+function closeAllRoleBoxes() {
+    document.querySelectorAll('.roleBox').forEach(box => {
+        box.classList.remove('active');
+    });
+    document.querySelector('.roleBox-overlay').classList.remove('active');
+}
+
+function handleRoleAction(userId, userName, action) {
+    console.log('Role action:', { userId, userName, action });
+    
+    // Map action names to actual roles or functions
+    const actionMap = {
+        'Sub-Admin': 'admin',
+        'Modify Thesis': 'faculty',
+        'Manage Access': 'admin',
+        // Add more actions as needed
+    };
+    
+    const role = actionMap[action];
+    
+    if (role) {
+        Swal.fire({
+            title: `Assign ${action}?`,
+            html: `Are you sure you want to assign <strong>${action}</strong> role to <strong>${userName}</strong>?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, assign role!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Show loading state
+                Swal.fire({
+                    title: 'Assigning Role...',
+                    text: 'Please wait while we update the user role.',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                // Simulate API call - replace with actual API call
+                setTimeout(() => {
+                    updateUserRole(userId, role)
+                        .then(() => {
+                            Swal.fire({
+                                title: 'Success!',
+                                text: `Successfully assigned ${action} role to ${userName}.`,
+                                icon: 'success',
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                // Refresh the user list to show changes
+                                fetchAndDisplayUsers();
+                            });
+                        })
+                        .catch(error => {
+                            console.error('Error updating user role:', error);
+                            Swal.fire({
+                                title: 'Error',
+                                text: `Failed to assign role: ${error.message}`,
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        });
+                }, 1000);
+            }
+        });
+    } else {
+        Swal.fire({
+            title: 'Action Not Available',
+            text: `The action "${action}" is not yet implemented.`,
+            icon: 'info',
+            confirmButtonText: 'OK'
+        });
+    }
 }
 
 // Function to update user counts in access cards

@@ -1973,7 +1973,9 @@ body {
 
 .content-header p {
     color: var(--color-dark-grey);
+    font-family: "Inter";
     font-size: 1rem;
+    font-weight: 500;
 }
 
 /* Hide the main header when content containers are visible */
@@ -1986,14 +1988,149 @@ body {
 }
 
 
+/* Role Box Container */
+.roleBox {
+    display: none;
+    position: absolute;
+    right: 3vw;
+    background: var(--color-white);
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    padding: 10px;
+    z-index: 1000;
+    min-width: 180px;
+    border: 1px solid #eee;
+    animation: fadeInUp 0.3s ease;
+}
+
+.roleBox.active {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.roleBox button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 12px;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    text-align: left;
+    font-family: "Quicksand", sans-serif;
+    font-size: 14px;
+    color: var(--color-dark-grey);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.roleBox button:hover {
+    background-color: #f5f5f5;
+    transform: translateX(2px);
+}
+
+.roleBox button i {
+    width: 16px;
+    text-align: center;
+    color: var(--primary-color);
+}
+
+/* Role Button */
+.role-button {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.role-button:hover {
+    background: var(--primary-dark);
+    transform: scale(1.05);
+}
+
+/* Access Item - Update for proper positioning */
+.access-item {
+    width: 30vw;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: var(--color-white);
+    border-radius: 0.8vw;
+    border: 0.1vw solid #dddddd;
+    transition: all 0.10s ease;
+    position: relative; /* Add this for roleBox positioning */
+}
+
+#allAccessBtn {
+    width: 6vw;
+}
+
+#allAccessBtn .access-info h4 {
+    font-size: 1rem;
+    margin-bottom: 5px;
+    color: var(--color-dark-grey);
+}
+
+#allAccessBtn .access-info p {
+    font-size: 0.85rem;
+    color: var(--color-lite-grey);
+    margin: 0;
+}
+
+#access-card .access-item > .access-count {
+    background: var(--primary-color);
+    color: rgb(255, 255, 255);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+
+
+/* Role Checkbox Container */
+.role-checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+}
+
+/* Close roleBox when clicking outside */
+.roleBox-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 999;
+    display: none;
+}
+
+.roleBox-overlay.active {
+    display: block;
+}
+
 
 /* Access Management Styles */
 .access-card {
+    cursor: pointer;
     background: #f8f9fa;
     border-radius: 10px;
     padding: 10px;
-    
+    transition: all 0.2s ease;
 }
+
 
 /* Active state for access cards */
 .accessCard.active {
@@ -2008,39 +2145,23 @@ body {
 }
 
 /* Add transition for smooth effect */
-.accessCard {
-    transition: all 0.2s ease;
-}
+
 
 .access-list {
     
     display: flex;
     flex-direction: row;
-    gap: 3vw;
+    gap: 1vw;
 }
 
-.accessCard {
-    cursor: pointer;
-    transition: all 0.10s ease-in;
-}
+
 
 .accessCard:hover {
+    cursor: pointer;
     transform: scale(1.03);
     background-color: #e8e8e8;
 }
 
-.access-item {
-    
-    width: 30vw;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px;
-    background-color: var(--color-white);
-    border-radius: 0.8vw;
-    border: 0.1vw solid #dddddd;
-    transition: all 0.10s ease;
-}
 
 .access-info h4 {
     font-size: 1rem;
@@ -2057,7 +2178,7 @@ body {
 
 /* ===== MODERN SYSTEM LOGS DESIGN ===== */
 #logs-container {
-    padding: 20px;
+    
     background: var(--color-white);
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
@@ -2233,7 +2354,7 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
-    padding: 15px;
+    padding-bottom: 10px;
     background: #f8f9fa;
     border-radius: 10px;
 }
