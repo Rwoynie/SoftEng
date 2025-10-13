@@ -2057,6 +2057,40 @@ body {
     transform: scale(1.05);
 }
 
+.role-action-btn i {
+    transition: color 0.3s ease;
+}
+
+.role-action-btn[data-permission="sub_admin"] i.fa-user-shield {
+    color: gray;
+}
+
+.role-action-btn[data-permission="sub_admin"] i.fa-user-shield[style*="red"] {
+    color: red;
+}
+
+.role-action-btn[data-permission="can_edit"] i.fa-file-pen {
+    color: gray;
+}
+
+.role-action-btn[data-permission="can_edit"] i.fa-file-pen[style*="red"] {
+    color: red;
+}
+
+.role-action-btn[data-permission="manage_access"] i.fa-key {
+    color: gray;
+}
+
+.role-action-btn[data-permission="manage_access"] i.fa-key[style*="red"] {
+    color: red;
+}
+
+/* Make the buttons more visible when active */
+.role-action-btn.active {
+    background-color: #f8f9fa;
+    border-left: 3px solid #007bff;
+}
+
 /* Access Item - Update for proper positioning */
 .access-item {
     width: 30vw;

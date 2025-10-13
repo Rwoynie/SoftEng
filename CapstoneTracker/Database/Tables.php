@@ -69,7 +69,15 @@
                 INDEX (Title)
             ) ENGINE=InnoDB;",
 
-            
+            "CREATE TABLE IF NOT EXISTS ROLES (
+                Role_ID INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                User_ID INT(11) UNSIGNED NOT NULL,
+                Sub_Admin ENUM('Yes', 'No') NOT NULL,
+                Can_Edit ENUM('Yes', 'No') NOT NULL,
+                Manage_Access ENUM('Yes', 'No') NOT NULL,
+                FOREIGN KEY (User_ID) REFERENCES USER_INFORMATION(ID) ON DELETE CASCADE,
+                INDEX (User_ID)
+            ) ENGINE=InnoDB;",
 
             // THESIS_REVIEWS TABLE
             "CREATE TABLE IF NOT EXISTS THESIS_REVIEWS (
@@ -83,6 +91,8 @@
                 FOREIGN KEY (reviewer_id) REFERENCES USER_INFORMATION(ID) ON DELETE CASCADE,
                 UNIQUE KEY unique_review (thesis_id, reviewer_id)
             ) ENGINE=InnoDB;"
+
+            
         ];
     }
     

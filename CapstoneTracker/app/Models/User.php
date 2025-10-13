@@ -1,6 +1,7 @@
 <?php
 
 require_once 'Model.php';
+require_once 'RoleModel.php'; // Include the RoleModel
 
 class User extends Model {
     protected $tableName = 'USER_INFORMATION'; // Set table name
@@ -13,7 +14,7 @@ class User extends Model {
     }
 
     /**
-     * User registration method - IMPROVED VERSION
+     * User registration method - IMPROVED VERSION with automatic role creation
      */
     public function register($data) {
         try {
@@ -100,11 +101,60 @@ class User extends Model {
             }
             
             // Execute the query
-            return $this->db->execute();
+            $result = $this->db->execute();
+            
+            // If registration successful, create default role entry
+            if ($result) {
+                $newUserId = $this->db->lastInsertId();
+                $this->createDefaultRole($newUserId, $userRole);
+            }
+            
+            return $result;
             
         } catch (Exception $e) {
             error_log("User registration error: " . $e->getMessage());
             throw $e; // Re-throw to let controller handle it
+        }
+    }
+    
+    /**
+     * Create default role entry for new user
+     */
+    private function createDefaultRole($userId, $userRole) {
+        try {
+            $roleModel = new RoleModel($this->db);
+            
+            // Set default permissions based on user role
+            switch ($userRole) {
+                case 'superAdmin':
+                case 'admin':
+                    // Admins get all permissions by default
+                    $subAdmin = 'Yes';
+                    $canEdit = 'Yes';
+                    $manageAccess = 'Yes';
+                    break;
+                case 'faculty':
+                    // Faculty can edit but not manage access
+                    $subAdmin = 'No';
+                    $canEdit = 'Yes';
+                    $manageAccess = 'No';
+                    break;
+                case 'student':
+                default:
+                    // Students get no special permissions
+                    $subAdmin = 'No';
+                    $canEdit = 'No';
+                    $manageAccess = 'No';
+                    break;
+            }
+            
+            // Create the role entry
+            return $roleModel->createRole($userId, $subAdmin, $canEdit, $manageAccess);
+            
+        } catch (Exception $e) {
+            error_log("Error creating default role for user $userId: " . $e->getMessage());
+            // Don't throw exception here - registration should still succeed even if role creation fails
+            return false;
         }
     }
     
@@ -289,6 +339,63 @@ class User extends Model {
         }
     }
 
-    
+    /**
+     * Get user with role information
+     */
+    public function getUserWithRole($userId) {
+        try {
+            $this->db->query('
+                SELECT ui.*, r.Sub_Admin, r.Can_Edit, r.Manage_Access 
+                FROM USER_INFORMATION ui 
+                LEFT JOIN ROLES r ON ui.ID = r.User_ID 
+                WHERE ui.ID = :user_id
+            ');
+            $this->db->bind(':user_id', $userId);
+            return $this->db->single();
+        } catch (Exception $e) {
+            error_log("Get user with role error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Update user account status and optionally update roles
+     */
+    public function updateAccountStatus($userId, $status, $roleData = null) {
+        try {
+            $this->db->beginTransaction();
+            
+            // Update user status
+            $this->db->query('UPDATE USER_INFORMATION SET Acc_Status = :status WHERE ID = :user_id');
+            $this->db->bind(':status', $status);
+            $this->db->bind(':user_id', $userId);
+            $userUpdated = $this->db->execute();
+            
+            // Update roles if provided
+            $roleUpdated = true;
+            if ($roleData !== null && $userUpdated) {
+                $roleModel = new RoleModel($this->db);
+                $roleUpdated = $roleModel->saveRole(
+                    $userId, 
+                    $roleData['sub_admin'] ?? 'No', 
+                    $roleData['can_edit'] ?? 'No', 
+                    $roleData['manage_access'] ?? 'No'
+                );
+            }
+            
+            if ($userUpdated && $roleUpdated) {
+                $this->db->commit();
+                return true;
+            } else {
+                $this->db->rollBack();
+                return false;
+            }
+            
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            error_log("Update account status error: " . $e->getMessage());
+            return false;
+        }
+    }
 }
 ?>

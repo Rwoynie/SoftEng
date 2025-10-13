@@ -4204,6 +4204,10 @@ async function fetchAndDisplayUsers() {
     }
 }
 
+function getCsrfToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.content;
+}
+
 function resetAccessManagementState() {
     // Remove active class from all access cards
     document.querySelectorAll('.accessCard').forEach(card => {
@@ -4248,21 +4252,41 @@ function displayUsersInAccessManagement(users) {
 
 // Function to create user item HTML
 function createUserItem(user) {
+    
     const userItem = document.createElement('div');
     userItem.className = 'access-item admin-user-item';
     userItem.setAttribute('data-user-id', user.ID);
     
-    
-    $UserRoleDisplay = '';
-
-    if (user.User_Role == 'faculty') {
-        UserRoleDisplay = 'Faculty';
-    } else if (user.User_Role == 'student') {
-        UserRoleDisplay = 'Student';
-    } else if (user.User_Role == 'admin' || user.User_Role == 'superAdmin') {
-        UserRoleDisplay = 'Admin';
+    // Determine role display text based on User_Role
+    let userRoleDisplay = '';
+    if (user.User_Role === 'faculty') {
+        userRoleDisplay = 'Faculty';
+    } else if (user.User_Role === 'student') {
+        userRoleDisplay = 'Student';
+    } else if (user.User_Role === 'admin' || user.User_Role === 'superAdmin') {
+        userRoleDisplay = 'Admin';
+    } else {
+        userRoleDisplay = user.User_Role || 'User';
     }
     
+    // Get permission values with intelligent defaults based on user role
+    const getDefaultPermission = (permissionType) => {
+        if (user.User_Role === 'superAdmin' || user.User_Role === 'admin') {
+            return 'Yes'; // Admins have all permissions by default
+        } else if (user.User_Role === 'faculty' && permissionType === 'can_edit') {
+            return 'Yes'; 
+        }
+        return 'No'; // Default to no permission
+    };
+    
+    const subAdminValue = user.Sub_Admin || getDefaultPermission('Sub_admin');
+    const canEditValue = user.Can_Edit || getDefaultPermission('Can_edit');
+    const manageAccessValue = user.Manage_Access || getDefaultPermission('Manage_Access');
+    
+    // Set colors based on permission values
+    const subAdminColor = subAdminValue === 'Yes' ? 'red' : 'gray';
+    const canEditColor = canEditValue === 'Yes' ? 'red' : 'gray';
+    const manageAccessColor = manageAccessValue === 'Yes' ? 'red' : 'gray';
     
     userItem.innerHTML = `
         <div class="access-info">
@@ -4271,22 +4295,86 @@ function createUserItem(user) {
         </div>
         <div class="role-checkbox-container">
             <label class="role-checkbox">
-                
-                <p>${UserRoleDisplay}</p>
+                <p>${userRoleDisplay}</p>
             </label>
             <button class="role-button" title="Manage Roles">
                 <i class="fa-solid fa-circle-plus"></i>
             </button>
             <div class="roleBox">
-                <button><i class="fa-solid fa-user-shield"></i> Sub-Admin</button>
-                <button><i class="fa-solid fa-file-pen"></i> Modify Thesis</button>
-                <button><i class="fa-solid fa-key"></i> Manage Access</button>
+                <button class="role-action-btn" data-permission="sub_admin" data-current-value="${subAdminValue}">
+                    <i class="fa-solid fa-user-shield" style="color: ${subAdminColor};"></i> Sub-Admin
+                </button>
+                <button class="role-action-btn" data-permission="can_edit" data-current-value="${canEditValue}">
+                    <i class="fa-solid fa-file-pen" style="color: ${canEditColor};"></i> Modify Thesis
+                </button>
+                <button class="role-action-btn" data-permission="manage_access" data-current-value="${manageAccessValue}">
+                    <i class="fa-solid fa-key" style="color: ${manageAccessColor};"></i> Manage Access
+                </button>
             </div>
         </div>
     `;
     
     return userItem;
 }
+
+async function getAllRolesData() {
+    try {
+        const response = await fetch('../../../app/Controllers/RolesController.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'get_all_roles_data',
+                csrf_token: 'your_csrf_token_here' // You'll need to implement CSRF token handling
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            console.log('All roles data:', data.roles_data);
+            return data.roles_data;
+        } else {
+            console.error('Failed to fetch roles data:', data.message);
+            return [];
+        }
+    } catch (error) {
+        console.error('Error fetching roles data:', error);
+        return [];
+    }
+}
+
+
+
+async function getAllUsersWithCompleteRoles() {
+    try {
+        const response = await fetch('../../../app/Controllers/RolesController.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'get_all_users_complete_roles',
+                csrf_token: 'your_csrf_token_here'
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            console.log('All users with complete roles:', data.users);
+            return data.users;
+        } else {
+            console.error('Failed to fetch users with roles:', data.message);
+            return [];
+        }
+    } catch (error) {
+        console.error('Error fetching users with roles:', error);
+        return [];
+    }
+}
+
 
 function initializeRoleBox() {
     // Create overlay for closing roleBox when clicking outside
@@ -4308,6 +4396,7 @@ function initializeRoleBox() {
             
             const accessItem = roleButton.closest('.access-item');
             const roleBox = accessItem.querySelector('.roleBox');
+            
             
             // Close all other roleBoxes
             closeAllRoleBoxes();
@@ -4391,17 +4480,25 @@ function handleRoleAction(userId, userName, action) {
                 // Simulate API call - replace with actual API call
                 setTimeout(() => {
                     updateUserRole(userId, role)
-                        .then(() => {
-                            Swal.fire({
-                                title: 'Success!',
-                                text: `Successfully assigned ${action} role to ${userName}.`,
-                                icon: 'success',
-                                confirmButtonText: 'OK'
-                            }).then(() => {
-                                // Refresh the user list to show changes
-                                fetchAndDisplayUsers();
-                            });
-                        })
+                    .then(() => {
+                        Swal.fire({
+                            title: 'Success!',
+                            text: `Successfully ${newValue === 'Yes' ? 'granted' : 'revoked'} ${action} permission for ${userName}.`,
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        }).then(() => {
+                            // Update the specific button's indicator
+                            const roleButton = userItem.querySelector(`[data-permission="${permissionType}"]`);
+                            if (roleButton) {
+                                const icon = roleButton.querySelector('i');
+                                icon.style.color = newValue === 'Yes' ? 'red' : 'gray';
+                                roleButton.setAttribute('data-current-value', newValue);
+                            }
+                            
+                            // Also update all indicators by refreshing user data
+                            fetchAndDisplayUsers();
+                        });
+                    })
                         .catch(error => {
                             console.error('Error updating user role:', error);
                             Swal.fire({

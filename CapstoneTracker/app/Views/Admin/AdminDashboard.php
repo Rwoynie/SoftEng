@@ -7,6 +7,7 @@ ini_set('display_errors', 0);
 require_once '../../../Database/config.php'; 
 require_once '../../../app/Controllers/AdminDashboardController.php';
 require_once '../../../app/Models/Thesis.php';
+require_once '../../../app/Controllers/RolesController.php';
 
 try {
     $db = new Database();
@@ -156,6 +157,7 @@ if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
+
 // Check if user is logged in as admin
 if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in'] || !isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
     header('Location: ../User/indexLogin.php');
@@ -177,6 +179,7 @@ $displayUserData = [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?= $_SESSION['csrf_token'] ?>">
     <title>Admin Dashboard</title>
     <link rel="icon" href="/CapstoneTracker/resources/Images/ThesisCompLogo.png" type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
@@ -375,7 +378,7 @@ $displayUserData = [
 
         <div class="adminUserListContainer">
             <div class="access-list" id="adminUserList">
-            
+                            <!-- Populate data here -->
                                 <div class="loading-state">
                                     <i class="fas fa-spinner fa-spin"></i>
                                     <p>Loading users...</p>
