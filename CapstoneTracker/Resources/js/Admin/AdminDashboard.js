@@ -1894,7 +1894,6 @@ if (accountSearchInput) {
         updateSaveButtonVisibility();
     }
     
-
     // Add hover effect to the ellipsis icon
     if (moreOptionsIcon) {
         moreOptionsIcon.addEventListener('mouseenter', function() {
@@ -1905,6 +1904,7 @@ if (accountSearchInput) {
             this.style.color = 'var(--color-lite)';
         });
     }
+    
     
     // Function to approve account
     async function approveAccount(userId, currentStatus, button) {
@@ -3674,7 +3674,7 @@ if (accountSearchInput) {
 
     initializeAllFilter();
 
-    
+ 
 });
 
 let changesMade = false;
@@ -4186,26 +4186,157 @@ function updatePdfControls() {
 
 async function fetchAndDisplayUsers() {
     try {
-        const response = await fetch('../../../app/Controllers/AdminDashboardController.php?action=getUsers');
-        const data = await response.json();
+        console.log('Fetching users with CSRF token...');
         
-        if (data.users && data.users.length > 0) {
-            displayUsersInAccessManagement(data.users);
-            updateUserCounts(data.role_counts);
+        // Get the CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        console.log('Using CSRF token:', csrfToken);
+        
+        // Use FormData for POST request with CSRF token
+        const formData = new FormData();
+        formData.append('action', 'get_all_users_complete_roles');
+        formData.append('csrf_token', csrfToken);
+        
+        const response = await fetch('../../../app/Controllers/RolesController.php', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const rawText = await response.text();
+        console.log('Raw response:', rawText);
+        
+        let data;
+        try {
+            data = JSON.parse(rawText);
+        } catch (parseError) {
+            // Try to extract JSON if there's extra output
+            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                data = JSON.parse(jsonMatch[0]);
+                console.log('Successfully extracted JSON from response');
+            } else {
+                throw new Error('Server returned invalid JSON response');
+            }
         }
+        
+        console.log('Parsed data:', data);
+        
+        if (data.success && data.users) {
+            console.log(`✅ Successfully loaded ${data.users.length} users with role data`);
+            displayUsersInAccessManagement(data.users);
+            
+            // ADD THIS LINE: Update the user counts in access cards
+            updateUserCounts(data.users);
+        } else {
+            throw new Error(data.message || 'Failed to load user data');
+        }
+        
     } catch (error) {
         console.error('Error fetching users:', error);
+        
+        // Show error in UI
+        const adminUserList = document.getElementById('adminUserList');
+        if (adminUserList) {
+            adminUserList.innerHTML = `
+                <div class="error-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Failed to Load Users</h3>
+                    <p>${error.message}</p>
+                    <button onclick="fetchAndDisplayUsers()" class="retry-btn">Retry</button>
+                </div>
+            `;
+        }
+        
         Swal.fire({
-            title: 'Error',
-            text: 'Failed to load user data',
+            title: 'Load Error',
+            text: error.message,
             icon: 'error',
             confirmButtonText: 'OK'
         });
     }
 }
+/*
+
+async function testRolesController() {
+    try {
+        console.log('Testing RolesController...');
+        
+        const formData = new FormData();
+        formData.append('action', 'get_all_users_complete_roles');
+        
+        const response = await fetch('../../../app/Controllers/RolesController.php', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const rawText = await response.text();
+        console.log('=== RAW RESPONSE ===');
+        console.log(rawText);
+        console.log('=== END RAW RESPONSE ===');
+        
+        // Check if it contains common PHP errors
+        if (rawText.includes('Warning:') || rawText.includes('Notice:') || rawText.includes('Fatal error') || rawText.includes('Parse error')) {
+            console.error('PHP ERRORS DETECTED IN RESPONSE');
+        }
+        
+        if (rawText.includes('CSRF')) {
+            console.error('CSRF ERROR DETECTED');
+        }
+        
+        // Try to extract JSON if it's wrapped in other output
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            try {
+                const jsonData = JSON.parse(jsonMatch[0]);
+                console.log('EXTRACTED JSON:', jsonData);
+            } catch (e) {
+                console.error('Failed to parse extracted JSON:', e);
+            }
+        }
+        
+    } catch (error) {
+        console.error('Test failed:', error);
+    }
+}
+
+function debugFindCsrfToken() {
+    console.log('=== CSRF TOKEN DEBUG ===');
+    
+    // Check meta tags
+    const metaTags = document.querySelectorAll('meta');
+    metaTags.forEach(meta => {
+        const name = meta.getAttribute('name');
+        if (name && (name.includes('csrf') || name.includes('token'))) {
+            console.log('Meta tag found:', name, '=', meta.getAttribute('content'));
+        }
+    });
+    
+    // Check hidden inputs
+    const inputs = document.querySelectorAll('input[type="hidden"]');
+    inputs.forEach(input => {
+        const name = input.name;
+        if (name && (name.includes('csrf') || name.includes('token'))) {
+            console.log('Hidden input found:', name, '=', input.value);
+        }
+    });
+    
+    // Check JavaScript variables
+    console.log('window.csrfToken:', window.csrfToken);
+    console.log('window._token:', window._token);
+    
+    // Check for any element with CSRF in ID or class
+    const csrfElements = document.querySelectorAll('[id*="csrf"], [class*="csrf"], [id*="token"], [class*="token"]');
+    csrfElements.forEach(el => {
+        console.log('Potential CSRF element:', el);
+    });
+    
+    console.log('=== END DEBUG ===');
+}
+
+*/
 
 function getCsrfToken() {
-    return document.querySelector('meta[name="csrf-token"]')?.content;
+    return document.querySelector('meta[name="csrf-token"]').content;
 }
 
 function resetAccessManagementState() {
@@ -4252,12 +4383,11 @@ function displayUsersInAccessManagement(users) {
 
 // Function to create user item HTML
 function createUserItem(user) {
-    
     const userItem = document.createElement('div');
     userItem.className = 'access-item admin-user-item';
-    userItem.setAttribute('data-user-id', user.ID);
+    userItem.setAttribute('data-user-id', user.User_ID);
     
-    // Determine role display text based on User_Role
+    // Get role display text from User_Role (USER_INFORMATION table)
     let userRoleDisplay = '';
     if (user.User_Role === 'faculty') {
         userRoleDisplay = 'Faculty';
@@ -4269,21 +4399,13 @@ function createUserItem(user) {
         userRoleDisplay = user.User_Role || 'User';
     }
     
-    // Get permission values with intelligent defaults based on user role
-    const getDefaultPermission = (permissionType) => {
-        if (user.User_Role === 'superAdmin' || user.User_Role === 'admin') {
-            return 'Yes'; // Admins have all permissions by default
-        } else if (user.User_Role === 'faculty' && permissionType === 'can_edit') {
-            return 'Yes'; 
-        }
-        return 'No'; // Default to no permission
-    };
+    // NOW USING ACTUAL ROLES TABLE DATA INSTEAD OF DEFAULTS
+    // These come from the ROLES table via getAllUsersWithCompleteRoles()
+    const subAdminValue = user.Sub_Admin || 'No'; // Direct from ROLES table
+    const canEditValue = user.Can_Edit || 'No';    // Direct from ROLES table  
+    const manageAccessValue = user.Manage_Access || 'No'; // Direct from ROLES table
     
-    const subAdminValue = user.Sub_Admin || getDefaultPermission('Sub_admin');
-    const canEditValue = user.Can_Edit || getDefaultPermission('Can_edit');
-    const manageAccessValue = user.Manage_Access || getDefaultPermission('Manage_Access');
-    
-    // Set colors based on permission values
+    // Set colors based on actual ROLES table values
     const subAdminColor = subAdminValue === 'Yes' ? 'red' : 'gray';
     const canEditColor = canEditValue === 'Yes' ? 'red' : 'gray';
     const manageAccessColor = manageAccessValue === 'Yes' ? 'red' : 'gray';
@@ -4522,32 +4644,37 @@ function handleRoleAction(userId, userName, action) {
 }
 
 // Function to update user counts in access cards
-function updateUserCounts(roleCounts) {
+function updateUserCounts(users) {
     const counts = {
         'admin': 0,
         'faculty': 0,
-        'student': 0
+        'student': 0,
+        'all': users.length // Total count for "All" card
     };
     
-    // Convert role counts to expected format
-    roleCounts.forEach(roleCount => {
-        if (roleCount.User_Role === 'admin' || roleCount.User_Role === 'superAdmin') {
-            counts.admin = roleCount.count;
-        } else if (roleCount.User_Role === 'faculty') {
-            counts.faculty = roleCount.count;
-        } else if (roleCount.User_Role === 'student') {
-            counts.student = roleCount.count;
+    // Count users by role
+    users.forEach(user => {
+        if (user.User_Role === 'admin' || user.User_Role === 'superAdmin') {
+            counts.admin++;
+        } else if (user.User_Role === 'faculty') {
+            counts.faculty++;
+        } else if (user.User_Role === 'student') {
+            counts.student++;
         }
     });
     
     // Update the access cards
+    const allCountElement = document.querySelector('#allAccessBtn .access-count');
     const adminCountElement = document.querySelector('#adminAccess .access-count');
     const facultyCountElement = document.querySelector('#facultyAccess .access-count');
     const studentCountElement = document.querySelector('#studentAccess .access-count');
     
+    if (allCountElement) allCountElement.textContent = `${counts.all} users`;
     if (adminCountElement) adminCountElement.textContent = `${counts.admin} users`;
     if (facultyCountElement) facultyCountElement.textContent = `${counts.faculty} users`;
     if (studentCountElement) studentCountElement.textContent = `${counts.student} users`;
+    
+    
 }
 
 

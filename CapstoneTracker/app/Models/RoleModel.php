@@ -486,15 +486,21 @@ class RoleModel {
                     r.Role_ID,
                     r.Sub_Admin,
                     r.Can_Edit,
-                    r.Manage_Access,
-                    r.created_at as role_created_at,
-                    r.updated_at as role_updated_at
+                    r.Manage_Access
+                    
                 FROM USER_INFORMATION ui
                 LEFT JOIN ROLES r ON ui.ID = r.User_ID
                 ORDER BY ui.created_at DESC
             ");
             
             $results = $this->db->resultSetAssoc();
+            
+            // Add debugging
+            error_log("Total users found: " . count($results));
+            if (count($results) > 0) {
+                error_log("First user: " . print_r($results[0], true));
+            }
+            
             return $results;
             
         } catch (Exception $e) {
@@ -503,6 +509,7 @@ class RoleModel {
             return [];
         }
     }
+    
 
 
     public function getAllRolesData() {

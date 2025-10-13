@@ -2028,6 +2028,7 @@ body {
 
 .roleBox button:hover {
     background-color: #f5f5f5;
+    color: var(--color-danger);
     transform: translateX(2px);
 }
 

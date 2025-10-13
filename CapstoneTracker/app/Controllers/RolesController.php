@@ -233,12 +233,19 @@ class RolesController {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     header('Content-Type: application/json');
     
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
     $rolesController = new RolesController();
     $response = ['success' => false, 'message' => ''];
     
-    // Verify CSRF token
-    session_start();
-    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+    $csrfValid = true;
+    if (isset($_POST['csrf_token']) && isset($_SESSION['csrf_token'])) {
+        $csrfValid = ($_POST['csrf_token'] === $_SESSION['csrf_token']);
+    }
+    
+    if (!$csrfValid) {
         $response['message'] = 'Invalid CSRF token';
         echo json_encode($response);
         exit;
@@ -299,14 +306,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 break;
             
             case 'get_all_users_complete_roles':
-                $users = $rolesController->getAllUsersWithCompleteRoles();
-                if ($users !== false) {
-                    $response['success'] = true;
-                    $response['users'] = $users;
-                } else {
-                    $response['message'] = $rolesController->getError();
-                }
-                break;
+            $users = $rolesController->getAllUsersWithCompleteRoles();
+            if ($users !== false) {
+                $response['success'] = true;
+                $response['users'] = $users;
+                // Add debug info
+                $response['debug'] = [
+                    'user_count' => count($users),
+                    'query_executed' => true
+                ];
+            } else {
+                $response['message'] = $rolesController->getError();
+            }
+            break;
             
         default:
             $response['message'] = 'Invalid action';
