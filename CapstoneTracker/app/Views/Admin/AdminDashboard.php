@@ -209,12 +209,13 @@ $displayUserData = [
         </div>
 
         <nav>
-            <ul class="menu-options">
-                <li class="selected" data-view="dashboard"> <i class="fa fa-th-large icon" aria-hidden="true"></i> </li>
-                <li id="" data-view="users"><i class="fa-solid fa-fingerprint" aria-hidden="true"></i></li>
-                <li id="" data-view="accounts"><i class="fa-solid fa-users" aria-hidden="true"></i></li>
-                <li id="" data-view="logs"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></li>
-            </ul>
+        <ul class="menu-options">
+            <li class="selected" data-view="dashboard"> <i class="fa fa-th-large icon" aria-hidden="true"></i> </li>
+            <li id="" data-view="users"><i class="fa-solid fa-fingerprint" aria-hidden="true"></i></li>
+            <li id="" data-view="accounts"><i class="fa-solid fa-users" aria-hidden="true"></i></li>
+            <li id="" data-view="logs"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></li>
+            <li id="" data-view="announcement"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i></li>
+        </ul>
         </nav>
 
         <div class="more-options">
@@ -411,17 +412,6 @@ $displayUserData = [
             <?php endif; ?>
             </div>
 
-
-
-
-
-
-
-
-
-
-
-            
 
             <div id="accounts-container" class="content-container" style="display: none;">
                 <header class="logHeader" id="accountHeader">
@@ -706,8 +696,8 @@ $displayUserData = [
                 
                 <!-- Admin Log Container -->
                 <div id="adminLog-container" class="log-content" style="display: none;">
-            <div class="log-filter-bar">
-            <div class="searchbox">
+                <div class="log-filter-bar">
+                <div class="searchbox">
                         <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
                         <input type="text" name="search" placeholder="Search accounts..." class="search-text" id="adminLogSearchInput">
                     </div>
@@ -716,8 +706,8 @@ $displayUserData = [
                     <button class="log-filter-btn" data-filter="system">System</button>
                     <button class="log-filter-btn" data-filter="management">Management</button>
                     <button class="log-filter-btn" data-filter="security">Security</button>
+                    </div>
                 </div>
-            </div>
             
             <div class="logs-table-container">
                 <table class="logs-table">
@@ -765,6 +755,163 @@ $displayUserData = [
                         </div>
                     </div>
                 </div>
+
+                <!-- Announcement Container -->
+            <div id="announcement-container" class="content-container" style="display: none;">
+                <header class="header" id="announcementHeader">
+                    <div class="title">Announcement Management</div>
+                        <div class="menu">
+                            <button class="selected" id="activeAnnouncementsBtn">Active</button>
+                            <button id="archivedAnnouncementsBtn">Archived</button>
+                            <button id="createAnnouncementBtn">Create New</button>
+                    </div>
+                </header>
+
+            <!-- Active Announcements View -->
+                <div id="activeAnnouncementsView" class="announcement-content">
+                    <div class="app-content-header announcementHeader">
+                        <div class="searchbox">
+                        <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
+                        <input type="text" name="search" placeholder="Search announcements..." class="search-text" id="announcementSearchInput">
+                    </div>
+
+            <div class="app-list-options">
+                <div class="select" id="announcementFilterDropdown">
+                    <div class="selected">
+                        <span>All Types</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 512 512" class="arrow">
+                            <path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path>
+                        </svg>
+                    </div>
+                    <div class="options">
+                        <div data-value="all">All Types</div>
+                        <div data-value="deadline">Deadline</div>
+                        <div data-value="event">Event</div>
+                        <div data-value="important">Important</div>
+                        <div data-value="maintenance">Maintenance</div>
+                        <div data-value="information">Information</div>
+                    </div>
+                </div>
+
+                <div class="select" id="announcementSortDropdown">
+                    <div class="selected">
+                        <span>Newest First</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 512 512" class="arrow">
+                            <path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path>
+                        </svg>
+                    </div>
+                    <div class="options">
+                        <div data-value="newest">Newest First</div>
+                        <div data-value="oldest">Oldest First</div>
+                        <div data-value="title">Title (A-Z)</div>
+                        <div data-value="expiring">Expiring Soon</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="announcements-container">
+            <div class="announcements-grid" id="activeAnnouncementsGrid">
+                <div class="loading-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading announcements...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Archived Announcements View -->
+    <div id="archivedAnnouncementsView" class="announcement-content" style="display: none;">
+        <div class="archived-header">
+            <h3>Archived Announcements</h3>
+            <p>Previously published announcements that are no longer active</p>
+        </div>
+        <div class="announcements-container">
+            <div class="announcements-grid" id="archivedAnnouncementsGrid">
+                <div class="empty-state">
+                    <i class="fas fa-archive"></i>
+                    <h4>No Archived Announcements</h4>
+                    <p>Archived announcements will appear here</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create/Edit Announcement View -->
+<div id="createAnnouncementView" class="announcement-content" style="display: none;">
+    <div class="create-announcement-container">
+        <div class="create-announcement-header">
+            <h2 id="createAnnouncementTitle">Create New Announcement</h2>
+            <p id="createAnnouncementSubtitle">Share important information with users</p>
+        </div>
+
+        <form id="announcementForm" class="announcement-form">
+            <input type="hidden" id="announcementId" name="announcement_id" value="">
+            <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+
+            <!-- Title -->
+            <div class="form-group">
+                <label for="announcementTitle">Title <span class="required">*</span></label>
+                <input type="text" id="announcementTitle" name="title" placeholder="Enter announcement title" required maxlength="200">
+                <div class="char-counter"><span id="titleCharCount">0</span>/200</div>
+            </div>
+
+            <!-- Content -->
+            <div class="form-group">
+                <label for="announcementContent">Content <span class="required">*</span></label>
+                <textarea id="announcementContent" name="content" placeholder="Enter announcement content..." rows="8" required maxlength="2000"></textarea>
+                <div class="char-counter"><span id="contentCharCount">0</span>/2000</div>
+            </div>
+
+            <!-- Type & Pin -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="announcementType">Type <span class="required">*</span></label>
+                    <select id="announcementType" name="type" required>
+                        <option value="">Select announcement type</option>
+                        <option value="information">Information</option>
+                        <option value="deadline">Deadline</option>
+                        <option value="event">Event</option>
+                        <option value="important">Important</option>
+                        <option value="maintenance">Maintenance</option>
+                    </select>
+                </div>
+                <div class="form-group form-checkbox">
+                    <input type="checkbox" id="announcementIsPinned" name="is_pinned" value="1">
+                    <label for="announcementIsPinned">Pin to top</label>
+                </div>
+            </div>
+
+            <!-- Dates -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="announcementStartDate">Start Date & Time <span class="required">*</span></label>
+                    <input type="datetime-local" id="announcementStartDate" name="start_date" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="announcementEndDate">End Date & Time (Optional)</label>
+                    <input type="datetime-local" id="announcementEndDate" name="end_date">
+                    <small style="color: var(--color-lite-grey); font-size: 0.85rem; margin-top: 5px; display: block;">
+                        Leave empty if announcement should not expire
+                    </small>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="form-actions">
+                <button type="button" id="cancelAnnouncementBtn" class="btn btn-cancel">Cancel</button>
+                <button type="submit" id="publishAnnouncementBtn" class="btn btn-primary">
+                    <i class="fas fa-paper-plane"></i>
+                    Publish Announcement
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+                
 
             
         </section>
