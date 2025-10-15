@@ -40,6 +40,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const facultyAccessBtn = document.getElementById('facultyAccess');
     const studentAccessBtn = document.getElementById('studentAccess');
 
+    const isSubAdmin = userDisplayData.user_role === 'subAdmin';
+
+
     // logout
     const moreOptionsIcon = document.querySelector('.more-options .fa-ellipsis-h');
     const logoutMenu = document.createElement('div');
@@ -62,6 +65,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // for log buttons
     const logMenuButtons = document.querySelectorAll('.header .logMenu button');
+
 
     // Function to switch log views
     function switchLogView(viewToShow, buttonToSelect) {
@@ -3682,7 +3686,21 @@ let changesMade = false;
 
     
 
-    
+    function showDashboardView() {
+        // Hide all content containers
+        document.querySelectorAll('.content-container').forEach(container => {
+            container.style.display = 'none';
+        });
+        
+        // Show dashboard
+        document.querySelector('.app-content').style.display = 'block';
+        
+        // Update sidebar selection
+        document.querySelectorAll('.menu-options li').forEach(item => {
+            item.classList.remove('selected');
+        });
+        document.querySelector('[data-view="dashboard"]').classList.add('selected');
+    }
 
 
 // Enhanced save functionality
@@ -4219,10 +4237,10 @@ async function fetchAndDisplayUsers() {
             }
         }
         
-        console.log('Parsed data:', data);
+    //    console.log('Parsed data:', data);
         
         if (data.success && data.users) {
-            console.log(`✅ Successfully loaded ${data.users.length} users with role data`);
+      //      console.log(`✅ Successfully loaded ${data.users.length} users with role data`);
             displayUsersInAccessManagement(data.users);
             
             // ADD THIS LINE: Update the user counts in access cards
@@ -4393,8 +4411,10 @@ function createUserItem(user) {
         userRoleDisplay = 'Faculty';
     } else if (user.User_Role === 'student') {
         userRoleDisplay = 'Student';
-    } else if (user.User_Role === 'admin' || user.User_Role === 'superAdmin') {
+    } else if (user.User_Role === 'superAdmin') {
         userRoleDisplay = 'Admin';
+    } else if (user.User_Role === 'SubAdmin') {
+        userRoleDisplay = 'Sub-Admin';
     } else {
         userRoleDisplay = user.User_Role || 'User';
     }
@@ -4569,7 +4589,7 @@ function handleRoleAction(userId, userName, action) {
     
     // Map action names to actual roles or functions
     const actionMap = {
-        'Sub-Admin': 'admin',
+        'SubAdmin': 'admin',
         'Modify Thesis': 'faculty',
         'Manage Access': 'admin',
         // Add more actions as needed
@@ -4654,7 +4674,7 @@ function updateUserCounts(users) {
     
     // Count users by role
     users.forEach(user => {
-        if (user.User_Role === 'admin' || user.User_Role === 'superAdmin') {
+        if (user.User_Role === 'SubAdmin' || user.User_Role === 'superAdmin') {
             counts.admin++;
         } else if (user.User_Role === 'faculty') {
             counts.faculty++;

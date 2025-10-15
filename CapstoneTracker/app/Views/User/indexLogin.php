@@ -35,6 +35,7 @@ $errorMessage = '';
 $errorModal = '';
 $showModal = false;
 $successMessage = '';
+$adminErrorMessage = '';
 
 if (isset($_SESSION['error_message'])) {
   $errorMessage = $_SESSION['error_message'];
@@ -47,6 +48,11 @@ if (isset($_SESSION['error_message'])) {
 if (isset($_SESSION['success_message'])) {
   $successMessage = $_SESSION['success_message'];
   unset($_SESSION['success_message']);
+}
+
+if (isset($_SESSION['admin_error_message'])) {
+  $adminErrorMessage = $_SESSION['admin_error_message'];
+  unset($_SESSION['admin_error_message']);
 }
 
 if ($setupError) {
@@ -85,6 +91,7 @@ if ($setupError) {
         const errorModal = "<?php echo addslashes($errorModal); ?>";
         const showModal = <?php echo $showModal ? 'true' : 'false'; ?>;
         const successMessage = "<?php echo addslashes($successMessage); ?>";
+        const adminErrorMessage = "<?php echo addslashes($adminErrorMessage); ?>";
     </script>
 </head> 
 <body>

@@ -96,7 +96,39 @@ class RolesController {
      * Check if user has sub-admin privileges
      */
     public function isSubAdmin($userId) {
-        return $this->roleModel->hasPermission($userId, 'sub_admin');
+        $hasPermission = $this->roleModel->hasPermission($userId, 'sub_admin');
+        
+        // If user has sub-admin permission but isn't marked as subAdmin in user role, update it
+        if ($hasPermission) {
+            try {
+                $db = $this->roleModel->getDb();
+                
+                // Check current user role
+                $db->query("SELECT User_Role FROM USER_INFORMATION WHERE ID = :user_id");
+                $db->bind(':user_id', $userId);
+                $user = $db->singleAssoc();
+                
+                // If user doesn't have subAdmin role, update it
+                if ($user && $user['User_Role'] !== 'subAdmin') {
+                    $db->query("UPDATE USER_INFORMATION SET User_Role = 'subAdmin' WHERE ID = :user_id");
+                    $db->bind(':user_id', $userId);
+                    $db->execute();
+                    
+                    // Update session if this is the current user
+                    if (session_status() === PHP_SESSION_NONE) {
+                        session_start();
+                    }
+                    if (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $userId) {
+                        $_SESSION['user_role'] = 'subAdmin';
+                    }
+                }
+            } catch (Exception $e) {
+                error_log("Error updating user role to subAdmin: " . $e->getMessage());
+                // Continue anyway since the permission check passed
+            }
+        }
+        
+        return $hasPermission;
     }
 
     /**
@@ -112,6 +144,32 @@ class RolesController {
     public function canManageAccess($userId) {
         return $this->roleModel->hasPermission($userId, 'manage_access');
     }
+
+    /**
+     * Check if user can access management features (hide for subAdmin)
+     */
+    public function canAccessManagement($userId) {
+        // Get user's actual role from database
+        try {
+            $db = $this->roleModel->getDb();
+            $db->query("SELECT User_Role FROM USER_INFORMATION WHERE ID = :user_id");
+            $db->bind(':user_id', $userId);
+            $user = $db->singleAssoc();
+            
+            // SubAdmin users cannot access management
+            if ($user && $user['User_Role'] === 'subAdmin') {
+                return false;
+            }
+            
+            // For other users, use the existing permission check
+            return $this->canManageAccess($userId);
+            
+        } catch (Exception $e) {
+            error_log("Error checking management access: " . $e->getMessage());
+            return $this->canManageAccess($userId);
+        }
+    }
+
 
     /**
      * Get all users with their role permissions
@@ -187,6 +245,8 @@ class RolesController {
         }
     }
 
+    
+
     /**
      * Delete role record for a user (will revert to defaults)
      */
@@ -225,7 +285,7 @@ class RolesController {
      * Validate if current user can modify roles (for authorization)
      */
     public function canModifyRoles($currentUserId) {
-        return $this->canManageAccess($currentUserId);
+        return $this->canAccessManagement($currentUserId);
     }
 }
 

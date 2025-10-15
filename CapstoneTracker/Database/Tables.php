@@ -33,7 +33,7 @@
                 User_ID VARCHAR(255) UNIQUE NOT NULL,
                 Student_ID VARCHAR(255) UNIQUE,
                 Employee_ID VARCHAR(255) UNIQUE,
-                User_Role ENUM('student', 'faculty', 'admin', 'superAdmin') NOT NULL,
+                User_Role ENUM('student', 'faculty', 'SubAdmin', 'superAdmin') NOT NULL,
                 Acc_Status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
                 Department VARCHAR(255) NOT NULL,
                 Course VARCHAR(255) NOT NULL,   

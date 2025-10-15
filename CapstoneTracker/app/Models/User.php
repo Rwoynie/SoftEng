@@ -397,5 +397,61 @@ class User extends Model {
             return false;
         }
     }
+
+    /**
+     * Admin login method - ONLY allows login by User_ID
+     */
+    public function loginAdmin($user_id, $password) {
+        try {
+            // MODIFIED: Only allow login by User_ID for admin users
+            $this->db->query('SELECT * FROM USER_INFORMATION WHERE User_ID = :user_id AND Acc_Status = "approved"');
+            $this->db->bind(':user_id', $user_id);
+            $result = $this->db->single();
+            
+            if ($result) {
+                // Verify password
+                $hashedPassword = $result->pswrd;
+                $salt = $result->Salt;
+                
+                if (password_verify($password . $salt, $hashedPassword)) {
+                    return $result;
+                }
+            }
+            
+            return false;
+            
+        } catch (Exception $e) {
+            error_log("Admin login error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Student/Faculty login method - ONLY allows login by Email
+     */
+    public function loginByEmail($email, $password) {
+        try {
+            // MODIFIED: Only allow login by Email for student/faculty users
+            $this->db->query('SELECT * FROM USER_INFORMATION WHERE Email = :email AND Acc_Status = "approved"');
+            $this->db->bind(':email', $email);
+            $result = $this->db->single();
+            
+            if ($result) {
+                // Verify password
+                $hashedPassword = $result->pswrd;
+                $salt = $result->Salt;
+                
+                if (password_verify($password . $salt, $hashedPassword)) {
+                    return $result;
+                }
+            }
+            
+            return false;
+            
+        } catch (Exception $e) {
+            error_log("Email login error: " . $e->getMessage());
+            return false;
+        }
+    }
 }
 ?>

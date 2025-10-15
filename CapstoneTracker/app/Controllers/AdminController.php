@@ -70,17 +70,21 @@ class AdminController extends Controller {
             require_once '../Models/User.php';
             
             $userModel = new User();
-            $user = $userModel->login($identifier, $password);
+    
+            // MODIFIED: For admin login, only authenticate by User_ID
+            $user = $userModel->loginAdmin($identifier, $password); // We'll create this method
             
             if ($user) {
                 // Check if user has admin role
                 $userRole = strtolower($user->User_Role ?? '');
                 
-                if ($userRole === 'admin' || $userRole === 'superadmin') {
+                if ($userRole === 'subadmin' || $userRole === 'superadmin' || $userRole === 'admin') {
+                    error_log("Admin user authenticated: " . $identifier . " (Role: " . $userRole . ")");
+                    
                     // Return ALL user data from database
                     return [
                         'id' => $user->ID,
-                        'user_id' => $user->User_ID, // This is the actual User_ID from database
+                        'user_id' => $user->User_ID,
                         'email' => $user->Email,
                         'first_name' => $user->First_Name,
                         'last_name' => $user->Last_Name,
@@ -99,6 +103,22 @@ class AdminController extends Controller {
                 } else {
                     error_log("Admin login attempt by non-admin user: $identifier (Role: $userRole)");
                 }
+            } else {
+                // If login failed, check if user exists but has different status
+                $userExists = $userModel->checkUserExists($identifier);
+                
+                if ($userExists) {
+                    $userStatus = $userModel->getUserStatus($identifier);
+                    error_log("Admin login failed - user exists but status: " . $userStatus);
+                    
+                    if ($userStatus === 'pending') {
+                        $this->redirectWithError('Your account is pending approval. Please wait for administrator approval.');
+                    } elseif ($userStatus === 'rejected') {
+                        $this->redirectWithError('Your account has been rejected. Please contact administrator.');
+                    }
+                }
+                
+                error_log("No approved admin user found with identifier: " . $identifier);
             }
         } catch (Exception $e) {
             error_log("Admin authentication error: " . $e->getMessage());
@@ -191,7 +211,7 @@ class AdminController extends Controller {
     // Also fix the isAdmin() method to check for both admin and superAdmin
     private function isAdmin() {
         $role = $_SESSION['user_role'] ?? '';
-        return in_array(strtolower($role), ['admin', 'superadmin']);
+        return in_array(strtolower($role), ['superadmin', 'subadmin']);
     }
     
     

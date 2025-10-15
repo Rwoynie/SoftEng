@@ -90,25 +90,8 @@ class AuthController extends Controller {
         try {
             $userModel = new User();
             
-            // First, check if user exists and get their status (regardless of approval)
-            $userStatus = $userModel->getUserStatus($username);
-            error_log("User status for $username: " . ($userStatus ?? 'null'));
-            
-            if ($userStatus === 'pending') {
-                $_SESSION['error_message'] = "Your account is pending for approval. <br>Please wait for administrator approval before logging in.";
-                error_log("Setting pending message for user: $username");
-                return false;
-            }
-            
-            if ($userStatus === 'rejected') {
-                $_SESSION['error_message'] = "Your account has been rejected. Please contact the administrator for more information.";
-                error_log("Setting rejected message for user: $username");
-                return false;
-            }
-            
-            // If account status is approved or we don't know the status, try to login
-            // Use loginWithStatus to get user regardless of approval status
-            $user = $userModel->loginWithStatus($username, $password);
+            // MODIFIED: For student/faculty login, only authenticate by Email
+            $user = $userModel->loginByEmail($username, $password); // We'll create this method
             
             if ($user) {
                 // Check if user role matches the selected role

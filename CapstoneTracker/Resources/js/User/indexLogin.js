@@ -54,12 +54,25 @@ document.addEventListener('DOMContentLoaded', function() {
         showSuccessAlert(successMessage);
     }
 
+    if (typeof adminErrorMessage !== 'undefined' && adminErrorMessage && adminErrorMessage !== '') {
+        showAdminErrorAlert(adminErrorMessage);
+        
+        // Automatically open the admin modal if there's an admin error
+        setTimeout(() => {
+            const adminModal = document.getElementById('adminLoginModal');
+            if (adminModal) {
+                const adminModalInstance = new bootstrap.Modal(adminModal);
+                adminModalInstance.show();
+            }
+        }, 1000);
+    }
+
     
     
     // Initialize the page functionality
     initializePage();
     setupAdminModal();
-   // setupAdminForm();
+    setupAdminForm();
 
 });
 
@@ -708,82 +721,25 @@ function setupAdminForm() {
     }
 }
 
-
-
-/*
-let slideIndex = 0;
-let slideInterval;
-
-function startSlideshow() {
-    showSlides();
-    // Set up interval for automatic slides
-    slideInterval = setInterval(() => {
-        plusSlides(1);
-    }, 3000); // Change slide every 5 seconds
-}
-
-function showSlides() {
-    let slides = document.getElementsByClassName("mySlides");
-    let dots = document.getElementsByClassName("dot");
+function showAdminErrorAlert(message) {
+    console.log('Admin login error message:', message);
     
-    // Hide all slides
-    for (let i = 0; i < slides.length; i++) {
-        slides[i].classList.remove("active");
-        slides[i].style.display = "none";
-    }
+    const msg = String(message || '').trim();
+    const emptyValues = ['undefined', 'null', "'undefined'", "'null'", '"undefined"', '"null"', 'false', '0', '', '[]', '{}', 'NaN'];
     
-    // Remove active class from all dots
-    for (let i = 0; i < dots.length; i++) {
-        dots[i].classList.remove("active");
-    }
-    
-    // Show current slide
-    if (slides.length > 0) {
-        if (slideIndex >= slides.length) slideIndex = 0;
-        if (slideIndex < 0) slideIndex = slides.length - 1;
-        
-        slides[slideIndex].style.display = "block";
-        setTimeout(() => {
-            slides[slideIndex].classList.add("active");
-        }, 10);
-        
-        if (dots.length > 0) {
-            dots[slideIndex].classList.add("active");
-        }
-    }
-}
-
-// Next/previous controls
-function plusSlides(n) {
-    clearInterval(slideInterval); // Reset timer when manually changing slides
-    slideIndex += n;
-    showSlides();
-    startSlideshow(); // Restart the timer
-}
-
-// Thumbnail image controls
-function currentSlide(n) {
-    clearInterval(slideInterval); // Reset timer when manually changing slides
-    slideIndex = n - 1;
-    showSlides();
-    startSlideshow(); // Restart the timer
-}
-
-// Initialize slideshow when document is ready
-document.addEventListener('DOMContentLoaded', function() {
-    startSlideshow();
-    
-    // Pause slideshow when hovering over it
-    const slideshow = document.querySelector('.slideshow-container');
-    if (slideshow) {
-        slideshow.addEventListener('mouseenter', () => {
-            clearInterval(slideInterval);
+    if (!msg || emptyValues.includes(msg)) {
+        Swal.fire({
+            title: 'Admin Login Failed',
+            text: 'Invalid admin credentials. Please try again.',
+            icon: 'error',
+            confirmButtonText: 'OK'
         });
-        
-        slideshow.addEventListener('mouseleave', () => {
-            startSlideshow();
+    } else {
+        Swal.fire({
+            title: 'Admin Login Failed',
+            text: msg,
+            icon: 'error',
+            confirmButtonText: 'OK'
         });
     }
-});
-
-*/
+}

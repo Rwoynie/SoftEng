@@ -157,6 +157,11 @@ if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
+$shouldShowAccessManagement = true;
+if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'SubAdmin') {
+    $shouldShowAccessManagement = false;
+}
+
 
 // Check if user is logged in as admin
 if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in'] || !isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
@@ -204,12 +209,12 @@ $displayUserData = [
         </div>
 
         <nav>
-        <ul class="menu-options">
-            <li class="selected" data-view="dashboard"> <i class="fa fa-th-large icon" aria-hidden="true"></i> </li>
-            <li id="" data-view="users"><i class="fa-solid fa-fingerprint" aria-hidden="true"></i></li>
-            <li id="" data-view="accounts"><i class="fa-solid fa-users" aria-hidden="true"></i></li>
-            <li id="" data-view="logs"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></li>
-        </ul>
+            <ul class="menu-options">
+                <li class="selected" data-view="dashboard"> <i class="fa fa-th-large icon" aria-hidden="true"></i> </li>
+                <li id="" data-view="users"><i class="fa-solid fa-fingerprint" aria-hidden="true"></i></li>
+                <li id="" data-view="accounts"><i class="fa-solid fa-users" aria-hidden="true"></i></li>
+                <li id="" data-view="logs"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></li>
+            </ul>
         </nav>
 
         <div class="more-options">
@@ -326,10 +331,11 @@ $displayUserData = [
                     
 
 
-            <div id="access-container" class="content-container" style="display: none;">
-            <header class="header" id="header">
-                    <div class="title">Access Management</div>
-                </header>
+                <div id="access-container" class="content-container" style="display: none;">
+                    <?php if ($shouldShowAccessManagement): ?>
+                        <header class="header" id="header">
+                            <div class="title">Access Management</div>
+                        </header>
 
                 <div id="accessHeader2" class="content-header">
                 <div class="access-card" id="access-card">
@@ -393,6 +399,16 @@ $displayUserData = [
                     <i class="fas fa-save"></i>
                 </div>
             </div>
+            <?php else: ?>
+                <header class="header" id="header">
+                    <div class="title">Access Management</div>
+                </header>
+                <div style="text-align: center; padding: 40px; color: #666;">
+                    <i class="fas fa-lock" style="font-size: 48px; margin-bottom: 20px;"></i>
+                    <h3>Access Restricted</h3>
+                    <p>Sub-Admin users do not have permission to access management features.</p>
+                </div>
+            <?php endif; ?>
             </div>
 
 
@@ -512,27 +528,27 @@ $displayUserData = [
                         
                         ?>
                         <tr data-status="<?php echo strtolower($user->Acc_Status); ?>">
-    <td><?php echo $fullName; ?></td>
-    <td><?php echo $email; ?></td>
-    <td><span class="status-badge <?php echo $statusClass; ?>"><?php echo $statusText; ?></span></td>
-    <td><span class="role-badge <?php echo $roleClass; ?>"><?php echo $roleText; ?></span></td>
-    <td><?php echo $joinDate; ?></td>
-    <td class="action-buttons">
-        <button class="action-btn approve-btn <?php echo $approveClass; ?>" 
-                title="<?php echo $user->Acc_Status === 'approved' ? 'Account Already Approved' : 'Approve Account'; ?>"
-                data-user-id="<?php echo $user->ID; ?>"
-                data-user-status="<?php echo $user->Acc_Status; ?>"
-                <?php echo $approveDisabled; ?>>
-            <i class="fa fa-check"></i>
-        </button>
-        <button class="action-btn delete-btn" 
-                title="Delete Account"
-                data-user-id="<?php echo $user->ID; ?>"
-                data-user-name="<?php echo $fullName; ?>">
-            <i class="fa fa-trash"></i>
-        </button>
-    </td>
-</tr>
+                        <td><?php echo $fullName; ?></td>
+                        <td><?php echo $email; ?></td>
+                        <td><span class="status-badge <?php echo $statusClass; ?>"><?php echo $statusText; ?></span></td>
+                        <td><span class="role-badge <?php echo $roleClass; ?>"><?php echo $roleText; ?></span></td>
+                        <td><?php echo $joinDate; ?></td>
+                        <td class="action-buttons">
+                            <button class="action-btn approve-btn <?php echo $approveClass; ?>" 
+                                    title="<?php echo $user->Acc_Status === 'approved' ? 'Account Already Approved' : 'Approve Account'; ?>"
+                                    data-user-id="<?php echo $user->ID; ?>"
+                                    data-user-status="<?php echo $user->Acc_Status; ?>"
+                                    <?php echo $approveDisabled; ?>>
+                                <i class="fa fa-check"></i>
+                            </button>
+                            <button class="action-btn delete-btn" 
+                                    title="Delete Account"
+                                    data-user-id="<?php echo $user->ID; ?>"
+                                    data-user-name="<?php echo $fullName; ?>">
+                                <i class="fa fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
                         <?php
                     }
                 } else {
