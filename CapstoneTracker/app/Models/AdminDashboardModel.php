@@ -10,6 +10,14 @@ class AdminDashboardModel {
     }
 
     /**
+     * Get database connection for use in controller
+     */
+    public function getDatabase() {
+        
+        return $this->db;
+    }
+
+    /**
      * Get all users with their information
      */
     public function getAllUsers() {
@@ -441,6 +449,169 @@ class AdminDashboardModel {
         } catch (Exception $e) {
             error_log("Error getting recent activity: " . $e->getMessage());
             return [];
+        }
+    }
+
+    /**
+     * Get active announcements
+     */
+    public function getActiveAnnouncements() {
+    try {
+        $sql = "SELECT * FROM announcements 
+                WHERE status = 'published' 
+                AND (start_date IS NULL OR start_date <= NOW())
+                AND (end_date IS NULL OR end_date = '0000-00-00 00:00:00' OR end_date >= NOW())
+                ORDER BY is_pinned DESC, created_at DESC";
+        
+        $this->db->query($sql);
+        return $this->db->resultSet();
+        
+    } catch (Exception $e) {
+        error_log("Error fetching active announcements: " . $e->getMessage());
+        return [];
+    }
+}
+
+    /**
+     * Get archived announcements
+     */
+    public function getArchivedAnnouncements() {
+        try {
+            $this->db->query("
+                SELECT * FROM announcements 
+                WHERE status = 'archived' 
+                ORDER BY created_at DESC
+            ");
+            return $this->db->resultSet();
+        } catch (Exception $e) {
+            error_log("Error getting archived announcements: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get specific announcement by ID
+     */
+    public function getAnnouncementById($id) {
+        try {
+            $this->db->query("SELECT * FROM announcements WHERE id = :id");
+            $this->db->bind(':id', $id);
+            return $this->db->single();
+        } catch (Exception $e) {
+            error_log("Error getting announcement: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Create new announcement
+     */
+    public function createAnnouncement($data) {
+    try {
+        $sql = "INSERT INTO announcements (title, content, type, start_date, end_date, is_pinned, status, created_by) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        
+        $this->db->query($sql);
+        $this->db->bind(1, $data['title']);
+        $this->db->bind(2, $data['content']);
+        $this->db->bind(3, $data['type']);
+        $this->db->bind(4, $data['start_date']);
+        $this->db->bind(5, $data['end_date']);
+        $this->db->bind(6, $data['is_pinned']);
+        $this->db->bind(7, $data['status']);
+        $this->db->bind(8, $data['created_by']);
+        
+        $result = $this->db->execute();
+        
+        if (!$result) {
+            error_log("Database execute failed for announcement creation");
+            error_log("SQL: " . $sql);
+            error_log("Data: " . print_r($data, true));
+            // If your database class has error info, log it:
+            if (method_exists($this->db, 'getError')) {
+                error_log("DB Error: " . $this->db->getError());
+            }
+        }
+        
+        return $result;
+        
+    } catch (Exception $e) {
+        error_log("Exception in createAnnouncement: " . $e->getMessage());
+        error_log("Stack trace: " . $e->getTraceAsString());
+        return false;
+    }
+}
+
+    /**
+     * Update announcement
+     */
+    public function updateAnnouncement($id, $data) {
+        try {
+            $this->db->query("
+                UPDATE announcements 
+                SET title = :title, content = :content, type = :type, priority = :priority, 
+                    start_date = :start_date, end_date = :end_date, is_pinned = :is_pinned, 
+                    updated_at = NOW()
+                WHERE id = :id
+            ");
+            
+            $this->db->bind(':id', $id);
+            $this->db->bind(':title', $data['title']);
+            $this->db->bind(':content', $data['content']);
+            $this->db->bind(':type', $data['type']);
+            $this->db->bind(':priority', $data['priority']);
+            $this->db->bind(':start_date', $data['start_date']);
+            $this->db->bind(':end_date', $data['end_date']);
+            $this->db->bind(':is_pinned', $data['is_pinned']);
+            
+            return $this->db->execute();
+        } catch (Exception $e) {
+            error_log("Error updating announcement: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Delete announcement
+     */
+    public function deleteAnnouncement($id) {
+        try {
+            $this->db->query("DELETE FROM announcements WHERE id = :id");
+            $this->db->bind(':id', $id);
+            return $this->db->execute();
+        } catch (Exception $e) {
+            error_log("Error deleting announcement: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Toggle announcement pin status
+     */
+    public function togglePinAnnouncement($id, $isPinned) {
+        try {
+            $this->db->query("UPDATE announcements SET is_pinned = :is_pinned WHERE id = :id");
+            $this->db->bind(':is_pinned', $isPinned);
+            $this->db->bind(':id', $id);
+            return $this->db->execute();
+        } catch (Exception $e) {
+            error_log("Error toggling announcement pin: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Update announcement status
+     */
+    public function updateAnnouncementStatus($id, $status) {
+        try {
+            $this->db->query("UPDATE announcements SET status = :status WHERE id = :id");
+            $this->db->bind(':status', $status);
+            $this->db->bind(':id', $id);
+            return $this->db->execute();
+        } catch (Exception $e) {
+            error_log("Error updating announcement status: " . $e->getMessage());
+            return false;
         }
     }
 }

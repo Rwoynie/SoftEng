@@ -4,7 +4,7 @@ require_once __DIR__ . '/../Models/AdminDashboardModel.php';
 require_once __DIR__ . '/../Models/Model.php';
 
 class AdminDashboardController {
-    private $model;
+     private $model;
     private $currentUser;
     private $modelMain;
 
@@ -81,8 +81,38 @@ class AdminDashboardController {
             case 'searchTheses':
                 $this->searchTheses();
                 break;
-            case 'checkUserRoles': // ADD THIS NEW CASE
+            case 'checkUserRoles':
                 $this->checkUserRoles();
+                break;
+            case 'getActiveAnnouncements':
+                $this->getActiveAnnouncements();
+                break;
+            case 'getArchivedAnnouncements':
+                $this->getArchivedAnnouncements();
+                break;
+            case 'getAnnouncement':
+                $this->getAnnouncement();
+                break;
+            case 'createAnnouncement':
+                $this->createAnnouncement();
+                break;
+            case 'updateAnnouncement':
+                $this->updateAnnouncement();
+                break;
+            case 'saveAnnouncementDraft':
+                $this->saveAnnouncementDraft();
+                break;
+            case 'archiveAnnouncement':
+                $this->archiveAnnouncement();
+                break;
+            case 'restoreAnnouncement':
+                $this->restoreAnnouncement();
+                break;
+            case 'deleteAnnouncement':
+                $this->deleteAnnouncement();
+                break;
+            case 'togglePinAnnouncement':
+                $this->togglePinAnnouncement();
                 break;
             case 'logout':
                 $this->logout();
@@ -307,7 +337,6 @@ class AdminDashboardController {
             $input = json_decode(file_get_contents('php://input'), true);
             $emails = $input['emails'] ?? [];
            
-            
             $facultyUsers = [];
             $nonFacultyUsers = [];
             $userRoles = [];
@@ -346,6 +375,299 @@ class AdminDashboardController {
                 'success' => false,
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+ * Get active announcements
+ */
+    private function getActiveAnnouncements() {
+    try {
+        $announcements = $this->model->getActiveAnnouncements();
+        
+        // DEBUG: Add this to see what's being returned
+        error_log("Active announcements count: " . count($announcements));
+        error_log("Active announcements data: " . json_encode($announcements));
+        
+        $this->jsonResponse([
+            'success' => true, 
+            'announcements' => $announcements,
+            'debug_count' => count($announcements) // Add this for debugging
+        ]);
+    } catch (Exception $e) {
+        error_log("Error in getActiveAnnouncements: " . $e->getMessage());
+        $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
+    }
+}
+
+    /**
+     * Get archived announcements 
+     */
+    private function getArchivedAnnouncements() {
+        try {
+            $announcements = $this->model->getArchivedAnnouncements();
+            $this->jsonResponse(['success' => true, 'announcements' => $announcements]);
+        } catch (Exception $e) {
+            $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Get specific announcement 
+     */
+    private function getAnnouncement() {
+        try {
+            $id = $_GET['id'] ?? '';
+            if (empty($id)) {
+                throw new Exception('Announcement ID is required');
+            }
+
+            $announcement = $this->model->getAnnouncementById($id);
+            if (!$announcement) {
+                throw new Exception('Announcement not found');
+            }
+
+            $this->jsonResponse(['success' => true, 'announcement' => $announcement]);
+        } catch (Exception $e) {
+            $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Create new announcement 
+     */
+    private function createAnnouncement() {
+        try {
+            $this->validateCsrfToken();
+            $this->validateAnnouncementData();
+
+            $data = [
+                'title' => trim($_POST['title']),
+                'content' => trim($_POST['content']),
+                'type' => $_POST['type'],
+                'priority' => $_POST['priority'] ?? 'normal',
+                'start_date' => $_POST['start_date'],
+                'end_date' => !empty($_POST['end_date']) ? $_POST['end_date'] : null,
+                'is_pinned' => isset($_POST['is_pinned']) ? 1 : 0,
+                'status' => 'published',
+                'created_by' => $_SESSION['user_id'] ?? 1
+            ];
+
+            $success = $this->model->createAnnouncement($data);
+
+            if ($success) {
+                $this->jsonResponse(['success' => true, 'message' => 'Announcement created successfully']);
+            } else {
+                throw new Exception('Failed to create announcement');
+            }
+        } catch (Exception $e) {
+            $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Update existing announcement 
+     */
+    private function updateAnnouncement() {
+        try {
+            $this->validateCsrfToken();
+            $this->validateAnnouncementData();
+
+            $id = $_POST['announcement_id'] ?? '';
+            if (empty($id)) {
+                throw new Exception('Announcement ID is required');
+            }
+
+            $data = [
+                'title' => trim($_POST['title']),
+                'content' => trim($_POST['content']),
+                'type' => $_POST['type'],
+                'priority' => $_POST['priority'] ?? 'normal',
+                'start_date' => $_POST['start_date'],
+                'end_date' => !empty($_POST['end_date']) ? $_POST['end_date'] : null,
+                'is_pinned' => isset($_POST['is_pinned']) ? 1 : 0
+            ];
+
+            $success = $this->model->updateAnnouncement($id, $data);
+
+            if ($success) {
+                $this->jsonResponse(['success' => true, 'message' => 'Announcement updated successfully']);
+            } else {
+                throw new Exception('Failed to update announcement');
+            }
+        } catch (Exception $e) {
+            $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Save announcement as draft 
+     */
+    private function saveAnnouncementDraft() {
+        try {
+            $this->validateCsrfToken();
+
+            $data = [
+                'title' => trim($_POST['title']),
+                'content' => trim($_POST['content']),
+                'type' => $_POST['type'],
+                'priority' => $_POST['priority'] ?? 'normal',
+                'start_date' => $_POST['start_date'],
+                'end_date' => !empty($_POST['end_date']) ? $_POST['end_date'] : null,
+                'is_pinned' => isset($_POST['is_pinned']) ? 1 : 0,
+                'status' => 'draft',
+                'created_by' => $_SESSION['user_id'] ?? 1
+            ];
+
+            $success = $this->model->createAnnouncement($data);
+
+            if ($success) {
+                $this->jsonResponse(['success' => true, 'message' => 'Draft saved successfully']);
+            } else {
+                throw new Exception('Failed to save draft');
+            }
+        } catch (Exception $e) {
+            $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Archive announcement 
+     */
+    private function archiveAnnouncement() {
+        try {
+            $id = $_POST['id'] ?? '';
+            if (empty($id)) {
+                throw new Exception('Announcement ID is required');
+            }
+
+            $success = $this->model->updateAnnouncementStatus($id, 'archived');
+            
+            if ($success) {
+                $this->jsonResponse(['success' => true, 'message' => 'Announcement archived successfully']);
+            } else {
+                throw new Exception('Failed to archive announcement');
+            }
+        } catch (Exception $e) {
+            $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Restore announcement from archive 
+     */
+    private function restoreAnnouncement() {
+        try {
+            $id = $_POST['id'] ?? '';
+            if (empty($id)) {
+                throw new Exception('Announcement ID is required');
+            }
+
+            $success = $this->model->updateAnnouncementStatus($id, 'published');
+            
+            if ($success) {
+                $this->jsonResponse(['success' => true, 'message' => 'Announcement restored successfully']);
+            } else {
+                throw new Exception('Failed to restore announcement');
+            }
+        } catch (Exception $e) {
+            $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Delete announcement permanently 
+     */
+    private function deleteAnnouncement() {
+        try {
+            $id = $_POST['id'] ?? '';
+            if (empty($id)) {
+                throw new Exception('Announcement ID is required');
+            }
+
+            $success = $this->model->deleteAnnouncement($id);
+            
+            if ($success) {
+                $this->jsonResponse(['success' => true, 'message' => 'Announcement deleted successfully']);
+            } else {
+                throw new Exception('Failed to delete announcement');
+            }
+        } catch (Exception $e) {
+            $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Toggle pin status of announcement 
+     */
+    private function togglePinAnnouncement() {
+        try {
+            $id = $_POST['id'] ?? '';
+            if (empty($id)) {
+                throw new Exception('Announcement ID is required');
+            }
+
+            // Get current pin status
+            $announcement = $this->model->getAnnouncementById($id);
+            if (!$announcement) {
+                throw new Exception('Announcement not found');
+            }
+
+            $newPinStatus = $announcement->is_pinned ? 0 : 1;
+            $success = $this->model->togglePinAnnouncement($id, $newPinStatus);
+            
+            if ($success) {
+                $this->jsonResponse(['success' => true, 'message' => 'Pin status updated successfully']);
+            } else {
+                throw new Exception('Failed to update pin status');
+            }
+        } catch (Exception $e) {
+            $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Validate announcement data
+     */
+    private function validateAnnouncementData() {
+        $required = ['title', 'content', 'type', 'start_date'];
+        
+        foreach ($required as $field) {
+            if (empty($_POST[$field])) {
+                throw new Exception("$field is required");
+            }
+        }
+
+        // Validate title length
+        if (strlen($_POST['title']) > 200) {
+            throw new Exception("Title must be less than 200 characters");
+        }
+
+        // Validate content length
+        if (strlen($_POST['content']) > 2000) {
+            throw new Exception("Content must be less than 2000 characters");
+        }
+
+        // Validate dates
+        if ($_POST['start_date'] && !strtotime($_POST['start_date'])) {
+            throw new Exception("Invalid start date format");
+        }
+
+        if (!empty($_POST['end_date']) && !strtotime($_POST['end_date'])) {
+            throw new Exception("Invalid end date format");
+        }
+
+        if (!empty($_POST['end_date']) && strtotime($_POST['end_date']) <= strtotime($_POST['start_date'])) {
+            throw new Exception("End date must be after start date");
+        }
+    }
+
+    /**
+     * Validate CSRF token
+     */
+    private function validateCsrfToken() {
+        if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== ($_SESSION['csrf_token'] ?? '')) {
+            throw new Exception("Invalid CSRF token");
         }
     }
 

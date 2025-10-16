@@ -90,6 +90,24 @@
                 FOREIGN KEY (thesis_id) REFERENCES THESIS(ID) ON DELETE CASCADE,
                 FOREIGN KEY (reviewer_id) REFERENCES USER_INFORMATION(ID) ON DELETE CASCADE,
                 UNIQUE KEY unique_review (thesis_id, reviewer_id)
+            ) ENGINE=InnoDB;",
+
+            "CREATE TABLE IF NOT EXISTS ANNOUNCEMENTS (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                title VARCHAR(200) NOT NULL,
+                content TEXT NOT NULL,
+                type ENUM('deadline', 'event', 'important', 'maintenance', 'information') NOT NULL DEFAULT 'information',
+                start_date DATETIME NOT NULL,
+                end_date DATETIME NULL,
+                is_pinned TINYINT(1) NOT NULL DEFAULT 0,
+                status ENUM('draft', 'published', 'archived') NOT NULL DEFAULT 'draft',
+                created_by INT NOT NULL,
+                created_at DATETIME NOT NULL,
+                updated_at DATETIME NULL,
+                INDEX idx_status (status),
+                INDEX idx_type (type),
+                INDEX idx_pinned (is_pinned),
+                INDEX idx_dates (start_date, end_date)
             ) ENGINE=InnoDB;"
 
             

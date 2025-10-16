@@ -1,4 +1,1101 @@
+// AnnouncementManager Class 
+class AnnouncementManager {
+      constructor() {
+        this.currentView = 'active';
+        this.announcements = [];
+        this.filteredAnnouncements = [];
+        this.currentFilter = 'all';
+        this.currentSort = 'newest';
+        this.isEditing = false;
+        
+        // Use setTimeout to ensure DOM is ready
+        setTimeout(() => {
+            this.initializeEventListeners();
+            this.loadAnnouncements();
+        }, 100);
+    }
 
+    initializeEventListeners() {
+    // View switching - check if elements exist first
+    const activeBtn = document.getElementById('activeAnnouncementsBtn');
+    const archivedBtn = document.getElementById('archivedAnnouncementsBtn');
+    const createBtn = document.getElementById('createAnnouncementBtn');
+    const cancelBtn = document.getElementById('cancelAnnouncementBtn');
+
+    if (activeBtn) {
+        activeBtn.addEventListener('click', () => this.switchView('active'));
+    }
+    if (archivedBtn) {
+        archivedBtn.addEventListener('click', () => this.switchView('archived'));
+    }
+    if (createBtn) {
+        createBtn.addEventListener('click', () => this.switchView('create'));
+    }
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => this.cancelEdit());
+    }
+
+    // Form submission - only add listener if form exists
+    const announcementForm = document.getElementById('announcementForm');
+    if (announcementForm) {
+        announcementForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
+    } else {
+        console.warn('Announcement form not found during initialization');
+    }
+
+    // Search and filter
+    const searchInput = document.getElementById('announcementSearchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value));
+    }
+    
+    this.initializeDropdowns();
+    this.initializeTypeSelection();
+    this.initializePinCheckbox();
+
+    // Character counters - only add listeners if elements exist
+    const titleInput = document.getElementById('announcementTitle');
+    const contentInput = document.getElementById('announcementContent');
+    
+    if (titleInput) {
+        titleInput.addEventListener('input', (e) => this.updateCharCounter(e.target, 'titleCharCount', 200));
+    }
+    if (contentInput) {
+        contentInput.addEventListener('input', (e) => this.updateCharCounter(e.target, 'contentCharCount', 2000));
+    }
+
+}
+
+    initializePinCheckbox() {
+    const pinCheckbox = document.getElementById('announcementIsPinned');
+    const pinCheckboxCustom = document.querySelector('.form-checkbox .checkbox-custom');
+    
+    if (pinCheckbox && pinCheckboxCustom) {
+        // Toggle on custom checkbox click
+        pinCheckboxCustom.addEventListener('click', () => {
+            pinCheckbox.checked = !pinCheckbox.checked;
+            // Update visual state
+            this.updatePinCheckboxVisual(pinCheckbox.checked);
+        });
+
+        // Also toggle on label click
+        const pinLabel = document.querySelector('label[for="announcementIsPinned"]');
+        if (pinLabel) {
+            pinLabel.addEventListener('click', (e) => {
+                e.preventDefault();
+                pinCheckbox.checked = !pinCheckbox.checked;
+                this.updatePinCheckboxVisual(pinCheckbox.checked);
+            });
+        }
+
+        // Update visual state on checkbox change
+        pinCheckbox.addEventListener('change', () => {
+            this.updatePinCheckboxVisual(pinCheckbox.checked);
+        });
+
+        // Initialize visual state
+        this.updatePinCheckboxVisual(pinCheckbox.checked);
+    }
+}
+
+updatePinCheckboxVisual(isChecked) {
+    const pinCheckboxCustom = document.querySelector('.form-checkbox .checkbox-custom');
+    const pinLabel = document.querySelector('label[for="announcementIsPinned"]');
+    
+    if (pinCheckboxCustom) {
+        if (isChecked) {
+            pinCheckboxCustom.classList.add('checked');
+            pinCheckboxCustom.innerHTML = '<i class="fas fa-check"></i>';
+        } else {
+            pinCheckboxCustom.classList.remove('checked');
+            pinCheckboxCustom.innerHTML = '';
+        }
+    }
+
+    if (pinLabel) {
+        if (isChecked) {
+            pinLabel.style.color = 'var(--primary-color)';
+            pinLabel.style.fontWeight = '600';
+        } else {
+            pinLabel.style.color = '';
+            pinLabel.style.fontWeight = '';
+        }
+    }
+}
+
+initializeDropdowns() {
+    // Filter dropdown
+    const filterDropdown = document.getElementById('announcementFilterDropdown');
+    if (filterDropdown) {
+        const selectedText = filterDropdown.querySelector('.selected span');
+        const options = filterDropdown.querySelectorAll('.options div');
+        
+        // Toggle dropdown on click
+        filterDropdown.querySelector('.selected').addEventListener('click', (e) => {
+            e.stopPropagation();
+            filterDropdown.classList.toggle('active');
+        });
+        
+        // Handle option selection
+        options.forEach(option => {
+            option.addEventListener('click', () => {
+                const value = option.getAttribute('data-value');
+                selectedText.textContent = option.textContent;
+                filterDropdown.classList.remove('active');
+                
+                // Update current filter and apply
+                this.currentFilter = value;
+                this.applyFiltersAndSort();
+            });
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!filterDropdown.contains(e.target)) {
+                filterDropdown.classList.remove('active');
+            }
+        });
+    }
+
+    // Sort dropdown
+    const sortDropdown = document.getElementById('announcementSortDropdown');
+    if (sortDropdown) {
+        const selectedText = sortDropdown.querySelector('.selected span');
+        const options = sortDropdown.querySelectorAll('.options div');
+        
+        // Toggle dropdown on click
+        sortDropdown.querySelector('.selected').addEventListener('click', (e) => {
+            e.stopPropagation();
+            sortDropdown.classList.toggle('active');
+        });
+        
+        // Handle option selection
+        options.forEach(option => {
+            option.addEventListener('click', () => {
+                const value = option.getAttribute('data-value');
+                selectedText.textContent = option.textContent;
+                sortDropdown.classList.remove('active');
+                
+                // Update current sort and apply
+                this.currentSort = value;
+                this.applyFiltersAndSort();
+            });
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!sortDropdown.contains(e.target)) {
+                sortDropdown.classList.remove('active');
+            }
+        });
+    }
+}
+
+   switchView(view) {
+    this.currentView = view;
+    
+    // Update button states - safely check if elements exist
+    const menuButtons = document.querySelectorAll('#announcementHeader .menu button');
+    if (menuButtons.length > 0) {
+        menuButtons.forEach(btn => {
+            btn.classList.remove('selected');
+        });
+        
+        const targetBtn = document.getElementById(`${view}AnnouncementsBtn`);
+        if (targetBtn) {
+            targetBtn.classList.add('selected');
+        }
+    }
+
+    // Show/hide views - safely check if elements exist
+    const activeView = document.getElementById('activeAnnouncementsView');
+    const archivedView = document.getElementById('archivedAnnouncementsView');
+    const createView = document.getElementById('createAnnouncementView');
+
+    if (activeView) {
+        activeView.style.display = view === 'active' ? 'block' : 'none';
+    }
+    if (archivedView) {
+        archivedView.style.display = view === 'archived' ? 'block' : 'none';
+    }
+    if (createView) {
+        createView.style.display = view === 'create' ? 'block' : 'none';
+    }
+
+    if (view === 'active') {
+        this.loadAnnouncements();
+    } else if (view === 'archived') {
+        this.loadArchivedAnnouncements();
+    } else if (view === 'create') {
+        this.resetForm(); // Only reset form when switching to create view
+    }
+}
+
+    async loadAnnouncements() {
+        try {
+            this.showLoading('activeAnnouncementsGrid');
+            
+            const response = await fetch('../../../app/Controllers/AdminDashboardController.php?action=getActiveAnnouncements');
+            const data = await response.json();
+            
+            if (data.success) {
+                this.announcements = data.announcements;
+                this.applyFiltersAndSort();
+            } else {
+                throw new Error(data.error || 'Failed to load announcements');
+            }
+        } catch (error) {
+            console.error('Error loading announcements:', error);
+            this.showError('activeAnnouncementsGrid', 'Failed to load announcements');
+        }
+    }
+
+    async loadArchivedAnnouncements() {
+        try {
+            this.showLoading('archivedAnnouncementsGrid');
+            
+            const response = await fetch('../../../app/Controllers/AdminDashboardController.php?action=getArchivedAnnouncements');
+            const data = await response.json();
+            
+            if (data.success) {
+                this.displayAnnouncements(data.announcements, 'archivedAnnouncementsGrid', true);
+            } else {
+                throw new Error(data.error || 'Failed to load archived announcements');
+            }
+        } catch (error) {
+            console.error('Error loading archived announcements:', error);
+            this.showError('archivedAnnouncementsGrid', 'Failed to load archived announcements');
+        }
+    }
+
+    applyFiltersAndSort() {
+        this.applyFilters();
+        this.applySorting();
+    }
+
+    applyFilters() {
+        let filtered = this.announcements;
+
+        // Apply type filter
+        if (this.currentFilter !== 'all') {
+            filtered = filtered.filter(announcement => announcement.type === this.currentFilter);
+        }
+
+        this.filteredAnnouncements = filtered;
+        this.displayAnnouncements(filtered, 'activeAnnouncementsGrid');
+    }
+
+    applySorting() {
+        let sorted = [...this.filteredAnnouncements];
+
+        switch (this.currentSort) {
+            case 'newest':
+                sorted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                break;
+            case 'oldest':
+                sorted.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+                break;
+            case 'title':
+                sorted.sort((a, b) => a.title.localeCompare(b.title));
+                break;
+            case 'expiring':
+                sorted.sort((a, b) => {
+                    const aDate = a.end_date ? new Date(a.end_date) : new Date('9999-12-31');
+                    const bDate = b.end_date ? new Date(b.end_date) : new Date('9999-12-31');
+                    return aDate - bDate;
+                });
+                break;
+        }
+
+        this.displayAnnouncements(sorted, 'activeAnnouncementsGrid');
+    }
+
+    displayAnnouncements(announcements, containerId, isArchived = false) {
+        const container = document.getElementById(containerId);
+        
+        if (!announcements || announcements.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-${isArchived ? 'archive' : 'bullhorn'}"></i>
+                    <h4>No ${isArchived ? 'Archived' : 'Active'} Announcements</h4>
+                    <p>${isArchived ? 'Archived announcements will appear here' : 'Create your first announcement to get started'}</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = announcements.map(announcement => this.createAnnouncementCard(announcement, isArchived)).join('');
+        
+        // Add event listeners to action buttons
+        this.attachCardEventListeners(containerId, isArchived);
+    }
+
+    createAnnouncementCard(announcement, isArchived = false) {
+    const isExpired = announcement.end_date && new Date(announcement.end_date) < new Date();
+    const isPinned = announcement.is_pinned && !isArchived;
+    const typeClass = announcement.type || 'information';
+    const contentPreview = this.escapeHtml(announcement.content.length > 200 ? announcement.content.substring(0, 200) + '...' : announcement.content);
+    
+    return `
+        <div class="announcement-card-ui ${typeClass} ${isPinned ? 'pinned' : ''} ${isExpired ? 'expired' : ''}" data-id="${announcement.id}">
+            ${isPinned ? '<span class="pinned-badge">📌 Pinned</span>' : ''}
+
+            <!-- Banner Section -->
+            <div class="announcement-card-banner">
+            <img src="../../../resources/images/Announcement_pic.png" alt="Banner" class="announcement-bg"/>
+            <div class="announcement-badge ${typeClass}">${typeClass}</div>
+            
+            </div>
+
+
+            <!-- Content Section -->
+            <div class="announcement-card-content">
+                <h3 class="announcement-title">${this.escapeHtml(announcement.title)}</h3>
+                <p class="announcement-date">
+                    ${announcement.start_date ? this.formatDate(announcement.start_date) : this.formatDate(announcement.created_at)}
+                </p>
+                <div class="announcement-content-text" id="content-${announcement.id}">
+                    ${contentPreview}
+                </div>
+                ${announcement.content.length > 200 ? 
+                    `<button class="read-more-btn" data-id="${announcement.id}">Read More</button>` : ''}
+            </div>
+
+            <!-- Footer Section -->
+            <div class="announcement-footer">
+                <div class="announcement-dates">
+                    <div>Created: ${this.formatDate(announcement.created_at)}</div>
+                    ${announcement.start_date ? `<div>Starts: ${this.formatDate(announcement.start_date)}</div>` : ''}
+                    ${announcement.end_date ? `<div>Ends: ${this.formatDate(announcement.end_date)}</div>` : ''}
+                </div>
+
+                <div class="announcement-actions">
+                    ${!isArchived ? `
+                        <button class="announcement-action-btn edit-btn" data-action="edit" data-id="${announcement.id}">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="announcement-action-btn pin-btn" data-action="togglePin" data-id="${announcement.id}">
+                            <i class="fas fa-thumbtack"></i> ${announcement.is_pinned ? 'Unpin' : 'Pin'}
+                        </button>
+                        <button class="announcement-action-btn archive-btn" data-action="archive" data-id="${announcement.id}">
+                            <i class="fas fa-archive"></i> Archive
+                        </button>
+                    ` : `
+                        <button class="announcement-action-btn edit-btn" data-action="restore" data-id="${announcement.id}">
+                            <i class="fas fa-undo"></i> Restore
+                        </button>
+                    `}
+                    <button class="announcement-action-btn delete-btn" data-action="delete" data-id="${announcement.id}">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+
+    attachCardEventListeners(containerId, isArchived = false) {
+        const container = document.getElementById(containerId);
+        
+        // Read more/less buttons
+        container.querySelectorAll('.read-more-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const announcementId = e.target.getAttribute('data-id');
+                const contentElement = document.getElementById(`content-${announcementId}`);
+                const isExpanded = contentElement.classList.contains('expanded');
+                
+                if (isExpanded) {
+                    contentElement.classList.remove('expanded');
+                    e.target.textContent = 'Read More';
+                } else {
+                    contentElement.classList.add('expanded');
+                    e.target.textContent = 'Read Less';
+                }
+            });
+        });
+
+        // Action buttons
+        container.querySelectorAll('.announcement-action-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const action = e.target.getAttribute('data-action');
+                const announcementId = e.target.getAttribute('data-id');
+                
+                this.handleCardAction(action, announcementId, isArchived);
+            });
+        });
+    }
+
+    async handleCardAction(action, announcementId, isArchived = false) {
+        try {
+            switch (action) {
+                case 'edit':
+                    await this.editAnnouncement(announcementId);
+                    break;
+                case 'togglePin':
+                    await this.togglePinAnnouncement(announcementId);
+                    break;
+                case 'archive':
+                    await this.archiveAnnouncement(announcementId);
+                    break;
+                case 'restore':
+                    await this.restoreAnnouncement(announcementId);
+                    break;
+                case 'delete':
+                    await this.deleteAnnouncement(announcementId, isArchived);
+                    break;
+            }
+        } catch (error) {
+            console.error('Error handling card action:', error);
+            this.showError('Failed to perform action');
+        }
+    }
+
+    async editAnnouncement(announcementId) {
+        try {
+            const response = await fetch(`../../../app/Controllers/AdminDashboardController.php?action=getAnnouncement&id=${announcementId}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                this.populateForm(data.announcement);
+                this.switchView('create');
+                this.isEditing = true;
+            } else {
+                throw new Error(data.error || 'Failed to load announcement data');
+            }
+        } catch (error) {
+            console.error('Error loading announcement for edit:', error);
+            this.showError('Failed to load announcement for editing');
+        }
+    }
+
+     populateForm(announcement) {
+    const announcementId = document.getElementById('announcementId');
+    const announcementTitle = document.getElementById('announcementTitle');
+    const announcementType = document.getElementById('announcementType');
+    const announcementContent = document.getElementById('announcementContent');
+    const announcementIsPinned = document.getElementById('announcementIsPinned');
+    const announcementStartDate = document.getElementById('announcementStartDate');
+    const announcementEndDate = document.getElementById('announcementEndDate');
+    
+    // Safely set values only if elements exist
+    if (announcementId) announcementId.value = announcement.id;
+    if (announcementTitle) announcementTitle.value = announcement.title;
+    if (announcementType) announcementType.value = announcement.type;
+    if (announcementContent) announcementContent.value = announcement.content;
+    if (announcementIsPinned) announcementIsPinned.checked = announcement.is_pinned == 1;
+
+    // Format dates for datetime-local input
+    if (announcementStartDate && announcement.start_date) {
+        announcementStartDate.value = this.formatDateForInput(announcement.start_date);
+    }
+    if (announcementEndDate && announcement.end_date) {
+        announcementEndDate.value = this.formatDateForInput(announcement.end_date);
+    }
+
+    // Update UI for edit mode - safely check if elements exist
+    const createAnnouncementTitle = document.getElementById('createAnnouncementTitle');
+    const createAnnouncementSubtitle = document.getElementById('createAnnouncementSubtitle');
+    
+    if (createAnnouncementTitle) {
+        createAnnouncementTitle.textContent = 'Edit Announcement';
+    }
+    if (createAnnouncementSubtitle) {
+        createAnnouncementSubtitle.textContent = 'Update announcement details';
+    }
+
+    // Update character counters - safely check if elements exist
+    if (announcementTitle) {
+        this.updateCharCounter(announcementTitle, 'titleCharCount', 200);
+    }
+    if (announcementContent) {
+        this.updateCharCounter(announcementContent, 'contentCharCount', 2000);
+    }
+}
+    async togglePinAnnouncement(announcementId) {
+        const result = await Swal.fire({
+            title: 'Toggle Pin?',
+            text: 'Do you want to pin/unpin this announcement?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, toggle pin',
+            cancelButtonText: 'Cancel'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const formData = new FormData();
+                formData.append('id', announcementId);
+                formData.append('action', 'togglePinAnnouncement');
+
+                const response = await fetch('../../../app/Controllers/AdminDashboardController.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    this.showSuccess('Announcement pin status updated');
+                    this.loadAnnouncements();
+                } else {
+                    throw new Error(data.error || 'Failed to toggle pin status');
+                }
+            } catch (error) {
+                console.error('Error toggling pin status:', error);
+                this.showError('Failed to update pin status');
+            }
+        }
+    }
+
+    async archiveAnnouncement(announcementId) {
+        const result = await Swal.fire({
+            title: 'Archive Announcement?',
+            text: 'This announcement will be moved to archived section',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, archive it',
+            cancelButtonText: 'Cancel'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const formData = new FormData();
+                formData.append('id', announcementId);
+                formData.append('action', 'archiveAnnouncement');
+
+                const response = await fetch('../../../app/Controllers/AdminDashboardController.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    this.showSuccess('Announcement archived successfully');
+                    this.loadAnnouncements();
+                } else {
+                    throw new Error(data.error || 'Failed to archive announcement');
+                }
+            } catch (error) {
+                console.error('Error archiving announcement:', error);
+                this.showError('Failed to archive announcement');
+            }
+        }
+    }
+
+    async restoreAnnouncement(announcementId) {
+        try {
+            const formData = new FormData();
+            formData.append('id', announcementId);
+            formData.append('action', 'restoreAnnouncement');
+
+            const response = await fetch('../../../app/Controllers/AdminDashboardController.php', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.showSuccess('Announcement restored successfully');
+                this.loadArchivedAnnouncements();
+            } else {
+                throw new Error(data.error || 'Failed to restore announcement');
+            }
+        } catch (error) {
+            console.error('Error restoring announcement:', error);
+            this.showError('Failed to restore announcement');
+        }
+    }
+
+    async deleteAnnouncement(announcementId, isArchived = false) {
+        const result = await Swal.fire({
+            title: 'Delete Announcement?',
+            text: 'This action cannot be undone',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, delete it',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#dc3545'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const formData = new FormData();
+                formData.append('id', announcementId);
+                formData.append('action', 'deleteAnnouncement');
+
+                const response = await fetch('../../../app/Controllers/AdminDashboardController.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    this.showSuccess('Announcement deleted successfully');
+                    if (isArchived) {
+                        this.loadArchivedAnnouncements();
+                    } else {
+                        this.loadAnnouncements();
+                    }
+                } else {
+                    throw new Error(data.error || 'Failed to delete announcement');
+                }
+            } catch (error) {
+                console.error('Error deleting announcement:', error);
+                this.showError('Failed to delete announcement');
+            }
+        }
+    }
+
+
+    async handleFormSubmit(e) {
+    e.preventDefault();
+    
+    console.log('Form submit triggered, current view:', this.currentView);
+    
+    // Check if we're in the correct view and form exists
+    if (this.currentView !== 'create') {
+        console.error('Cannot submit form: Not in create view. Current view:', this.currentView);
+        this.showError('Cannot submit form in current view.');
+        return;
+    }
+
+    const form = document.getElementById('announcementForm');
+    if (!form) {
+        console.error('Form not found');
+        this.showError('Form not found. Please refresh the page and try again.');
+        return;
+    }
+
+    // Show loading state
+    const submitBtn = document.getElementById('publishAnnouncementBtn');
+    if (!submitBtn) {
+        console.error('Submit button not found');
+        return;
+    }
+
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publishing...';
+    submitBtn.disabled = true;
+
+    try {
+        console.log('Starting announcement submission...');
+        
+        // Get form data
+        const formData = new FormData(form);
+        formData.append('action', this.isEditing ? 'updateAnnouncement' : 'createAnnouncement');
+
+        // Validate form
+        console.log('Validating form...');
+        if (!this.validateForm()) {
+            console.log('Form validation failed');
+            throw new Error('Form validation failed');
+        }
+        console.log('Form validation passed');
+
+        // Use the correct endpoint with action parameter
+        console.log('Sending request to server...');
+        const action = this.isEditing ? 'updateAnnouncement' : 'createAnnouncement';
+        const response = await fetch(`../../../app/Controllers/AdminDashboardController.php?action=${action}`, {
+            method: 'POST',
+            body: formData
+        });
+
+        // Log response status
+        console.log('Response status:', response.status, response.statusText);
+
+        const responseText = await response.text();
+        console.log('Raw server response:', responseText);
+
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch (parseError) {
+            console.error('JSON parse error:', parseError);
+            
+            // Try to extract JSON from the response
+            const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                try {
+                    data = JSON.parse(jsonMatch[0]);
+                    console.log('Successfully extracted JSON from response');
+                } catch (e) {
+                    console.error('Failed to parse extracted JSON:', e);
+                    throw new Error('Server returned invalid JSON format. Raw response: ' + responseText.substring(0, 200));
+                }
+            } else {
+                // Check if it's a PHP error
+                if (responseText.includes('Fatal error') || responseText.includes('Parse error') || responseText.includes('Warning') || responseText.includes('Notice')) {
+                    throw new Error('PHP error detected: ' + responseText.substring(0, 300));
+                } else {
+                    throw new Error('Server returned non-JSON response: ' + responseText.substring(0, 200));
+                }
+            }
+        }
+
+        console.log('Parsed response data:', data);
+
+        if (data.success) {
+            // Use SweetAlert for success message
+            await Swal.fire({
+                title: 'Success!',
+                text: this.isEditing ? 'Announcement updated successfully' : 'Announcement created successfully',
+                icon: 'success',
+                confirmButtonText: 'OK',
+                timer: 3000
+            });
+            
+            this.switchView('active');
+            this.resetForm();
+            this.loadAnnouncements();
+        } else {
+            // Show the actual error message from server
+            const errorMessage = data.error || data.message || 'Unknown server error';
+            console.error('Server returned error:', errorMessage);
+            throw new Error(errorMessage);
+        }
+        
+    } catch (error) {
+        console.error('Error saving announcement:', error);
+        // Don't show the error if it's just validation failure
+        if (error.message !== 'Form validation failed') {
+            this.showError(`Failed to ${this.isEditing ? 'update' : 'create'} announcement: ${error.message}`);
+        }
+    } finally {
+        // Restore button state
+        if (submitBtn) {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    }
+}
+
+
+    validateForm() {
+    // Safely get form elements - match your actual HTML structure
+    const titleInput = document.getElementById('announcementTitle');
+    const contentInput = document.getElementById('announcementContent');
+    
+    // For type selection, you have radio buttons with class 'type-card', not a select dropdown
+    const selectedType = document.querySelector('input[name="type"]:checked');
+    
+    const startDateInput = document.getElementById('announcementStartDate');
+    const endDateInput = document.getElementById('announcementEndDate');
+
+    // Check if essential elements exist before accessing their values
+    if (!titleInput || !contentInput || !startDateInput) {
+        this.showError('Form elements not found. Please refresh the page and try again.');
+        return false;
+    }
+
+    const title = titleInput.value.trim();
+    const content = contentInput.value.trim();
+    const type = selectedType ? selectedType.value : '';
+    const startDate = startDateInput.value;
+
+    console.log('Form validation values:', { title, content, type, startDate }); // Debug log
+
+    if (!title) {
+        this.showError('Please enter a title');
+        titleInput.focus();
+        return false;
+    }
+
+    if (!content) {
+        this.showError('Please enter announcement content');
+        contentInput.focus();
+        return false;
+    }
+
+    if (!type) {
+        this.showError('Please select an announcement type');
+        return false;
+    }
+
+    if (!startDate) {
+        this.showError('Please select a start date');
+        startDateInput.focus();
+        return false;
+    }
+
+    // Validate end date if provided
+    const endDate = endDateInput ? endDateInput.value : '';
+    if (endDate && new Date(endDate) <= new Date(startDate)) {
+        this.showError('End date must be after start date');
+        if (endDateInput) endDateInput.focus();
+        return false;
+    }
+
+    return true;
+}
+
+    async saveAsDraft() {
+        const formData = new FormData(document.getElementById('announcementForm'));
+        formData.append('action', 'saveAnnouncementDraft');
+        formData.append('status', 'draft');
+
+        try {
+            const response = await fetch('../../../app/Controllers/AdminDashboardController.php', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.showSuccess('Draft saved successfully');
+                this.switchView('active');
+                this.resetForm();
+                this.loadAnnouncements();
+            } else {
+                throw new Error(data.error || 'Failed to save draft');
+            }
+        } catch (error) {
+            console.error('Error saving draft:', error);
+            this.showError('Failed to save draft');
+        }
+    }
+
+     resetForm() {
+    const form = document.getElementById('announcementForm');
+    if (!form) return; 
+    
+    form.reset();
+
+    // Reset type selection to default (information)
+    const typeCards = document.querySelectorAll('.type-card');
+    typeCards.forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Select the information type by default
+    const infoTypeCard = document.querySelector('.type-card[data-type="information"]');
+    if (infoTypeCard) {
+        infoTypeCard.classList.add('selected');
+        const radio = infoTypeCard.querySelector('input[type="radio"]');
+        if (radio) {
+            radio.checked = true;
+        }
+    }
+
+    // Reset pin checkbox
+    const pinCheckbox = document.getElementById('announcementIsPinned');
+    if (pinCheckbox) {
+        pinCheckbox.checked = false;
+        this.updatePinCheckboxVisual(false);
+    }
+    
+    const announcementId = document.getElementById('announcementId');
+    const announcementType = document.getElementById('announcementType');
+    const announcementIsPinned = document.getElementById('announcementIsPinned');
+    const announcementStartDate = document.getElementById('announcementStartDate');
+    
+    // Safely set values only if elements exist
+    if (announcementId) announcementId.value = '';
+    if (announcementType) announcementType.value = 'information';
+    if (announcementIsPinned) announcementIsPinned.checked = false;
+
+    // Set default start date to current datetime if element exists
+    if (announcementStartDate) {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        announcementStartDate.value = now.toISOString().slice(0, 16);
+    }
+
+    // Reset UI - safely check if elements exist
+    const createAnnouncementTitle = document.getElementById('createAnnouncementTitle');
+    const createAnnouncementSubtitle = document.getElementById('createAnnouncementSubtitle');
+    
+    if (createAnnouncementTitle) {
+        createAnnouncementTitle.textContent = 'Create New Announcement';
+    }
+    if (createAnnouncementSubtitle) {
+        createAnnouncementSubtitle.textContent = 'Share important information with users';
+    }
+
+    // Reset character counters - safely check if elements exist
+    const titleInput = document.getElementById('announcementTitle');
+    const contentInput = document.getElementById('announcementContent');
+    
+    if (titleInput) {
+        this.updateCharCounter(titleInput, 'titleCharCount', 200);
+    }
+    if (contentInput) {
+        this.updateCharCounter(contentInput, 'contentCharCount', 2000);
+    }
+
+    this.isEditing = false;
+}
+
+    updatePublishButtonText(status) {
+    const publishBtn = document.getElementById('publishAnnouncementBtn');
+    const buttonText = document.getElementById('publishButtonText');
+    
+    if (publishBtn && buttonText) {
+        if (status === 'draft') {
+            buttonText.textContent = 'Publish';
+            publishBtn.className = 'btn btn-secondary';
+        } else {
+            buttonText.textContent = 'Publish Announcement';
+            publishBtn.className = 'btn btn-primary';
+        }
+    }
+}
+
+    cancelEdit() {
+        if (this.isEditing) {
+            Swal.fire({
+                title: 'Cancel Editing?',
+                text: 'Any unsaved changes will be lost',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, cancel',
+                cancelButtonText: 'Continue editing'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    this.switchView('active');
+                    this.resetForm();
+                }
+            });
+        } else {
+            this.switchView('active');
+        }
+    }
+
+    handleSearch(searchTerm) {
+        if (!searchTerm) {
+            this.applyFilters();
+            return;
+        }
+
+        const filtered = this.filteredAnnouncements.filter(announcement => 
+            announcement.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            announcement.content.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+        this.displayAnnouncements(filtered, 'activeAnnouncementsGrid');
+    }
+
+    updateCharCounter(element, counterId, maxLength) {
+        const counter = document.getElementById(counterId);
+        const currentLength = element.value.length;
+        
+        counter.textContent = currentLength;
+        
+        // Update color based on length
+        counter.className = 'char-counter';
+        if (currentLength > maxLength * 0.8) {
+            counter.classList.add('warning');
+        }
+        if (currentLength > maxLength) {
+            counter.classList.add('error');
+        }
+    }
+
+    // Utility methods
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    formatDateForInput(dateString) {
+        const date = new Date(dateString);
+        return date.toISOString().slice(0, 16);
+    }
+
+    showLoading(containerId) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = `
+            <div class="loading-state">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Loading announcements...</p>
+            </div>
+        `;
+    }
+
+    showError(containerId, message) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h4>Error Loading Content</h4>
+                <p>${message}</p>
+                <button class="btn btn-primary" onclick="announcementManager.loadAnnouncements()">Try Again</button>
+            </div>
+        `;
+    }
+
+    showSuccess(message) {
+        Swal.fire({
+            title: 'Success!',
+            text: message,
+            icon: 'success',
+            confirmButtonText: 'OK',
+            timer: 3000
+        });
+    }
+
+    showError(message) {
+        Swal.fire({
+            title: 'Error!',
+            text: message,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+
+    // Add this method to your AnnouncementManager class
+debugFormData() {
+    const form = document.getElementById('announcementForm');
+    const formData = new FormData(form);
+    
+    console.log('=== FORM DATA DEBUG ===');
+    for (let [key, value] of formData.entries()) {
+        console.log(`${key}:`, value);
+    }
+    console.log('=== END FORM DATA ===');
+}
+
+    initializeTypeSelection() {
+    const typeCards = document.querySelectorAll('.type-card');
+    typeCards.forEach(card => {
+        card.addEventListener('click', () => {
+            // Remove selected class from all cards
+            typeCards.forEach(c => c.classList.remove('selected'));
+            
+            // Add selected class to clicked card
+            card.classList.add('selected');
+            
+            // Check the radio button
+            const radio = card.querySelector('input[type="radio"]');
+            if (radio) {
+                radio.checked = true;
+            }
+        });
+    });
+}
+
+
+}
+
+// Now the DOMContentLoaded event starts here
+console.log('AnnouncementManager available:', typeof AnnouncementManager !== 'undefined');
 
 document.addEventListener('DOMContentLoaded', function() {
     // Profile functionality (existing code)
@@ -12,16 +1109,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const uploadModal = document.getElementById('uploadModal');
     const previewModal = document.getElementById('previewModal');
 
-
     const abstractDropArea = document.getElementById('abstractDropArea');
     const thesisDropArea = document.getElementById('thesisDropArea');
     const abstractFileInput = document.getElementById('abstractFileInput');
     const thesisFileInput = document.getElementById('thesisFileInput');
 
-
     const btnUpload = document.querySelector('.btn-upload');
     
-  
     const downloadLink = document.getElementById('download-link');
     const docViewerIframe = document.getElementById('doc-viewer-iframe');
     const pdfViewer = document.getElementById('pdf-viewer');
@@ -50,15 +1144,10 @@ document.addEventListener('DOMContentLoaded', function() {
     logoutMenu.className = 'logout-menu';
 
     //session data
- 
     const userName = userDisplayData ? userDisplayData.user_name : '';
     const userRole = userDisplayData ? userDisplayData.user_role : '';
- 
 
     const displayName = userName;
-
-    
-    
 
     // Changed to select buttons instead of li elements
     const menuButtons = document.querySelectorAll('.header .menu button');
@@ -90,88 +1179,112 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Initialize sidebar functionality
     function initializeSidebar() {
-        const sidebarOptions = document.querySelectorAll('.menu-options li');
-        const contentContainers = {
-            'dashboard': document.querySelector('.projects-container'),
-            'users': document.getElementById('access-container'),
-            'accounts': document.getElementById('accounts-container'),
-            'logs': document.getElementById('logs-container')
-        };
+    const sidebarOptions = document.querySelectorAll('.menu-options li');
+    const contentContainers = {
+        'dashboard': document.querySelector('.projects-container'),
+        'users': document.getElementById('access-container'),
+        'accounts': document.getElementById('accounts-container'),
+        'logs': document.getElementById('logs-container'),
+        'announcement': document.getElementById('announcement-container')
+    };
 
-        // Function to switch sidebar views
-        function switchSidebarView(viewId) {
-            const header = document.querySelector('.header');
-            const appContentHeader = document.querySelector('.app-content-header');
-            const mainContent = document.querySelector('.main-content');
-            
-            // Hide all content containers
-            Object.values(contentContainers).forEach(container => {
-                if (container) {
-                    container.style.display = 'none';
-                    container.classList.remove('content-container-active');
-                }
-            });
-            
-            // Show the selected content container
-            if (contentContainers[viewId]) {
-                contentContainers[viewId].style.display = 'block';
-                contentContainers[viewId].classList.add('content-container-active');
+    // Function to switch sidebar views
+    function switchSidebarView(viewId) {
+        const header = document.querySelector('.header');
+        const appContentHeader = document.querySelector('.app-content-header');
+        const mainContent = document.querySelector('.main-content');
         
-                // Show app-content-header only for dashboard view
-                if (viewId === 'dashboard') {
-                    if (appContentHeader) appContentHeader.style.display = 'flex';
-                } else {
-                    if (appContentHeader) appContentHeader.style.display = 'none';
-                }
-                
-                // Special handling for logs view
-                if (viewId === 'logs') {
-                    // Ensure user log is shown by default
-                    const userLogView = document.getElementById('userLog-container');
-                    const userButton = document.getElementById('userButton');
-                    if (userLogView && userButton) {
-                        switchLogView(userLogView, userButton);
-                    }
-                }
-                
-                // NEW: Reset access management state when switching to users view
-                if (viewId === 'users') {
-                    resetAccessManagementState();
-                }
+        // Hide all content containers
+        Object.values(contentContainers).forEach(container => {
+            if (container) {
+                container.style.display = 'none';
+                container.classList.remove('content-container-active');
             }
-            
-            // Update active states in sidebar
-            sidebarOptions.forEach(option => {
-                option.classList.remove('selected');
-            });
-            
-            // Find and select the clicked option
-            const clickedOption = Array.from(sidebarOptions).find(option => {
-                return option.getAttribute('data-view') === viewId;
-            });
-            
-            if (clickedOption) {
-                clickedOption.classList.add('selected');
-            }
-        }
-
-        // Add event listeners to sidebar options
-        sidebarOptions.forEach((option, index) => {
-            // Set data attributes to identify each option
-            const viewIds = ['dashboard', 'users', 'accounts', 'logs'];
-            option.setAttribute('data-view', viewIds[index] || `option-${index}`);
-            
-            option.addEventListener('click', function() {
-                const viewId = this.getAttribute('data-view');
-                switchSidebarView(viewId);
-            });
         });
-
-        // Initialize with dashboard view
-        switchSidebarView('dashboard');
+        
+        // Show the selected content container
+        if (contentContainers[viewId]) {
+            contentContainers[viewId].style.display = 'block';
+            contentContainers[viewId].classList.add('content-container-active');
+    
+            // Show app-content-header only for dashboard view
+            if (viewId === 'dashboard') {
+                if (appContentHeader) appContentHeader.style.display = 'flex';
+            } else {
+                if (appContentHeader) appContentHeader.style.display = 'none';
+            }
+            
+            // Special handling for logs view
+            if (viewId === 'logs') {
+                // Ensure user log is shown by default
+                const userLogView = document.getElementById('userLog-container');
+                const userButton = document.getElementById('userButton');
+                if (userLogView && userButton) {
+                    switchLogView(userLogView, userButton);
+                }
+            }
+            
+            // NEW: Reset access management state when switching to users view
+            if (viewId === 'users') {
+                resetAccessManagementState();
+            }
+            
+            // Initialize announcement functionality when announcement view is shown
+            if (viewId === 'announcement') {
+                setTimeout(() => {
+                    if (typeof AnnouncementManager !== 'undefined') {
+                        if (!window.announcementManager) {
+                            console.log('Creating AnnouncementManager instance');
+                            window.announcementManager = new AnnouncementManager();
+                    } else {
+                            console.log('AnnouncementManager instance already exists');
+                // Ensure the view is properly set
+                window.announcementManager.switchView('active');
+            }
+            
+            // Ensure the container is properly displayed
+            const announcementContainer = document.getElementById('announcement-container');
+            if (announcementContainer) {
+                console.log('Announcement container found and displayed');
+            }
+        } else {
+            console.error('AnnouncementManager class not found');
+        }
+    }, 300); // Increased delay to ensure DOM is ready
+}
+        }
+        
+        // Update active states in sidebar
+        sidebarOptions.forEach(option => {
+            option.classList.remove('selected');
+        });
+        
+        // Find and select the clicked option
+        const clickedOption = Array.from(sidebarOptions).find(option => {
+            return option.getAttribute('data-view') === viewId;
+        });
+        
+        if (clickedOption) {
+            clickedOption.classList.add('selected');
+        }
     }
+
+    // Add event listeners to sidebar options
+    sidebarOptions.forEach((option, index) => {
+        // Set data attributes to identify each option
+        const viewIds = ['dashboard', 'users', 'accounts', 'logs', 'announcement'];
+        option.setAttribute('data-view', viewIds[index] || `option-${index}`);
+        
+        option.addEventListener('click', function() {
+            const viewId = this.getAttribute('data-view');
+            switchSidebarView(viewId);
+        });
+    });
+
+    // Initialize with dashboard view
+    switchSidebarView('dashboard');
+}
 
     // Initialize sidebar
     initializeSidebar();
@@ -246,9 +1359,6 @@ document.addEventListener('DOMContentLoaded', function() {
             handleProjectItemClick(projectItem);
         }
     });
-
-    
-    
     
     function initializeUploadArea(dropArea, fileInput) {
         if (!dropArea || !fileInput) return;
@@ -487,8 +1597,6 @@ document.addEventListener('DOMContentLoaded', function() {
         updateUploadButtonState();
     }
     
-
-    
     // Display file in the list with preview
     function displayFile(file, fileType) {
         console.log('Displaying file:', file.name, 'Type:', fileType, 'Size:', file.size);
@@ -575,7 +1683,6 @@ document.addEventListener('DOMContentLoaded', function() {
             previewFile(fileName, fileType);
         });
     }
-    
 
     // Show empty state when no files
     function showEmptyState(fileType) {
@@ -756,7 +1863,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    
     function renderPage(pageNum) {
         if (!window.currentPdfDoc || typeof window.currentPdfDoc.getPage !== 'function') {
             console.error('Invalid PDF document');
@@ -823,8 +1929,6 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         unsupportedFile.style.display = 'block';
     }
-    
-    
     
     function addPdfControls(pdfDoc) {
         const pdfViewer = document.getElementById('pdf-viewer');
@@ -944,7 +2048,6 @@ document.addEventListener('DOMContentLoaded', function() {
             'thesisTitle',
             'thesisAuthor',
             'thesisAdviser'
-           
         ];
         
         formFields.forEach(fieldId => {
@@ -1128,8 +2231,6 @@ document.addEventListener('DOMContentLoaded', function() {
         animateOnScroll();
     }
 
-    
-
     function resetSortState() {
         const sortDropdown = document.getElementById('sortDropdown');
         if (sortDropdown) {
@@ -1161,7 +2262,6 @@ document.addEventListener('DOMContentLoaded', function() {
             currentView.appendChild(item);
         });
     }
-    
 
     function sortProjects(criteria) {
         console.log('Sorting by:', criteria);
@@ -1335,6 +2435,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (allView && allButton) {
         switchView(allView, allButton);
     }
+
     //download functionality for logs with SweetAlert confirmation
     const logDownloadButtons = document.querySelectorAll('.fa-file-arrow-down');
     logDownloadButtons.forEach(button => {
@@ -1464,7 +2565,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return ''; // Default if no role found
     }
 
-
     // Event listeners for access cards---------------------------------------------------------------------------------------------
     if (adminAccessBtn) {
         adminAccessBtn.addEventListener('click', function() {
@@ -1507,7 +2607,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
     
     if (studentAccessBtn) {
         studentAccessBtn.addEventListener('click', function() {
@@ -1553,8 +2652,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
-    
-    
 
     // Admin Access Management Search Functionality - FIXED
     const adminUserSearch = document.getElementById('adminUserSearch');
@@ -1613,8 +2710,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    
-
     // Save Admin Changes Function - FIXED (moved inside DOMContentLoaded)
     const saveAdminChangesBtn = document.getElementById('saveAdminChangesBtn');
     if (saveAdminChangesBtn) {
@@ -1668,7 +2763,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize the role change handling when the page loads
     initializeRoleChangeHandling();
 
-   
     // Account Management Filtering
     const allAccountsButton = document.getElementById('allAccountsButton');
     const pendingButton = document.getElementById('pendingButton');
@@ -1746,7 +2840,6 @@ document.addEventListener('DOMContentLoaded', function() {
         //     notFound.style.display = foundResults ? 'none' : 'block';
         // }
     }
-    
 
     // Event listeners for account filter buttons
     if (allAccountsButton && pendingButton && approvedButton) {
@@ -1770,7 +2863,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Account search functionality
     const accountSearchInput = document.getElementById('accountSearchInput');
-if (accountSearchInput) {
+    if (accountSearchInput) {
     accountSearchInput.addEventListener('input', function() {
         const searchTerm = this.value.toLowerCase().trim();
         const accountRows = document.querySelectorAll('.accounts-table tbody tr');
@@ -1806,7 +2899,7 @@ if (accountSearchInput) {
             }
         });
     });
-}
+    }
 
     //Logout Function
     logoutMenu.innerHTML = `
@@ -1848,7 +2941,6 @@ if (accountSearchInput) {
     });
 
     // Logout functionality from the menu
-    
     const logoutMenuBtn = logoutMenu.querySelector('.logout-menu-btn');
     if (logoutMenuBtn) {
         logoutMenuBtn.addEventListener('click', function() {
@@ -1872,8 +2964,6 @@ if (accountSearchInput) {
             logoutMenu.style.display = 'none';
         });
     }
-
-    
     
     // Function to track role changes
     function trackRoleChange(userId, role, isChecked) {
@@ -2070,13 +3160,12 @@ if (accountSearchInput) {
         });
     }
 
-    
-
     //Upload Functionality
     function isValidEmail(email) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(email.trim());
     }
+
     // Function to validate multiple USEP emails separated by commas
     function validateAuthorEmails(emailString) {
         if (!emailString.trim()) return { isValid: false, emails: [] };
@@ -2219,7 +3308,6 @@ if (accountSearchInput) {
                        adviserEmailValidation.isValid &&
                        isDepartmentSelected &&
                        isCourseSelected &&
-                      
                        hasAbstractFiles &&
                        hasThesisFiles;
         
@@ -2304,9 +3392,7 @@ if (accountSearchInput) {
             }
         }
         
-      
-
-         // Update visual feedback for department field
+        // Update visual feedback for department field
         if (departmentSelect) {
             if (!isDepartmentSelected) {
                 departmentSelect.style.borderColor = 'rgb(221, 221, 221)';
@@ -2332,7 +3418,6 @@ if (accountSearchInput) {
                 hardboundSelect.style.borderColor = '#51cf66';
             }
         
-    
         // Update file icon state
         updateFileIconState();
     }
@@ -2368,7 +3453,6 @@ if (accountSearchInput) {
                            adviserEmailValidation.isValid &&
                            isDepartmentSelected &&
                            courseInput.value.trim() !== '' &&
-                           
                            hasAbstractFiles &&
                            hasThesisFiles;
         
@@ -2426,49 +3510,7 @@ if (accountSearchInput) {
                 });
         });
     }
-    
 
-    function validateAuthorsBeforeUpload(authorEmails) {
-        return new Promise((resolve, reject) => {
-            const emails = authorEmails.split(',').map(email => email.trim()).filter(email => email !== '');
-            
-            if (emails.length === 0) {
-                resolve();
-                return;
-            }
-            
-            // Check if any emails belong to faculty
-            fetch('../../../app/Controllers/AdminDashboardController.php?action=checkUserRoles', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ emails: emails })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    if (data.facultyUsers && data.facultyUsers.length > 0) {
-                        reject(`Faculty users cannot be listed as authors. Please remove the following faculty emails: ${data.facultyUsers.join(', ')}`);
-                    } else {
-                        resolve();
-                    }
-                } else {
-                    reject(data.error || 'Error checking user roles');
-                }
-            })
-            .catch(error => {
-                console.error('Error validating authors:', error);
-                reject('Unable to verify user roles. Please try again.');
-            });
-        });
-    }
-    
     function initializeUploadModal() {
         const fabIcon = document.querySelector('.fab-icon');
         const uploadModal = document.getElementById('uploadModal');
@@ -2586,7 +3628,6 @@ if (accountSearchInput) {
                 const thesisId = uploadBtn.getAttribute('data-thesis-id');
                 
                 if (thesisId) {
-                    
                     updateThesis(thesisId);
                     return; // Stop further execution for update
                 }
@@ -3380,7 +4421,6 @@ if (accountSearchInput) {
     async function handleEditThesis(thesisId, thesisTitle) {
         try {
             
-            
             // Show loading state
             Swal.fire({
                 title: 'Loading...',
@@ -3394,14 +4434,11 @@ if (accountSearchInput) {
             // Fetch thesis data with error handling
             const response = await fetch(`../../../app/Controllers/ThesisController.php?action=editThesis&id=${thesisId}`);
             
-            
-            
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
             const responseText = await response.text();
-            
             
             // Check if response is empty
             if (!responseText.trim()) {
@@ -3413,8 +4450,6 @@ if (accountSearchInput) {
             try {
                 data = JSON.parse(responseText);
             } catch (parseError) {
-                
-                
                 // Try to extract JSON from any output buffering
                 const jsonMatch = responseText.match(/\{[\s\S]*\}/);
                 if (jsonMatch) {
@@ -3439,8 +4474,6 @@ if (accountSearchInput) {
             Swal.close();
             
             if (data.success && data.thesis) {
-                
-                
                 // Populate the upload modal with existing data
                 populateEditForm(data.thesis);
                 
@@ -3465,7 +4498,6 @@ if (accountSearchInput) {
                 throw new Error(data.error || 'Failed to load thesis data');
             }
         } catch (error) {
-            
             Swal.close(); // Ensure loading dialog is closed
             
             Swal.fire({
@@ -3476,10 +4508,6 @@ if (accountSearchInput) {
             });
         }
     }
-
-    
-
-    
 
     function downloadExistingFile(thesisId, fileType) {
         const url = fileType === 'abstract' 
@@ -3573,8 +4601,6 @@ if (accountSearchInput) {
         }
     }
 
-    
-
     function resetUploadForm() {
         // Clear uploaded files arrays
         uploadedFiles.abstract = [];
@@ -3650,7 +4676,54 @@ if (accountSearchInput) {
         });
     }
 
-    
+    // Announcement Management Functionality - SIMPLIFIED INITIALIZATION
+    function initializeAnnouncementTab() {
+        console.log('Initializing announcement tab...');
+        
+        // Initialize announcement functionality when announcement tab is shown
+        const announcementOption = document.querySelector('.menu-options li[data-view="announcement"]');
+        if (announcementOption) {
+            announcementOption.addEventListener('click', function() {
+                console.log('Announcement tab clicked');
+                // Small delay to ensure the container is visible
+                setTimeout(() => {
+                    if (typeof AnnouncementManager !== 'undefined') {
+                        console.log('AnnouncementManager is available');
+                        if (!window.announcementManager) {
+                            console.log('Creating new AnnouncementManager instance');
+                            window.announcementManager = new AnnouncementManager();
+                        } else {
+                            console.log('AnnouncementManager instance already exists');
+                        }
+                        // Ensure the container is properly displayed
+                        const announcementContainer = document.getElementById('announcement-container');
+                        if (announcementContainer) {
+                            console.log('Announcement container found:', announcementContainer);
+                            announcementContainer.style.display = 'block';
+                        } else {
+                            console.error('Announcement container not found');
+                        }
+                    } else {
+                        console.error('AnnouncementManager class not found');
+                    }
+                }, 100);
+            });
+        }
+
+        // Also initialize when the page loads if we're already on the announcement view
+        const currentView = document.querySelector('.content-container-active');
+        if (currentView && currentView.id === 'announcement-container') {
+            console.log('Already on announcement view, initializing...');
+            setTimeout(() => {
+                if (typeof AnnouncementManager !== 'undefined' && !window.announcementManager) {
+                    window.announcementManager = new AnnouncementManager();
+                }
+            }, 100);
+        }
+    }
+
+    // Initialize announcement functionality
+    initializeAnnouncementTab();
 
     // Initialize Functions inside DOM----------------------------------------------------------------------
     initializeUserData();
@@ -3662,7 +4735,6 @@ if (accountSearchInput) {
     initializeRoleChangeHandling();
     
     // Hide save button initially
-   
 
     // Initialize upload form submission
     initializeUploadFormSubmission();
@@ -3785,7 +4857,6 @@ function initializeSaveFunctionality() {
                         // Reset changes
                         roleChanges = {};
                         changesMade = false;
-                     
                         
                     } catch (error) {
                         console.error('Error saving changes:', error);
@@ -3884,8 +4955,6 @@ function showProjectPreview(thesisId, title, uploadedDate, authors, adviser, fal
                     </div>` : ''}
                 </div>
             </div>
-            
-            
         `;
     }
     
@@ -4201,7 +5270,6 @@ function updatePdfControls() {
     
 
 // Admin Access Management
-
 async function fetchAndDisplayUsers() {
     try {
         console.log('Fetching users with CSRF token...');
