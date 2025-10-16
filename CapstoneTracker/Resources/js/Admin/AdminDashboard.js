@@ -4419,11 +4419,10 @@ function createUserItem(user) {
         userRoleDisplay = user.User_Role || 'User';
     }
     
-    // NOW USING ACTUAL ROLES TABLE DATA INSTEAD OF DEFAULTS
-    // These come from the ROLES table via getAllUsersWithCompleteRoles()
-    const subAdminValue = user.Sub_Admin || 'No'; // Direct from ROLES table
-    const canEditValue = user.Can_Edit || 'No';    // Direct from ROLES table  
-    const manageAccessValue = user.Manage_Access || 'No'; // Direct from ROLES table
+    // Get actual permission values from ROLES table
+    const subAdminValue = user.Sub_Admin || 'No';
+    const canEditValue = user.Can_Edit || 'No';
+    const manageAccessValue = user.Manage_Access || 'No';
     
     // Set colors based on actual ROLES table values
     const subAdminColor = subAdminValue === 'Yes' ? 'red' : 'gray';
@@ -4443,13 +4442,19 @@ function createUserItem(user) {
                 <i class="fa-solid fa-circle-plus"></i>
             </button>
             <div class="roleBox">
-                <button class="role-action-btn" data-permission="sub_admin" data-current-value="${subAdminValue}">
+                <button class="role-action-btn" 
+                        data-permission="sub_admin" 
+                        data-current-value="${subAdminValue}">
                     <i class="fa-solid fa-user-shield" style="color: ${subAdminColor};"></i> Sub-Admin
                 </button>
-                <button class="role-action-btn" data-permission="can_edit" data-current-value="${canEditValue}">
+                <button class="role-action-btn" 
+                        data-permission="can_edit" 
+                        data-current-value="${canEditValue}">
                     <i class="fa-solid fa-file-pen" style="color: ${canEditColor};"></i> Modify Thesis
                 </button>
-                <button class="role-action-btn" data-permission="manage_access" data-current-value="${manageAccessValue}">
+                <button class="role-action-btn" 
+                        data-permission="manage_access" 
+                        data-current-value="${manageAccessValue}">
                     <i class="fa-solid fa-key" style="color: ${manageAccessColor};"></i> Manage Access
                 </button>
             </div>
@@ -4539,7 +4544,6 @@ function initializeRoleBox() {
             const accessItem = roleButton.closest('.access-item');
             const roleBox = accessItem.querySelector('.roleBox');
             
-            
             // Close all other roleBoxes
             closeAllRoleBoxes();
             
@@ -4551,18 +4555,20 @@ function initializeRoleBox() {
         }
         
         // Handle roleBox button clicks
-        const roleBoxButton = e.target.closest('.roleBox button');
-        if (roleBoxButton) {
+        const roleActionBtn = e.target.closest('.role-action-btn');
+        if (roleActionBtn) {
             e.preventDefault();
             e.stopPropagation();
             
-            const roleBox = roleBoxButton.closest('.roleBox');
+            const roleBox = roleActionBtn.closest('.roleBox');
             const accessItem = roleBox.closest('.access-item');
             const userId = accessItem.getAttribute('data-user-id');
             const userName = accessItem.querySelector('h4').textContent;
-            const action = roleBoxButton.textContent.trim();
+            const permissionType = roleActionBtn.getAttribute('data-permission');
+            const currentValue = roleActionBtn.getAttribute('data-current-value');
             
-            handleRoleAction(userId, userName, action);
+            // Call the function to handle the role action
+            handleRoleAction(userId, userName, permissionType, currentValue);
             
             // Close the roleBox after action
             closeAllRoleBoxes();
@@ -4584,84 +4590,169 @@ function closeAllRoleBoxes() {
     document.querySelector('.roleBox-overlay').classList.remove('active');
 }
 
-function handleRoleAction(userId, userName, action) {
-    console.log('Role action:', { userId, userName, action });
-    
-    // Map action names to actual roles or functions
-    const actionMap = {
-        'SubAdmin': 'admin',
-        'Modify Thesis': 'faculty',
-        'Manage Access': 'admin',
-        // Add more actions as needed
-    };
-    
-    const role = actionMap[action];
-    
-    if (role) {
-        Swal.fire({
-            title: `Assign ${action}?`,
-            html: `Are you sure you want to assign <strong>${action}</strong> role to <strong>${userName}</strong>?`,
+async function handleRoleAction(userId, userName, permissionType, currentValue) {
+    try {
+        // Determine new value (toggle between Yes/No)
+        const newValue = currentValue === 'Yes' ? 'No' : 'Yes';
+        
+        // Map permission types to display names
+        const permissionDisplayNames = {
+            'sub_admin': 'Sub-Admin',
+            'can_edit': 'Modify Thesis', 
+            'manage_access': 'Manage Access'
+        };
+        
+        const displayName = permissionDisplayNames[permissionType] || permissionType;
+        const action = newValue === 'Yes' ? 'grant' : 'revoke';
+        
+        // Show confirmation dialog
+        let confirmationMessage = `Are you sure you want to ${action} <strong>${displayName}</strong> permission for <strong>${userName}</strong>?`;
+        
+        // Special message for Sub-Admin
+        if (permissionType === 'sub_admin' && newValue === 'Yes') {
+            confirmationMessage = `Are you sure you want to grant <strong>Sub-Admin</strong> permission for <strong>${userName}</strong>?<br><br>
+                                  <small style="color: #666;">This will also automatically grant <strong>Modify Thesis</strong> and <strong>Manage Access</strong> permissions.</small>`;
+        }
+        
+        const result = await Swal.fire({
+            title: `${action === 'grant' ? 'Grant' : 'Revoke'} ${displayName}?`,
+            html: confirmationMessage,
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#3085d6',
             cancelButtonColor: '#d33',
-            confirmButtonText: 'Yes, assign role!',
+            confirmButtonText: `Yes, ${action} permission!`,
             cancelButtonText: 'Cancel'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Show loading state
-                Swal.fire({
-                    title: 'Assigning Role...',
-                    text: 'Please wait while we update the user role.',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-                
-                // Simulate API call - replace with actual API call
-                setTimeout(() => {
-                    updateUserRole(userId, role)
-                    .then(() => {
-                        Swal.fire({
-                            title: 'Success!',
-                            text: `Successfully ${newValue === 'Yes' ? 'granted' : 'revoked'} ${action} permission for ${userName}.`,
-                            icon: 'success',
-                            confirmButtonText: 'OK'
-                        }).then(() => {
-                            // Update the specific button's indicator
-                            const roleButton = userItem.querySelector(`[data-permission="${permissionType}"]`);
-                            if (roleButton) {
-                                const icon = roleButton.querySelector('i');
-                                icon.style.color = newValue === 'Yes' ? 'red' : 'gray';
-                                roleButton.setAttribute('data-current-value', newValue);
-                            }
-                            
-                            // Also update all indicators by refreshing user data
-                            fetchAndDisplayUsers();
-                        });
-                    })
-                        .catch(error => {
-                            console.error('Error updating user role:', error);
-                            Swal.fire({
-                                title: 'Error',
-                                text: `Failed to assign role: ${error.message}`,
-                                icon: 'error',
-                                confirmButtonText: 'OK'
-                            });
-                        });
-                }, 1000);
-            }
         });
-    } else {
+        
+        if (result.isConfirmed) {
+            // Show loading state
+            Swal.fire({
+                title: 'Updating Permission...',
+                text: 'Please wait while we update the user permission.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Update the permission in the database
+            await updateUserPermission(userId, permissionType, newValue);
+            
+            // Close loading and show success
+            Swal.close();
+            
+            let successMessage = `Successfully ${action === 'grant' ? 'granted' : 'revoked'} ${displayName} permission for ${userName}.`;
+            
+            // Special success message for Sub-Admin
+            if (permissionType === 'sub_admin' && newValue === 'Yes') {
+                successMessage = `Successfully granted Sub-Admin permission for ${userName}.<br>
+                                 <small>Modify Thesis and Manage Access permissions have also been granted.</small>`;
+            }
+            
+            Swal.fire({
+                title: 'Success!',
+                html: successMessage,
+                icon: 'success',
+                confirmButtonText: 'OK'
+            }).then(() => {
+                // Refresh the user list to show updated permissions
+                fetchAndDisplayUsers();
+            });
+        }
+    } catch (error) {
+        console.error('Error updating permission:', error);
+        Swal.close();
+        
         Swal.fire({
-            title: 'Action Not Available',
-            text: `The action "${action}" is not yet implemented.`,
-            icon: 'info',
+            title: 'Error',
+            text: `Failed to update permission: ${error.message}`,
+            icon: 'error',
             confirmButtonText: 'OK'
         });
     }
 }
+
+
+async function updateUserPermission(userId, permissionType, newValue) {
+    try {
+        // Get CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        
+        // Prepare the data for the request
+        const formData = new FormData();
+        formData.append('action', 'update_user_role');
+        formData.append('user_id', userId);
+        formData.append('csrf_token', csrfToken);
+        
+        // Set the appropriate permission fields based on permissionType
+        if (permissionType === 'sub_admin') {
+            if (newValue === 'Yes') {
+                // When granting Sub-Admin, automatically grant both manage_access and can_edit
+                formData.append('sub_admin', 'Yes');
+                formData.append('can_edit', 'Yes');
+                formData.append('manage_access', 'Yes');
+            } else {
+                // When revoking Sub-Admin, revoke all permissions
+                formData.append('sub_admin', 'No');
+                formData.append('can_edit', 'No');
+                formData.append('manage_access', 'No');
+            }
+        } else if (permissionType === 'can_edit') {
+            formData.append('can_edit', newValue);
+            // If granting can_edit, don't automatically make them sub_admin
+            formData.append('sub_admin', 'No');
+            // If modifying can_edit, leave manage_access as is unless it's being revoked
+            if (newValue === 'No') {
+                // If revoking edit permission, also check if we should revoke manage_access
+                // (since manage_access typically implies edit permission)
+                formData.append('manage_access', 'No');
+            }
+        } else if (permissionType === 'manage_access') {
+            formData.append('manage_access', newValue);
+            // If granting manage_access, automatically grant can_edit but not sub_admin
+            if (newValue === 'Yes') {
+                formData.append('can_edit', 'Yes');
+                formData.append('sub_admin', 'No');
+            } else {
+                // If revoking manage_access, leave can_edit as is
+                formData.append('sub_admin', 'No');
+            }
+        }
+        
+        // Send the request to update the role
+        const response = await fetch('../../../app/Controllers/RolesController.php', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const rawText = await response.text();
+        let data;
+        
+        try {
+            data = JSON.parse(rawText);
+        } catch (parseError) {
+            // Try to extract JSON if there's extra output
+            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                data = JSON.parse(jsonMatch[0]);
+            } else {
+                throw new Error('Server returned invalid response format');
+            }
+        }
+        
+        if (!data.success) {
+            throw new Error(data.message || 'Failed to update user permission');
+        }
+        
+        return data;
+        
+    } catch (error) {
+        console.error('Error in updateUserPermission:', error);
+        throw error;
+    }
+}
+
 
 // Function to update user counts in access cards
 function updateUserCounts(users) {
