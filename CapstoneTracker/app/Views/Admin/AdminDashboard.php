@@ -841,66 +841,149 @@ $displayUserData = [
 <div id="createAnnouncementView" class="announcement-content" style="display: none;">
     <div class="create-announcement-container">
         <div class="create-announcement-header">
-            <h2 id="createAnnouncementTitle">Create New Announcement</h2>
-            <p id="createAnnouncementSubtitle">Share important information with users</p>
+            <div class="header-icon">
+                <i class="fas fa-bullhorn"></i>
+            </div>
+            <div class="create-announcement-header-content">
+                <h2 id="createAnnouncementTitle">Create New Announcement</h2>
+                <p id="createAnnouncementSubtitle">Share important information with users across the platform</p>
+            </div>
         </div>
 
         <form id="announcementForm" class="announcement-form">
             <input type="hidden" id="announcementId" name="announcement_id" value="">
             <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
 
-            <!-- Title -->
-            <div class="form-group">
-                <label for="announcementTitle">Title <span class="required">*</span></label>
-                <input type="text" id="announcementTitle" name="title" placeholder="Enter announcement title" required maxlength="200">
-                <div class="char-counter"><span id="titleCharCount">0</span>/200</div>
-            </div>
-
-            <!-- Content -->
-            <div class="form-group">
-                <label for="announcementContent">Content <span class="required">*</span></label>
-                <textarea id="announcementContent" name="content" placeholder="Enter announcement content..." rows="8" required maxlength="2000"></textarea>
-                <div class="char-counter"><span id="contentCharCount">0</span>/2000</div>
-            </div>
-
-            <!-- Type & Pin -->
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="announcementType">Type <span class="required">*</span></label>
-                    <select id="announcementType" name="type" required>
-                        <option value="">Select announcement type</option>
-                        <option value="information">Information</option>
-                        <option value="deadline">Deadline</option>
-                        <option value="event">Event</option>
-                        <option value="important">Important</option>
-                        <option value="maintenance">Maintenance</option>
-                    </select>
+            <!-- Basic Information Section -->
+            <div class="form-section">
+                <div class="form-section-title">
+                    <i class="fas fa-info-circle"></i>
+                    Basic Information
                 </div>
-                <div class="form-group form-checkbox">
-                    <input type="checkbox" id="announcementIsPinned" name="is_pinned" value="1">
-                    <label for="announcementIsPinned">Pin to top</label>
-                </div>
-            </div>
-
-            <!-- Dates -->
-            <div class="form-row">
+                
+                <!-- Title -->
                 <div class="form-group">
-                    <label for="announcementStartDate">Start Date & Time <span class="required">*</span></label>
-                    <input type="datetime-local" id="announcementStartDate" name="start_date" required>
+                    <label for="announcementTitle">
+                        Announcement Title 
+                        <span class="required">*</span>
+                    </label>
+                    <input type="text" id="announcementTitle" name="title" 
+                           placeholder="Enter a clear and descriptive title" 
+                           required maxlength="200">
+                    <div class="char-counter">
+                        <span id="titleCharCount">0</span>/200 characters
+                    </div>
+                    <div class="error-message" id="titleError">Please enter a title</div>
                 </div>
 
+                <!-- Content -->
                 <div class="form-group">
-                    <label for="announcementEndDate">End Date & Time (Optional)</label>
-                    <input type="datetime-local" id="announcementEndDate" name="end_date">
-                    <small style="color: var(--color-lite-grey); font-size: 0.85rem; margin-top: 5px; display: block;">
-                        Leave empty if announcement should not expire
-                    </small>
+                    <label for="announcementContent">
+                        Announcement Content 
+                        <span class="required">*</span>
+                    </label>
+                    <textarea id="announcementContent" name="content" 
+                              placeholder="Write your announcement details here. Be clear and concise..."
+                              rows="6" required maxlength="2000"></textarea>
+                    <div class="char-counter">
+                        <span id="contentCharCount">0</span>/2000 characters
+                    </div>
+                    <div class="error-message" id="contentError">Please enter announcement content</div>
+                </div>
+            </div>
+
+            <!-- Settings Section -->
+            <div class="form-section">
+                <div class="form-section-title">
+                    <i class="fas fa-cog"></i>
+                    Announcement Settings
+                </div>
+                
+                <div class="form-row">
+                    <!-- Type Selection -->
+                    <div class="form-group">
+                        <label for="announcementType">
+                            Announcement Type 
+                            <span class="required">*</span>
+                        </label>
+                        <div class="type-selection">
+                            <div class="type-card" data-type="information">
+                                <input type="radio" id="type-info" name="type" value="information" checked>
+                                <div class="type-icon">
+                                    <i class="fas fa-info-circle"></i>
+                                </div>
+                                <div class="type-name">Information</div>
+                            </div>
+                            <div class="type-card" data-type="deadline">
+                                <input type="radio" id="type-deadline" name="type" value="deadline">
+                                <div class="type-icon">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="type-name">Deadline</div>
+                            </div>
+                            <div class="type-card" data-type="event">
+                                <input type="radio" id="type-event" name="type" value="event">
+                                <div class="type-icon">
+                                    <i class="fas fa-calendar-alt"></i>
+                                </div>
+                                <div class="type-name">Event</div>
+                            </div>
+                            <div class="type-card" data-type="important">
+                                <input type="radio" id="type-important" name="type" value="important">
+                                <div class="type-icon">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div class="type-name">Important</div>
+                            </div>
+                        </div>
+                        <div class="error-message" id="typeError">Please select a type</div>
+                    </div>
+
+                    <!-- Pin Option -->
+                    <div class="form-checkbox">
+                        <input type="checkbox" id="announcementIsPinned" name="is_pinned" value="1">
+                        <div class="checkbox-custom"></div>
+                        <label for="announcementIsPinned">
+                        <i class="fas fa-thumbtack"></i>
+                        Pin this announcement to top
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Schedule Section -->
+            <div class="form-section">
+                <div class="form-section-title">
+                    <i class="fas fa-calendar-alt"></i>
+                    Schedule & Duration
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="announcementStartDate">
+                            Start Date & Time 
+                            <span class="required">*</span>
+                        </label>
+                        <input type="datetime-local" id="announcementStartDate" name="start_date" required>
+                        <div class="error-message" id="startDateError">Please select a start date</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="announcementEndDate">End Date & Time (Optional)</label>
+                        <input type="datetime-local" id="announcementEndDate" name="end_date">
+                        <small style="color: var(--color-lite-grey); font-size: 0.85rem; margin-top: 5px; display: block;">
+                            Leave empty if announcement should not expire automatically
+                        </small>
+                    </div>
                 </div>
             </div>
 
             <!-- Actions -->
             <div class="form-actions">
-                <button type="button" id="cancelAnnouncementBtn" class="btn btn-cancel">Cancel</button>
+                <button type="button" id="cancelAnnouncementBtn" class="btn btn-cancel">
+                    <i class="fas fa-times"></i>
+                    Cancel
+                </button>
                 <button type="submit" id="publishAnnouncementBtn" class="btn btn-primary">
                     <i class="fas fa-paper-plane"></i>
                     Publish Announcement

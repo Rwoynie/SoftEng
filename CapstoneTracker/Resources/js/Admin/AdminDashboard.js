@@ -15,7 +15,7 @@ class AnnouncementManager {
         }, 100);
     }
 
-     initializeEventListeners() {
+    initializeEventListeners() {
     // View switching - check if elements exist first
     const activeBtn = document.getElementById('activeAnnouncementsBtn');
     const archivedBtn = document.getElementById('archivedAnnouncementsBtn');
@@ -35,10 +35,12 @@ class AnnouncementManager {
         cancelBtn.addEventListener('click', () => this.cancelEdit());
     }
 
-    // Form submission
+    // Form submission - only add listener if form exists
     const announcementForm = document.getElementById('announcementForm');
     if (announcementForm) {
         announcementForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
+    } else {
+        console.warn('Announcement form not found during initialization');
     }
 
     // Search and filter
@@ -48,8 +50,10 @@ class AnnouncementManager {
     }
     
     this.initializeDropdowns();
+    this.initializeTypeSelection();
+    this.initializePinCheckbox();
 
-    // Character counters
+    // Character counters - only add listeners if elements exist
     const titleInput = document.getElementById('announcementTitle');
     const contentInput = document.getElementById('announcementContent');
     
@@ -58,6 +62,64 @@ class AnnouncementManager {
     }
     if (contentInput) {
         contentInput.addEventListener('input', (e) => this.updateCharCounter(e.target, 'contentCharCount', 2000));
+    }
+
+}
+
+    initializePinCheckbox() {
+    const pinCheckbox = document.getElementById('announcementIsPinned');
+    const pinCheckboxCustom = document.querySelector('.form-checkbox .checkbox-custom');
+    
+    if (pinCheckbox && pinCheckboxCustom) {
+        // Toggle on custom checkbox click
+        pinCheckboxCustom.addEventListener('click', () => {
+            pinCheckbox.checked = !pinCheckbox.checked;
+            // Update visual state
+            this.updatePinCheckboxVisual(pinCheckbox.checked);
+        });
+
+        // Also toggle on label click
+        const pinLabel = document.querySelector('label[for="announcementIsPinned"]');
+        if (pinLabel) {
+            pinLabel.addEventListener('click', (e) => {
+                e.preventDefault();
+                pinCheckbox.checked = !pinCheckbox.checked;
+                this.updatePinCheckboxVisual(pinCheckbox.checked);
+            });
+        }
+
+        // Update visual state on checkbox change
+        pinCheckbox.addEventListener('change', () => {
+            this.updatePinCheckboxVisual(pinCheckbox.checked);
+        });
+
+        // Initialize visual state
+        this.updatePinCheckboxVisual(pinCheckbox.checked);
+    }
+}
+
+updatePinCheckboxVisual(isChecked) {
+    const pinCheckboxCustom = document.querySelector('.form-checkbox .checkbox-custom');
+    const pinLabel = document.querySelector('label[for="announcementIsPinned"]');
+    
+    if (pinCheckboxCustom) {
+        if (isChecked) {
+            pinCheckboxCustom.classList.add('checked');
+            pinCheckboxCustom.innerHTML = '<i class="fas fa-check"></i>';
+        } else {
+            pinCheckboxCustom.classList.remove('checked');
+            pinCheckboxCustom.innerHTML = '';
+        }
+    }
+
+    if (pinLabel) {
+        if (isChecked) {
+            pinLabel.style.color = 'var(--primary-color)';
+            pinLabel.style.fontWeight = '600';
+        } else {
+            pinLabel.style.color = '';
+            pinLabel.style.fontWeight = '';
+        }
     }
 }
 
@@ -129,45 +191,45 @@ initializeDropdowns() {
     }
 }
 
-    switchView(view) {
-        this.currentView = view;
+   switchView(view) {
+    this.currentView = view;
+    
+    // Update button states - safely check if elements exist
+    const menuButtons = document.querySelectorAll('#announcementHeader .menu button');
+    if (menuButtons.length > 0) {
+        menuButtons.forEach(btn => {
+            btn.classList.remove('selected');
+        });
         
-        // Update button states - safely check if elements exist
-        const menuButtons = document.querySelectorAll('#announcementHeader .menu button');
-        if (menuButtons.length > 0) {
-            menuButtons.forEach(btn => {
-                btn.classList.remove('selected');
-            });
-            
-            const targetBtn = document.getElementById(`${view}AnnouncementsBtn`);
-            if (targetBtn) {
-                targetBtn.classList.add('selected');
-            }
-        }
-
-        // Show/hide views - safely check if elements exist
-        const activeView = document.getElementById('activeAnnouncementsView');
-        const archivedView = document.getElementById('archivedAnnouncementsView');
-        const createView = document.getElementById('createAnnouncementView');
-
-        if (activeView) {
-            activeView.style.display = view === 'active' ? 'block' : 'none';
-        }
-        if (archivedView) {
-            archivedView.style.display = view === 'archived' ? 'block' : 'none';
-        }
-        if (createView) {
-            createView.style.display = view === 'create' ? 'block' : 'none';
-        }
-
-        if (view === 'active') {
-            this.loadAnnouncements();
-        } else if (view === 'archived') {
-            this.loadArchivedAnnouncements();
-        } else if (view === 'create') {
-            this.resetForm();
+        const targetBtn = document.getElementById(`${view}AnnouncementsBtn`);
+        if (targetBtn) {
+            targetBtn.classList.add('selected');
         }
     }
+
+    // Show/hide views - safely check if elements exist
+    const activeView = document.getElementById('activeAnnouncementsView');
+    const archivedView = document.getElementById('archivedAnnouncementsView');
+    const createView = document.getElementById('createAnnouncementView');
+
+    if (activeView) {
+        activeView.style.display = view === 'active' ? 'block' : 'none';
+    }
+    if (archivedView) {
+        archivedView.style.display = view === 'archived' ? 'block' : 'none';
+    }
+    if (createView) {
+        createView.style.display = view === 'create' ? 'block' : 'none';
+    }
+
+    if (view === 'active') {
+        this.loadAnnouncements();
+    } else if (view === 'archived') {
+        this.loadArchivedAnnouncements();
+    } else if (view === 'create') {
+        this.resetForm(); // Only reset form when switching to create view
+    }
+}
 
     async loadAnnouncements() {
         try {
@@ -409,30 +471,48 @@ initializeDropdowns() {
     }
 
      populateForm(announcement) {
-        document.getElementById('announcementId').value = announcement.id;
-        document.getElementById('announcementTitle').value = announcement.title;
-        document.getElementById('announcementType').value = announcement.type;
-        
-        document.getElementById('announcementContent').value = announcement.content;
-        document.getElementById('announcementIsPinned').checked = announcement.is_pinned == 1;
+    const announcementId = document.getElementById('announcementId');
+    const announcementTitle = document.getElementById('announcementTitle');
+    const announcementType = document.getElementById('announcementType');
+    const announcementContent = document.getElementById('announcementContent');
+    const announcementIsPinned = document.getElementById('announcementIsPinned');
+    const announcementStartDate = document.getElementById('announcementStartDate');
+    const announcementEndDate = document.getElementById('announcementEndDate');
+    
+    // Safely set values only if elements exist
+    if (announcementId) announcementId.value = announcement.id;
+    if (announcementTitle) announcementTitle.value = announcement.title;
+    if (announcementType) announcementType.value = announcement.type;
+    if (announcementContent) announcementContent.value = announcement.content;
+    if (announcementIsPinned) announcementIsPinned.checked = announcement.is_pinned == 1;
 
-        // Format dates for datetime-local input
-        if (announcement.start_date) {
-            document.getElementById('announcementStartDate').value = this.formatDateForInput(announcement.start_date);
-        }
-        if (announcement.end_date) {
-            document.getElementById('announcementEndDate').value = this.formatDateForInput(announcement.end_date);
-        }
-
-        // Update UI for edit mode
-        document.getElementById('createAnnouncementTitle').textContent = 'Edit Announcement';
-        document.getElementById('createAnnouncementSubtitle').textContent = 'Update announcement details';
-
-        // Update character counters
-        this.updateCharCounter(document.getElementById('announcementTitle'), 'titleCharCount', 200);
-        this.updateCharCounter(document.getElementById('announcementContent'), 'contentCharCount', 2000);
+    // Format dates for datetime-local input
+    if (announcementStartDate && announcement.start_date) {
+        announcementStartDate.value = this.formatDateForInput(announcement.start_date);
+    }
+    if (announcementEndDate && announcement.end_date) {
+        announcementEndDate.value = this.formatDateForInput(announcement.end_date);
     }
 
+    // Update UI for edit mode - safely check if elements exist
+    const createAnnouncementTitle = document.getElementById('createAnnouncementTitle');
+    const createAnnouncementSubtitle = document.getElementById('createAnnouncementSubtitle');
+    
+    if (createAnnouncementTitle) {
+        createAnnouncementTitle.textContent = 'Edit Announcement';
+    }
+    if (createAnnouncementSubtitle) {
+        createAnnouncementSubtitle.textContent = 'Update announcement details';
+    }
+
+    // Update character counters - safely check if elements exist
+    if (announcementTitle) {
+        this.updateCharCounter(announcementTitle, 'titleCharCount', 200);
+    }
+    if (announcementContent) {
+        this.updateCharCounter(announcementContent, 'contentCharCount', 2000);
+    }
+}
     async togglePinAnnouncement(announcementId) {
         const result = await Swal.fire({
             title: 'Toggle Pin?',
@@ -571,11 +651,33 @@ initializeDropdowns() {
         }
     }
 
-     async handleFormSubmit(e) {
+
+    async handleFormSubmit(e) {
     e.preventDefault();
     
+    console.log('Form submit triggered, current view:', this.currentView);
+    
+    // Check if we're in the correct view and form exists
+    if (this.currentView !== 'create') {
+        console.error('Cannot submit form: Not in create view. Current view:', this.currentView);
+        this.showError('Cannot submit form in current view.');
+        return;
+    }
+
+    const form = document.getElementById('announcementForm');
+    if (!form) {
+        console.error('Form not found');
+        this.showError('Form not found. Please refresh the page and try again.');
+        return;
+    }
+
     // Show loading state
     const submitBtn = document.getElementById('publishAnnouncementBtn');
+    if (!submitBtn) {
+        console.error('Submit button not found');
+        return;
+    }
+
     const originalText = submitBtn.innerHTML;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publishing...';
     submitBtn.disabled = true;
@@ -584,29 +686,24 @@ initializeDropdowns() {
         console.log('Starting announcement submission...');
         
         // Get form data
-        const formData = new FormData(e.target);
+        const formData = new FormData(form);
         formData.append('action', this.isEditing ? 'updateAnnouncement' : 'createAnnouncement');
 
-        // Log form data for debugging
-        console.log('Form data being sent:');
-        for (let [key, value] of formData.entries()) {
-            console.log(`${key}:`, value);
-        }
-
         // Validate form
+        console.log('Validating form...');
         if (!this.validateForm()) {
+            console.log('Form validation failed');
             throw new Error('Form validation failed');
         }
+        console.log('Form validation passed');
 
-        // In AdminDashboard.js - replace the fetch call in handleFormSubmit method
-console.log('Sending request to server...');
-
-// Use the correct endpoint with action parameter
-const action = this.isEditing ? 'updateAnnouncement' : 'createAnnouncement';
-const response = await fetch(`../../../app/Controllers/AdminDashboardController.php?action=${action}`, {
-    method: 'POST',
-    body: formData
-});
+        // Use the correct endpoint with action parameter
+        console.log('Sending request to server...');
+        const action = this.isEditing ? 'updateAnnouncement' : 'createAnnouncement';
+        const response = await fetch(`../../../app/Controllers/AdminDashboardController.php?action=${action}`, {
+            method: 'POST',
+            body: formData
+        });
 
         // Log response status
         console.log('Response status:', response.status, response.statusText);
@@ -643,7 +740,15 @@ const response = await fetch(`../../../app/Controllers/AdminDashboardController.
         console.log('Parsed response data:', data);
 
         if (data.success) {
-            this.showSuccess(this.isEditing ? 'Announcement updated successfully' : 'Announcement created successfully');
+            // Use SweetAlert for success message
+            await Swal.fire({
+                title: 'Success!',
+                text: this.isEditing ? 'Announcement updated successfully' : 'Announcement created successfully',
+                icon: 'success',
+                confirmButtonText: 'OK',
+                timer: 3000
+            });
+            
             this.switchView('active');
             this.resetForm();
             this.loadAnnouncements();
@@ -656,49 +761,77 @@ const response = await fetch(`../../../app/Controllers/AdminDashboardController.
         
     } catch (error) {
         console.error('Error saving announcement:', error);
-        this.showError(`Failed to ${this.isEditing ? 'update' : 'create'} announcement: ${error.message}`);
+        // Don't show the error if it's just validation failure
+        if (error.message !== 'Form validation failed') {
+            this.showError(`Failed to ${this.isEditing ? 'update' : 'create'} announcement: ${error.message}`);
+        }
     } finally {
         // Restore button state
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
+        if (submitBtn) {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
     }
 }
 
+
     validateForm() {
-        const title = document.getElementById('announcementTitle').value.trim();
-        const content = document.getElementById('announcementContent').value.trim();
-        const type = document.getElementById('announcementType').value;
-        const startDate = document.getElementById('announcementStartDate').value;
+    // Safely get form elements - match your actual HTML structure
+    const titleInput = document.getElementById('announcementTitle');
+    const contentInput = document.getElementById('announcementContent');
+    
+    // For type selection, you have radio buttons with class 'type-card', not a select dropdown
+    const selectedType = document.querySelector('input[name="type"]:checked');
+    
+    const startDateInput = document.getElementById('announcementStartDate');
+    const endDateInput = document.getElementById('announcementEndDate');
 
-        if (!title) {
-            this.showError('Please enter a title');
-            return false;
-        }
-
-        if (!content) {
-            this.showError('Please enter announcement content');
-            return false;
-        }
-
-        if (!type) {
-            this.showError('Please select an announcement type');
-            return false;
-        }
-
-        if (!startDate) {
-            this.showError('Please select a start date');
-            return false;
-        }
-
-        // Validate end date if provided
-        const endDate = document.getElementById('announcementEndDate').value;
-        if (endDate && new Date(endDate) <= new Date(startDate)) {
-            this.showError('End date must be after start date');
-            return false;
-        }
-
-        return true;
+    // Check if essential elements exist before accessing their values
+    if (!titleInput || !contentInput || !startDateInput) {
+        this.showError('Form elements not found. Please refresh the page and try again.');
+        return false;
     }
+
+    const title = titleInput.value.trim();
+    const content = contentInput.value.trim();
+    const type = selectedType ? selectedType.value : '';
+    const startDate = startDateInput.value;
+
+    console.log('Form validation values:', { title, content, type, startDate }); // Debug log
+
+    if (!title) {
+        this.showError('Please enter a title');
+        titleInput.focus();
+        return false;
+    }
+
+    if (!content) {
+        this.showError('Please enter announcement content');
+        contentInput.focus();
+        return false;
+    }
+
+    if (!type) {
+        this.showError('Please select an announcement type');
+        return false;
+    }
+
+    if (!startDate) {
+        this.showError('Please select a start date');
+        startDateInput.focus();
+        return false;
+    }
+
+    // Validate end date if provided
+    const endDate = endDateInput ? endDateInput.value : '';
+    if (endDate && new Date(endDate) <= new Date(startDate)) {
+        this.showError('End date must be after start date');
+        if (endDateInput) endDateInput.focus();
+        return false;
+    }
+
+    return true;
+}
 
     async saveAsDraft() {
         const formData = new FormData(document.getElementById('announcementForm'));
@@ -728,27 +861,75 @@ const response = await fetch(`../../../app/Controllers/AdminDashboardController.
     }
 
      resetForm() {
-        document.getElementById('announcementForm').reset();
-        document.getElementById('announcementId').value = '';
-        document.getElementById('announcementType').value = 'information';
-       
-        document.getElementById('announcementIsPinned').checked = false;
+    const form = document.getElementById('announcementForm');
+    if (!form) return; 
+    
+    form.reset();
 
-        // Set default start date to current datetime
+    // Reset type selection to default (information)
+    const typeCards = document.querySelectorAll('.type-card');
+    typeCards.forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Select the information type by default
+    const infoTypeCard = document.querySelector('.type-card[data-type="information"]');
+    if (infoTypeCard) {
+        infoTypeCard.classList.add('selected');
+        const radio = infoTypeCard.querySelector('input[type="radio"]');
+        if (radio) {
+            radio.checked = true;
+        }
+    }
+
+    // Reset pin checkbox
+    const pinCheckbox = document.getElementById('announcementIsPinned');
+    if (pinCheckbox) {
+        pinCheckbox.checked = false;
+        this.updatePinCheckboxVisual(false);
+    }
+    
+    const announcementId = document.getElementById('announcementId');
+    const announcementType = document.getElementById('announcementType');
+    const announcementIsPinned = document.getElementById('announcementIsPinned');
+    const announcementStartDate = document.getElementById('announcementStartDate');
+    
+    // Safely set values only if elements exist
+    if (announcementId) announcementId.value = '';
+    if (announcementType) announcementType.value = 'information';
+    if (announcementIsPinned) announcementIsPinned.checked = false;
+
+    // Set default start date to current datetime if element exists
+    if (announcementStartDate) {
         const now = new Date();
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        document.getElementById('announcementStartDate').value = now.toISOString().slice(0, 16);
-
-        // Reset UI
-        document.getElementById('createAnnouncementTitle').textContent = 'Create New Announcement';
-        document.getElementById('createAnnouncementSubtitle').textContent = 'Share important information with users';
-
-        // Reset character counters
-        this.updateCharCounter(document.getElementById('announcementTitle'), 'titleCharCount', 200);
-        this.updateCharCounter(document.getElementById('announcementContent'), 'contentCharCount', 2000);
-
-        this.isEditing = false;
+        announcementStartDate.value = now.toISOString().slice(0, 16);
     }
+
+    // Reset UI - safely check if elements exist
+    const createAnnouncementTitle = document.getElementById('createAnnouncementTitle');
+    const createAnnouncementSubtitle = document.getElementById('createAnnouncementSubtitle');
+    
+    if (createAnnouncementTitle) {
+        createAnnouncementTitle.textContent = 'Create New Announcement';
+    }
+    if (createAnnouncementSubtitle) {
+        createAnnouncementSubtitle.textContent = 'Share important information with users';
+    }
+
+    // Reset character counters - safely check if elements exist
+    const titleInput = document.getElementById('announcementTitle');
+    const contentInput = document.getElementById('announcementContent');
+    
+    if (titleInput) {
+        this.updateCharCounter(titleInput, 'titleCharCount', 200);
+    }
+    if (contentInput) {
+        this.updateCharCounter(contentInput, 'contentCharCount', 2000);
+    }
+
+    this.isEditing = false;
+}
 
     updatePublishButtonText(status) {
     const publishBtn = document.getElementById('publishAnnouncementBtn');
@@ -889,6 +1070,25 @@ debugFormData() {
         console.log(`${key}:`, value);
     }
     console.log('=== END FORM DATA ===');
+}
+
+    initializeTypeSelection() {
+    const typeCards = document.querySelectorAll('.type-card');
+    typeCards.forEach(card => {
+        card.addEventListener('click', () => {
+            // Remove selected class from all cards
+            typeCards.forEach(c => c.classList.remove('selected'));
+            
+            // Add selected class to clicked card
+            card.classList.add('selected');
+            
+            // Check the radio button
+            const radio = card.querySelector('input[type="radio"]');
+            if (radio) {
+                radio.checked = true;
+            }
+        });
+    });
 }
 
 
