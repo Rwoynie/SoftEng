@@ -4750,7 +4750,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     initializeAllFilter();
 
- 
+    
 });
 
 let changesMade = false;
@@ -5272,11 +5272,11 @@ function updatePdfControls() {
 // Admin Access Management
 async function fetchAndDisplayUsers() {
     try {
-        console.log('Fetching users with CSRF token...');
+    //    console.log('Fetching users with CSRF token...');
         
         // Get the CSRF token
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-        console.log('Using CSRF token:', csrfToken);
+     //   console.log('Using CSRF token:', csrfToken);
         
         // Use FormData for POST request with CSRF token
         const formData = new FormData();
@@ -5289,7 +5289,7 @@ async function fetchAndDisplayUsers() {
         });
         
         const rawText = await response.text();
-        console.log('Raw response:', rawText);
+     //   console.log('Raw response:', rawText);
         
         let data;
         try {
@@ -5660,6 +5660,36 @@ function closeAllRoleBoxes() {
 
 async function handleRoleAction(userId, userName, permissionType, currentValue) {
     try {
+        console.log(`Starting role action for user ${userId}, permission ${permissionType}, current value ${currentValue}`);
+
+        // First, check if the user's account status is pending
+        let userStatus;
+        try {
+            userStatus = await getUserAccountStatus(userId);
+            console.log(`User ${userId} account status: ${userStatus}`);
+        } catch (statusError) {
+            console.error('Error checking account status:', statusError);
+            // Continue anyway but show a warning
+            await Swal.fire({
+                title: 'Warning',
+                text: `Unable to verify account status: ${statusError.message}. Proceeding with caution.`,
+                icon: 'warning',
+                confirmButtonText: 'Continue'
+            });
+            userStatus = 'unknown';
+        }
+        
+        if (userStatus === 'pending') {
+            await Swal.fire({
+                title: 'Account Pending',
+                html: `Cannot modify roles for <strong>${userName}</strong> because their account is still pending approval.<br><br>
+                      Please approve the account first before assigning roles.`,
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
         // Determine new value (toggle between Yes/No)
         const newValue = currentValue === 'Yes' ? 'No' : 'Yes';
         
@@ -5677,9 +5707,19 @@ async function handleRoleAction(userId, userName, permissionType, currentValue) 
         let confirmationMessage = `Are you sure you want to ${action} <strong>${displayName}</strong> permission for <strong>${userName}</strong>?`;
         
         // Special message for Sub-Admin
-        if (permissionType === 'sub_admin' && newValue === 'Yes') {
-            confirmationMessage = `Are you sure you want to grant <strong>Sub-Admin</strong> permission for <strong>${userName}</strong>?<br><br>
-                                  <small style="color: #666;">This will also automatically grant <strong>Modify Thesis</strong> and <strong>Manage Access</strong> permissions.</small>`;
+        if (permissionType === 'sub_admin' && newValue === 'No') {
+            try {
+                const originalRole = await getStoredOriginalRole(userId);
+                confirmationMessage = `Are you sure you want to revoke <strong>Sub-Admin</strong> permission for <strong>${userName}</strong>?<br><br>
+                                      <small style="color: #666;">This will:
+                                      <br>• Change user role back to <strong>${originalRole}</strong>
+                                      <br>• Remove Sub-Admin status
+                                      <br>• <strong>Other permissions will be removed</strong></small>`;
+            } catch (roleError) {
+                console.error('Error getting stored original role:', roleError);
+                confirmationMessage = `Are you sure you want to revoke <strong>Sub-Admin</strong> permission for <strong>${userName}</strong>?<br><br>
+                                      <small style="color: #666;">This will revoke SubAdmin status and restore original user role. Other permissions will be preserved.</small>`;
+            }
         }
         
         const result = await Swal.fire({
@@ -5694,45 +5734,25 @@ async function handleRoleAction(userId, userName, permissionType, currentValue) 
         });
         
         if (result.isConfirmed) {
-            // Show loading state
-            Swal.fire({
-                title: 'Updating Permission...',
-                text: 'Please wait while we update the user permission.',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-            
             // Update the permission in the database
             await updateUserPermission(userId, permissionType, newValue);
             
-            // Close loading and show success
-            Swal.close();
-            
             let successMessage = `Successfully ${action === 'grant' ? 'granted' : 'revoked'} ${displayName} permission for ${userName}.`;
             
-            // Special success message for Sub-Admin
-            if (permissionType === 'sub_admin' && newValue === 'Yes') {
-                successMessage = `Successfully granted Sub-Admin permission for ${userName}.<br>
-                                 <small>Modify Thesis and Manage Access permissions have also been granted.</small>`;
-            }
-            
-            Swal.fire({
+            await Swal.fire({
                 title: 'Success!',
                 html: successMessage,
                 icon: 'success',
                 confirmButtonText: 'OK'
-            }).then(() => {
-                // Refresh the user list to show updated permissions
-                fetchAndDisplayUsers();
             });
+            
+            // Refresh the user list to show updated permissions
+            fetchAndDisplayUsers();
         }
     } catch (error) {
-        console.error('Error updating permission:', error);
-        Swal.close();
+        console.error('Error in handleRoleAction:', error);
         
-        Swal.fire({
+        await Swal.fire({
             title: 'Error',
             text: `Failed to update permission: ${error.message}`,
             icon: 'error',
@@ -5741,66 +5761,83 @@ async function handleRoleAction(userId, userName, permissionType, currentValue) 
     }
 }
 
-
-async function updateUserPermission(userId, permissionType, newValue) {
+async function getUserAccountStatus(userId) {
     try {
-        // Get CSRF token
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         
-        // Prepare the data for the request
         const formData = new FormData();
-        formData.append('action', 'update_user_role');
+        formData.append('action', 'get_user_account_status');
         formData.append('user_id', userId);
         formData.append('csrf_token', csrfToken);
         
-        // Set the appropriate permission fields based on permissionType
-        if (permissionType === 'sub_admin') {
-            if (newValue === 'Yes') {
-                // When granting Sub-Admin, automatically grant both manage_access and can_edit
-                formData.append('sub_admin', 'Yes');
-                formData.append('can_edit', 'Yes');
-                formData.append('manage_access', 'Yes');
-            } else {
-                // When revoking Sub-Admin, revoke all permissions
-                formData.append('sub_admin', 'No');
-                formData.append('can_edit', 'No');
-                formData.append('manage_access', 'No');
-            }
-        } else if (permissionType === 'can_edit') {
-            formData.append('can_edit', newValue);
-            // If granting can_edit, don't automatically make them sub_admin
-            formData.append('sub_admin', 'No');
-            // If modifying can_edit, leave manage_access as is unless it's being revoked
-            if (newValue === 'No') {
-                // If revoking edit permission, also check if we should revoke manage_access
-                // (since manage_access typically implies edit permission)
-                formData.append('manage_access', 'No');
-            }
-        } else if (permissionType === 'manage_access') {
-            formData.append('manage_access', newValue);
-            // If granting manage_access, automatically grant can_edit but not sub_admin
-            if (newValue === 'Yes') {
-                formData.append('can_edit', 'Yes');
-                formData.append('sub_admin', 'No');
-            } else {
-                // If revoking manage_access, leave can_edit as is
-                formData.append('sub_admin', 'No');
-            }
-        }
-        
-        // Send the request to update the role
         const response = await fetch('../../../app/Controllers/RolesController.php', {
             method: 'POST',
             body: formData
         });
         
         const rawText = await response.text();
+        console.log('Raw response for account status:', rawText); // Debug log
+        
         let data;
         
         try {
             data = JSON.parse(rawText);
         } catch (parseError) {
+            console.error('JSON parse error for account status:', parseError);
+            console.error('Raw response that failed to parse:', rawText);
+            
             // Try to extract JSON if there's extra output
+            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                try {
+                    data = JSON.parse(jsonMatch[0]);
+                    console.log('Successfully extracted JSON from response');
+                } catch (e) {
+                    throw new Error('Server returned invalid JSON format');
+                }
+            } else {
+                // Check if it's a PHP error
+                if (rawText.includes('Fatal error') || rawText.includes('Parse error') || rawText.includes('Warning') || rawText.includes('Notice')) {
+                    throw new Error('PHP error detected: ' + rawText.substring(0, 200));
+                } else {
+                    throw new Error('Server returned non-JSON response');
+                }
+            }
+        }
+        
+        if (!data.success) {
+            throw new Error(data.message || 'Failed to get user account status');
+        }
+        
+        return data.account_status;
+        
+    } catch (error) {
+        console.error('Error getting user account status:', error);
+        throw error; // Re-throw to let caller handle it
+    }
+}
+
+async function getUserCurrentRole(userId) {
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        
+        const formData = new FormData();
+        formData.append('action', 'get_user_current_role');
+        formData.append('user_id', userId);
+        formData.append('csrf_token', csrfToken);
+        
+        const response = await fetch('../../../app/Controllers/RolesController.php', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const rawText = await response.text();
+        console.log('Raw response for current role:', rawText);
+        
+        let data;
+        try {
+            data = JSON.parse(rawText);
+        } catch (parseError) {
             const jsonMatch = rawText.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 data = JSON.parse(jsonMatch[0]);
@@ -5810,17 +5847,235 @@ async function updateUserPermission(userId, permissionType, newValue) {
         }
         
         if (!data.success) {
+            throw new Error(data.message || 'Failed to get user role');
+        }
+        
+        return data.user_role;
+        
+    } catch (error) {
+        console.error('Error getting user current role:', error);
+        throw error;
+    }
+}
+
+async function getStoredOriginalRole(userId) {
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        
+        const formData = new FormData();
+        formData.append('action', 'get_stored_original_role');
+        formData.append('user_id', userId);
+        formData.append('csrf_token', csrfToken);
+        
+        const response = await fetch('../../../app/Controllers/RolesController.php', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const rawText = await response.text();
+        console.log('Raw response for stored role:', rawText); // Debug log
+        
+        let data;
+        
+        try {
+            data = JSON.parse(rawText);
+        } catch (parseError) {
+            console.error('JSON parse error for stored role:', parseError);
+            console.error('Raw response that failed to parse:', rawText);
+            
+            // Try to extract JSON if there's extra output
+            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                try {
+                    data = JSON.parse(jsonMatch[0]);
+                    console.log('Successfully extracted JSON from response');
+                } catch (e) {
+                    throw new Error('Server returned invalid JSON format');
+                }
+            } else {
+                // Check if it's a PHP error
+                if (rawText.includes('Fatal error') || rawText.includes('Parse error') || rawText.includes('Warning') || rawText.includes('Notice')) {
+                    throw new Error('PHP error detected: ' + rawText.substring(0, 200));
+                } else {
+                    throw new Error('Server returned non-JSON response');
+                }
+            }
+        }
+        
+        if (!data.success) {
+            throw new Error(data.message || 'Failed to get stored role');
+        }
+        
+        return data.original_role;
+        
+    } catch (error) {
+        console.error('Error getting stored original role:', error);
+        throw error;
+    }
+}
+
+async function updateUserPermission(userId, permissionType, newValue) {
+    let swalInstance = null;
+    
+    try {
+        // Get CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        
+        // Double-check account status before proceeding (safety net)
+        const userStatus = await getUserAccountStatus(userId);
+        if (userStatus === 'pending') {
+            throw new Error('Cannot modify roles for pending accounts');
+        }
+
+        // Show loading state
+        swalInstance = Swal.fire({
+            title: 'Updating Permission...',
+            text: 'Please wait while we update the user permission.',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Get current permission values to preserve unchanged ones
+        const userItem = document.querySelector(`.admin-user-item[data-user-id="${userId}"]`);
+        const currentSubAdmin = userItem.querySelector('[data-permission="sub_admin"]').getAttribute('data-current-value');
+        const currentCanEdit = userItem.querySelector('[data-permission="can_edit"]').getAttribute('data-current-value');
+        const currentManageAccess = userItem.querySelector('[data-permission="manage_access"]').getAttribute('data-current-value');
+
+        // Prepare the data for the request
+        const formData = new FormData();
+        formData.append('action', 'update_user_role');
+        formData.append('user_id', userId);
+        formData.append('csrf_token', csrfToken);
+        
+        // Set the appropriate permission fields - only change the specific permission
+        let subAdminValue = currentSubAdmin;
+        let canEditValue = currentCanEdit;
+        let manageAccessValue = currentManageAccess;
+        let restoreOriginalRole = false;
+
+        if (permissionType === 'sub_admin') {
+            subAdminValue = newValue;
+            if (newValue === 'Yes') {
+                // Get current role to store as original
+                const currentRole = await getUserCurrentRole(userId);
+                formData.append('current_user_role', currentRole);
+            } else {
+                // Signal to restore original role when revoking Sub-Admin
+                // BUT preserve the current can_edit and manage_access values
+                restoreOriginalRole = true;
+                formData.append('restore_original_role', 'true');
+                
+                // Use current values for other permissions (don't auto-revoke)
+                canEditValue = currentCanEdit;
+                manageAccessValue = currentManageAccess;
+            }
+        } else if (permissionType === 'can_edit') {
+            canEditValue = newValue;
+            // When changing can_edit, ensure sub_admin remains as current value
+            subAdminValue = currentSubAdmin;
+        } else if (permissionType === 'manage_access') {
+            manageAccessValue = newValue;
+            // When changing manage_access, ensure sub_admin remains as current value
+            subAdminValue = currentSubAdmin;
+        }
+        
+        // Set all permission values
+        formData.append('sub_admin', subAdminValue);
+        formData.append('can_edit', canEditValue);
+        formData.append('manage_access', manageAccessValue);
+        
+        console.log('Sending role update request for user:', userId);
+        console.log('Permission type:', permissionType);
+        console.log('New value:', newValue);
+        console.log('All permissions - Sub_Admin:', subAdminValue, 'Can_Edit:', canEditValue, 'Manage_Access:', manageAccessValue);
+        console.log('Restore original role:', restoreOriginalRole);
+        
+        // Send the request to update the role
+        const response = await fetch('../../../app/Controllers/RolesController.php', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const rawText = await response.text();
+        console.log('Raw response from server:', rawText);
+        
+        let data;
+        
+        // More robust response parsing
+        try {
+            data = JSON.parse(rawText);
+        } catch (parseError) {
+            console.error('JSON parse error:', parseError);
+            
+            // Try to extract JSON from the response
+            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                try {
+                    data = JSON.parse(jsonMatch[0]);
+                    console.log('Successfully extracted JSON from response');
+                } catch (e) {
+                    throw new Error('Server returned invalid JSON format. Raw response: ' + rawText.substring(0, 200));
+                }
+            } else {
+                // Check if it's a PHP error
+                if (rawText.includes('Fatal error') || rawText.includes('Parse error') || rawText.includes('Warning') || rawText.includes('Notice')) {
+                    throw new Error('PHP error detected: ' + rawText.substring(0, 300));
+                } else {
+                    throw new Error('Server returned non-JSON response: ' + rawText.substring(0, 200));
+                }
+            }
+        }
+        
+        console.log('Parsed response data:', data);
+        
+        if (!data.success) {
             throw new Error(data.message || 'Failed to update user permission');
+        }
+        
+        // Close the loading dialog
+        if (swalInstance) {
+            Swal.close();
         }
         
         return data;
         
     } catch (error) {
         console.error('Error in updateUserPermission:', error);
+        
+        // Ensure loading dialog is closed
+        if (swalInstance) {
+            Swal.close();
+        }
+        
         throw error;
     }
 }
 
+
+async function testRoleDebugging() {
+    try {
+        console.log('=== TESTING ROLE DEBUGGING ===');
+        
+        // Test debug all original roles
+        const formData = new FormData();
+        formData.append('action', 'debug_original_roles');
+        formData.append('csrf_token', getCsrfToken());
+        
+        const response = await fetch('../../../app/Controllers/RolesController.php', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        console.log('Debug Original Roles Result:', data);
+        
+    } catch (error) {
+        console.error('Debug testing error:', error);
+    }
+}
 
 // Function to update user counts in access cards
 function updateUserCounts(users) {

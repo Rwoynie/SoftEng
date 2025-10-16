@@ -78,18 +78,130 @@ class RolesController {
     }
 
     
-
     /**
      * Create or update role permissions for a user
      */
-    public function updateUserRole($userId, $subAdmin, $canEdit, $manageAccess) {
-        $result = $this->roleModel->saveRole($userId, $subAdmin, $canEdit, $manageAccess);
-        
-        if (!$result) {
-            $this->error = $this->roleModel->getError();
+    public function updateUserRole($userId, $subAdmin, $canEdit, $manageAccess, $currentUserRole = null, $restoreOriginalRole = false) {
+        try {
+            $db = $this->roleModel->getDb();
+            $db->beginTransaction();
+            
+            // Check if user account is pending - safety check
+            $db->query("SELECT Acc_Status FROM USER_INFORMATION WHERE ID = :user_id");
+            $db->bind(':user_id', $userId);
+            $userStatus = $db->singleAssoc();
+            
+            if (!$userStatus || $userStatus['Acc_Status'] === 'pending') {
+                throw new Exception('Cannot modify roles for pending accounts');
+            }
+            
+            // Get the current role from USER_INFORMATION if not provided
+            if (!$currentUserRole) {
+                $db->query("SELECT User_Role FROM USER_INFORMATION WHERE ID = :user_id");
+                $db->bind(':user_id', $userId);
+                $user = $db->singleAssoc();
+                $currentUserRole = $user['User_Role'] ?? 'student';
+            }
+            
+            // Check if user already has a role record and get current permissions
+            $db->query("SELECT * FROM ROLES WHERE User_ID = :user_id");
+            $db->bind(':user_id', $userId);
+            $existingRole = $db->singleAssoc();
+            
+            $originalUserRole = null;
+            
+            // Determine the original role logic
+            if ($subAdmin === 'Yes') {
+                // When granting Sub-Admin - store original role but don't auto-grant other permissions
+                if ($existingRole && !empty($existingRole['Original_User_Role'])) {
+                    // Keep existing original role
+                    $originalUserRole = $existingRole['Original_User_Role'];
+                } else {
+                    // Store current role as original (only if we're granting Sub-Admin for the first time)
+                    $originalUserRole = $currentUserRole;
+                    error_log("Storing original role: " . $originalUserRole . " for user: " . $userId);
+                }
+            } elseif ($restoreOriginalRole) {
+                // When revoking Sub-Admin and restoring original role - PRESERVE OTHER PERMISSIONS
+                if ($existingRole && !empty($existingRole['Original_User_Role'])) {
+                    $originalUserRole = $existingRole['Original_User_Role'];
+                    error_log("Restoring original role: " . $originalUserRole . " for user: " . $userId);
+                } else {
+                    // Fallback: use current role
+                    $originalUserRole = $currentUserRole;
+                    error_log("Using current role as fallback: " . $originalUserRole . " for user: " . $userId);
+                }
+                
+                // IMPORTANT: When revoking Sub-Admin, preserve the existing can_edit and manage_access values
+                // Only change sub_admin to 'No' and restore the original user role
+                if ($existingRole) {
+                    $canEdit = $existingRole['Can_Edit'] = 'No'; // Preserve current value
+                    $manageAccess = $existingRole['Manage_Access'] = 'No'; // Preserve current value
+                }
+            } else {
+                // For other permission changes, preserve existing original role
+                if ($existingRole && !empty($existingRole['Original_User_Role'])) {
+                    $originalUserRole = $existingRole['Original_User_Role'];
+                }
+                // If no existing original role, leave it as null (will be preserved in update)
+            }
+            
+            // DEBUG: Log what we're about to save
+            error_log("Saving role for user " . $userId . ":");
+            error_log("  - Sub_Admin: " . $subAdmin);
+            error_log("  - Can_Edit: " . $canEdit);
+            error_log("  - Manage_Access: " . $manageAccess);
+            error_log("  - Original_User_Role: " . ($originalUserRole ?? 'NULL'));
+            error_log("  - Restore Original: " . ($restoreOriginalRole ? 'YES' : 'NO'));
+            
+            // Update the ROLES table - use the provided values without auto-granting/auto-revoking
+            $result = $this->roleModel->saveRole($userId, $subAdmin, $canEdit, $manageAccess, $originalUserRole);
+            
+            if (!$result) {
+                $db->rollBack();
+                $this->error = $this->roleModel->getError();
+                return false;
+            }
+            
+            // Handle user role updates in USER_INFORMATION table
+            if ($subAdmin === 'Yes') {
+                // When granting Sub-Admin, update to 'subAdmin'
+                $db->query("UPDATE USER_INFORMATION SET User_Role = 'subAdmin' WHERE ID = :user_id");
+                $db->bind(':user_id', $userId);
+                $db->execute();
+                error_log("Updated user role to 'subAdmin' for user: " . $userId);
+            } elseif ($restoreOriginalRole && $originalUserRole) {
+                // When revoking Sub-Admin, restore the original role but preserve permissions
+                $db->query("UPDATE USER_INFORMATION SET User_Role = :user_role WHERE ID = :user_id");
+                $db->bind(':user_role', $originalUserRole);
+                $db->bind(':user_id', $userId);
+                $db->execute();
+                error_log("Restored user role to '" . $originalUserRole . "' for user: " . $userId);
+                error_log("Preserved permissions - Can_Edit: " . $canEdit . ", Manage_Access: " . $manageAccess);
+            }
+            
+            // Update session if this is the current user
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            if (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $userId) {
+                if ($subAdmin === 'Yes') {
+                    $_SESSION['user_role'] = 'subAdmin';
+                } elseif ($restoreOriginalRole && $originalUserRole) {
+                    $_SESSION['user_role'] = $originalUserRole;
+                }
+            }
+            
+            $db->commit();
+            
+            return true;
+            
+        } catch (Exception $e) {
+            $db->rollBack();
+            $this->error = "Error updating user role: " . $e->getMessage();
+            error_log($this->error);
+            return false;
         }
-        
-        return $result;
     }
 
     /**
@@ -287,10 +399,24 @@ class RolesController {
     public function canModifyRoles($currentUserId) {
         return $this->canAccessManagement($currentUserId);
     }
+    /*
+    public function debugOriginalRoles() {
+        return $this->roleModel->debugOriginalRoles();
+    }
+
+    public function debugUserRole($userId) {
+        return $this->roleModel->debugUserRole($userId);
+    } */
 }
 
 // Handle AJAX requests if accessed directly
+// Handle AJAX requests if accessed directly
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    // Clear any previous output
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    
     header('Content-Type: application/json');
     
     if (session_status() === PHP_SESSION_NONE) {
@@ -311,50 +437,122 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
     }
     
-    switch ($_POST['action']) {
-        case 'get_user_roles':
-            $filters = $_POST['filters'] ?? [];
-            $users = $rolesController->getAllUsersWithRoles($filters);
-            if ($users !== false) {
-                $response['success'] = true;
-                $response['users'] = $users;
-            } else {
-                $response['message'] = $rolesController->getError();
-            }
-            break;
-            
-        case 'update_user_role':
-            if (isset($_POST['user_id'], $_POST['sub_admin'], $_POST['can_edit'], $_POST['manage_access'])) {
-                $success = $rolesController->updateUserRole(
-                    $_POST['user_id'],
-                    $_POST['sub_admin'],
-                    $_POST['can_edit'],
-                    $_POST['manage_access']
-                );
-                if ($success) {
+    try {
+        switch ($_POST['action']) {
+            case 'get_user_account_status':
+                if (isset($_POST['user_id'])) {
+                    $db = new Database(); // Create new Database instance
+                    $db->query("SELECT Acc_Status FROM USER_INFORMATION WHERE ID = :user_id");
+                    $db->bind(':user_id', $_POST['user_id']);
+                    $user = $db->singleAssoc();
+                    
+                    if ($user) {
+                        $response['success'] = true;
+                        $response['account_status'] = $user['Acc_Status'];
+                    } else {
+                        $response['message'] = 'User not found';
+                    }
+                } else {
+                    $response['message'] = 'User ID required';
+                }
+                break;
+                
+            case 'get_user_current_role':
+                if (isset($_POST['user_id'])) {
+                    $db = new Database(); // Create new Database instance
+                    $db->query("SELECT User_Role FROM USER_INFORMATION WHERE ID = :user_id");
+                    $db->bind(':user_id', $_POST['user_id']);
+                    $user = $db->singleAssoc();
+                    
+                    if ($user) {
+                        $response['success'] = true;
+                        $response['user_role'] = $user['User_Role'];
+                    } else {
+                        $response['message'] = 'User not found';
+                    }
+                } else {
+                    $response['message'] = 'User ID required';
+                }
+                break;
+                
+            case 'get_stored_original_role':
+                if (isset($_POST['user_id'])) {
+                    $db = new Database(); // Create new Database instance
+                    // Check if we have a stored original role in the ROLES table
+                    $db->query("SELECT Original_User_Role FROM ROLES WHERE User_ID = :user_id");
+                    $db->bind(':user_id', $_POST['user_id']);
+                    $role = $db->singleAssoc();
+                    
+                    if ($role && !empty($role['Original_User_Role'])) {
+                        $response['success'] = true;
+                        $response['original_role'] = $role['Original_User_Role'];
+                    } else {
+                        // If no stored role, get current role from USER_INFORMATION
+                        $db->query("SELECT User_Role FROM USER_INFORMATION WHERE ID = :user_id");
+                        $db->bind(':user_id', $_POST['user_id']);
+                        $user = $db->singleAssoc();
+                        
+                        if ($user) {
+                            $response['success'] = true;
+                            $response['original_role'] = $user['User_Role'];
+                        } else {
+                            $response['message'] = 'User not found';
+                        }
+                    }
+                } else {
+                    $response['message'] = 'User ID required';
+                }
+                break;
+                
+            case 'get_user_roles':
+                $filters = $_POST['filters'] ?? [];
+                $users = $rolesController->getAllUsersWithRoles($filters);
+                if ($users !== false) {
                     $response['success'] = true;
-                    $response['message'] = 'Role updated successfully';
+                    $response['users'] = $users;
                 } else {
                     $response['message'] = $rolesController->getError();
                 }
-            } else {
-                $response['message'] = 'Missing required parameters';
-            }
-            break;
-            
-        case 'update_batch_roles':
-            if (isset($_POST['role_updates']) && is_array($_POST['role_updates'])) {
-                $success = $rolesController->updateBatchUserRoles($_POST['role_updates']);
-                if ($success) {
-                    $response['success'] = true;
-                    $response['message'] = 'Roles updated successfully';
+                break;
+                
+            case 'update_user_role':
+                if (isset($_POST['user_id'], $_POST['sub_admin'], $_POST['can_edit'], $_POST['manage_access'])) {
+                    $currentUserRole = $_POST['current_user_role'] ?? null;
+                    $restoreOriginalRole = isset($_POST['restore_original_role']) && $_POST['restore_original_role'] === 'true';
+                    
+                    $success = $rolesController->updateUserRole(
+                        $_POST['user_id'],
+                        $_POST['sub_admin'],
+                        $_POST['can_edit'],
+                        $_POST['manage_access'],
+                        $currentUserRole,
+                        $restoreOriginalRole
+                    );
+                    if ($success) {
+                        $response['success'] = true;
+                        $response['message'] = 'Role updated successfully';
+                    } else {
+                        $response['message'] = $rolesController->getError();
+                    }
                 } else {
-                    $response['message'] = $rolesController->getError();
+                    $response['message'] = 'Missing required parameters';
                 }
-            } else {
-                $response['message'] = 'Invalid role updates data';
-            }
-            break;
+                break;
+                
+            case 'update_batch_roles':
+                if (isset($_POST['role_updates']) && is_array($_POST['role_updates'])) {
+                    $success = $rolesController->updateBatchUserRoles($_POST['role_updates']);
+                    if ($success) {
+                        $response['success'] = true;
+                        $response['message'] = 'Roles updated successfully';
+                    } else {
+                        $response['message'] = $rolesController->getError();
+                    }
+                } else {
+                    $response['message'] = 'Invalid role updates data';
+                }
+                break;
+                
             case 'get_all_roles_data':
                 $rolesData = $rolesController->getAllRolesData();
                 if ($rolesData !== false) {
@@ -364,24 +562,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $response['message'] = $rolesController->getError();
                 }
                 break;
-            
+                
             case 'get_all_users_complete_roles':
-            $users = $rolesController->getAllUsersWithCompleteRoles();
-            if ($users !== false) {
-                $response['success'] = true;
-                $response['users'] = $users;
-                // Add debug info
-                $response['debug'] = [
-                    'user_count' => count($users),
-                    'query_executed' => true
-                ];
-            } else {
-                $response['message'] = $rolesController->getError();
-            }
-            break;
+                $users = $rolesController->getAllUsersWithCompleteRoles();
+                if ($users !== false) {
+                    $response['success'] = true;
+                    $response['users'] = $users;
+                    // Add debug info
+                    $response['debug'] = [
+                        'user_count' => count($users),
+                        'query_executed' => true
+                    ];
+                } else {
+                    $response['message'] = $rolesController->getError();
+                }
+                break;
+                
             
-        default:
-            $response['message'] = 'Invalid action';
+                
+            default:
+                $response['message'] = 'Invalid action';
+        }
+    } catch (Exception $e) {
+        $response['message'] = 'Server error: ' . $e->getMessage();
+        error_log("RolesController AJAX Error: " . $e->getMessage());
     }
     
     echo json_encode($response);

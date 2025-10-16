@@ -148,8 +148,11 @@ class User extends Model {
                     break;
             }
             
-            // Create the role entry
-            return $roleModel->createRole($userId, $subAdmin, $canEdit, $manageAccess);
+            // Store the original user role so we can restore it later if needed
+            $originalUserRole = $userRole;
+            
+            // Create the role entry with the original user role
+            return $roleModel->createRole($userId, $subAdmin, $canEdit, $manageAccess, $originalUserRole);
             
         } catch (Exception $e) {
             error_log("Error creating default role for user $userId: " . $e->getMessage());

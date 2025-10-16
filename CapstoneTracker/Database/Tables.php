@@ -75,6 +75,7 @@
                 Sub_Admin ENUM('Yes', 'No') NOT NULL,
                 Can_Edit ENUM('Yes', 'No') NOT NULL,
                 Manage_Access ENUM('Yes', 'No') NOT NULL,
+                Original_User_Role VARCHAR(15) NULL,
                 FOREIGN KEY (User_ID) REFERENCES USER_INFORMATION(ID) ON DELETE CASCADE,
                 INDEX (User_ID)
             ) ENGINE=InnoDB;",

@@ -64,43 +64,44 @@ class RoleModel {
     /**
      * Create a new role record
      */
-    public function createRole($userId, $subAdmin, $canEdit, $manageAccess) {
+    public function createRole($userId, $subAdmin, $canEdit, $manageAccess, $originalUserRole = null) {
         try {
             // Validate input values
             if (!$this->validateRoleValues($subAdmin, $canEdit, $manageAccess)) {
                 $this->error = "Invalid role values provided";
                 return false;
             }
-
+    
             // Check if user exists
             if (!$this->userExists($userId)) {
                 $this->error = "User does not exist";
                 return false;
             }
-
+    
             // Check if role already exists
             if ($this->getRoleByUserId($userId)) {
                 $this->error = "Role already exists for this user";
                 return false;
             }
-
+    
             $this->db->query("
-                INSERT INTO ROLES (User_ID, Sub_Admin, Can_Edit, Manage_Access) 
-                VALUES (:user_id, :sub_admin, :can_edit, :manage_access)
+                INSERT INTO ROLES (User_ID, Sub_Admin, Can_Edit, Manage_Access, Original_User_Role) 
+                VALUES (:user_id, :sub_admin, :can_edit, :manage_access, :original_user_role)
             ");
-
+    
             $this->db->bind(':user_id', $userId);
             $this->db->bind(':sub_admin', $subAdmin);
             $this->db->bind(':can_edit', $canEdit);
             $this->db->bind(':manage_access', $manageAccess);
-
+            $this->db->bind(':original_user_role', $originalUserRole);
+    
             if ($this->db->execute()) {
                 return $this->db->lastInsertId();
             } else {
                 $this->error = "Failed to create role record";
                 return false;
             }
-
+    
         } catch (Exception $e) {
             $this->error = "Error creating role: " . $e->getMessage();
             error_log($this->error);
@@ -108,35 +109,128 @@ class RoleModel {
         }
     }
 
+    /*
+    public function debugOriginalRoles() {
+        try {
+            $this->db->query("
+                SELECT 
+                    r.User_ID,
+                    r.Original_User_Role,
+                    ui.User_Role as Current_User_Role,
+                    ui.First_Name,
+                    ui.Last_Name,
+                    ui.Email
+                FROM ROLES r
+                JOIN USER_INFORMATION ui ON r.User_ID = ui.ID
+                WHERE r.Original_User_Role IS NOT NULL
+            ");
+            
+            $results = $this->db->resultSetAssoc();
+            
+            error_log("=== DEBUG ORIGINAL ROLES ===");
+            error_log("Total records with Original_User_Role: " . count($results));
+            
+            foreach ($results as $record) {
+                error_log("User ID: " . $record['User_ID'] . 
+                         " | Original: " . $record['Original_User_Role'] . 
+                         " | Current: " . $record['Current_User_Role'] . 
+                         " | Name: " . $record['First_Name'] . " " . $record['Last_Name']);
+            }
+            error_log("=== END DEBUG ===");
+            
+            return $results;
+            
+        } catch (Exception $e) {
+            error_log("Debug error: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function debugUserRole($userId) {
+        try {
+            $this->db->query("
+                SELECT 
+                    r.*,
+                    ui.User_Role as Current_User_Role,
+                    ui.First_Name,
+                    ui.Last_Name,
+                    ui.Email
+                FROM ROLES r
+                JOIN USER_INFORMATION ui ON r.User_ID = ui.ID
+                WHERE r.User_ID = :user_id
+            ");
+            $this->db->bind(':user_id', $userId);
+            
+            $roleData = $this->db->singleAssoc();
+            
+            error_log("=== DEBUG USER ROLE: " . $userId . " ===");
+            if ($roleData) {
+                error_log("Role Data: " . print_r($roleData, true));
+            } else {
+                error_log("No role record found for user " . $userId);
+                
+                // Check user exists
+                $this->db->query("SELECT User_Role, First_Name, Last_Name FROM USER_INFORMATION WHERE ID = :user_id");
+                $this->db->bind(':user_id', $userId);
+                $userData = $this->db->singleAssoc();
+                error_log("User Data: " . print_r($userData, true));
+            }
+            error_log("=== END DEBUG ===");
+            
+            return $roleData;
+            
+        } catch (Exception $e) {
+            error_log("Debug user role error: " . $e->getMessage());
+            return null;
+        }
+    }
+    */
+
     /**
      * Update an existing role record
      */
-    public function updateRole($userId, $subAdmin, $canEdit, $manageAccess) {
+    public function updateRole($userId, $subAdmin, $canEdit, $manageAccess, $originalUserRole = null) {
         try {
             // Validate input values
             if (!$this->validateRoleValues($subAdmin, $canEdit, $manageAccess)) {
                 $this->error = "Invalid role values provided";
                 return false;
             }
-
-            $this->db->query("
-                UPDATE ROLES 
-                SET Sub_Admin = :sub_admin, Can_Edit = :can_edit, Manage_Access = :manage_access 
-                WHERE User_ID = :user_id
-            ");
-
+    
+            // Check if role exists
+            $existingRole = $this->getRoleByUserId($userId);
+            
+            if ($existingRole) {
+                // Update existing role - preserve original role if not provided
+                $this->db->query("
+                    UPDATE ROLES 
+                    SET Sub_Admin = :sub_admin, 
+                        Can_Edit = :can_edit, 
+                        Manage_Access = :manage_access, 
+                        Original_User_Role = COALESCE(:original_user_role, Original_User_Role)
+                    WHERE User_ID = :user_id
+                ");
+            } else {
+                // Create new role
+                $this->db->query("
+                    INSERT INTO ROLES (User_ID, Sub_Admin, Can_Edit, Manage_Access, Original_User_Role) 
+                    VALUES (:user_id, :sub_admin, :can_edit, :manage_access, :original_user_role)
+                ");
+            }
+    
             $this->db->bind(':user_id', $userId);
             $this->db->bind(':sub_admin', $subAdmin);
             $this->db->bind(':can_edit', $canEdit);
             $this->db->bind(':manage_access', $manageAccess);
-
+            $this->db->bind(':original_user_role', $originalUserRole);
+    
             if ($this->db->execute()) {
-                return $this->db->rowCount() > 0;
+                return $existingRole ? $this->db->rowCount() > 0 : $this->db->lastInsertId();
             } else {
                 $this->error = "Failed to update role record";
                 return false;
             }
-
+    
         } catch (Exception $e) {
             $this->error = "Error updating role: " . $e->getMessage();
             error_log($this->error);
@@ -147,13 +241,13 @@ class RoleModel {
     /**
      * Create or update role (upsert operation)
      */
-    public function saveRole($userId, $subAdmin, $canEdit, $manageAccess) {
+    public function saveRole($userId, $subAdmin, $canEdit, $manageAccess, $originalUserRole = null) {
         $existingRole = $this->getRoleByUserId($userId);
         
         if ($existingRole) {
-            return $this->updateRole($userId, $subAdmin, $canEdit, $manageAccess);
+            return $this->updateRole($userId, $subAdmin, $canEdit, $manageAccess, $originalUserRole);
         } else {
-            return $this->createRole($userId, $subAdmin, $canEdit, $manageAccess);
+            return $this->createRole($userId, $subAdmin, $canEdit, $manageAccess, $originalUserRole);
         }
     }
 

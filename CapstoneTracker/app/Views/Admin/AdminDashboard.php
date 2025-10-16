@@ -157,10 +157,51 @@ if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
+// Default to true for superAdmin safety
+$userRole = $_SESSION['user_role'] ?? '';
+$user_id = $_SESSION['user_id'] ?? null;
+
+// Default permissions
 $shouldShowAccessManagement = true;
-if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'SubAdmin') {
-    $shouldShowAccessManagement = false;
-}
+$shouldShowAccountManagement = true;
+$shouldShowEditManagement = true;
+
+if ($userRole === 'SubAdmin' && $user_id) {
+    try {
+        // Only SubAdmin needs database check for permissions
+        $query = "SELECT Manage_Access, Can_Edit FROM ROLES WHERE User_ID = ?";
+        $db->query($query);
+        $db->bind(1, $user_id);
+        $user = $db->singleAssoc();
+        
+        if ($user) {
+            // SubAdmin never gets access management
+            $shouldShowAccessManagement = false;
+            
+            // Set account management based on Manage_Access
+            $shouldShowAccountManagement = ($user['Manage_Access'] == 'Yes');
+            
+            // Set edit management based on Can_Edit
+            $shouldShowEditManagement = ($user['Can_Edit'] == 'Yes');
+        } else {
+            // If user not found in DB, restrict all access for SubAdmin
+            $shouldShowAccessManagement = false;
+            $shouldShowAccountManagement = false;
+            $shouldShowEditManagement = false;
+        }
+        
+    } catch (Exception $e) {
+        error_log("Error checking SubAdmin permissions: " . $e->getMessage());
+        // On error, restrict all access for SubAdmin (safe default)
+        $shouldShowAccessManagement = false;
+        $shouldShowAccountManagement = false;
+        $shouldShowEditManagement = false;
+    }
+} 
+
+
+
+
 
 
 // Check if user is logged in as admin
@@ -404,7 +445,7 @@ $displayUserData = [
                 <header class="header" id="header">
                     <div class="title">Access Management</div>
                 </header>
-                <div style="text-align: center; padding: 40px; color: #666;">
+                <div style="margin-top: 7vw; text-align: center; padding: 40px; color: #666;">
                     <i class="fas fa-lock" style="font-size: 48px; margin-bottom: 20px;"></i>
                     <h3>Access Restricted</h3>
                     <p>Sub-Admin users do not have permission to access management features.</p>
@@ -414,6 +455,7 @@ $displayUserData = [
 
 
             <div id="accounts-container" class="content-container" style="display: none;">
+            <?php if ($shouldShowAccountManagement): ?>
                 <header class="logHeader" id="accountHeader">
                     <div class="title">Account Management</div>
                     <div class="logMenu">
@@ -598,6 +640,17 @@ $displayUserData = [
                         </button>
                     </div>
                 </div>
+
+                <?php else: ?>
+                <header class="header" id="header">
+                    <div class="title">Account Management</div>
+                </header>
+                <div style="margin-top: 7vw; text-align: center; padding: 40px; color: #666;">
+                    <i class="fas fa-lock" style="font-size: 48px; margin-bottom: 20px;"></i>
+                    <h3>Access Restricted</h3>
+                    <p>User does not have permission to access account features.</p>
+                </div>
+            <?php endif; ?>
             </div>
 
             <div id="logs-container" class="content-container" style="display: none;">

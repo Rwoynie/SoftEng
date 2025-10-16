@@ -41,6 +41,26 @@ class Database {
     public function query($sql) {
         $this->stmt = $this->dbh->prepare($sql);
     }
+
+    public function prepare($sql) {
+        $this->stmt = $this->dbh->prepare($sql);
+        return $this;
+    }
+
+    public function fetch($sql = null, $params = []) {
+        if ($sql) {
+            $this->prepare($sql);
+        }
+        
+        if (!empty($params)) {
+            foreach ($params as $param => $value) {
+                $this->bind($param, $value);
+            }
+        }
+        
+        $this->execute();
+        return $this->stmt->fetch(PDO::FETCH_OBJ);
+    }
     
     public function bind($param, $value, $type = null) {
         if (is_null($type)) {
