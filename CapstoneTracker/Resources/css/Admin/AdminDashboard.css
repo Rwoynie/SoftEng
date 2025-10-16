@@ -3146,6 +3146,7 @@ body {
 .announcement-header {
     padding: 20px 20px 10px;
     border-bottom: 1px solid #f0f0f0;
+    background: var(--color-white);
 }
 
 .announcement-title {
@@ -4079,19 +4080,65 @@ body {
 }
 
 
-
+/* Pin badge styling */
 .pinned-badge {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: #b81e1f;
-  color: #fff;
-  padding: 4px 10px;
-  font-size: 0.8rem;
-  border-radius: 20px;
-  font-weight: 600;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(255, 193, 7, 0.95);
+    color: #000;
+    padding: 5px 12px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    z-index: 10;
+    backdrop-filter: blur(10px);
 }
 
+
+
+/* Pinned announcement card styling */
+.announcement-card-ui.pinned {
+    border: 2px solid #ffc107;
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+    position: relative;
+}
+
+/* Ensure the card has relative positioning */
+.announcement-card-ui {
+    position: relative;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+/* Banner section positioning */
+.announcement-card-banner {
+    position: relative;
+    height: 120px;
+    overflow: hidden;
+}
+
+.announcement-bg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.announcement-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
 
 .announcement-card.new {
     animation: slideInUp 0.3s ease;

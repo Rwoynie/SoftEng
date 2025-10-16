@@ -40,7 +40,6 @@ class AnnouncementManager {
     if (announcementForm) {
         announcementForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
     } else {
-        console.warn('Announcement form not found during initialization');
     }
 
     // Search and filter
@@ -192,6 +191,8 @@ initializeDropdowns() {
 }
 
    switchView(view) {
+    
+    
     this.currentView = view;
     
     // Update button states - safely check if elements exist
@@ -204,6 +205,9 @@ initializeDropdowns() {
         const targetBtn = document.getElementById(`${view}AnnouncementsBtn`);
         if (targetBtn) {
             targetBtn.classList.add('selected');
+            
+        } else {
+            
         }
     }
 
@@ -212,24 +216,50 @@ initializeDropdowns() {
     const archivedView = document.getElementById('archivedAnnouncementsView');
     const createView = document.getElementById('createAnnouncementView');
 
+    
+    
     if (activeView) {
         activeView.style.display = view === 'active' ? 'block' : 'none';
+        
     }
     if (archivedView) {
         archivedView.style.display = view === 'archived' ? 'block' : 'none';
+        
     }
     if (createView) {
         createView.style.display = view === 'create' ? 'block' : 'none';
+        
+        // If switching to create view and we're editing, ensure form is ready
+        if (view === 'create' && this.isEditing) {
+            
+            // Force a small delay to ensure DOM is updated
+            setTimeout(() => {
+                this.scrollToForm();
+            }, 100);
+        }
     }
 
     if (view === 'active') {
         this.loadAnnouncements();
     } else if (view === 'archived') {
         this.loadArchivedAnnouncements();
-    } else if (view === 'create') {
-        this.resetForm(); // Only reset form when switching to create view
+    } else if (view === 'create' && !this.isEditing) {
+        this.resetForm(); // Only reset form when switching to create view for new announcement
+    }
+    
+    
+}
+
+// Add this helper method to scroll to the form
+scrollToForm() {
+    const createView = document.getElementById('createAnnouncementView');
+    if (createView) {
+        createView.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        
     }
 }
+
+
 
     async loadAnnouncements() {
         try {
@@ -241,11 +271,12 @@ initializeDropdowns() {
             if (data.success) {
                 this.announcements = data.announcements;
                 this.applyFiltersAndSort();
+                this.debugDates();
             } else {
                 throw new Error(data.error || 'Failed to load announcements');
             }
         } catch (error) {
-            console.error('Error loading announcements:', error);
+            
             this.showError('activeAnnouncementsGrid', 'Failed to load announcements');
         }
     }
@@ -263,7 +294,7 @@ initializeDropdowns() {
                 throw new Error(data.error || 'Failed to load archived announcements');
             }
         } catch (error) {
-            console.error('Error loading archived announcements:', error);
+            
             this.showError('archivedAnnouncementsGrid', 'Failed to load archived announcements');
         }
     }
@@ -331,10 +362,17 @@ initializeDropdowns() {
     }
 
     createAnnouncementCard(announcement, isArchived = false) {
+    // Safely format dates first
+    const createdDate = this.safeFormatDate(announcement.created_at);
+    const startDate = this.safeFormatDate(announcement.start_date) || createdDate;
+    const endDate = this.safeFormatDate(announcement.end_date);
+    
     const isExpired = announcement.end_date && new Date(announcement.end_date) < new Date();
-    const isPinned = announcement.is_pinned && !isArchived;
+    const isPinned = announcement.is_pinned == 1 && !isArchived; // Ensure boolean check
     const typeClass = announcement.type || 'information';
     const contentPreview = this.escapeHtml(announcement.content.length > 200 ? announcement.content.substring(0, 200) + '...' : announcement.content);
+    const fullContent = this.escapeHtml(announcement.content);
+    
     
     return `
         <div class="announcement-card-ui ${typeClass} ${isPinned ? 'pinned' : ''} ${isExpired ? 'expired' : ''}" data-id="${announcement.id}">
@@ -342,19 +380,15 @@ initializeDropdowns() {
 
             <!-- Banner Section -->
             <div class="announcement-card-banner">
-            <img src="../../../resources/images/Announcement_pic.png" alt="Banner" class="announcement-bg"/>
-            <div class="announcement-badge ${typeClass}">${typeClass}</div>
-            
+                <img src="../../../resources/images/Announcement_pic.png" alt="Banner" class="announcement-bg"/>
+                <div class="announcement-badge ${typeClass}">${typeClass}</div>
             </div>
-
 
             <!-- Content Section -->
             <div class="announcement-card-content">
                 <h3 class="announcement-title">${this.escapeHtml(announcement.title)}</h3>
-                <p class="announcement-date">
-                    ${announcement.start_date ? this.formatDate(announcement.start_date) : this.formatDate(announcement.created_at)}
-                </p>
-                <div class="announcement-content-text" id="content-${announcement.id}">
+                <p class="announcement-date">${startDate}</p>
+                <div class="announcement-content-text" id="content-${announcement.id}" data-full-content="${fullContent}">
                     ${contentPreview}
                 </div>
                 ${announcement.content.length > 200 ? 
@@ -364,9 +398,9 @@ initializeDropdowns() {
             <!-- Footer Section -->
             <div class="announcement-footer">
                 <div class="announcement-dates">
-                    <div>Created: ${this.formatDate(announcement.created_at)}</div>
-                    ${announcement.start_date ? `<div>Starts: ${this.formatDate(announcement.start_date)}</div>` : ''}
-                    ${announcement.end_date ? `<div>Ends: ${this.formatDate(announcement.end_date)}</div>` : ''}
+                    <div>Created: ${createdDate}</div>
+                    ${announcement.start_date ? `<div>Starts: ${this.safeFormatDate(announcement.start_date)}</div>` : ''}
+                    ${announcement.end_date ? `<div>Ends: ${this.safeFormatDate(announcement.end_date)}</div>` : ''}
                 </div>
 
                 <div class="announcement-actions">
@@ -375,7 +409,7 @@ initializeDropdowns() {
                             <i class="fas fa-edit"></i> Edit
                         </button>
                         <button class="announcement-action-btn pin-btn" data-action="togglePin" data-id="${announcement.id}">
-                            <i class="fas fa-thumbtack"></i> ${announcement.is_pinned ? 'Unpin' : 'Pin'}
+                            <i class="fas fa-thumbtack"></i> ${announcement.is_pinned == 1 ? 'Unpin' : 'Pin'}
                         </button>
                         <button class="announcement-action-btn archive-btn" data-action="archive" data-id="${announcement.id}">
                             <i class="fas fa-archive"></i> Archive
@@ -394,38 +428,72 @@ initializeDropdowns() {
     `;
 }
 
+// Add a safe date formatting method
+safeFormatDate(dateString) {
+    if (!dateString) return '';
+    
+    try {
+        const date = new Date(dateString);
+        return isNaN(date.getTime()) ? 'Invalid date' : this.formatDate(dateString);
+    } catch (error) {
+        return 'Date error';
+    }
+}
+
 
     attachCardEventListeners(containerId, isArchived = false) {
-        const container = document.getElementById(containerId);
-        
-        // Read more/less buttons
-        container.querySelectorAll('.read-more-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const announcementId = e.target.getAttribute('data-id');
-                const contentElement = document.getElementById(`content-${announcementId}`);
-                const isExpanded = contentElement.classList.contains('expanded');
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    // Read more/less buttons
+    container.querySelectorAll('.read-more-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const announcementId = e.target.getAttribute('data-id');
+            const contentElement = document.getElementById(`content-${announcementId}`);
+            
+            if (!contentElement) {
                 
-                if (isExpanded) {
-                    contentElement.classList.remove('expanded');
-                    e.target.textContent = 'Read More';
-                } else {
-                    contentElement.classList.add('expanded');
-                    e.target.textContent = 'Read Less';
+                return;
+            }
+            
+            const isExpanded = contentElement.classList.contains('expanded');
+            
+            if (isExpanded) {
+                contentElement.classList.remove('expanded');
+                e.target.textContent = 'Read More';
+                // Collapse content
+                const fullContent = contentElement.getAttribute('data-full-content');
+                if (fullContent && fullContent.length > 200) {
+                    contentElement.innerHTML = fullContent.substring(0, 200) + '...';
                 }
-            });
+            } else {
+                contentElement.classList.add('expanded');
+                e.target.textContent = 'Read Less';
+                // Expand to full content
+                const fullContent = contentElement.getAttribute('data-full-content') || contentElement.textContent;
+                contentElement.innerHTML = fullContent;
+            }
         });
+    });
 
-        // Action buttons
-        container.querySelectorAll('.announcement-action-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                const action = e.target.getAttribute('data-action');
-                const announcementId = e.target.getAttribute('data-id');
+    // Action buttons
+    container.querySelectorAll('.announcement-action-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const action = e.target.closest('.announcement-action-btn').getAttribute('data-action');
+            const announcementId = e.target.closest('.announcement-action-btn').getAttribute('data-id');
+            
+            if (!action || !announcementId) {
                 
-                this.handleCardAction(action, announcementId, isArchived);
-            });
+                return;
+            }
+            
+            this.handleCardAction(action, announcementId, isArchived);
         });
-    }
+    });
+}
 
     async handleCardAction(action, announcementId, isArchived = false) {
         try {
@@ -447,226 +515,380 @@ initializeDropdowns() {
                     break;
             }
         } catch (error) {
-            console.error('Error handling card action:', error);
+            
             this.showError('Failed to perform action');
         }
     }
 
     async editAnnouncement(announcementId) {
-        try {
-            const response = await fetch(`../../../app/Controllers/AdminDashboardController.php?action=getAnnouncement&id=${announcementId}`);
-            const data = await response.json();
-            
-            if (data.success) {
-                this.populateForm(data.announcement);
-                this.switchView('create');
-                this.isEditing = true;
-            } else {
-                throw new Error(data.error || 'Failed to load announcement data');
+    try {
+        
+        
+        // Show loading state
+        Swal.fire({
+            title: 'Loading...',
+            text: 'Please wait while we load announcement data',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
             }
-        } catch (error) {
-            console.error('Error loading announcement for edit:', error);
-            this.showError('Failed to load announcement for editing');
+        });
+        
+        const response = await fetch(`../../../app/Controllers/AdminDashboardController.php?action=getAnnouncement&id=${announcementId}`);
+        
+        
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+        
+        const responseText = await response.text();
+        
+        
+        let data;
+        
+        // Robust JSON parsing
+        try {
+            data = JSON.parse(responseText);
+        } catch (parseError) {
+            
+            // Try to extract JSON from the response
+            const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                try {
+                    data = JSON.parse(jsonMatch[0]);
+                    
+                } catch (e2) {
+                    throw new Error('Invalid JSON response from server');
+                }
+            } else {
+                throw new Error('Server returned non-JSON response');
+            }
+        }
+        
+        // Close loading
+        Swal.close();
+        
+        
+        
+        if (data.success && data.announcement) {
+            
+            
+            // Populate the form FIRST
+            this.populateForm(data.announcement);
+            
+            // THEN switch to create view
+            
+            this.switchView('create');
+            
+            // Force the form to be visible and focused
+            setTimeout(() => {
+                const createView = document.getElementById('createAnnouncementView');
+                if (createView && createView.style.display !== 'block') {
+                    
+                    createView.style.display = 'block';
+                }
+                
+                // Focus on the title field
+                const titleInput = document.getElementById('announcementTitle');
+                if (titleInput) {
+                    titleInput.focus();
+                    
+                }
+            }, 200);
+            
+        } else {
+            throw new Error(data.error || 'Failed to load announcement data');
+        }
+        
+    } catch (error) {
+        
+        
+        Swal.close();
+        this.showError('Failed to load announcement for editing: ' + error.message);
     }
+}
 
-     populateForm(announcement) {
-    const announcementId = document.getElementById('announcementId');
-    const announcementTitle = document.getElementById('announcementTitle');
-    const announcementType = document.getElementById('announcementType');
-    const announcementContent = document.getElementById('announcementContent');
-    const announcementIsPinned = document.getElementById('announcementIsPinned');
-    const announcementStartDate = document.getElementById('announcementStartDate');
-    const announcementEndDate = document.getElementById('announcementEndDate');
+    populateForm(announcement) {
+    
     
     // Safely set values only if elements exist
-    if (announcementId) announcementId.value = announcement.id;
-    if (announcementTitle) announcementTitle.value = announcement.title;
-    if (announcementType) announcementType.value = announcement.type;
-    if (announcementContent) announcementContent.value = announcement.content;
-    if (announcementIsPinned) announcementIsPinned.checked = announcement.is_pinned == 1;
+    const elements = {
+        announcementId: document.getElementById('announcementId'),
+        announcementTitle: document.getElementById('announcementTitle'),
+        announcementContent: document.getElementById('announcementContent'),
+        announcementIsPinned: document.getElementById('announcementIsPinned'),
+        announcementStartDate: document.getElementById('announcementStartDate'),
+        announcementEndDate: document.getElementById('announcementEndDate')
+    };
+
+    // Set basic values
+    if (elements.announcementId) {
+        elements.announcementId.value = announcement.id || announcement.announcement_id || '';
+        
+    }
+
+    if (elements.announcementTitle) {
+        elements.announcementTitle.value = announcement.title || '';
+        
+    }
+
+    if (elements.announcementContent) {
+        elements.announcementContent.value = announcement.content || '';
+        
+    }
+
+    // Handle pin checkbox
+    if (elements.announcementIsPinned) {
+        const isPinned = announcement.is_pinned == 1 || announcement.pinned == 1;
+        elements.announcementIsPinned.checked = isPinned;
+        this.updatePinCheckboxVisual(isPinned);
+        
+    }
+
+    // Set type selection - FIXED
+    
+    if (announcement.type) {
+        const typeCards = document.querySelectorAll('.type-card');
+        
+        
+        typeCards.forEach(card => {
+            const radio = card.querySelector('input[type="radio"]');
+            const cardType = card.getAttribute('data-type');
+            
+            
+            if (radio && cardType === announcement.type) {
+                card.classList.add('selected');
+                radio.checked = true;
+                
+            } else {
+                card.classList.remove('selected');
+                radio.checked = false;
+            }
+        });
+    }
 
     // Format dates for datetime-local input
-    if (announcementStartDate && announcement.start_date) {
-        announcementStartDate.value = this.formatDateForInput(announcement.start_date);
-    }
-    if (announcementEndDate && announcement.end_date) {
-        announcementEndDate.value = this.formatDateForInput(announcement.end_date);
+    
+    
+    
+    if (elements.announcementStartDate && announcement.start_date) {
+        const formattedStartDate = this.formatDateForInput(announcement.start_date);
+        elements.announcementStartDate.value = formattedStartDate;
+        
     }
 
-    // Update UI for edit mode - safely check if elements exist
+    if (elements.announcementEndDate && announcement.end_date) {
+        const formattedEndDate = this.formatDateForInput(announcement.end_date);
+        elements.announcementEndDate.value = formattedEndDate;
+        
+    } else if (elements.announcementEndDate) {
+        elements.announcementEndDate.value = ''; // Clear if no end date
+        
+    }
+
+    // Update UI for edit mode
     const createAnnouncementTitle = document.getElementById('createAnnouncementTitle');
     const createAnnouncementSubtitle = document.getElementById('createAnnouncementSubtitle');
     
     if (createAnnouncementTitle) {
         createAnnouncementTitle.textContent = 'Edit Announcement';
+        
     }
     if (createAnnouncementSubtitle) {
         createAnnouncementSubtitle.textContent = 'Update announcement details';
+        
     }
 
-    // Update character counters - safely check if elements exist
-    if (announcementTitle) {
-        this.updateCharCounter(announcementTitle, 'titleCharCount', 200);
+    // Update character counters
+    if (elements.announcementTitle) {
+        this.updateCharCounter(elements.announcementTitle, 'titleCharCount', 200);
     }
-    if (announcementContent) {
-        this.updateCharCounter(announcementContent, 'contentCharCount', 2000);
+    if (elements.announcementContent) {
+        this.updateCharCounter(elements.announcementContent, 'contentCharCount', 2000);
     }
+
+     this.isEditing = true;
+    
+    
+    // Check form visibility after population
+    setTimeout(() => {
+        this.checkFormVisibility();
+    }, 300);
 }
+
+
     async togglePinAnnouncement(announcementId) {
-        const result = await Swal.fire({
-            title: 'Toggle Pin?',
-            text: 'Do you want to pin/unpin this announcement?',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, toggle pin',
-            cancelButtonText: 'Cancel'
-        });
+    const result = await Swal.fire({
+        title: 'Toggle Pin?',
+        text: 'Do you want to pin/unpin this announcement?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, toggle pin',
+        cancelButtonText: 'Cancel'
+    });
 
-        if (result.isConfirmed) {
-            try {
-                const formData = new FormData();
-                formData.append('id', announcementId);
-                formData.append('action', 'togglePinAnnouncement');
-
-                const response = await fetch('../../../app/Controllers/AdminDashboardController.php', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    this.showSuccess('Announcement pin status updated');
-                    this.loadAnnouncements();
-                } else {
-                    throw new Error(data.error || 'Failed to toggle pin status');
-                }
-            } catch (error) {
-                console.error('Error toggling pin status:', error);
-                this.showError('Failed to update pin status');
-            }
-        }
-    }
-
-    async archiveAnnouncement(announcementId) {
-        const result = await Swal.fire({
-            title: 'Archive Announcement?',
-            text: 'This announcement will be moved to archived section',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, archive it',
-            cancelButtonText: 'Cancel'
-        });
-
-        if (result.isConfirmed) {
-            try {
-                const formData = new FormData();
-                formData.append('id', announcementId);
-                formData.append('action', 'archiveAnnouncement');
-
-                const response = await fetch('../../../app/Controllers/AdminDashboardController.php', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    this.showSuccess('Announcement archived successfully');
-                    this.loadAnnouncements();
-                } else {
-                    throw new Error(data.error || 'Failed to archive announcement');
-                }
-            } catch (error) {
-                console.error('Error archiving announcement:', error);
-                this.showError('Failed to archive announcement');
-            }
-        }
-    }
-
-    async restoreAnnouncement(announcementId) {
+    if (result.isConfirmed) {
         try {
             const formData = new FormData();
             formData.append('id', announcementId);
-            formData.append('action', 'restoreAnnouncement');
+            formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]').content);
 
-            const response = await fetch('../../../app/Controllers/AdminDashboardController.php', {
+            
+            
+            const response = await fetch('../../../app/Controllers/AdminDashboardController.php?action=togglePinAnnouncement', {
                 method: 'POST',
                 body: formData
             });
 
             const data = await response.json();
+            
 
             if (data.success) {
-                this.showSuccess('Announcement restored successfully');
-                this.loadArchivedAnnouncements();
+                this.showSuccess(data.message || 'Announcement pin status updated');
+                // Force reload to ensure UI is updated correctly
+                setTimeout(() => {
+                    this.loadAnnouncements();
+                }, 500);
+            } else {
+                throw new Error(data.error || 'Failed to toggle pin status');
+            }
+        } catch (error) {
+            
+            this.showError('Failed to update pin status: ' + error.message);
+        }
+    }
+}
+
+async archiveAnnouncement(announcementId) {
+    const result = await Swal.fire({
+        title: 'Archive Announcement?',
+        text: 'This announcement will be moved to archived section',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, archive it',
+        cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            const formData = new FormData();
+            formData.append('id', announcementId);
+            formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]').content);
+
+            const response = await fetch('../../../app/Controllers/AdminDashboardController.php?action=archiveAnnouncement', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+            
+
+            if (data.success) {
+                this.showSuccess(data.message || 'Announcement archived successfully');
+                this.loadAnnouncements();
+            } else {
+                throw new Error(data.error || 'Failed to archive announcement');
+            }
+        } catch (error) {
+            
+            this.showError('Failed to archive announcement: ' + error.message);
+        }
+    }
+}
+
+    async restoreAnnouncement(announcementId) {
+    const result = await Swal.fire({
+        title: 'Restore Announcement?',
+        text: 'This announcement will be moved back to active announcements',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, restore it',
+        cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            const formData = new FormData();
+            formData.append('id', announcementId);
+            formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]').content);
+
+            
+            
+            const response = await fetch('../../../app/Controllers/AdminDashboardController.php?action=restoreAnnouncement', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+            
+
+            if (data.success) {
+                this.showSuccess(data.message || 'Announcement restored successfully');
+                // Reload the archived announcements to reflect the change
+                setTimeout(() => {
+                    this.loadArchivedAnnouncements();
+                }, 500);
             } else {
                 throw new Error(data.error || 'Failed to restore announcement');
             }
         } catch (error) {
-            console.error('Error restoring announcement:', error);
-            this.showError('Failed to restore announcement');
+            
+            this.showError('Failed to restore announcement: ' + error.message);
         }
     }
+}
 
     async deleteAnnouncement(announcementId, isArchived = false) {
-        const result = await Swal.fire({
-            title: 'Delete Announcement?',
-            text: 'This action cannot be undone',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, delete it',
-            cancelButtonText: 'Cancel',
-            confirmButtonColor: '#dc3545'
-        });
+    const result = await Swal.fire({
+        title: 'Delete Announcement?',
+        text: 'This action cannot be undone',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, delete it',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#dc3545'
+    });
 
-        if (result.isConfirmed) {
-            try {
-                const formData = new FormData();
-                formData.append('id', announcementId);
-                formData.append('action', 'deleteAnnouncement');
+    if (result.isConfirmed) {
+        try {
+            const formData = new FormData();
+            formData.append('id', announcementId);
+            formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]').content);
 
-                const response = await fetch('../../../app/Controllers/AdminDashboardController.php', {
-                    method: 'POST',
-                    body: formData
-                });
+            const response = await fetch('../../../app/Controllers/AdminDashboardController.php?action=deleteAnnouncement', {
+                method: 'POST',
+                body: formData
+            });
 
-                const data = await response.json();
+            const data = await response.json();
+            
 
-                if (data.success) {
-                    this.showSuccess('Announcement deleted successfully');
-                    if (isArchived) {
-                        this.loadArchivedAnnouncements();
-                    } else {
-                        this.loadAnnouncements();
-                    }
+            if (data.success) {
+                this.showSuccess(data.message || 'Announcement deleted successfully');
+                if (isArchived) {
+                    this.loadArchivedAnnouncements();
                 } else {
-                    throw new Error(data.error || 'Failed to delete announcement');
+                    this.loadAnnouncements();
                 }
-            } catch (error) {
-                console.error('Error deleting announcement:', error);
-                this.showError('Failed to delete announcement');
+            } else {
+                throw new Error(data.error || 'Failed to delete announcement');
             }
+        } catch (error) {
+            
+            this.showError('Failed to delete announcement: ' + error.message);
         }
     }
+}
 
 
     async handleFormSubmit(e) {
     e.preventDefault();
     
-    console.log('Form submit triggered, current view:', this.currentView);
     
-    // Check if we're in the correct view and form exists
-    if (this.currentView !== 'create') {
-        console.error('Cannot submit form: Not in create view. Current view:', this.currentView);
-        this.showError('Cannot submit form in current view.');
-        return;
-    }
-
     const form = document.getElementById('announcementForm');
     if (!form) {
-        console.error('Form not found');
+        
         this.showError('Form not found. Please refresh the page and try again.');
         return;
     }
@@ -674,7 +896,7 @@ initializeDropdowns() {
     // Show loading state
     const submitBtn = document.getElementById('publishAnnouncementBtn');
     if (!submitBtn) {
-        console.error('Submit button not found');
+        
         return;
     }
 
@@ -683,64 +905,85 @@ initializeDropdowns() {
     submitBtn.disabled = true;
 
     try {
-        console.log('Starting announcement submission...');
         
-        // Get form data
+        
+        // Get form data and log it for debugging
         const formData = new FormData(form);
-        formData.append('action', this.isEditing ? 'updateAnnouncement' : 'createAnnouncement');
-
+        
+        
+        
+        
+        // Determine the correct action based on editing state
+        const action = this.isEditing ? 'updateAnnouncement' : 'createAnnouncement';
+        
+        
         // Validate form
-        console.log('Validating form...');
+        
         if (!this.validateForm()) {
-            console.log('Form validation failed');
+            
             throw new Error('Form validation failed');
         }
-        console.log('Form validation passed');
+        
 
         // Use the correct endpoint with action parameter
-        console.log('Sending request to server...');
-        const action = this.isEditing ? 'updateAnnouncement' : 'createAnnouncement';
-        const response = await fetch(`../../../app/Controllers/AdminDashboardController.php?action=${action}`, {
+        
+        const url = `../../../app/Controllers/AdminDashboardController.php?action=${action}`;
+        
+        
+        const response = await fetch(url, {
             method: 'POST',
             body: formData
         });
 
         // Log response status
-        console.log('Response status:', response.status, response.statusText);
+        
+        
 
         const responseText = await response.text();
-        console.log('Raw server response:', responseText);
+        
+        
+        
+
+        // Check if response is completely empty
+        if (!responseText.trim()) {
+            throw new Error('Server returned empty response');
+        }
 
         let data;
         try {
             data = JSON.parse(responseText);
-        } catch (parseError) {
-            console.error('JSON parse error:', parseError);
             
-            // Try to extract JSON from the response
+        } catch (parseError) {
+            
+            
+            // Try to extract JSON from the response if there's extra output
             const jsonMatch = responseText.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 try {
                     data = JSON.parse(jsonMatch[0]);
-                    console.log('Successfully extracted JSON from response');
+                    
                 } catch (e) {
-                    console.error('Failed to parse extracted JSON:', e);
-                    throw new Error('Server returned invalid JSON format. Raw response: ' + responseText.substring(0, 200));
-                }
-            } else {
-                // Check if it's a PHP error
-                if (responseText.includes('Fatal error') || responseText.includes('Parse error') || responseText.includes('Warning') || responseText.includes('Notice')) {
-                    throw new Error('PHP error detected: ' + responseText.substring(0, 300));
-                } else {
-                    throw new Error('Server returned non-JSON response: ' + responseText.substring(0, 200));
+                    
+                    // Check for common PHP errors
+                    if (responseText.includes('Fatal error')) {
+                        const fatalMatch = responseText.match(/Fatal error[^]*/i);
+                        throw new Error('PHP Fatal Error: ' + (fatalMatch ? fatalMatch[0].substring(0, 200) : 'Check server logs'));
+                    } else if (responseText.includes('Parse error')) {
+                        const parseMatch = responseText.match(/Parse error[^]*/i);
+                        throw new Error('PHP Parse Error: ' + (parseMatch ? parseMatch[0].substring(0, 200) : 'Check server logs'));
+                    } else if (responseText.includes('Warning') || responseText.includes('Notice')) {
+                        throw new Error('PHP Warning/Notice: ' + responseText.substring(0, 300));
+                    } else {
+                        throw new Error('Server returned non-JSON response: ' + responseText.substring(0, 200));
+                    }
                 }
             }
         }
 
-        console.log('Parsed response data:', data);
+        
 
         if (data.success) {
-            // Use SweetAlert for success message
+            
             await Swal.fire({
                 title: 'Success!',
                 text: this.isEditing ? 'Announcement updated successfully' : 'Announcement created successfully',
@@ -753,15 +996,22 @@ initializeDropdowns() {
             this.resetForm();
             this.loadAnnouncements();
         } else {
-            // Show the actual error message from server
-            const errorMessage = data.error || data.message || 'Unknown server error';
-            console.error('Server returned error:', errorMessage);
+            // More detailed error logging
+            
+            const errorMessage = data.error || data.message || data.debug || 'Unknown server error';
+            
+            
+            // If there's a debug field, show it
+            if (data.debug) {
+                throw new Error(data.debug);
+            }
             throw new Error(errorMessage);
         }
         
     } catch (error) {
-        console.error('Error saving announcement:', error);
-        // Don't show the error if it's just validation failure
+        
+        
+        
         if (error.message !== 'Form validation failed') {
             this.showError(`Failed to ${this.isEditing ? 'update' : 'create'} announcement: ${error.message}`);
         }
@@ -771,23 +1021,97 @@ initializeDropdowns() {
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
         }
+        
     }
 }
 
 
-    validateForm() {
-    // Safely get form elements - match your actual HTML structure
+
+
+initializeEventListeners() {
+    
+
+    // View switching - check if elements exist first
+    const activeBtn = document.getElementById('activeAnnouncementsBtn');
+    const archivedBtn = document.getElementById('archivedAnnouncementsBtn');
+    const createBtn = document.getElementById('createAnnouncementBtn');
+    const cancelBtn = document.getElementById('cancelAnnouncementBtn');
+
+    if (activeBtn) {
+        activeBtn.addEventListener('click', () => this.switchView('active'));
+    } else {
+        
+    }
+    
+    if (archivedBtn) {
+        archivedBtn.addEventListener('click', () => this.switchView('archived'));
+    } else {
+        
+    }
+    
+    if (createBtn) {
+        createBtn.addEventListener('click', () => this.switchView('create'));
+    } else {
+        
+    }
+    
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => this.cancelEdit());
+    } else {
+        
+    }
+
+    // Form submission - only add listener if form exists
+    const announcementForm = document.getElementById('announcementForm');
+    if (announcementForm) {
+        announcementForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
+        
+    } else {
+        
+    }
+
+    // Search and filter
+    const searchInput = document.getElementById('announcementSearchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value));
+    }
+    
+    this.initializeDropdowns();
+    this.initializeTypeSelection();
+    this.initializePinCheckbox();
+
+    // Character counters - only add listeners if elements exist
     const titleInput = document.getElementById('announcementTitle');
     const contentInput = document.getElementById('announcementContent');
     
-    // For type selection, you have radio buttons with class 'type-card', not a select dropdown
-    const selectedType = document.querySelector('input[name="type"]:checked');
+    if (titleInput) {
+        titleInput.addEventListener('input', (e) => this.updateCharCounter(e.target, 'titleCharCount', 200));
+    } else {
+        
+    }
     
+    if (contentInput) {
+        contentInput.addEventListener('input', (e) => this.updateCharCounter(e.target, 'contentCharCount', 2000));
+    } else {
+        
+    }
+
+    
+}
+
+
+    validateForm() {
+    
+    
+    // Safely get form elements
+    const titleInput = document.getElementById('announcementTitle');
+    const contentInput = document.getElementById('announcementContent');
+    const selectedType = document.querySelector('input[name="type"]:checked');
     const startDateInput = document.getElementById('announcementStartDate');
-    const endDateInput = document.getElementById('announcementEndDate');
 
     // Check if essential elements exist before accessing their values
     if (!titleInput || !contentInput || !startDateInput) {
+        
         this.showError('Form elements not found. Please refresh the page and try again.');
         return false;
     }
@@ -797,39 +1121,46 @@ initializeDropdowns() {
     const type = selectedType ? selectedType.value : '';
     const startDate = startDateInput.value;
 
-    console.log('Form validation values:', { title, content, type, startDate }); // Debug log
-
+    
+    
     if (!title) {
+        
         this.showError('Please enter a title');
         titleInput.focus();
         return false;
     }
 
     if (!content) {
+        
         this.showError('Please enter announcement content');
         contentInput.focus();
         return false;
     }
 
     if (!type) {
+        
         this.showError('Please select an announcement type');
         return false;
     }
 
     if (!startDate) {
+        
         this.showError('Please select a start date');
         startDateInput.focus();
         return false;
     }
 
     // Validate end date if provided
+    const endDateInput = document.getElementById('announcementEndDate');
     const endDate = endDateInput ? endDateInput.value : '';
     if (endDate && new Date(endDate) <= new Date(startDate)) {
+        
         this.showError('End date must be after start date');
         if (endDateInput) endDateInput.focus();
         return false;
     }
 
+    
     return true;
 }
 
@@ -855,7 +1186,7 @@ initializeDropdowns() {
                 throw new Error(data.error || 'Failed to save draft');
             }
         } catch (error) {
-            console.error('Error saving draft:', error);
+            
             this.showError('Failed to save draft');
         }
     }
@@ -1004,27 +1335,115 @@ initializeDropdowns() {
     }
 
     formatDate(dateString) {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+    if (!dateString) return 'No date specified';
+    
+    
+    // Handle different date formats
+    let date;
+    
+    // Try parsing as ISO string first
+    date = new Date(dateString);
+    
+    // If that fails, try parsing MySQL datetime format
+    if (isNaN(date.getTime())) {
+        // MySQL format: YYYY-MM-DD HH:MM:SS
+        const mysqlFormat = dateString.replace(' ', 'T');
+        date = new Date(mysqlFormat);
     }
+    
+    // If still invalid, try manual parsing
+    if (isNaN(date.getTime())) {
+        // Try common date formats
+        const formats = [
+            dateString, // original
+            dateString.replace(/\//g, '-'), // replace slashes with dashes
+            dateString.split(' ')[0], // take only date part
+        ];
+        
+        for (const format of formats) {
+            date = new Date(format);
+            if (!isNaN(date.getTime())) break;
+        }
+    }
+    
+    // If still invalid, return a safe fallback
+    if (isNaN(date.getTime())) {
+        
+        return 'Date not available';
+    }
+    
+    // Format the valid date
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
 
     formatDateForInput(dateString) {
-        const date = new Date(dateString);
-        return date.toISOString().slice(0, 16);
+    if (!dateString) {
+        
+        return '';
     }
+    
+    
+    try {
+        // Handle different date formats
+        let date;
+        
+        // Try parsing as ISO string first
+        date = new Date(dateString);
+        
+        // If that fails, try parsing MySQL datetime format
+        if (isNaN(date.getTime())) {
+            // MySQL format: YYYY-MM-DD HH:MM:SS
+            const mysqlFormat = dateString.replace(' ', 'T');
+            date = new Date(mysqlFormat);
+        }
+        
+        // If still invalid, try manual parsing
+        if (isNaN(date.getTime())) {
+            // Try common date formats
+            const formats = [
+                dateString,
+                dateString.replace(/\//g, '-'),
+                dateString.split(' ')[0],
+            ];
+            
+            for (const format of formats) {
+                date = new Date(format);
+                if (!isNaN(date.getTime())) break;
+            }
+        }
+        
+        // If still invalid, return empty
+        if (isNaN(date.getTime())) {
+            
+            return '';
+        }
+        
+        // Convert to local timezone and format for datetime-local input
+        const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+        const result = localDate.toISOString().slice(0, 16);
+        
+        
+        return result;
+        
+    } catch (error) {
+        
+        return '';
+    }
+}
 
     showLoading(containerId) {
         const container = document.getElementById(containerId);
         container.innerHTML = `
-            <div class="loading-state">
-                <i class="fas fa-spinner fa-spin"></i>
-                <p>Loading announcements...</p>
+            <div class="loading-state" 
+                style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 50vh; width: 175vh; text-align: center;">
+            <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 10px;"></i>
+            <p>Loading announcements...</p>
             </div>
         `;
     }
@@ -1065,11 +1484,9 @@ debugFormData() {
     const form = document.getElementById('announcementForm');
     const formData = new FormData(form);
     
-    console.log('=== FORM DATA DEBUG ===');
-    for (let [key, value] of formData.entries()) {
-        console.log(`${key}:`, value);
-    }
-    console.log('=== END FORM DATA ===');
+    
+    
+    
 }
 
     initializeTypeSelection() {
@@ -1091,8 +1508,79 @@ debugFormData() {
     });
 }
 
+        async loadAnnouncements() {
+    try {
+        this.showLoading('activeAnnouncementsGrid');
+        
+        const response = await fetch('../../../app/Controllers/AdminDashboardController.php?action=getActiveAnnouncements');
+        const data = await response.json();
+        
+        
+        
+        if (data.success) {
+            // Debug: log the first announcement's dates
+            if (data.announcements && data.announcements.length > 0) {
+                
+            }
+            
+            this.announcements = data.announcements;
+            this.applyFiltersAndSort();
+        } else {
+            throw new Error(data.error || 'Failed to load announcements');
+        }
+    } catch (error) {
+        
+        this.showError('activeAnnouncementsGrid', 'Failed to load announcements');
+    }
+}
+
+debugDates() {
+    
+    
+    if (this.announcements && this.announcements.length > 0) {
+        this.announcements.forEach((ann, index) => {
+            
+        });
+    }
+    
+}
+
+// Add this method to check form visibility
+checkFormVisibility() {
+    
+    
+    const createView = document.getElementById('createAnnouncementView');
+    const form = document.getElementById('announcementForm');
+    
+    if (createView) {
+        
+        
+    } else {
+        
+    }
+    
+    if (form) {
+        
+        
+    }
+}
+
+// Helper method to check if element is in viewport
+isElementInViewport(el) {
+    if (!el) return false;
+    const rect = el.getBoundingClientRect();
+    return (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+        rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+    );
+}
+
+
 
 }
+
 
 // Now the DOMContentLoaded event starts here
 console.log('AnnouncementManager available:', typeof AnnouncementManager !== 'undefined');
@@ -3068,68 +3556,67 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Function to delete account
     async function deleteAccount(userId, userName, button) {
-        try {
-            Swal.fire({
-                title: 'Delete Account?',
-                html: `Are you sure you want to delete <strong>${userName}</strong>'s account? This action cannot be undone.`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, delete!',
-                cancelButtonText: 'Cancel'
-            }).then(async (result) => {
-                if (result.isConfirmed) {
-                    // Show loading state
-                    const originalHtml = button.innerHTML;
-                    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                    button.disabled = true;
-                    
-                    try {
-                        const response = await fetch('../../../app/Controllers/AdminDashboardController.php?action=deleteUser', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                user_id: userId
-                            })
-                        });
-                        
-                        const result = await response.json();
-                        
-                        if (result.success) {
-                            Swal.fire({
-                                title: 'Deleted!',
-                                text: result.message || 'Account has been deleted successfully.',
-                                icon: 'success',
-                                confirmButtonColor: '#3085d6'
-                            }).then(() => {
-                                // Reload the page to reflect changes
-                                location.reload();
-                            });
-                        } else {
-                            throw new Error(result.error || 'Failed to delete account');
-                        }
-                    } catch (error) {
-                        console.error('Error deleting account:', error);
-                        Swal.fire({
-                            title: 'Error',
-                            text: 'Failed to delete account. Please try again.',
-                            icon: 'error',
-                            confirmButtonText: 'OK'
-                        });
-                        
-                        // Restore button state
-                        button.innerHTML = originalHtml;
-                        button.disabled = false;
-                    }
+    try {
+        const result = await Swal.fire({
+            title: 'Delete Account?',
+            html: `Are you sure you want to delete <strong>${userName}</strong>'s account? This action cannot be undone.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete!',
+            cancelButtonText: 'Cancel'
+        });
+
+        if (result.isConfirmed) {
+            // Show loading state
+            const originalHtml = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            button.disabled = true;
+            
+            try {
+                // Use the correct endpoint for account deletion
+                const formData = new FormData();
+                formData.append('user_id', userId);
+                formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]').content);
+
+                const response = await fetch('../../../app/Controllers/AdminDashboardController.php?action=deleteUser', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    Swal.fire({
+                        title: 'Deleted!',
+                        text: result.message || 'Account has been deleted successfully.',
+                        icon: 'success',
+                        confirmButtonColor: '#3085d6'
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    throw new Error(result.error || 'Failed to delete account');
                 }
-            });
-        } catch (error) {
-            console.error('Error in deleteAccount:', error);
+            } catch (error) {
+                console.error('Error deleting account:', error);
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Failed to delete account. Please try again.',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+                
+                // Restore button state
+                button.innerHTML = originalHtml;
+                button.disabled = false;
+            }
         }
+    } catch (error) {
+        console.error('Error in deleteAccount:', error);
     }
+}
 
     // Account management event listeners
     document.addEventListener('click', function(e) {

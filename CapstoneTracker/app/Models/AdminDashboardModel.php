@@ -508,8 +508,8 @@ class AdminDashboardModel {
      */
     public function createAnnouncement($data) {
     try {
-        $sql = "INSERT INTO announcements (title, content, type, start_date, end_date, is_pinned, status, created_by) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO announcements (title, content, type, start_date, end_date, is_pinned, status, created_by, created_at) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         $this->db->query($sql);
         $this->db->bind(1, $data['title']);
@@ -520,6 +520,7 @@ class AdminDashboardModel {
         $this->db->bind(6, $data['is_pinned']);
         $this->db->bind(7, $data['status']);
         $this->db->bind(8, $data['created_by']);
+        $this->db->bind(9, $data['created_at']);
         
         $result = $this->db->execute();
         
@@ -543,33 +544,39 @@ class AdminDashboardModel {
 }
 
     /**
-     * Update announcement
-     */
-    public function updateAnnouncement($id, $data) {
-        try {
-            $this->db->query("
-                UPDATE announcements 
-                SET title = :title, content = :content, type = :type, priority = :priority, 
-                    start_date = :start_date, end_date = :end_date, is_pinned = :is_pinned, 
-                    updated_at = NOW()
-                WHERE id = :id
-            ");
-            
-            $this->db->bind(':id', $id);
-            $this->db->bind(':title', $data['title']);
-            $this->db->bind(':content', $data['content']);
-            $this->db->bind(':type', $data['type']);
-            $this->db->bind(':priority', $data['priority']);
-            $this->db->bind(':start_date', $data['start_date']);
-            $this->db->bind(':end_date', $data['end_date']);
-            $this->db->bind(':is_pinned', $data['is_pinned']);
-            
-            return $this->db->execute();
-        } catch (Exception $e) {
-            error_log("Error updating announcement: " . $e->getMessage());
-            return false;
-        }
+ * Update announcement
+ */
+public function updateAnnouncement($id, $data) {
+    try {
+        // Debug: Log the data being received
+        error_log("Updating announcement ID: " . $id);
+        error_log("Update data: " . print_r($data, true));
+        
+        $this->db->query("
+            UPDATE announcements 
+            SET title = :title, content = :content, type = :type, 
+                start_date = :start_date, end_date = :end_date, is_pinned = :is_pinned, 
+                updated_at = NOW()
+            WHERE id = :id
+        ");
+        
+        $this->db->bind(':id', $id);
+        $this->db->bind(':title', $data['title']);
+        $this->db->bind(':content', $data['content']);
+        $this->db->bind(':type', $data['type']);
+        $this->db->bind(':start_date', $data['start_date']);
+        $this->db->bind(':end_date', $data['end_date']);
+        $this->db->bind(':is_pinned', $data['is_pinned']);
+        
+        $result = $this->db->execute();
+        error_log("Update result: " . ($result ? 'SUCCESS' : 'FAILED'));
+        
+        return $result;
+    } catch (Exception $e) {
+        error_log("Error updating announcement: " . $e->getMessage());
+        return false;
     }
+}
 
     /**
      * Delete announcement

@@ -440,6 +440,7 @@ class AdminDashboardController {
         try {
             $this->validateCsrfToken();
             $this->validateAnnouncementData();
+            date_default_timezone_set('Asia/Manila');
 
             $data = [
                 'title' => trim($_POST['title']),
@@ -450,7 +451,8 @@ class AdminDashboardController {
                 'end_date' => !empty($_POST['end_date']) ? $_POST['end_date'] : null,
                 'is_pinned' => isset($_POST['is_pinned']) ? 1 : 0,
                 'status' => 'published',
-                'created_by' => $_SESSION['user_id'] ?? 1
+                'created_by' => $_SESSION['user_id'] ?? 1,
+                'created_at' => date('Y-m-d H:i:s')
             ];
 
             $success = $this->model->createAnnouncement($data);
@@ -466,39 +468,39 @@ class AdminDashboardController {
     }
 
     /**
-     * Update existing announcement 
-     */
-    private function updateAnnouncement() {
-        try {
-            $this->validateCsrfToken();
-            $this->validateAnnouncementData();
+ * Update existing announcement 
+ */
+private function updateAnnouncement() {
+    try {
+        $this->validateCsrfToken();
+        $this->validateAnnouncementData();
 
-            $id = $_POST['announcement_id'] ?? '';
-            if (empty($id)) {
-                throw new Exception('Announcement ID is required');
-            }
-
-            $data = [
-                'title' => trim($_POST['title']),
-                'content' => trim($_POST['content']),
-                'type' => $_POST['type'],
-                'priority' => $_POST['priority'] ?? 'normal',
-                'start_date' => $_POST['start_date'],
-                'end_date' => !empty($_POST['end_date']) ? $_POST['end_date'] : null,
-                'is_pinned' => isset($_POST['is_pinned']) ? 1 : 0
-            ];
-
-            $success = $this->model->updateAnnouncement($id, $data);
-
-            if ($success) {
-                $this->jsonResponse(['success' => true, 'message' => 'Announcement updated successfully']);
-            } else {
-                throw new Exception('Failed to update announcement');
-            }
-        } catch (Exception $e) {
-            $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
+        $id = $_POST['announcement_id'] ?? '';
+        if (empty($id)) {
+            throw new Exception('Announcement ID is required');
         }
+
+        $data = [
+            'title' => trim($_POST['title']),
+            'content' => trim($_POST['content']),
+            'type' => $_POST['type'],
+            // Remove priority since it's not in the form
+            'start_date' => $_POST['start_date'],
+            'end_date' => !empty($_POST['end_date']) ? $_POST['end_date'] : null,
+            'is_pinned' => isset($_POST['is_pinned']) ? 1 : 0
+        ];
+
+        $success = $this->model->updateAnnouncement($id, $data);
+
+        if ($success) {
+            $this->jsonResponse(['success' => true, 'message' => 'Announcement updated successfully']);
+        } else {
+            throw new Exception('Failed to update announcement');
+        }
+    } catch (Exception $e) {
+        $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
     }
+}
 
     /**
      * Save announcement as draft 
