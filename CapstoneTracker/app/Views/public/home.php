@@ -1,3 +1,37 @@
+
+
+<?php
+
+$announcements = $data['announcements'] ?? [];
+$programs = $data['programs'] ?? [];
+$stats = $data['stats'] ?? [];
+?>
+
+<!-- Update the search form -->
+<form id="search-form" method="POST" action="/search">
+    <div class="searchbox">
+        <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
+        <input type="text" id="search-input" name="query" placeholder="Enter keywords, title, author, or adviser...">
+        <button type="submit" class="search-btn" id="search-btn">Search</button>
+    </div>
+</form>
+
+<!-- Update stats section -->
+<div class="stats">
+    <div class="stat-item">
+        <span class="stat-number"><?php echo $stats['total_papers'] ?? '200+'; ?></span>
+        <span class="stat-label">Thesis Papers</span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-number"><?php echo $stats['total_authors'] ?? '150+'; ?></span>
+        <span class="stat-label">Active Researchers</span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-number"><?php echo $stats['total_departments'] ?? '1'; ?></span>
+        <span class="stat-label">Department</span>
+    </div>
+</div>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>

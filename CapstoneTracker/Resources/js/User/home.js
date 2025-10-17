@@ -1,4 +1,4 @@
-// Sample data for programs
+
 const programs = [
   {
     name: "SITS",
