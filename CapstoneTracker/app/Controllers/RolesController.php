@@ -94,6 +94,11 @@ class RolesController {
             if (!$userStatus || $userStatus['Acc_Status'] === 'pending') {
                 throw new Exception('Cannot modify roles for pending accounts');
             }
+
+            // Allow granting sub-admin permission without the other permissions
+            if ($subAdmin === 'No' && ($canEdit === 'Yes' || $manageAccess === 'Yes')) {
+                throw new Exception('Only Sub-Admin users can have Modify Thesis or Manage Access permissions');
+            }
             
             // Get the current role from USER_INFORMATION if not provided
             if (!$currentUserRole) {

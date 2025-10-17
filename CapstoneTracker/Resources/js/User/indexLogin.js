@@ -602,7 +602,7 @@ function initializePage() {
             
             // Add to sequence
             adminSequence.push(key);
-            console.log('Sequence progress:', adminSequence.join(''));
+         // Keep commented   console.log('Sequence progress:', adminSequence.join(''));
             
             // Check if sequence matches
             if (adminSequence.length === requiredSequence.length) {

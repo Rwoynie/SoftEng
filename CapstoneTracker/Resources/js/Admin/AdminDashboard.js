@@ -5985,9 +5985,9 @@ function createUserItem(user) {
     const manageAccessColor = manageAccessValue === 'Yes' ? 'red' : 'gray';
     
     userItem.innerHTML = `
-        <div class="access-info">
-            <h4>${user.First_Name} ${user.Middle_Name || ''} ${user.Last_Name} ${user.Extension || ''}</h4>
-            <p>${user.Email} • ${user.Department || 'No Department'} • Status: ${user.Acc_Status}</p>
+    <div class="access-info">
+        <h4>${user.First_Name} ${user.Middle_Name || ''} ${user.Last_Name} ${user.Extension || ''}</h4>
+        <p>${user.Email} • ${user.Department || 'No Department'} • Status: ${user.Acc_Status}</p>
         </div>
         <div class="role-checkbox-container">
             <label class="role-checkbox">
@@ -6002,15 +6002,19 @@ function createUserItem(user) {
                         data-current-value="${subAdminValue}">
                     <i class="fa-solid fa-user-shield" style="color: ${subAdminColor};"></i> Sub-Admin
                 </button>
-                <button class="role-action-btn" 
+                <button class="role-action-btn ${subAdminValue === 'No' ? 'disabled-role' : ''}" 
                         data-permission="can_edit" 
-                        data-current-value="${canEditValue}">
+                        data-current-value="${canEditValue}"
+                        ${subAdminValue === 'No' ? 'disabled' : ''}>
                     <i class="fa-solid fa-file-pen" style="color: ${canEditColor};"></i> Modify Thesis
+                    ${subAdminValue === 'No' ? '<span class="role-hint">(Sub-Admin only)</span>' : ''}
                 </button>
-                <button class="role-action-btn" 
+                <button class="role-action-btn ${subAdminValue === 'No' ? 'disabled-role' : ''}" 
                         data-permission="manage_access" 
-                        data-current-value="${manageAccessValue}">
+                        data-current-value="${manageAccessValue}"
+                        ${subAdminValue === 'No' ? 'disabled' : ''}>
                     <i class="fa-solid fa-key" style="color: ${manageAccessColor};"></i> Manage Access
+                    ${subAdminValue === 'No' ? '<span class="role-hint">(Sub-Admin only)</span>' : ''}
                 </button>
             </div>
         </div>
@@ -6177,6 +6181,25 @@ async function handleRoleAction(userId, userName, permissionType, currentValue) 
             return;
         }
 
+        // Check if trying to grant Modify Thesis or Manage Access to non-SubAdmin user
+        if ((permissionType === 'can_edit' || permissionType === 'manage_access') && currentValue === 'No') {
+            // Get current Sub-Admin status
+            const userItem = document.querySelector(`.admin-user-item[data-user-id="${userId}"]`);
+            const currentSubAdminValue = userItem.querySelector('[data-permission="sub_admin"]').getAttribute('data-current-value');
+            
+            if (currentSubAdminValue === 'No') {
+                await Swal.fire({
+                    title: 'Sub-Admin Required',
+                    html: `Cannot grant <strong>${permissionType === 'can_edit' ? 'Modify Thesis' : 'Manage Access'}</strong> permission to <strong>${userName}</strong>.<br><br>
+                          <strong>Only Sub-Admin users can have these permissions.</strong><br><br>
+                          Please grant Sub-Admin permission first, then you can assign ${permissionType === 'can_edit' ? 'Modify Thesis' : 'Manage Access'}.`,
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+        }
+
         // Determine new value (toggle between Yes/No)
         const newValue = currentValue === 'Yes' ? 'No' : 'Yes';
         
@@ -6193,20 +6216,13 @@ async function handleRoleAction(userId, userName, permissionType, currentValue) 
         // Show confirmation dialog
         let confirmationMessage = `Are you sure you want to ${action} <strong>${displayName}</strong> permission for <strong>${userName}</strong>?`;
         
-        // Special message for Sub-Admin
+        // Special message for Sub-Admin revocation
         if (permissionType === 'sub_admin' && newValue === 'No') {
-            try {
-                const originalRole = await getStoredOriginalRole(userId);
-                confirmationMessage = `Are you sure you want to revoke <strong>Sub-Admin</strong> permission for <strong>${userName}</strong>?<br><br>
-                                      <small style="color: #666;">This will:
-                                      <br>• Change user role back to <strong>${originalRole}</strong>
-                                      <br>• Remove Sub-Admin status
-                                      <br>• <strong>Other permissions will be removed</strong></small>`;
-            } catch (roleError) {
-                console.error('Error getting stored original role:', roleError);
-                confirmationMessage = `Are you sure you want to revoke <strong>Sub-Admin</strong> permission for <strong>${userName}</strong>?<br><br>
-                                      <small style="color: #666;">This will revoke SubAdmin status and restore original user role. Other permissions will be preserved.</small>`;
-            }
+            confirmationMessage = `Are you sure you want to revoke <strong>Sub-Admin</strong> permission for <strong>${userName}</strong>?<br><br>
+                                  <small style="color: #666;">This will:
+                                  <br>• Change user role back to their original role
+                                  <br>• Remove Sub-Admin status
+                                  <br>• <strong>Preserve other permissions</strong></small>`;
         }
         
         const result = await Swal.fire({
@@ -6221,7 +6237,7 @@ async function handleRoleAction(userId, userName, permissionType, currentValue) 
         });
         
         if (result.isConfirmed) {
-            // Update the permission in the database
+            // Update the specific permission in the database
             await updateUserPermission(userId, permissionType, newValue);
             
             let successMessage = `Successfully ${action === 'grant' ? 'granted' : 'revoked'} ${displayName} permission for ${userName}.`;
@@ -6248,6 +6264,50 @@ async function handleRoleAction(userId, userName, permissionType, currentValue) 
     }
 }
 
+async function revokeAllPermissions(userId) {
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        
+        const formData = new FormData();
+        formData.append('action', 'update_user_role');
+        formData.append('user_id', userId);
+        formData.append('csrf_token', csrfToken);
+        formData.append('sub_admin', 'No');
+        formData.append('can_edit', 'No');
+        formData.append('manage_access', 'No');
+        formData.append('restore_original_role', 'true');
+        
+        const response = await fetch('../../../app/Controllers/RolesController.php', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const rawText = await response.text();
+        let data;
+        
+        try {
+            data = JSON.parse(rawText);
+        } catch (parseError) {
+            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                data = JSON.parse(jsonMatch[0]);
+            } else {
+                throw new Error('Server returned invalid response format');
+            }
+        }
+        
+        if (!data.success) {
+            throw new Error(data.message || 'Failed to revoke all permissions');
+        }
+        
+        return data;
+        
+    } catch (error) {
+        console.error('Error in revokeAllPermissions:', error);
+        throw error;
+    }
+}
+
 async function getUserAccountStatus(userId) {
     try {
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
@@ -6263,7 +6323,7 @@ async function getUserAccountStatus(userId) {
         });
         
         const rawText = await response.text();
-        console.log('Raw response for account status:', rawText); // Debug log
+     //   console.log('Raw response for account status:', rawText); // Debug log
         
         let data;
         
@@ -6442,22 +6502,20 @@ async function updateUserPermission(userId, permissionType, newValue) {
         let canEditValue = currentCanEdit;
         let manageAccessValue = currentManageAccess;
         let restoreOriginalRole = false;
+        let currentUserRole = null;
 
+        // Handle different permission types
         if (permissionType === 'sub_admin') {
             subAdminValue = newValue;
+            
             if (newValue === 'Yes') {
-                // Get current role to store as original
-                const currentRole = await getUserCurrentRole(userId);
-                formData.append('current_user_role', currentRole);
+                // When granting Sub-Admin, get current role to store as original
+                currentUserRole = await getUserCurrentRole(userId);
+                formData.append('current_user_role', currentUserRole);
             } else {
-                // Signal to restore original role when revoking Sub-Admin
-                // BUT preserve the current can_edit and manage_access values
+                // When revoking Sub-Admin, restore original role
                 restoreOriginalRole = true;
                 formData.append('restore_original_role', 'true');
-                
-                // Use current values for other permissions (don't auto-revoke)
-                canEditValue = currentCanEdit;
-                manageAccessValue = currentManageAccess;
             }
         } else if (permissionType === 'can_edit') {
             canEditValue = newValue;
@@ -6479,6 +6537,7 @@ async function updateUserPermission(userId, permissionType, newValue) {
         console.log('New value:', newValue);
         console.log('All permissions - Sub_Admin:', subAdminValue, 'Can_Edit:', canEditValue, 'Manage_Access:', manageAccessValue);
         console.log('Restore original role:', restoreOriginalRole);
+        console.log('Current user role:', currentUserRole);
         
         // Send the request to update the role
         const response = await fetch('../../../app/Controllers/RolesController.php', {
@@ -6541,28 +6600,6 @@ async function updateUserPermission(userId, permissionType, newValue) {
     }
 }
 
-
-async function testRoleDebugging() {
-    try {
-        console.log('=== TESTING ROLE DEBUGGING ===');
-        
-        // Test debug all original roles
-        const formData = new FormData();
-        formData.append('action', 'debug_original_roles');
-        formData.append('csrf_token', getCsrfToken());
-        
-        const response = await fetch('../../../app/Controllers/RolesController.php', {
-            method: 'POST',
-            body: formData
-        });
-        
-        const data = await response.json();
-        console.log('Debug Original Roles Result:', data);
-        
-    } catch (error) {
-        console.error('Debug testing error:', error);
-    }
-}
 
 // Function to update user counts in access cards
 function updateUserCounts(users) {

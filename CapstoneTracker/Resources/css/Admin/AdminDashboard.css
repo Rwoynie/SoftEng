@@ -1998,7 +1998,7 @@ body {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     padding: 10px;
     z-index: 1000;
-    min-width: 180px;
+    min-width: 200px;
     border: 1px solid #eee;
     animation: fadeInUp 0.3s ease;
 }
@@ -2084,6 +2084,18 @@ body {
 
 .role-action-btn[data-permission="manage_access"] i.fa-key[style*="red"] {
     color: red;
+}
+
+.disabled-role {
+    opacity: 0.6;
+    cursor: not-allowed !important;
+}
+
+.role-hint {
+    font-size: 0.7em;
+    color: #999;
+    display: block;
+    margin-top: 2px;
 }
 
 /* Make the buttons more visible when active */

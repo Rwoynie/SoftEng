@@ -136,7 +136,7 @@ class User extends Model {
                 case 'faculty':
                     // Faculty can edit but not manage access
                     $subAdmin = 'No';
-                    $canEdit = 'Yes';
+                    $canEdit = 'No';
                     $manageAccess = 'No';
                     break;
                 case 'student':
