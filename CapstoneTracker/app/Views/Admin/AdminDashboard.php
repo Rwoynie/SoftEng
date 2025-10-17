@@ -1237,6 +1237,8 @@ function displayThesisItem($theses) {
         return; // Skip items without ID
     }
     
+    global $shouldShowEditManagement;
+
     $thesisId = $theses->ID;
     $Author = htmlspecialchars($theses->Author);
     $Adviser = htmlspecialchars($theses->Adviser ?? 'Not specified');
@@ -1279,10 +1281,20 @@ function displayThesisItem($theses) {
     echo '<div class="logo-row">';
     echo '<img src="/CapstoneTracker/resources/Images/usep-logo-small.png" alt="Logo" />';
     echo '<div class="icon"> <i class="fa fa-ellipsis-h" aria-hidden="true"></i> </div>';
-    echo '<div class="moreOptions">';
-    echo '<button><i class="fa-solid fa-pen"></i>Edit</button>';
-    echo '<button><i class="fa-solid fa-trash-can"></i>Delete</button>';
-    echo '</div>';
+    if ($shouldShowEditManagement) {
+        echo '<div class="moreOptions">';
+        echo '<button><i class="fa-solid fa-pen"></i>Edit</button>';
+        echo '<button><i class="fa-solid fa-trash-can"></i>Delete</button>';
+        echo '</div>';
+    } else {
+        // Don't show the edit/delete options at all if user doesn't have permission
+        // Or show disabled version if you prefer:
+        echo '<div class="moreOptions" style=""; pointer-events: none;">';
+        echo '<button disabled><i class="fa-solid fa-pen"></i>Edit</button>';
+        echo '<button disabled><i class="fa-solid fa-trash-can"></i>Delete</button>';
+        echo '</div>';
+    }
+
     echo '</div>';
     echo '<div class="title-row">';
     echo '<h3>' . $displayTitle . '</h3>';

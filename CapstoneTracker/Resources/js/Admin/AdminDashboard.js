@@ -1622,7 +1622,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const facultyAccessBtn = document.getElementById('facultyAccess');
     const studentAccessBtn = document.getElementById('studentAccess');
 
-    const isSubAdmin = userDisplayData.user_role === 'subAdmin';
+    
 
 
     // logout
