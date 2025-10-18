@@ -2,6 +2,7 @@
 // AdminDashboardModel.php
 require_once __DIR__ . '/Database.php';
 
+
 class AdminDashboardModel {
     private $db;
 
@@ -371,7 +372,7 @@ class AdminDashboardModel {
     }
 
     /**
-     * Get system statistics
+     * Get system statistics 
      */
     public function getSystemStatistics() {
         $stats = [];
@@ -400,6 +401,18 @@ class AdminDashboardModel {
             // Recent theses count (last 7 days)
             $this->db->query("SELECT COUNT(*) as total FROM THESIS WHERE uploaded_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
             $stats['recent_theses'] = $this->db->single()->total;
+
+            // Failed login attempts (last 24 hours)
+            $this->db->query("SELECT COUNT(*) as total FROM LOGIN_ATTEMPTS WHERE success = FALSE AND attempt_time >= DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+            $stats['failed_logins_24h'] = $this->db->single()->total;
+
+            // Audit logs count (last 7 days)
+            $this->db->query("SELECT COUNT(*) as total FROM AUDIT_LOGS WHERE changed_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
+            $stats['audit_logs_7d'] = $this->db->single()->total;
+
+            // Unread notifications count
+            $this->db->query("SELECT COUNT(*) as total FROM NOTIFICATIONS WHERE is_read = FALSE");
+            $stats['unread_notifications'] = $this->db->single()->total;
 
             return $stats;
 
@@ -619,6 +632,178 @@ public function updateAnnouncement($id, $data) {
         } catch (Exception $e) {
             error_log("Error updating announcement status: " . $e->getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Log login attempt
+     */
+    public function logLoginAttempt($userId, $email, $ipAddress, $success, $userAgent = null) {
+        try {
+            $this->db->query("
+                INSERT INTO LOGIN_ATTEMPTS (user_id, email, ip_address, success, user_agent)
+                VALUES (:user_id, :email, :ip_address, :success, :user_agent)
+            ");
+            $this->db->bind(':user_id', $userId);
+            $this->db->bind(':email', $email);
+            $this->db->bind(':ip_address', $ipAddress);
+            $this->db->bind(':success', $success);
+            $this->db->bind(':user_agent', $userAgent);
+            return $this->db->execute();
+        } catch (Exception $e) {
+            error_log("Error logging login attempt: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get recent login attempts
+     */
+    public function getRecentLoginAttempts($limit = 50) {
+        try {
+            error_log("Model: Getting login attempts - limit: $limit");
+            
+            $this->db->query("
+                SELECT 
+                    la.*,
+                    ui.First_Name,
+                    ui.Last_Name,
+                    ui.User_Role
+                FROM LOGIN_ATTEMPTS la
+                LEFT JOIN USER_INFORMATION ui ON la.user_id = ui.ID
+                ORDER BY la.attempt_time DESC
+                LIMIT :limit
+            ");
+            $this->db->bind(':limit', $limit);
+            
+            $result = $this->db->resultSet();
+            error_log("Model: Found " . count($result) . " login attempts");
+            
+            return $result;
+        } catch (Exception $e) {
+            error_log("Error getting login attempts: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get audit logs
+     */
+    public function getAuditLogs($limit = 100, $tableName = null, $action = null) {
+        try {
+            error_log("Model: Getting audit logs - limit: $limit, table: $tableName, action: $action");
+            
+            $sql = "
+                SELECT 
+                    al.*,
+                    COALESCE(ui.First_Name, 'System') as First_Name,
+                    COALESCE(ui.Last_Name, 'User') as Last_Name,
+                    COALESCE(ui.User_Role, 'system') as User_Role,
+                    COALESCE(ui.Email, 'system@system') as Email
+                FROM AUDIT_LOGS al
+                LEFT JOIN USER_INFORMATION ui ON al.user_id = ui.ID
+                WHERE 1=1
+            ";
+            
+            $params = [];
+            
+            if ($tableName) {
+                $sql .= " AND al.table_name = :table_name";
+                $params[':table_name'] = $tableName;
+            }
+            
+            if ($action) {
+                $sql .= " AND al.action = :action";
+                $params[':action'] = $action;
+            }
+            
+            $sql .= " ORDER BY al.changed_at DESC LIMIT :limit";
+            
+            error_log("Executing SQL: " . $sql);
+            
+            $this->db->query($sql);
+            
+            foreach ($params as $key => $value) {
+                $this->db->bind($key, $value);
+            }
+            $this->db->bind(':limit', $limit);
+            
+            $result = $this->db->resultSet();
+            error_log("Model: Found " . count($result) . " audit logs");
+            
+            return $result;
+        } catch (Exception $e) {
+            error_log("Error getting audit logs: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get user notifications
+     */
+    public function getUserNotifications($userId, $limit = 20, $unreadOnly = false) {
+        try {
+            $sql = "
+                SELECT *
+                FROM NOTIFICATIONS
+                WHERE user_id = :user_id
+            ";
+            
+            if ($unreadOnly) {
+                $sql .= " AND is_read = FALSE";
+            }
+            
+            $sql .= " ORDER BY created_at DESC LIMIT :limit";
+            
+            $this->db->query($sql);
+            $this->db->bind(':user_id', $userId);
+            $this->db->bind(':limit', $limit);
+            
+            return $this->db->resultSet();
+        } catch (Exception $e) {
+            error_log("Error getting user notifications: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Mark notification as read
+     */
+    public function markNotificationAsRead($notificationId) {
+        try {
+            $this->db->query("UPDATE NOTIFICATIONS SET is_read = TRUE WHERE id = :id");
+            $this->db->bind(':id', $notificationId);
+            return $this->db->execute();
+        } catch (Exception $e) {
+            error_log("Error marking notification as read: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    
+
+    /**
+     * Get security alerts (failed login attempts, suspicious activities)
+     */
+    public function getSecurityAlerts($limit = 10) {
+        try {
+            $this->db->query("
+                SELECT 
+                    la.*,
+                    ui.First_Name,
+                    ui.Last_Name,
+                    ui.User_Role
+                FROM LOGIN_ATTEMPTS la
+                LEFT JOIN USER_INFORMATION ui ON la.user_id = ui.ID
+                WHERE la.success = FALSE
+                ORDER BY la.attempt_time DESC
+                LIMIT :limit
+            ");
+            $this->db->bind(':limit', $limit);
+            return $this->db->resultSet();
+        } catch (Exception $e) {
+            error_log("Error getting security alerts: " . $e->getMessage());
+            return [];
         }
     }
 }

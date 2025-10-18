@@ -50,6 +50,7 @@ class AdminDashboardController {
         ];
     }
 
+
     /**
      * Handle different actions
      */
@@ -117,10 +118,75 @@ class AdminDashboardController {
             case 'logout':
                 $this->logout();
                 break;
+
+                case 'debugLogs':
+                $this->debugLogs();
+                break;
+
+            case 'getAuditLogs':
+                $this->getAuditLogs();
+                break;
+            case 'getLoginAttempts':
+                $this->getLoginAttempts();
+                break;
+            case 'getSecurityAlerts':
+                $this->getSecurityAlerts();
+                break;
+            case 'getNotifications':
+                $this->getNotifications();
+                break;
+            case 'markNotificationRead':
+                $this->markNotificationRead();
+                break;
             case 'dashboard':
             default:
                 $this->showDashboard();
                 break;
+
+        }
+    }
+
+
+    /**
+     * Debug logs - test if data exists
+     */
+    private function debugLogs() {
+        try {
+            // Test database connection and table existence
+            $debugInfo = [];
+            
+            // Check if audit_logs table exists and has data
+            $this->model->getDatabase()->query("SELECT COUNT(*) as count FROM AUDIT_LOGS");
+            $auditCount = $this->model->getDatabase()->single()->count;
+            $debugInfo['audit_logs_count'] = $auditCount;
+            
+            // Check if login_attempts table exists and has data
+            $this->model->getDatabase()->query("SELECT COUNT(*) as count FROM LOGIN_ATTEMPTS");
+            $loginCount = $this->model->getDatabase()->single()->count;
+            $debugInfo['login_attempts_count'] = $loginCount;
+            
+            // Get sample data from audit_logs
+            $this->model->getDatabase()->query("SELECT * FROM AUDIT_LOGS ORDER BY changed_at DESC LIMIT 5");
+            $sampleAuditLogs = $this->model->getDatabase()->resultSet();
+            $debugInfo['sample_audit_logs'] = $sampleAuditLogs;
+            
+            // Get sample data from login_attempts
+            $this->model->getDatabase()->query("SELECT * FROM LOGIN_ATTEMPTS ORDER BY attempt_time DESC LIMIT 5");
+            $sampleLoginAttempts = $this->model->getDatabase()->resultSet();
+            $debugInfo['sample_login_attempts'] = $sampleLoginAttempts;
+            
+            $this->jsonResponse([
+                'success' => true,
+                'debug_info' => $debugInfo,
+                'message' => 'Debug information retrieved successfully'
+            ]);
+            
+        } catch (Exception $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'debug_info' => ['error' => $e->getMessage()]
+            ]);
         }
     }
 
@@ -207,6 +273,9 @@ class AdminDashboardController {
             return;
         }
 
+        // Set current user ID for audit trigger
+        $this->setCurrentUserForAudit();
+
         $success = $this->model->updateUserRole($userId, $newRole);
 
         if ($success) {
@@ -239,6 +308,9 @@ class AdminDashboardController {
             $this->jsonResponse(['error' => 'Invalid status'], 400);
             return;
         }
+
+        // Set current user ID for audit trigger
+        $this->setCurrentUserForAudit();
 
         $success = $this->model->updateUserStatus($userId, $newStatus);
 
@@ -682,6 +754,149 @@ private function updateAnnouncement() {
         echo json_encode($data);
         exit;
     }
+
+    /**
+     * Get audit logs
+     */
+    private function getAuditLogs() {
+        try {
+            $limit = $_GET['limit'] ?? 100;
+            $tableName = $_GET['table'] ?? null;
+            $action = $_GET['action_type'] ?? null;
+
+            error_log("Getting audit logs - limit: $limit, table: $tableName, action: $action");
+
+            $logs = $this->model->getAuditLogs($limit, $tableName, $action);
+            
+            error_log("Found " . count($logs) . " audit logs");
+            
+            $this->jsonResponse([
+                'success' => true,
+                'logs' => $logs,
+                'total' => count($logs)
+            ]);
+        } catch (Exception $e) {
+            error_log("Error in getAuditLogs: " . $e->getMessage());
+            $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Get login attempts
+     */
+    private function getLoginAttempts() {
+        try {
+            $limit = $_GET['limit'] ?? 50;
+            
+            error_log("Getting login attempts - limit: $limit");
+
+            $attempts = $this->model->getRecentLoginAttempts($limit);
+            
+            error_log("Found " . count($attempts) . " login attempts");
+            
+            $this->jsonResponse([
+                'success' => true,
+                'attempts' => $attempts,
+                'total' => count($attempts)
+            ]);
+        } catch (Exception $e) {
+            error_log("Error in getLoginAttempts: " . $e->getMessage());
+            $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Get security alerts
+     */
+    private function getSecurityAlerts() {
+        try {
+            $limit = $_GET['limit'] ?? 10;
+            $alerts = $this->model->getSecurityAlerts($limit);
+            
+            $this->jsonResponse([
+                'success' => true,
+                'alerts' => $alerts,
+                'total' => count($alerts)
+            ]);
+        } catch (Exception $e) {
+            $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Get user notifications
+     */
+    private function getNotifications() {
+        try {
+            $userId = $this->currentUser['user_db_id'] ?? null;
+            $limit = $_GET['limit'] ?? 20;
+            $unreadOnly = $_GET['unread_only'] ?? false;
+
+            if (!$userId) {
+                throw new Exception('User ID not found');
+            }
+
+            $notifications = $this->model->getUserNotifications($userId, $limit, $unreadOnly);
+            
+            $this->jsonResponse([
+                'success' => true,
+                'notifications' => $notifications,
+                'total' => count($notifications)
+            ]);
+        } catch (Exception $e) {
+            $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Mark notification as read
+     */
+    private function markNotificationRead() {
+        try {
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                throw new Exception('Invalid request method');
+            }
+
+            $data = json_decode(file_get_contents('php://input'), true);
+            $notificationId = $data['notification_id'] ?? null;
+
+            if (!$notificationId) {
+                throw new Exception('Notification ID is required');
+            }
+
+            $success = $this->model->markNotificationAsRead($notificationId);
+
+            if ($success) {
+                $this->jsonResponse(['success' => true, 'message' => 'Notification marked as read']);
+            } else {
+                throw new Exception('Failed to mark notification as read');
+            }
+        } catch (Exception $e) {
+            $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Set current user ID for audit triggers
+     */
+    private function setCurrentUserForAudit() {
+        try {
+            $userId = $this->currentUser['user_db_id'] ?? null;
+            if ($userId) {
+                $this->model->getDatabase()->query("SET @current_user_id = :user_id");
+                $this->model->getDatabase()->bind(':user_id', $userId);
+                $this->model->getDatabase()->execute();
+            }
+        } catch (Exception $e) {
+            error_log("Error setting current user for audit: " . $e->getMessage());
+        }
+    }
+
+    
+
+
+
+
 }
 
 // Handle the request if this file is called directly

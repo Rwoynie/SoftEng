@@ -239,6 +239,7 @@ $displayUserData = [
     <link rel="stylesheet" href="../../../resources/css/Admin/AdminDashboard.css">
     <script type="text/javascript" src="../../../resources/js/Admin/AdminDashboard.js"></script>
     <script type="text/javascript" src="../../../resources/js/Admin/RoleAccess.js"></script>
+    <script type="text/javascript" src="../../../resources/js/Admin/AdminDashboardAnnouncement.js"></script>
     <script>
         const userDisplayData = <?php echo json_encode($displayUserData); ?>;
     </script>
@@ -619,7 +620,7 @@ $displayUserData = [
                 </div>
 
                 <div id="allAccounts-container" class="accounts-content">
-                    <!-- All accounts table will be shown here -->
+                    <!-- All accounts table will be shown here --> 
             </div>
             
                 <div id="pendingAccounts-container" class="accounts-content" style="display: none;">

@@ -1,8 +1,5 @@
+
 <?php
-/**
- * Database Schema Manager
- * Handles table definitions, database creation, and setup operations
- */
 
  class DatabaseSchema {
     private $db;
@@ -133,14 +130,230 @@
                 INDEX idx_type (type),
                 INDEX idx_pinned (is_pinned),
                 INDEX idx_dates (start_date, end_date)
+            ) ENGINE=InnoDB;",
+
+            // AUDIT LOGS TABLE
+            "CREATE TABLE IF NOT EXISTS AUDIT_LOGS (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                table_name VARCHAR(50) NOT NULL,
+                record_id INT NOT NULL,
+                action ENUM('INSERT', 'UPDATE', 'DELETE') NOT NULL,
+                old_values JSON,
+                new_values JSON,
+                user_id INT,
+                ip_address VARCHAR(45),
+                changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_table_record (table_name, record_id),
+                INDEX idx_action (action),
+                INDEX idx_changed_at (changed_at),
+                INDEX idx_user (user_id)
+            ) ENGINE=InnoDB;",
+
+            // LOGIN ATTEMPTS TABLE
+            "CREATE TABLE IF NOT EXISTS LOGIN_ATTEMPTS (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT,
+                email VARCHAR(255),
+                attempt_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                ip_address VARCHAR(45),
+                success BOOLEAN,
+                user_agent TEXT,
+                INDEX idx_email (email),
+                INDEX idx_ip (ip_address),
+                INDEX idx_time (attempt_time),
+                INDEX idx_success (success)
+            ) ENGINE=InnoDB;",
+
+            // NOTIFICATIONS TABLE
+            "CREATE TABLE IF NOT EXISTS NOTIFICATIONS (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT NOT NULL,
+                type ENUM('user_approval', 'thesis_upload', 'announcement', 'system', 'security') NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                message TEXT NOT NULL,
+                is_read BOOLEAN DEFAULT FALSE,
+                related_id INT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_user (user_id),
+                INDEX idx_type (type),
+                INDEX idx_read (is_read),
+                INDEX idx_created (created_at)
             ) ENGINE=InnoDB;"
 
             
         ];
     }
+
+    /**
+     * Get all trigger creation queries
+     */
+    public static function getTriggerQueries() {
+        return [
+            // TRIGGER: Audit user information changes
+            "CREATE TRIGGER audit_user_changes
+            AFTER UPDATE ON USER_INFORMATION
+            FOR EACH ROW
+            BEGIN
+                DECLARE changes JSON DEFAULT JSON_OBJECT();
+                
+                -- Track role changes
+                IF OLD.User_Role != NEW.User_Role THEN
+                    SET changes = JSON_SET(changes, '$.role_changed', JSON_OBJECT('old', OLD.User_Role, 'new', NEW.User_Role));
+                END IF;
+                
+                -- Track status changes
+                IF OLD.Acc_Status != NEW.Acc_Status THEN
+                    SET changes = JSON_SET(changes, '$.status_changed', JSON_OBJECT('old', OLD.Acc_Status, 'new', NEW.Acc_Status));
+                END IF;
+                
+                -- Track email changes
+                IF OLD.Email != NEW.Email THEN
+                    SET changes = JSON_SET(changes, '$.email_changed', JSON_OBJECT('old', OLD.Email, 'new', NEW.Email));
+                END IF;
+                
+                -- Insert audit log if changes occurred
+                IF JSON_LENGTH(changes) > 0 THEN
+                    INSERT INTO AUDIT_LOGS (table_name, record_id, action, old_values, new_values, user_id)
+                    VALUES ('USER_INFORMATION', NEW.ID, 'UPDATE', 
+                           JSON_OBJECT('User_Role', OLD.User_Role, 'Acc_Status', OLD.Acc_Status, 'Email', OLD.Email),
+                           JSON_OBJECT('User_Role', NEW.User_Role, 'Acc_Status', NEW.Acc_Status, 'Email', NEW.Email),
+                           @current_user_id);
+                END IF;
+            END;",
+
+            // TRIGGER: Log user deletions
+            "CREATE TRIGGER audit_user_deletions
+            BEFORE DELETE ON USER_INFORMATION
+            FOR EACH ROW
+            BEGIN
+                INSERT INTO AUDIT_LOGS (table_name, record_id, action, old_values, user_id)
+                VALUES ('USER_INFORMATION', OLD.ID, 'DELETE', 
+                       JSON_OBJECT('User_Role', OLD.User_Role, 'Acc_Status', OLD.Acc_Status, 'Email', OLD.Email, 'First_Name', OLD.First_Name, 'Last_Name', OLD.Last_Name),
+                       @current_user_id);
+            END;",
+
+            // TRIGGER: Log thesis uploads
+            "CREATE TRIGGER audit_thesis_uploads
+            AFTER INSERT ON THESIS
+            FOR EACH ROW
+            BEGIN
+                INSERT INTO AUDIT_LOGS (table_name, record_id, action, new_values, user_id)
+                VALUES ('THESIS', NEW.ID, 'INSERT', 
+                       JSON_OBJECT('Title', NEW.Title, 'Author', NEW.Author, 'Thesis_Department', NEW.Thesis_Department),
+                       NEW.User_ID);
+                
+                -- Create notification for admins about new thesis
+                INSERT INTO NOTIFICATIONS (user_id, type, title, message, related_id)
+                SELECT ID, 'thesis_upload', 'New Thesis Uploaded', 
+                       CONCAT('A new thesis \"', NEW.Title, '\" has been uploaded by ', NEW.Author),
+                       NEW.ID
+                FROM USER_INFORMATION 
+                WHERE User_Role IN ('admin', 'superAdmin') AND Acc_Status = 'approved';
+            END;",
+
+            // TRIGGER: Log thesis updates
+            "CREATE TRIGGER audit_thesis_updates
+            AFTER UPDATE ON THESIS
+            FOR EACH ROW
+            BEGIN
+                IF OLD.Title != NEW.Title OR OLD.Author != NEW.Author THEN
+                    INSERT INTO AUDIT_LOGS (table_name, record_id, action, old_values, new_values, user_id)
+                    VALUES ('THESIS', NEW.ID, 'UPDATE', 
+                           JSON_OBJECT('Title', OLD.Title, 'Author', OLD.Author),
+                           JSON_OBJECT('Title', NEW.Title, 'Author', NEW.Author),
+                           @current_user_id);
+                END IF;
+            END;",
+
+            // TRIGGER: Log thesis deletions
+            "CREATE TRIGGER audit_thesis_deletions
+            BEFORE DELETE ON THESIS
+            FOR EACH ROW
+            BEGIN
+                INSERT INTO AUDIT_LOGS (table_name, record_id, action, old_values, user_id)
+                VALUES ('THESIS', OLD.ID, 'DELETE', 
+                       JSON_OBJECT('Title', OLD.Title, 'Author', OLD.Author, 'User_ID', OLD.User_ID),
+                       @current_user_id);
+            END;",
+
+            // TRIGGER: Log announcement activities
+            "CREATE TRIGGER audit_announcement_changes
+            AFTER INSERT ON ANNOUNCEMENTS
+            FOR EACH ROW
+            BEGIN
+                INSERT INTO AUDIT_LOGS (table_name, record_id, action, new_values, user_id)
+                VALUES ('ANNOUNCEMENTS', NEW.id, 'INSERT', 
+                       JSON_OBJECT('title', NEW.title, 'type', NEW.type, 'status', NEW.status),
+                       NEW.created_by);
+            END;",
+
+            "CREATE TRIGGER audit_announcement_updates
+            AFTER UPDATE ON ANNOUNCEMENTS
+            FOR EACH ROW
+            BEGIN
+                IF OLD.title != NEW.title OR OLD.status != NEW.status OR OLD.is_pinned != NEW.is_pinned THEN
+                    INSERT INTO AUDIT_LOGS (table_name, record_id, action, old_values, new_values, user_id)
+                    VALUES ('ANNOUNCEMENTS', NEW.id, 'UPDATE', 
+                           JSON_OBJECT('title', OLD.title, 'status', OLD.status, 'is_pinned', OLD.is_pinned),
+                           JSON_OBJECT('title', NEW.title, 'status', NEW.status, 'is_pinned', NEW.is_pinned),
+                           @current_user_id);
+                END IF;
+            END;",
+
+            "CREATE TRIGGER audit_announcement_deletions
+            BEFORE DELETE ON ANNOUNCEMENTS
+            FOR EACH ROW
+            BEGIN
+                INSERT INTO AUDIT_LOGS (table_name, record_id, action, old_values, user_id)
+                VALUES ('ANNOUNCEMENTS', OLD.id, 'DELETE', 
+                       JSON_OBJECT('title', OLD.title, 'type', OLD.type, 'created_by', OLD.created_by),
+                       @current_user_id);
+            END;",
+
+            // TRIGGER: Prevent last admin deletion
+            "CREATE TRIGGER prevent_last_admin_deletion
+            BEFORE DELETE ON USER_INFORMATION
+            FOR EACH ROW
+            BEGIN
+                DECLARE admin_count INT;
+                IF OLD.User_Role IN ('admin', 'superAdmin') AND OLD.Acc_Status = 'approved' THEN
+                    SELECT COUNT(*) INTO admin_count 
+                    FROM USER_INFORMATION 
+                    WHERE User_Role IN ('admin', 'superAdmin') AND Acc_Status = 'approved' AND ID != OLD.ID;
+                    
+                    IF admin_count = 0 THEN
+                        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Cannot delete the last admin account';
+                    END IF;
+                END IF;
+            END;",
+
+            // TRIGGER: Auto-archive expired announcements
+            "CREATE TRIGGER auto_archive_announcements
+            BEFORE UPDATE ON ANNOUNCEMENTS
+            FOR EACH ROW
+            BEGIN
+                IF NEW.end_date IS NOT NULL AND NEW.end_date < NOW() AND NEW.status = 'published' THEN
+                    SET NEW.status = 'archived';
+                END IF;
+            END;",
+
+            // TRIGGER: Notify on user approval
+            "CREATE TRIGGER notify_user_approval
+            AFTER UPDATE ON USER_INFORMATION
+            FOR EACH ROW
+            BEGIN
+                IF OLD.Acc_Status = 'pending' AND NEW.Acc_Status = 'approved' THEN
+                    INSERT INTO NOTIFICATIONS (user_id, type, title, message, related_id)
+                    VALUES (NEW.ID, 'user_approval', 'Account Approved', 
+                           'Your account has been approved. You can now access all features.', NEW.ID);
+                END IF;
+            END;"
+
+        ];
+    }
     
     /**
-     * Get ordered table queries (ensures proper foreign key relationships)
+     * Get ordered table queries
      */
     public static function getOrderedTableQueries() {
         $queries = self::getTableQueries();
@@ -150,7 +363,11 @@
             $priority = [
                 'USER_INFORMATION' => 0,
                 'THESIS' => 1,
-                'THESIS_REVIEWS' => 2
+                'THESIS_REVIEWS' => 2,
+                'ANNOUNCEMENTS' => 3,
+                'AUDIT_LOGS' => 4,
+                'LOGIN_ATTEMPTS' => 5,
+                'NOTIFICATIONS' => 6
             ];
             
             $tableA = self::extractTableName($a);
@@ -248,6 +465,61 @@
         
         return true;
     }
+
+    /**
+     *  triggerssss so muchh??? eme
+     */
+    public function createTriggers() {
+        if (!$this->db || !$this->db->isConnected()) {
+            $this->error = "Database connection not established";
+            return false;
+        }
+        
+        $this->dropExistingTriggers();
+        
+        $triggerQueries = self::getTriggerQueries();
+        
+        foreach ($triggerQueries as $triggerQuery) {
+            try {
+                $this->db->query($triggerQuery);
+                $this->db->execute();
+            } catch (PDOException $e) {
+                $this->error = "Trigger creation failed: " . $e->getMessage();
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    /**
+     * Drop triggers
+     */
+    private function dropExistingTriggers() {
+        $triggers = [
+            'audit_user_changes',
+            'audit_user_deletions',
+            'audit_thesis_uploads',
+            'audit_thesis_updates',
+            'audit_thesis_deletions',
+            'audit_announcement_changes',
+            'audit_announcement_updates',
+            'audit_announcement_deletions',
+            'prevent_last_admin_deletion',
+            'auto_archive_announcements',
+            'notify_user_approval'
+        ];
+        
+        foreach ($triggers as $trigger) {
+            try {
+                $this->db->query("DROP TRIGGER IF EXISTS $trigger");
+                $this->db->execute();
+            } catch (PDOException $e) {
+                // Continue even if trigger doesn't exist
+                continue;
+            }
+        }
+    }
     
     /**
      * Create default admin account
@@ -320,7 +592,7 @@
     }
     
     /**
-     * Complete setup process (database + tables + admin)
+     * Complete setup process (database + tables + triggers + admin)
      */
     public function fullSetup($host, $username, $password, $databaseName) {
         // Create database first
@@ -344,6 +616,11 @@
         
         // Create tables
         if (!$this->createTables()) {
+            return false;
+        }
+
+        // Create triggers
+        if (!$this->createTriggers()) {
             return false;
         }
         
@@ -407,11 +684,18 @@
             }
             
             echo "All tables created successfully.<br>";
+
+            // Create triggers
+            if (!$schema->createTriggers()) {
+                die("Trigger creation failed: " . $schema->getError());
+            }
+            
+            echo "All triggers created successfully.<br>";
             
             // Create admin
             if ($schema->createDefaultAdmin()) {
                 echo "Default admin account created.<br>";
-                echo "Email: admin@thesis.system<br>Password: admin123<br>";
+                echo "Email: admin@usep.edu.ph<br>Password: compendiumSystemAdmin<br>";
                 echo "<strong>Please change this password immediately after login!</strong><br>";
             }
             
