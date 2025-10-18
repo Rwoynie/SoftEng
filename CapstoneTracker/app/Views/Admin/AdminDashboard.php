@@ -238,6 +238,7 @@ $displayUserData = [
     
     <link rel="stylesheet" href="../../../resources/css/Admin/AdminDashboard.css">
     <script type="text/javascript" src="../../../resources/js/Admin/AdminDashboard.js"></script>
+    <script type="text/javascript" src="../../../resources/js/Admin/RoleAccess.js"></script>
     <script>
         const userDisplayData = <?php echo json_encode($displayUserData); ?>;
     </script>

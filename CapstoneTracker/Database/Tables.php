@@ -93,6 +93,30 @@
                 UNIQUE KEY unique_review (thesis_id, reviewer_id)
             ) ENGINE=InnoDB;",
 
+            "CREATE TABLE SYSTEM_LOGS (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT NULL,
+                user_type ENUM('user', 'admin') DEFAULT 'user',
+                action VARCHAR(100) NOT NULL,
+                description TEXT NOT NULL,
+                ip_address VARCHAR(45) NOT NULL,
+                user_agent TEXT,
+                log_type ENUM('user', 'admin', 'system', 'security', 'error') DEFAULT 'system',
+                resource_type VARCHAR(100) NULL,
+                resource_id INT NULL,
+                additional_data JSON NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                
+                INDEX idx_user_id (user_id),
+                INDEX idx_action (action),
+                INDEX idx_log_type (log_type),
+                INDEX idx_created_at (created_at),
+                INDEX idx_user_type (user_type),
+                INDEX idx_resource (resource_type, resource_id),
+                
+                FOREIGN KEY (user_id) REFERENCES USER_INFORMATION(User_ID) ON DELETE SET NULL
+            ) ENGINE=InnoDB;",
+
             "CREATE TABLE IF NOT EXISTS ANNOUNCEMENTS (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 title VARCHAR(200) NOT NULL,
