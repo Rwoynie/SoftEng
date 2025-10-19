@@ -130,7 +130,9 @@ $departmentManager->addDepartment('bsed', 'BSED | AFSET', ['Bachelor of Secondar
 $departmentManager->addDepartment('btvted', 'BTVTED | FTVETS', ['Bachelor of Technical-Vocational Teacher Education']);
 $departmentManager->addDepartment('beed', 'BEED | OFEE', ['Bachelor of Elementary Education']);
 $departmentManager->addDepartment('bsned', 'BSNED | OFSET', ['Bachelor of Special Needs Education']);
-$departmentManager->addDepartment('bsabe', 'BSABE | SABES', ['Bachelor of Science in Agriculture and Biosystems Engineering']);
+$departmentManager->addDepartment('bsabe', 'BSABE | SABES', [
+    'Bachelor of Science in Agricultural and Biosystems Engineering', 'Bachelor of Science in Agriculture and Biosystems Engineering'
+]);
 $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science in Information Technology']);
 // Start session
 if (session_status() === PHP_SESSION_NONE) {
@@ -368,16 +370,18 @@ if (!isset($_SESSION['csrf_token'])) {
 </div>
 
 <!-- Document Preview Modal -->
-<div class="modal-overlay preview-modal" id="previewModal" style="display: none;">
+<div class="modal-overlay preview-modal" id="previewModal">
     <div class="modal preview-modal-content">
         <div class="modal-header">
             <h2 class="modal-title">Document Preview</h2>
             <button class="modal-close">&times;</button>
         </div>
         <div class="modal-body">
-            <div id="project-info-preview" class="project-info-preview"></div>
+            <div id="project-info-preview" class="project-info-preview">
+
+            </div>
             <div id="document-viewer">
-                <iframe id="doc-viewer-iframe" style="width: 100%; height: 500px; border: none; display: none;"></iframe>
+                <iframe id="doc-viewer-iframe" style="width: 100%; height: 500px; border: none;"></iframe>
                 <div id="pdf-viewer" style="display: none; width: 100%; height: 500px;"></div>
                 <div id="unsupported-file" style="display: none; text-align: center; padding: 50px;">
                     <i class="fa fa-exclamation-triangle" style="font-size: 48px; color: #ff9800;"></i>
@@ -387,8 +391,28 @@ if (!isset($_SESSION['csrf_token'])) {
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-cancel" id="closePreview">Close</button>
-            <a id="download-link" class="btn btn-primary" download>Download</a>
+            <!-- PDF Footer Controls - positioned on the left -->
+            <div id="pdf-footer-controls" class="pdf-footer-controls" style="display: none;">
+                <button id="prev-page-footer" type="button" class="btn btn-outline-secondary">
+                    <i class="fas fa-chevron-left"></i> Previous
+                </button>
+                <span class="pdf-page-info">
+                    Page <span id="pdf-page-num-footer">1</span> of <span id="pdf-total-pages">0</span>
+                </span>
+                <button id="next-page-footer" type="button" class="btn btn-outline-secondary">
+                    Next <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            
+            <!-- Action buttons - positioned on the right -->
+            <div class="modal-footer-actions">
+                
+                <a id="download-link" class="btn btn-primary" style="display: none;">
+                    <i class="fas fa-download"></i> Download Abstract
+                </a>
+                
+                
+            </div>
         </div>
     </div>
 </div>

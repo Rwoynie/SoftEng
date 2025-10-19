@@ -855,8 +855,10 @@ body {
     font-size: 16px;
 }
 
+
 .pdf-footer-controls {
     display: flex;
+    justify-content: center;
     align-items: center;
     gap: 10px;
 }
@@ -870,6 +872,16 @@ body {
 .pdf-footer-controls .btn {
     padding: 0.375rem 0.75rem;
     font-size: 0.875rem;
+    font-family: "Inter";
+}
+
+.pdf-footer-controls .btn:hover {
+    background: #d5d5d5;
+}
+
+.pdf-footer-controls .btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
 }
 
 .btn-retry {
@@ -1144,7 +1156,7 @@ body {
     border-radius: 4px;
     cursor: pointer;
     font-size: 14px;
-    transition: background-color 0.3s;
+    transition: all 0.1s;
 }
 
 .btn i {
@@ -1341,17 +1353,74 @@ body {
 
         .modal-footer {
             display: flex;
+            flex-direction: column;
+            padding: 20px 25px;
+            border-top: 1px solid #f0f0f0;
+            background: #fafbfb;
+            gap: 12px;
+        }
+        
+        .modal-footer-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        
+        .modal-footer-info {
+            display: flex;
             justify-content: space-between;
             align-items: center;
             width: 100%;
-            padding: 15px 20px;
-            border-top: 1px solid #eee;
+            padding-top: 12px;
+            border-top: 1px solid #f5f5f5;
+            font-size: 0.8rem;
+            color: var(--color-lite-grey);
         }
-
-        .modal-footer-actions {
-            display: flex;
-            gap: 10px;
-            margin-left: auto;
+        
+        .modal-footer-notes {
+            font-size: 0.75rem;
+            color: var(--color-lite-grey);
+            text-align: center;
+            width: 100%;
+            margin-top: 0;
+            font-style: italic;
+        }
+        
+        /* Minimal button styles for modal footer */
+        .modal-footer .btn-cancel,
+        .modal-footer .btn-upload {
+            padding: 10px 24px;
+            border: 1px solid #e1e5e9;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: white;
+            color: var(--color-dark-grey);
+        }
+        
+        .modal-footer .btn-upload {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .modal-footer .btn-cancel:hover {
+            background: #f8f9fa;
+            border-color: var(--color-lite-grey);
+        }
+        
+        .modal-footer .btn-upload:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+        
+        .modal-footer .btn-upload:disabled {
+            background: #e9ecef;
+            color: #adb5bd;
+            border-color: #dee2e6;
+            cursor: not-allowed;
         }
 
         .upload-area-container {

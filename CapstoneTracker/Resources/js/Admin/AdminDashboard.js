@@ -2,17 +2,37 @@
 // Now the DOMContentLoaded event starts here
 console.log('AnnouncementManager available:', typeof AnnouncementManager !== 'undefined');
 
+// Add PDF.js library loading at the top of your file (before DOMContentLoaded)
+function loadPdfJsLibrary() {
+    if (typeof pdfjsLib === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
+        script.onload = function() {
+            console.log('PDF.js library loaded successfully');
+            // Set worker source after library loads
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+        };
+        document.head.appendChild(script);
+    }
+}
+
+// Call this function early
+loadPdfJsLibrary();
+
+
+let uploadedFiles = {
+    abstract: [],
+    thesis: []
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     // Profile functionality (existing code)
-    let uploadedFiles = {
-        abstract: [],
-        thesis: []
-    };
+   
     const logoutBtn = document.getElementById('logoutHeaderIcon');
 
     const fabIcon = document.querySelector('.fab-icon');
     const uploadModal = document.getElementById('uploadModal');
-    const previewModal = document.getElementById('previewModal');
+    
 
     const abstractDropArea = document.getElementById('abstractDropArea');
     const thesisDropArea = document.getElementById('thesisDropArea');
@@ -21,10 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const btnUpload = document.querySelector('.btn-upload');
     
-    const downloadLink = document.getElementById('download-link');
-    const docViewerIframe = document.getElementById('doc-viewer-iframe');
-    const pdfViewer = document.getElementById('pdf-viewer');
-    const unsupportedFile = document.getElementById('unsupported-file');
+    
 
     const allButton = document.getElementById('allButton');
     const recentButton = document.getElementById('recentButton');
@@ -348,76 +365,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 modal.addEventListener('click', function(e) {
                     if (e.target === this) {
                         closeModal(this);
-                        // Reset form when modal closes
-                        if (this.id === 'uploadModal') {
-                            resetUploadForm();
-                        }
                     }
                 });
             }
         });
     }
     
-    // Close modal functions
-    function closeModal(modal) {
-        if (!modal) {
-            console.error('Modal element not provided');
-            return;
-        }
-        
-        try {
-            modal.classList.remove('active');
-            document.body.style.overflow = '';
-            
-            // Clean up PDF resources if it's the preview modal
-            if (modal.id === 'previewModal') {
-                if (window.currentPdfBlobUrl) {
-                    URL.revokeObjectURL(window.currentPdfBlobUrl);
-                    window.currentPdfBlobUrl = null;
-                }
-                
-                // Reset PDF state
-                window.currentPdfDoc = null;
-                window.currentPageNum = 1;
-                
-                // Hide footer controls
-                const pdfFooterControls = document.getElementById('pdf-footer-controls');
-                if (pdfFooterControls) {
-                    pdfFooterControls.style.display = 'none';
-                }
-                
-                // Reset download link
-                const downloadLink = document.getElementById('download-link');
-                if (downloadLink) {
-                    downloadLink.style.display = 'none';
-                    downloadLink.href = '#';
-                }
-                
-                // Reset viewer states
-                const docViewerIframe = document.getElementById('doc-viewer-iframe');
-                const pdfViewer = document.getElementById('pdf-viewer');
-                const unsupportedFile = document.getElementById('unsupported-file');
-                
-                if (docViewerIframe) {
-                    docViewerIframe.style.display = 'none';
-                    docViewerIframe.src = '';
-                }
-                
-                if (pdfViewer) {
-                    pdfViewer.style.display = 'none';
-                    pdfViewer.innerHTML = '';
-                }
-                
-                if (unsupportedFile) {
-                    unsupportedFile.style.display = 'none';
-                }
-            }
-            
-            console.log('Modal closed successfully');
-        } catch (error) {
-            console.error('Error closing modal:', error);
-        }
-    }
+   
     
     initializeModalCloseHandlers();
     
@@ -502,6 +456,8 @@ document.addEventListener('DOMContentLoaded', function() {
         updateUploadButtonState();
     }
     
+
+
     // Display file in the list with preview
     function displayFile(file, fileType) {
         console.log('Displaying file:', file.name, 'Type:', fileType, 'Size:', file.size);
@@ -628,266 +584,15 @@ document.addEventListener('DOMContentLoaded', function() {
         updateUploadButtonState();
     }
 
-    // Preview file using Google Docs Viewer for docx and PDF.js for pdf
-    function previewFile(fileName, fileType) {
-        const file = uploadedFiles[fileType].find(f => f.name === fileName);
-        if (!file) return;
-        
-        // Reset viewer states
-        docViewerIframe.style.display = 'none';
-        pdfViewer.style.display = 'none';
-        unsupportedFile.style.display = 'none';
-        
-        const fileExtension = file.name.split('.').pop().toLowerCase();
-        const fileUrl = URL.createObjectURL(file);
-        
-        // Set download link
-        downloadLink.href = fileUrl;
-        downloadLink.download = file.name;
-        
-        if (fileExtension === 'pdf') {
-            // Use PDF.js for PDF preview
-            previewPdf(fileUrl);
-            pdfViewer.style.display = 'block';
-        } else if (fileExtension === 'docx') {
-            // Use Google Docs Viewer for DOCX files
-            const previewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`;
-            docViewerIframe.src = previewUrl;
-            docViewerIframe.style.display = 'block';
-        } else {
-            // Show unsupported message for other file types
-            unsupportedFile.style.display = 'block';
-        }
-        
-        // Show preview modal
-        previewModal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
     
-    // PDF.js functions for PDF preview
-    function previewPdf(url) {
-        // Ensure PDF.js is available
-        if (typeof pdfjsLib === 'undefined') {
-            console.error('PDF.js library not loaded');
-            showPdfError('PDF viewer library not loaded. Please refresh the page.');
-            return;
-        }
-        
-        const pdfViewer = document.getElementById('pdf-viewer');
-        
-        // Clear previous content and show loading
-        pdfViewer.innerHTML = '<div class="loading-preview"><i class="fas fa-spinner fa-spin"></i><p>Loading Abstract...</p></div>';
-        
-        // Set up PDF.js worker
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-        
-        // Clear previous PDF document
-        if (window.currentPdfDoc) {
-            window.currentPdfDoc.destroy();
-        }
-        
-        // Hide footer controls initially
-        const pdfFooterControls = document.getElementById('pdf-footer-controls');
-        pdfFooterControls.style.display = 'none';
-        
-        // Load the PDF document
-        pdfjsLib.getDocument(url).promise.then(function(pdfDoc) {
-            console.log('PDF loaded successfully, pages:', pdfDoc.numPages);
-            
-            // Store the PDF document globally
-            window.currentPdfDoc = pdfDoc;
-            window.currentPageNum = 1;
-            
-            // Clear loading state
-            pdfViewer.innerHTML = '';
-            
-            // Show footer controls
-            pdfFooterControls.style.display = 'flex';
-            
-            // Update total pages
-            document.getElementById('pdf-total-pages').textContent = pdfDoc.numPages;
-            
-            // Render the first page
-            renderPage(window.currentPageNum);
-            
-            // Add PDF controls to footer
-            addPdfFooterControls(pdfDoc);
-            
-        }).catch(function(error) {
-            console.error('Error loading PDF:', error);
-            showPdfError(`Failed to load PDF: ${error.message}`);
-        });
-    }
+    
 
-    function addPdfFooterControls(pdfDoc) {
-        // Remove any existing event listeners first
-        const prevBtn = document.getElementById('prev-page-footer');
-        const nextBtn = document.getElementById('next-page-footer');
-        
-        // Clone and replace to remove old event listeners
-        if (prevBtn && nextBtn) {
-            const newPrevBtn = prevBtn.cloneNode(true);
-            const newNextBtn = nextBtn.cloneNode(true);
-            
-            prevBtn.parentNode.replaceChild(newPrevBtn, prevBtn);
-            nextBtn.parentNode.replaceChild(newNextBtn, nextBtn);
-        }
-        
-        // Add event listeners to footer controls
-        document.getElementById('prev-page-footer').addEventListener('click', function() {
-            if (window.currentPageNum <= 1) return;
-            window.currentPageNum--;
-            renderPage(window.currentPageNum);
-            updatePdfFooterControls();
-        });
-        
-        document.getElementById('next-page-footer').addEventListener('click', function() {
-            if (window.currentPageNum >= window.currentPdfDoc.numPages) return;
-            window.currentPageNum++;
-            renderPage(window.currentPageNum);
-            updatePdfFooterControls();
-        });
-        
-        // Initial controls update
-        updatePdfFooterControls();
-    }
+    
+    
+    
+    
+    
 
-    function updatePdfFooterControls() {
-        const prevBtn = document.getElementById('prev-page-footer');
-        const nextBtn = document.getElementById('next-page-footer');
-        
-        if (prevBtn && nextBtn && window.currentPdfDoc) {
-            prevBtn.disabled = window.currentPageNum <= 1;
-            nextBtn.disabled = window.currentPageNum >= window.currentPdfDoc.numPages;
-            
-            // Update page number in footer
-            const pageNumElement = document.getElementById('pdf-page-num-footer');
-            if (pageNumElement) {
-                pageNumElement.textContent = window.currentPageNum;
-            }
-        }
-    }
-    
-    function renderPage(pageNum) {
-        if (!window.currentPdfDoc || typeof window.currentPdfDoc.getPage !== 'function') {
-            console.error('Invalid PDF document');
-            showPdfError('Invalid PDF document');
-            return;
-        }
-        
-        const pdfViewer = document.getElementById('pdf-viewer');
-        
-        window.currentPdfDoc.getPage(pageNum).then(function(page) {
-            console.log('Rendering page:', pageNum);
-            
-            const scale = 1.2;
-            const viewport = page.getViewport({ scale: scale });
-            
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
-            canvas.style.display = 'block';
-            canvas.style.margin = '0 auto';
-            canvas.style.border = '1px solid #ddd';
-            canvas.style.maxWidth = '100%';
-            
-            // Clear previous canvas
-            const existingCanvas = pdfViewer.querySelector('canvas');
-            if (existingCanvas) {
-                existingCanvas.remove();
-            }
-            
-            // Add canvas to viewer
-            pdfViewer.appendChild(canvas);
-            
-            const renderContext = {
-                canvasContext: ctx,
-                viewport: viewport
-            };
-            
-            return page.render(renderContext).promise;
-            
-        }).then(function() {
-            console.log('Page rendered successfully');
-            // Update footer page number
-            updatePdfFooterControls();
-            
-        }).catch(function(error) {
-            console.error('Error rendering page:', error);
-            showPdfError(`Error rendering page: ${error.message}`);
-        });
-    }
-
-    function showPdfError(message) {
-        const pdfViewer = document.getElementById('pdf-viewer');
-        const unsupportedFile = document.getElementById('unsupported-file');
-        
-        pdfViewer.style.display = 'none';
-        unsupportedFile.innerHTML = `
-            <div class="error-preview">
-                <i class="fas fa-file-pdf" style="font-size: 48px; color: #e74c3c;"></i>
-                <h3>Abstract Preview Unavailable</h3>
-                <p>${message}</p>
-                <p><small>You can still download the abstract using the download button above.</small></p>
-            </div>
-        `;
-        unsupportedFile.style.display = 'block';
-    }
-    
-    function addPdfControls(pdfDoc) {
-        const pdfViewer = document.getElementById('pdf-viewer');
-        
-        // Remove existing controls
-        const existingControls = pdfViewer.querySelector('.pdf-controls');
-        if (existingControls) {
-            existingControls.remove();
-        }
-        
-        const controlsHtml = `
-            <div class="pdf-controls">
-                <button id="prev-page" type="button">
-                    <i class="fas fa-chevron-left"></i> Previous
-                </button>
-                <span class="pdf-page-info">
-                    Page <span id="pdf-page-num">1</span> of ${pdfDoc.numPages}
-                </span>
-                <button id="next-page" type="button">
-                    Next <i class="fas fa-chevron-right"></i>
-                </button>
-            </div>
-        `;
-        
-        pdfViewer.insertAdjacentHTML('afterbegin', controlsHtml);
-        
-        // Add event listeners
-        document.getElementById('prev-page').addEventListener('click', function() {
-            if (window.currentPageNum <= 1) return;
-            window.currentPageNum--;
-            renderPage(window.currentPdfDoc, window.currentPageNum);
-            updatePdfControls();
-        });
-        
-        document.getElementById('next-page').addEventListener('click', function() {
-            if (window.currentPageNum >= window.currentPdfDoc.numPages) return;
-            window.currentPageNum++;
-            renderPage(window.currentPdfDoc, window.currentPageNum);
-            updatePdfControls();
-        });
-        
-        // Initial controls update
-        updatePdfControls();
-    }
-    
-    function updatePdfControls() {
-        const prevBtn = document.getElementById('prev-page');
-        const nextBtn = document.getElementById('next-page');
-        
-        if (prevBtn && nextBtn && window.currentPdfDoc) {
-            prevBtn.disabled = window.currentPageNum <= 1;
-            nextBtn.disabled = window.currentPageNum >= window.currentPdfDoc.numPages;
-        }
-    }
 
     // Upload button functionality
     if (btnUpload) {
@@ -3922,26 +3627,211 @@ function previewLocalFile(fileUrl) {
     }
 }
 
+
+// File input handling via browse buttons
+const browseBtns = document.querySelectorAll('.browse-btn');
+browseBtns.forEach((browseBtn, index) => {
+    browseBtn.addEventListener('click', function() {
+        if (index === 0) {
+            abstractFileInput.click();
+        } else {
+            thesisFileInput.click();
+        }
+    });
+});
+
+// Handle the selected files
+function handleFiles(files, fileType) {
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        // Check if file type is supported (only PDF)
+        const fileExtension = file.name.split('.').pop().toLowerCase();
+        if (fileExtension !== 'pdf') {
+            Swal.fire({
+                title: 'Unsupported File Type',
+                text: 'Please upload only PDF files.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            continue;
+        }
+        
+        // Check file size (max 50MB)
+        const maxFileSize = 50 * 1024 * 1024;
+        if (file.size > maxFileSize) {
+            Swal.fire({
+                title: 'File Too Large',
+                text: 'Please upload files smaller than 50MB.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            continue;
+        }
+        
+        if (file.size === 0) {
+            Swal.fire({
+                title: 'Empty File',
+                text: 'The selected file is empty.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            continue;
+        }
+        
+        // FIX: Check if file is already in the list using a more reliable method
+        const isDuplicate = uploadedFiles[fileType].some(existingFile => 
+            existingFile.name === file.name && 
+            existingFile.size === file.size &&
+            existingFile.lastModified === file.lastModified
+        );
+        
+        if (isDuplicate) {
+            Swal.fire({
+                title: 'File Already Added',
+                text: 'This file has already been added to the upload list.',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+            continue;
+        }
+        
+        // Add file to the appropriate array
+        uploadedFiles[fileType].push(file);
+        displayFile(file, fileType);
+    }
+    
+    // Update upload button state
+    updateUploadButtonState();
+}
+
+// Show empty state when no files
+function showEmptyState(fileType) {
+    const fileListId = fileType === 'abstract' ? 'abstractFileList' : 'thesisFileList';
+    const fileList = document.getElementById(fileListId);
+    
+    fileList.innerHTML = `
+        <div class="empty-state">
+            <i class="far fa-file-pdf"></i>
+            <p>No ${fileType} files selected</p>
+        </div>
+    `;
+}
+
+// Format file size to human readable format
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Remove file from the list
+function removeFile(fileName, fileType) {
+    // Remove from uploadedFiles array
+    uploadedFiles[fileType] = uploadedFiles[fileType].filter(file => file.name !== fileName);
+    
+    // FIX: Clear the file input value to allow re-selection of the same file
+    if (fileType === 'abstract' && abstractFileInput) {
+        abstractFileInput.value = '';
+    } else if (fileType === 'thesis' && thesisFileInput) {
+        thesisFileInput.value = '';
+    }
+    
+    updateUploadButtonState();
+}
+
+// Preview file using Google Docs Viewer for docx and PDF.js for pdf
+function previewFile(fileName, fileType) {
+    
+    const file = uploadedFiles[fileType].find(f => f.name === fileName);
+    if (!file) {
+        console.error('File not found:', fileName);
+        return;
+    }
+    
+    // Get modal elements
+    const previewModal = document.getElementById('previewModal');
+    const docViewerIframe = document.getElementById('doc-viewer-iframe');
+    const pdfViewer = document.getElementById('pdf-viewer');
+    const unsupportedFile = document.getElementById('unsupported-file');
+    const downloadLink = document.getElementById('download-link');
+    
+    if (!previewModal || !docViewerIframe || !pdfViewer || !unsupportedFile || !downloadLink) {
+        console.error('Preview modal elements not found');
+        return;
+    }
+    
+    // Reset viewer states
+    docViewerIframe.style.display = 'none';
+    pdfViewer.style.display = 'none';
+    unsupportedFile.style.display = 'none';
+    
+    const fileExtension = file.name.split('.').pop().toLowerCase();
+    const fileUrl = URL.createObjectURL(file);
+    
+    // Set download link
+    downloadLink.href = fileUrl;
+    downloadLink.download = file.name;
+    downloadLink.style.display = 'block';
+    
+    if (fileExtension === 'pdf') {
+        // Use PDF.js for PDF preview
+        previewPdf(fileUrl);
+        pdfViewer.style.display = 'block';
+    } else if (fileExtension === 'docx') {
+        // Use Google Docs Viewer for DOCX files
+        const previewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`;
+        docViewerIframe.src = previewUrl;
+        docViewerIframe.style.display = 'block';
+    } else {
+        // Show unsupported message for other file types
+        unsupportedFile.style.display = 'block';
+    }
+    
+    // Show preview modal
+    previewModal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+
 // PDF.js functions for PDF preview
 function previewPdf(url) {
-    // Ensure PDF.js is available
+    const pdfViewer = document.getElementById('pdf-viewer');
+    
+    if (!pdfViewer) {
+        console.error('PDF viewer element not found');
+        return;
+    }
+    
+    // Clear previous content and show loading
+    pdfViewer.innerHTML = '<div class="loading-preview"><i class="fas fa-spinner fa-spin"></i><p>Loading PDF...</p></div>';
+    
+    // Check if PDF.js is available
     if (typeof pdfjsLib === 'undefined') {
         console.error('PDF.js library not loaded');
         showPdfError('PDF viewer library not loaded. Please refresh the page.');
         return;
     }
     
-    const pdfViewer = document.getElementById('pdf-viewer');
-    
-    // Clear previous content and show loading
-    pdfViewer.innerHTML = '<div class="loading-preview"><i class="fas fa-spinner fa-spin"></i><p>Loading Abstract...</p></div>';
-    
-    // Set up PDF.js worker
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+    // Ensure worker is set
+    if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+    }
     
     // Clear previous PDF document
     if (window.currentPdfDoc) {
         window.currentPdfDoc.destroy();
+        window.currentPdfDoc = null;
+    }
+    
+    // Show footer controls
+    const pdfFooterControls = document.getElementById('pdf-footer-controls');
+    if (pdfFooterControls) {
+        pdfFooterControls.style.display = 'flex';
     }
     
     // Load the PDF document
@@ -3955,16 +3845,37 @@ function previewPdf(url) {
         // Clear loading state
         pdfViewer.innerHTML = '';
         
+        // Update total pages in footer
+        const totalPagesElement = document.getElementById('pdf-total-pages');
+        if (totalPagesElement) {
+            totalPagesElement.textContent = pdfDoc.numPages;
+        }
+        
         // Render the first page
         renderPage(window.currentPageNum);
         
-        // Add PDF controls
-        addPdfControls();
+        // Add event listeners to footer controls
+        addPdfFooterControls(pdfDoc);
         
     }).catch(function(error) {
         console.error('Error loading PDF:', error);
         showPdfError(`Failed to load PDF: ${error.message}`);
     });
+}
+
+function showPdfError(message) {
+    const pdfViewer = document.getElementById('pdf-viewer');
+    if (pdfViewer) {
+        pdfViewer.innerHTML = `
+            <div class="error-preview">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>${message}</p>
+                <button class="btn-retry" onclick="location.reload()">
+                    Reload Page
+                </button>
+            </div>
+        `;
+    }
 }
 
 function renderPage(pageNum) {
@@ -4027,59 +3938,118 @@ function renderPage(pageNum) {
     });
 }
 
-function addPdfControls() {
-    if (!window.currentPdfDoc) return;
+function addPdfFooterControls(pdfDoc) {
+    const prevBtn = document.getElementById('prev-page-footer');
+    const nextBtn = document.getElementById('next-page-footer');
     
-    const pdfViewer = document.getElementById('pdf-viewer');
-    
-    // Remove existing controls
-    const existingControls = pdfViewer.querySelector('.pdf-controls');
-    if (existingControls) {
-        existingControls.remove();
+    if (prevBtn && nextBtn) {
+        // Remove existing event listeners first
+        const newPrevBtn = prevBtn.cloneNode(true);
+        const newNextBtn = nextBtn.cloneNode(true);
+        
+        prevBtn.parentNode.replaceChild(newPrevBtn, prevBtn);
+        nextBtn.parentNode.replaceChild(newNextBtn, nextBtn);
+        
+        // Add event listeners to footer controls
+        document.getElementById('prev-page-footer').addEventListener('click', function() {
+            if (window.currentPageNum <= 1) return;
+            window.currentPageNum--;
+            renderPage(window.currentPageNum);
+            updatePdfFooterControls();
+        });
+        
+        document.getElementById('next-page-footer').addEventListener('click', function() {
+            if (window.currentPageNum >= window.currentPdfDoc.numPages) return;
+            window.currentPageNum++;
+            renderPage(window.currentPageNum);
+            updatePdfFooterControls();
+        });
     }
     
-    const controlsHtml = `
-        <div class="pdf-controls">
-            <button id="prev-page" type="button">
-                <i class="fas fa-chevron-left"></i> Previous
-            </button>
-            <span class="pdf-page-info">
-                Page <span id="pdf-page-num">1</span> of ${window.currentPdfDoc.numPages}
-            </span>
-            <button id="next-page" type="button">
-                Next <i class="fas fa-chevron-right"></i>
-            </button>
-        </div>
-    `;
-    
-    pdfViewer.insertAdjacentHTML('afterbegin', controlsHtml);
-    
-    // Add event listeners
-    document.getElementById('prev-page').addEventListener('click', function() {
-        if (window.currentPageNum <= 1) return;
-        window.currentPageNum--;
-        renderPage(window.currentPageNum);
-        updatePdfControls();
-    });
-    
-    document.getElementById('next-page').addEventListener('click', function() {
-        if (window.currentPageNum >= window.currentPdfDoc.numPages) return;
-        window.currentPageNum++;
-        renderPage(window.currentPageNum);
-        updatePdfControls();
-    });
-    
     // Initial controls update
-    updatePdfControls();
+    updatePdfFooterControls();
 }
 
-function updatePdfControls() {
-    const prevBtn = document.getElementById('prev-page');
-    const nextBtn = document.getElementById('next-page');
+function updatePdfFooterControls() {
+    const prevBtn = document.getElementById('prev-page-footer');
+    const nextBtn = document.getElementById('next-page-footer');
     
     if (prevBtn && nextBtn && window.currentPdfDoc) {
         prevBtn.disabled = window.currentPageNum <= 1;
         nextBtn.disabled = window.currentPageNum >= window.currentPdfDoc.numPages;
+        
+        // Update page number in footer
+        const pageNumElement = document.getElementById('pdf-page-num-footer');
+        if (pageNumElement) {
+            pageNumElement.textContent = window.currentPageNum;
+        }
+    }
+}
+
+function closeModal(modal) {
+    if (!modal) {
+        console.error('Modal element not provided');
+        return;
+    }
+    
+    try {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+        
+        // Clean up resources based on modal type
+        if (modal.id === 'previewModal') {
+            // Clean up blob URLs
+            if (window.currentPdfBlobUrl) {
+                URL.revokeObjectURL(window.currentPdfBlobUrl);
+                window.currentPdfBlobUrl = null;
+            }
+            
+            // Clean up PDF.js resources
+            if (window.currentPdfDoc) {
+                window.currentPdfDoc.destroy();
+                window.currentPdfDoc = null;
+            }
+            window.currentPageNum = 1;
+            
+            // Hide footer controls
+            const pdfFooterControls = document.getElementById('pdf-footer-controls');
+            if (pdfFooterControls) {
+                pdfFooterControls.style.display = 'none';
+            }
+            
+            // Reset download link
+            const downloadLink = document.getElementById('download-link');
+            if (downloadLink) {
+                downloadLink.style.display = 'none';
+                downloadLink.href = '#';
+            }
+            
+            // Reset viewer states
+            const docViewerIframe = document.getElementById('doc-viewer-iframe');
+            const pdfViewer = document.getElementById('pdf-viewer');
+            const unsupportedFile = document.getElementById('unsupported-file');
+            
+            if (docViewerIframe) {
+                docViewerIframe.style.display = 'none';
+                docViewerIframe.src = '';
+            }
+            
+            if (pdfViewer) {
+                pdfViewer.style.display = 'none';
+                pdfViewer.innerHTML = '';
+            }
+            
+            if (unsupportedFile) {
+                unsupportedFile.style.display = 'none';
+            }
+        } else if (modal.id === 'uploadModal') {
+            // Reset upload form if needed
+            resetUploadForm();
+        }
+        
+        console.log('Modal closed successfully');
+    } catch (error) {
+        console.error('Error closing modal:', error);
     }
 }
 

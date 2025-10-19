@@ -648,22 +648,188 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
     }
     
-    // Format file size to human readable format
-    function formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
+    document.addEventListener('click', function(e) {
+        const projectItem = e.target.closest('.project-item');
+        if (projectItem && !e.target.closest('.project-item .logo-row .icon') && !e.target.closest('.moreOptions')) {
+            handleProjectItemClick(projectItem);
+        }
+    });
+
+    function handleProjectItemClick(projectItem) {
+        if (!projectItem) return;
         
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        const title = projectItem.querySelector('h3')?.textContent || 'No title';
+        const uploadedDate = projectItem.querySelector('.links p')?.textContent || 'Unknown date';
+        const authors = projectItem.querySelector('.desc-row p')?.textContent || 'Unknown authors';
         
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        // Get adviser information
+        const adviserElement = projectItem.querySelector('.adviser');
+        const adviser = adviserElement ? adviserElement.getAttribute('data-adviser') || 
+                       adviserElement.textContent.replace('Adviser:', '').trim() : 'Unknown adviser';
+        
+        // Get the thesis ID from a data attribute
+        const thesisId = projectItem.getAttribute('data-thesis-id');
+        
+        if (thesisId) {
+            showProjectPreview(thesisId, title, uploadedDate, authors, adviser);
+        } else {
+            console.error('No thesis ID found for project item');
+            Swal.fire({
+                title: 'Preview Unavailable',
+                text: 'Thesis information is missing.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        }
+    }
+
+    function showProjectPreview(thesisId, title, uploadedDate, authors, adviser) {
+        const modalTitle = document.querySelector('.preview-modal .modal-title');
+        if (modalTitle) {
+            modalTitle.textContent = title;
+        }
+        
+        // Create a container for project info
+        const projectInfo = document.getElementById('project-info-preview');
+        if (projectInfo) {
+            projectInfo.innerHTML = `
+                <div class="project-detail-container">
+                    <div>
+                        <div class="project-detail">
+                            <strong>Uploaded:</strong> ${uploadedDate}
+                        </div>
+                        <div class="project-detail">
+                            <strong>Authors:</strong> ${authors}
+                        </div>
+                    </div>
+                    <div>
+                        <div class="project-detail">
+                            <strong>Adviser:</strong> ${adviser}
+                        </div>
+                        ${thesisId ? `<div class="project-detail">
+                            <strong>Thesis ID:</strong> ${thesisId}
+                        </div>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Reset viewer states and hide footer controls
+        const docViewerIframe = document.getElementById('doc-viewer-iframe');
+        const pdfViewer = document.getElementById('pdf-viewer');
+        const unsupportedFile = document.getElementById('unsupported-file');
+        const pdfFooterControls = document.getElementById('pdf-footer-controls');
+        
+        docViewerIframe.style.display = 'none';
+        pdfViewer.style.display = 'none';
+        unsupportedFile.style.display = 'none';
+        if (pdfFooterControls) {
+            pdfFooterControls.style.display = 'none';
+        }
+        
+        // Set download link
+        const downloadLink = document.getElementById('download-link');
+        
+        if (thesisId) {
+            // Fetch from database via controller
+            fetchThesisFile(thesisId, title);
+        } else {
+            unsupportedFile.style.display = 'block';
+            downloadLink.href = '#';
+            downloadLink.onclick = function(e) {
+                e.preventDefault();
+                Swal.fire({
+                    title: 'Download Unavailable',
+                    text: 'File download is not available for this thesis.',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
+            };
+        }
+        
+        // Show preview modal
+        const previewModal = document.getElementById('previewModal');
+        if (previewModal) {
+            previewModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    async function fetchThesisFile(thesisId, title) {
+        try {
+            // Show loading state
+            const pdfViewer = document.getElementById('pdf-viewer');
+            const docViewerIframe = document.getElementById('doc-viewer-iframe');
+            const unsupportedFile = document.getElementById('unsupported-file');
+            
+            pdfViewer.innerHTML = '<div class="loading-preview"><i class="fas fa-spinner fa-spin"></i><p>Loading abstract...</p></div>';
+            pdfViewer.style.display = 'block';
+            docViewerIframe.style.display = 'none';
+            unsupportedFile.style.display = 'none';
+            
+            // Clean up any previous blob URLs
+            if (window.currentPdfBlobUrl) {
+                URL.revokeObjectURL(window.currentPdfBlobUrl);
+            }
+            
+            // Fetch the ABSTRACT file
+            const response = await fetch(`../../../app/Controllers/ThesisController.php?action=downloadAbstract&id=${thesisId}`);
+            
+            if (!response.ok) {
+                throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+            }
+            
+            // Check if response is PDF
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('pdf')) {
+                const text = await response.text();
+                if (text.includes('error') || text.includes('false')) {
+                    // Try to parse as JSON error
+                    try {
+                        const errorData = JSON.parse(text);
+                        throw new Error(errorData.error || 'Abstract not available');
+                    } catch (e) {
+                        throw new Error('Abstract file is not a valid PDF');
+                    }
+                }
+                throw new Error('Abstract file is not a valid PDF');
+            }
+            
+            // Get the abstract as blob
+            const blob = await response.blob();
+            
+            if (blob.size === 0) {
+                throw new Error('Abstract file is empty');
+            }
+            
+            // Create object URL for the blob
+            window.currentPdfBlobUrl = URL.createObjectURL(blob);
+            
+            // Set download link for abstract only
+            const downloadLink = document.getElementById('download-link');
+            downloadLink.href = window.currentPdfBlobUrl;
+            downloadLink.download = `${title.replace(/\s+/g, '_')}_abstract.pdf`;
+            downloadLink.style.display = 'block';
+            
+            // Preview the abstract PDF
+            previewPdf(window.currentPdfBlobUrl);
+            
+        } catch (error) {
+            console.error('Error fetching abstract file:', error);
+            showPdfError(`Failed to load abstract: ${error.message}`);
+            
+            // Still allow download if we have the thesisId
+            const downloadLink = document.getElementById('download-link');
+            if (thesisId) {
+                downloadLink.href = `../../../app/Controllers/ThesisController.php?action=downloadAbstract&id=${thesisId}`;
+                downloadLink.download = `${title.replace(/\s+/g, '_')}_abstract.pdf`;
+                downloadLink.style.display = 'block';
+            } else {
+                downloadLink.style.display = 'none';
+            }
+        }
     }
     
-    // Remove file from the list
-    function removeFile(fileName) {
-        uploadedFiles = uploadedFiles.filter(file => file.name !== fileName);
-        btnUpload.disabled = uploadedFiles.length === 0;
-    }
     
     // Preview file using Google Docs Viewer for docx and PDF.js for pdf
     function previewFile(fileName) {
@@ -678,9 +844,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const fileExtension = file.name.split('.').pop().toLowerCase();
         const fileUrl = URL.createObjectURL(file);
         
+        // Store the blob URL for cleanup
+        window.currentPdfBlobUrl = fileUrl;
+        
         // Set download link
         downloadLink.href = fileUrl;
         downloadLink.download = file.name;
+        downloadLink.style.display = 'block';
         
         if (fileExtension === 'pdf') {
             // Use PDF.js for PDF preview
@@ -701,45 +871,136 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.style.overflow = 'hidden';
     }
     
+    
     // PDF.js functions for PDF preview
     function previewPdf(url) {
-        // Load PDF document
-        pdfjsLib = pdfjsLib || window['pdfjs-dist/build/pdf'];
+        // Ensure PDF.js is available
+        if (typeof pdfjsLib === 'undefined') {
+            console.error('PDF.js library not loaded');
+            showPdfError('PDF viewer library not loaded. Please refresh the page.');
+            return;
+        }
+        
+        const pdfViewer = document.getElementById('pdf-viewer');
+        
+        // Clear previous content and show loading
+        pdfViewer.innerHTML = '<div class="loading-preview"><i class="fas fa-spinner fa-spin"></i><p>Loading Abstract...</p></div>';
+        
+        // Set up PDF.js worker
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
         
+        // Clear previous PDF document
+        if (window.currentPdfDoc) {
+            window.currentPdfDoc.destroy();
+        }
+        
+        // Load the PDF document
         pdfjsLib.getDocument(url).promise.then(function(pdfDoc) {
-            currentPdfDoc = pdfDoc;
-            currentPageNum = 1;
+            console.log('PDF loaded successfully, pages:', pdfDoc.numPages);
+            
+            // Store the PDF document globally
+            window.currentPdfDoc = pdfDoc;
+            window.currentPageNum = 1;
+            
+            // Clear loading state
+            pdfViewer.innerHTML = '';
+            
+            // Show footer controls if they exist
+            const pdfFooterControls = document.getElementById('pdf-footer-controls');
+            if (pdfFooterControls) {
+                pdfFooterControls.style.display = 'flex';
+                // Update total pages
+                document.getElementById('pdf-total-pages').textContent = pdfDoc.numPages;
+            }
             
             // Render the first page
-            renderPage(currentPageNum);
+            renderPage(window.currentPageNum);
             
-            // Add PDF controls
-            addPdfControls(pdfDoc);
+            // Add PDF controls to footer if available
+            if (pdfFooterControls) {
+                addPdfFooterControls(pdfDoc);
+            }
+            
         }).catch(function(error) {
             console.error('Error loading PDF:', error);
-            // Fallback to iframe if PDF.js fails
-            const previewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
-            docViewerIframe.src = previewUrl;
-            docViewerIframe.style.display = 'block';
-            pdfViewer.style.display = 'none';
+            showPdfError(`Failed to load PDF: ${error.message}`);
         });
     }
     
-    function renderPage(pageNum) {
-        pdfPageRendering = true;
+    
+    function addPdfFooterControls(pdfDoc) {
+        // Remove any existing event listeners first
+        const prevBtn = document.getElementById('prev-page-footer');
+        const nextBtn = document.getElementById('next-page-footer');
         
-        currentPdfDoc.getPage(pageNum).then(function(page) {
-            const scale = 1.5;
-            const viewport = page.getViewport({ scale });
+        if (prevBtn && nextBtn) {
+            // Add event listeners to footer controls
+            prevBtn.addEventListener('click', function() {
+                if (window.currentPageNum <= 1) return;
+                window.currentPageNum--;
+                renderPage(window.currentPageNum);
+                updatePdfFooterControls();
+            });
+            
+            nextBtn.addEventListener('click', function() {
+                if (window.currentPageNum >= window.currentPdfDoc.numPages) return;
+                window.currentPageNum++;
+                renderPage(window.currentPageNum);
+                updatePdfFooterControls();
+            });
+        }
+        
+        // Initial controls update
+        updatePdfFooterControls();
+    }
+
+    function updatePdfFooterControls() {
+        const prevBtn = document.getElementById('prev-page-footer');
+        const nextBtn = document.getElementById('next-page-footer');
+        
+        if (prevBtn && nextBtn && window.currentPdfDoc) {
+            prevBtn.disabled = window.currentPageNum <= 1;
+            nextBtn.disabled = window.currentPageNum >= window.currentPdfDoc.numPages;
+            
+            // Update page number in footer
+            const pageNumElement = document.getElementById('pdf-page-num-footer');
+            if (pageNumElement) {
+                pageNumElement.textContent = window.currentPageNum;
+            }
+        }
+    }
+
+    function renderPage(pageNum) {
+        if (!window.currentPdfDoc || typeof window.currentPdfDoc.getPage !== 'function') {
+            console.error('Invalid PDF document');
+            showPdfError('Invalid PDF document');
+            return;
+        }
+        
+        const pdfViewer = document.getElementById('pdf-viewer');
+        
+        window.currentPdfDoc.getPage(pageNum).then(function(page) {
+            console.log('Rendering page:', pageNum);
+            
+            const scale = 1.2;
+            const viewport = page.getViewport({ scale: scale });
             
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             canvas.height = viewport.height;
             canvas.width = viewport.width;
+            canvas.style.display = 'block';
+            canvas.style.margin = '0 auto';
+            canvas.style.border = '1px solid #ddd';
+            canvas.style.maxWidth = '100%';
             
-            // Clear previous content
-            pdfViewer.innerHTML = '';
+            // Clear previous canvas
+            const existingCanvas = pdfViewer.querySelector('canvas');
+            if (existingCanvas) {
+                existingCanvas.remove();
+            }
+            
+            // Add canvas to viewer
             pdfViewer.appendChild(canvas);
             
             const renderContext = {
@@ -747,146 +1008,91 @@ document.addEventListener('DOMContentLoaded', function() {
                 viewport: viewport
             };
             
-            const renderTask = page.render(renderContext);
+            return page.render(renderContext).promise;
             
-            renderTask.promise.then(function() {
-                pdfPageRendering = false;
-                
-                if (pdfPageNumPending !== null) {
-                    renderPage(pdfPageNumPending);
-                    pdfPageNumPending = null;
-                }
-                
-                // Update page info
-                document.getElementById('pdf-page-num').textContent = pageNum;
-            });
+        }).then(function() {
+            console.log('Page rendered successfully');
+            // Update footer page number
+            updatePdfFooterControls();
+            
+        }).catch(function(error) {
+            console.error('Error rendering page:', error);
+            showPdfError(`Error rendering page: ${error.message}`);
         });
     }
     
-    function queueRenderPage(pageNum) {
-        if (pdfPageRendering) {
-            pdfPageNumPending = pageNum;
-        } else {
-            renderPage(pageNum);
+    
+
+    function showPdfError(message) {
+        const pdfViewer = document.getElementById('pdf-viewer');
+        const unsupportedFile = document.getElementById('unsupported-file');
+        
+        pdfViewer.style.display = 'none';
+        unsupportedFile.innerHTML = `
+            <div class="error-preview">
+                <i class="fas fa-file-pdf" style="font-size: 48px; color: #e74c3c;"></i>
+                <h3>Abstract Preview Unavailable</h3>
+                <p>${message}</p>
+                <p><small>You can still download the abstract using the download button above.</small></p>
+            </div>
+        `;
+        unsupportedFile.style.display = 'block';
+    }
+
+    function closeModal(modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+        
+        // Clean up PDF resources if it's the preview modal
+        if (modal.id === 'previewModal') {
+            if (window.currentPdfBlobUrl) {
+                URL.revokeObjectURL(window.currentPdfBlobUrl);
+                window.currentPdfBlobUrl = null;
+            }
+            
+            // Reset PDF state
+            if (window.currentPdfDoc) {
+                window.currentPdfDoc.destroy();
+                window.currentPdfDoc = null;
+            }
+            window.currentPageNum = 1;
+            
+            // Hide footer controls
+            const pdfFooterControls = document.getElementById('pdf-footer-controls');
+            if (pdfFooterControls) {
+                pdfFooterControls.style.display = 'none';
+            }
+            
+            // Reset download link
+            const downloadLink = document.getElementById('download-link');
+            if (downloadLink) {
+                downloadLink.style.display = 'none';
+                downloadLink.href = '#';
+            }
+            
+            // Reset viewer states
+            const docViewerIframe = document.getElementById('doc-viewer-iframe');
+            const pdfViewer = document.getElementById('pdf-viewer');
+            const unsupportedFile = document.getElementById('unsupported-file');
+            
+            if (docViewerIframe) {
+                docViewerIframe.style.display = 'none';
+                docViewerIframe.src = '';
+            }
+            
+            if (pdfViewer) {
+                pdfViewer.style.display = 'none';
+                pdfViewer.innerHTML = '';
+            }
+            
+            if (unsupportedFile) {
+                unsupportedFile.style.display = 'none';
+            }
         }
     }
     
-    function addPdfControls(pdfDoc) {
-        const controlsHtml = `
-            <div class="pdf-controls">
-                <button id="prev-page" ${currentPageNum <= 1 ? 'disabled' : ''}>Previous</button>
-                <span class="pdf-page-info">Page <span id="pdf-page-num">${currentPageNum}</span> of ${pdfDoc.numPages}</span>
-                <button id="next-page" ${currentPageNum >= pdfDoc.numPages ? 'disabled' : ''}>Next</button>
-            </div>
-        `;
-        
-        pdfViewer.insertAdjacentHTML('afterbegin', controlsHtml);
-        
-        document.getElementById('prev-page').addEventListener('click', function() {
-            if (currentPageNum <= 1) return;
-            currentPageNum--;
-            queueRenderPage(currentPageNum);
-            updatePdfControls(pdfDoc);
-        });
-        
-        document.getElementById('next-page').addEventListener('click', function() {
-            if (currentPageNum >= pdfDoc.numPages) return;
-            currentPageNum++;
-            queueRenderPage(currentPageNum);
-            updatePdfControls(pdfDoc);
-        });
-    }
     
-    function updatePdfControls(pdfDoc) {
-        document.getElementById('prev-page').disabled = currentPageNum <= 1;
-        document.getElementById('next-page').disabled = currentPageNum >= pdfDoc.numPages;
-        document.getElementById('pdf-page-num').textContent = currentPageNum;
-    }
 
-    // Upload button functionality
-    if (btnUpload) {
-        btnUpload.addEventListener('click', function() {
-            if (uploadedFiles.length === 0) return;
-            
-            // Validate thesis title
-            const thesisTitleInput = document.getElementById('thesisTitle');
-            if (thesisTitleInput && !thesisTitleInput.value.trim()) {
-                Swal.fire({
-                    title: 'Thesis Title Required',
-                    text: 'Please enter a title for your thesis.',
-                    icon: 'warning',
-                    confirmButtonText: 'OK'
-                });
-                return;
-            }
-            
-            // Create FormData object to send files
-            const formData = new FormData();
-            
-            // Add thesis title to form data
-            if (thesisTitleInput) {
-                formData.append('thesisTitle', thesisTitleInput.value.trim());
-            }
-            
-            // Add author to form data if exists
-            const thesisAuthorInput = document.getElementById('thesisAuthor');
-            if (thesisAuthorInput && thesisAuthorInput.value.trim()) {
-                formData.append('thesisAuthor', thesisAuthorInput.value.trim());
-            }
-            
-            for (let i = 0; i < uploadedFiles.length; i++) {
-                formData.append('files[]', uploadedFiles[i]);
-            }
-            
-            // Show loading state
-            const originalText = btnUpload.innerHTML;
-            btnUpload.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Uploading...';
-            btnUpload.disabled = true;
-            
-            // Show SweetAlert for upload confirmation
-            Swal.fire({
-                title: 'Confirm Upload',
-                html: `Are you sure you want to upload <strong>${thesisTitleInput.value}</strong> with ${uploadedFiles.length} file(s)?`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, upload it!',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Simulate upload process (replace with actual AJAX call)
-                    setTimeout(() => {
-                        // Success message
-                        Swal.fire({
-                            title: 'Upload Successful!',
-                            text: 'Your thesis has been uploaded successfully.',
-                            icon: 'success',
-                            confirmButtonText: 'OK'
-                        }).then(() => {
-                            // Reset the form
-                            uploadedFiles = [];
-                            showEmptyState();
-                            btnUpload.disabled = true;
-                            btnUpload.innerHTML = 'Upload';
-                            fileInput.value = '';
-                            
-                            // Clear form fields
-                            if (thesisTitleInput) thesisTitleInput.value = '';
-                            if (thesisAuthorInput) thesisAuthorInput.value = '';
-                            
-                            // Close the modal
-                            closeModal(uploadModal);
-                        });
-                    }, 2000);
-                } else {
-                    // Reset button state if cancelled
-                    btnUpload.innerHTML = originalText;
-                    btnUpload.disabled = false;
-                }
-            });
-        });
-    }
 
 
     if (logoutBtn) {
