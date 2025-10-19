@@ -204,15 +204,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // Show selected view
         viewToShow.style.display = 'grid';
     
-        // Update button states - ensure All button is always selected when showing all view
+        // Update button states - respect which button was actually clicked
         menuButtons.forEach(button => button.classList.remove('selected'));
         
-        if (viewToShow === allView) {
-            allButton.classList.add('selected');
-        } else {
+        // Always select the button that was passed to the function
+        if (buttonToSelect) {
             buttonToSelect.classList.add('selected');
         }
-    
+        
         // Reset sort when switching views
         resetSortState();
         
@@ -1107,36 +1106,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Add these filter and sort functions
-    function filterProjectsByDepartment(department) {
-        const projectItems = document.querySelectorAll('.project-item');
-        const notFound = document.getElementById('notFound');
-        let foundResults = false;
-        
-        projectItems.forEach(item => {
-            // Add data-department attribute to your project items in HTML
-            // Example: <li class="project-item" data-department="cs" ...>
-            const itemDepartment = item.getAttribute('data-department');
-            
-            if (department === 'all' || itemDepartment === department) {
-                item.style.display = 'flex';
-                foundResults = true;
-            } else {
-                item.style.display = 'none';
-            }
-        });
-        
-        // Show/hide the "No Results Found" message
-        if (foundResults || department === 'all') {
-            notFound.style.display = 'none';
-        } else {
-            notFound.style.display = 'flex';
-        }
-        
-        // Re-run animations after filtering
-        animateOnScroll();
-    }
-
+   
     function resetSortState() {
         const sortDropdown = document.getElementById('sortDropdown');
         if (sortDropdown) {
@@ -1309,20 +1279,27 @@ document.addEventListener('DOMContentLoaded', function() {
     const animateOnScroll = function() {
         const projectItems = document.querySelectorAll('.project-item');
         
-        // Remove any existing animation classes
+        // Remove any existing animation classes and ensure hidden state
         projectItems.forEach(item => {
             item.classList.remove('animate__animated', 'animate__fadeInUp', 'animate__fast');
+            // Ensure items start hidden
+            item.style.opacity = '0';
+            item.style.transform = 'translateY(20px)';
         });
         
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     entry.target.classList.add('animate__animated', 'animate__fadeInUp', 'animate__fast');
+                    // Make sure item becomes visible
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
                     observer.unobserve(entry.target);
                 }
             });
         }, {
-            threshold: 0.1
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px' // Trigger animation when 50px from viewport
         });
         
         // Observe all project items
@@ -1332,13 +1309,35 @@ document.addEventListener('DOMContentLoaded', function() {
                 observer.observe(item);
             }
         });
+        
+        // Force animation for items already in viewport after a short delay
+        setTimeout(() => {
+            projectItems.forEach(item => {
+                const rect = item.getBoundingClientRect();
+                const isInViewport = (
+                    rect.top >= 0 &&
+                    rect.left >= 0 &&
+                    rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+                    rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+                );
+                
+                if (isInViewport && window.getComputedStyle(item).display !== 'none') {
+                    item.classList.add('animate__animated', 'animate__fadeInUp', 'animate__fast');
+                    item.style.opacity = '1';
+                    item.style.transform = 'translateY(0)';
+                }
+            });
+        }, 100);
     };
     
     // Call the animation function
     animateOnScroll();
 
     // Initialize with recent view visible
-    if (allView && allButton) {
+    if (recentView && recentButton) {
+        switchView(recentView, recentButton);
+    } else if (allView && allButton) {
+        // Fallback to all view if recent view is not available
         switchView(allView, allButton);
     }
 
@@ -2814,11 +2813,11 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Filtering by department:', departmentValue);
         
         projectItems.forEach(item => {
-            // Get the course from the project item
+            // Get the course from the project item - FIXED SELECTOR
             const courseElement = item.querySelector('.links p:nth-child(2)'); // Second paragraph in links div
             const course = courseElement ? courseElement.textContent.trim() : '';
             
-            console.log('Project course:', course);
+            console.log('Project course:', course, 'for item:', item.querySelector('h3').textContent);
             
             let shouldShow = false;
             
@@ -2830,14 +2829,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('Course codes for department:', courseCodes);
                 
                 // Check if this project's course matches any course in the department
-                shouldShow = courseCodes.some(courseCode => course.includes(courseCode) || courseCode.includes(course));
+                shouldShow = courseCodes.some(courseCode => {
+                    // More flexible matching - check if course contains courseCode or vice versa
+                    const match = course.toLowerCase().includes(courseCode.toLowerCase()) || 
+                           courseCode.toLowerCase().includes(course.toLowerCase());
+                    console.log(`Comparing "${course}" with "${courseCode}": ${match}`);
+                    return match;
+                });
             }
             
             if (shouldShow) {
                 item.style.display = 'flex';
                 foundResults = true;
+                console.log('SHOWING item:', item.querySelector('h3').textContent);
             } else {
                 item.style.display = 'none';
+                console.log('HIDING item:', item.querySelector('h3').textContent);
             }
         });
         
@@ -2848,18 +2855,25 @@ document.addEventListener('DOMContentLoaded', function() {
             if (notFound) notFound.style.display = 'flex';
         }
         
+        console.log('Filter complete. Found results:', foundResults);
+        
         // Re-run animations after filtering
         animateOnScroll();
     }
 
     function getCourseCodesForDepartment(departmentValue) {
-        // This should match the course codes defined in your PHP DepartmentManager
+        // Updated to match the actual course names from your PHP
         const departmentMap = {
-            'cs': ['Bachelor of Early Childhood Education'],
-            'ee': ['Bachelor of Secondary Education', 'Bachelor of Elementary Education'],
-            'me': ['Bachelor of Technical-Vocational Teacher Education', 'Bachelor of Special Needs Education'],
-            'ce': ['Bachelor of Science in Agriculture and Biosystems Engineering'],
-            'it': ['Bachelor of Science in Information Technology']
+            'beced': ['Bachelor of Early Childhood Education'],
+            'bsed': ['Bachelor of Secondary Education'],
+            'btvted': ['Bachelor of Technical-Vocational Teacher Education'],
+            'beed': ['Bachelor of Elementary Education'],
+            'bsned': ['Bachelor of Special Needs Education'],
+            'bsabe': [
+                'Bachelor of Science in Agricultural and Biosystems Engineering',
+                'Bachelor of Science in Agriculture and Biosystems Engineering' // Include both variations
+            ],
+            'bsit': ['Bachelor of Science in Information Technology']
         };
         
         return departmentMap[departmentValue] || [];

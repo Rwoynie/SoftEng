@@ -29,57 +29,417 @@ document.addEventListener('DOMContentLoaded', function() {
     const allView = document.getElementById('allView');
     const recentView = document.getElementById('recentView');
 
+    // Initialize project container functionality
+    initializeProjectContainer();
+
+    // ... rest of your existing userViewPage.js code ...
+
+    // PROJECT CONTAINER FUNCTIONS
+    function initializeProjectContainer() {
+        console.log('Initializing project container...');
+        
+        // Wait a bit to ensure DOM is fully loaded
+        setTimeout(() => {
+            // Get the view elements
+            const allView = document.getElementById('allView');
+            const recentView = document.getElementById('recentView');
+            const allButton = document.getElementById('allButton');
+            const recentButton = document.getElementById('recentButton');
+            
+            console.log('View elements found:', {
+                allView: !!allView,
+                recentView: !!recentView,
+                allButton: !!allButton,
+                recentButton: !!recentButton
+            });
     
+            // Initialize all components first
+            initializeFilterDropdowns();
+            initializeSearch();
+            initializeDisplayToggle();
+            initializeViewButtons();
+            
+            // Set the default view - hide all views first, then show recent
+            if (allView && recentView) {
+                allView.style.display = 'none';
+                recentView.style.display = 'none';
+                
+                // Show recent view by default
+                recentView.style.display = 'grid';
+                console.log('Default view set to recent');
+            }
+    
+            // Update button states
+            if (allButton && recentButton) {
+                allButton.classList.remove('selected');
+                recentButton.classList.add('selected');
+            }
+    
+            // Run animations
+            animateOnScroll();
+    }, 100);
+    }
 
-    // Changed to select buttons instead of li elements
-    const menuButtons = document.querySelectorAll('.header .menu button');
+    function initializeViewButtons() {
+        const allButton = document.getElementById('allButton');
+        const recentButton = document.getElementById('recentButton');
+        const allView = document.getElementById('allView');
+        const recentView = document.getElementById('recentView');
 
-    // Function to switch views
+        if (allButton && recentButton && allView && recentView) {
+            allButton.addEventListener('click', function() {
+                console.log('All button clicked');
+                switchView(allView, allButton);
+            });
+
+            recentButton.addEventListener('click', function() {
+                console.log('Recent button clicked');
+                switchView(recentView, recentButton);
+            });
+        } else {
+            console.error('View buttons or containers not found');
+        }
+    }
+
     function switchView(viewToShow, buttonToSelect) {
+        console.log('Switching view to:', viewToShow.id);
+        
         // Hide all views
-        allView.style.display = 'none';
-        recentView.style.display = 'none';
-
+        const allView = document.getElementById('allView');
+        const recentView = document.getElementById('recentView');
+        
+        if (allView) allView.style.display = 'none';
+        if (recentView) recentView.style.display = 'none';
+    
         // Show selected view
-        viewToShow.style.display = 'grid';
-
+        if (viewToShow) {
+            viewToShow.style.display = 'grid';
+            console.log('View displayed:', viewToShow.id, 'with items:', viewToShow.querySelectorAll('.project-item').length);
+        }
+    
         // Update button states
+        const menuButtons = document.querySelectorAll('.header .menu button');
         menuButtons.forEach(button => button.classList.remove('selected'));
-        buttonToSelect.classList.add('selected');
+        
+        if (buttonToSelect) {
+            buttonToSelect.classList.add('selected');
+        }
+    
+        // Reset sort when switching views
+        resetSortState();
         
         // Preserve list/grid view setting
-        const isListView = listViewIcon.classList.contains('selected');
-        const projectsContainers = document.querySelectorAll('.projects');
-        
-        projectsContainers.forEach(container => {
-            if (isListView) {
-                container.style.gridTemplateColumns = '1fr';
-            } else {
-                container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(300px, 1fr))';
-            }
-        });
+        const listViewIcon = document.getElementById('listViewIcon');
+        if (listViewIcon) {
+            const isListView = listViewIcon.classList.contains('selected');
+            const projectsContainers = document.querySelectorAll('.projects');
+            
+            projectsContainers.forEach(container => {
+                if (isListView) {
+                    container.style.gridTemplateColumns = '1fr';
+                } else {
+                    container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(300px, 1fr))';
+                }
+            });
+        }
         
         // Re-run animations after switching views
         animateOnScroll();
     }
 
-    // Event listeners for buttons
-    if (allButton && recentButton) {
-        allButton.addEventListener('click', function() {
-            switchView(allView, allButton);
+    function resetSortState() {
+        const sortDropdown = document.getElementById('sortDropdown');
+        if (sortDropdown) {
+            const sortSelectedText = sortDropdown.querySelector('.selected span');
+            if (sortSelectedText) {
+                sortSelectedText.textContent = "Sort by: Recent";
+            }
+        }
+        
+        // Reset to default sorting (by date, most recent first)
+        const allView = document.getElementById('allView');
+        const recentView = document.getElementById('recentView');
+        const currentView = recentView && recentView.style.display !== 'none' ? recentView : allView;
+        
+        if (currentView) {
+            const projectItems = currentView.querySelectorAll('.project-item');
+            const projectItemsArray = Array.from(projectItems);
+            
+            // Sort by most recent by default
+            projectItemsArray.sort((a, b) => {
+                const dateA = new Date(a.getAttribute('data-upload-date') || 0);
+                const dateB = new Date(b.getAttribute('data-upload-date') || 0);
+                return dateB - dateA;
+            });
+            
+            // Re-insert items
+            currentView.innerHTML = '';
+            projectItemsArray.forEach(item => {
+                currentView.appendChild(item);
+            });
+        }
+    }
+
+    function sortProjects(criteria) {
+        console.log('Sorting by:', criteria);
+        
+        // Get the current active view (allView or recentView)
+        const allView = document.getElementById('allView');
+        const recentView = document.getElementById('recentView');
+        const currentView = recentView && recentView.style.display !== 'none' ? recentView : allView;
+        
+        if (!currentView) {
+            console.log('No current view found');
+            return;
+        }
+        
+        // Get project items from the CURRENTLY VISIBLE view only
+        const projectItems = currentView.querySelectorAll('.project-item');
+        const projectItemsArray = Array.from(projectItems);
+        
+        if (projectItemsArray.length === 0) {
+            console.log('No project items found in current view');
+            return;
+        }
+
+        // Sort the array based on criteria
+        switch(criteria) {
+            case 'recent':
+                // Most recent first (newest dates first)
+                projectItemsArray.sort((a, b) => {
+                    const dateA = new Date(a.getAttribute('data-upload-date') || 0);
+                    const dateB = new Date(b.getAttribute('data-upload-date') || 0);
+                    return dateB - dateA;
+                });
+                break;
+                
+            case 'Oldest':
+                // Oldest first (oldest dates first)
+                projectItemsArray.sort((a, b) => {
+                    const dateA = new Date(a.getAttribute('data-upload-date') || 0);
+                    const dateB = new Date(b.getAttribute('data-upload-date') || 0);
+                    return dateA - dateB;
+                });
+                break;
+                
+            case 'title':
+                // Title A-Z
+                projectItemsArray.sort((a, b) => {
+                    const titleA = a.querySelector('h3')?.textContent.toLowerCase().trim() || '';
+                    const titleB = b.querySelector('h3')?.textContent.toLowerCase().trim() || '';
+                    return titleA.localeCompare(titleB);
+                });
+                break;
+                
+            case 'titleReversed':
+                // Title Z-A
+                projectItemsArray.sort((a, b) => {
+                    const titleA = a.querySelector('h3')?.textContent.toLowerCase().trim() || '';
+                    const titleB = b.querySelector('h3')?.textContent.toLowerCase().trim() || '';
+                    return titleB.localeCompare(titleA);
+                });
+                break;
+        }
+
+        // Clear and re-insert sorted items into the CURRENT view only
+        currentView.innerHTML = '';
+        projectItemsArray.forEach(item => {
+            currentView.appendChild(item);
         });
 
-        recentButton.addEventListener('click', function() {
-            switchView(recentView, recentButton);
+        console.log('Sorting completed for criteria:', criteria, 'in current view');
+        
+        // Re-run animations
+        animateOnScroll();
+    }
+
+    function filterProjectsByDepartment(departmentValue) {
+        const projectItems = document.querySelectorAll('.project-item');
+        const notFound = document.getElementById('notFound');
+        let foundResults = false;
+        
+        console.log('Filtering by department:', departmentValue);
+        
+        projectItems.forEach(item => {
+            // Get the course from the project item
+            const courseElement = item.querySelector('.links p:nth-child(2)'); // Second paragraph in links div
+            const course = courseElement ? courseElement.textContent.trim() : '';
+            
+            let shouldShow = false;
+            
+            if (departmentValue === 'all') {
+                shouldShow = true;
+            } else {
+                // Get course codes for the selected department
+                const courseCodes = getCourseCodesForDepartment(departmentValue);
+                
+                // Check if this project's course matches any course in the department
+                shouldShow = courseCodes.some(courseCode => course.includes(courseCode) || courseCode.includes(course));
+            }
+            
+            if (shouldShow) {
+                item.style.display = 'flex';
+                foundResults = true;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        // Show/hide "No Results Found" message
+        if (notFound) {
+            if (foundResults || departmentValue === 'all') {
+                notFound.style.display = 'none';
+            } else {
+                notFound.style.display = 'flex';
+            }
+        }
+        
+        // Re-run animations after filtering
+        animateOnScroll();
+    }
+
+    function getCourseCodesForDepartment(departmentValue) {
+        // Updated to match the new descriptive department values from PHP
+        const departmentMap = {
+            'beced': ['Bachelor of Early Childhood Education'],
+            'bsed': ['Bachelor of Secondary Education'],
+            'btvted': ['Bachelor of Technical-Vocational Teacher Education'],
+            'beed': ['Bachelor of Elementary Education'],
+            'bsned': ['Bachelor of Special Needs Education'],
+            'bsabe': ['Bachelor of Science in Agriculture and Biosystems Engineering'],
+            'bsit': ['Bachelor of Science in Information Technology']
+        };
+        
+        return departmentMap[departmentValue] || [];
+    }
+
+    function initializeDepartmentFilter() {
+        const departmentDropdown = document.getElementById('departmentFilterDropdown');
+        if (!departmentDropdown) {
+            console.error('Department filter dropdown not found');
+            return;
+        }
+
+        const selectedElement = departmentDropdown.querySelector('.selected');
+        const options = departmentDropdown.querySelectorAll('.options > div');
+        
+        if (!selectedElement || options.length === 0) {
+            console.error('Department dropdown elements not found');
+            return;
+        }
+        
+        // Toggle dropdown on click
+        selectedElement.addEventListener('click', function(e) {
+            e.stopPropagation();
+            departmentDropdown.classList.toggle('active');
+        });
+        
+        // Handle option selection
+        options.forEach(option => {
+            option.addEventListener('click', function() {
+                const value = this.getAttribute('data-value');
+                const text = this.textContent.split(' (')[0]; // Remove count from display
+                
+                // Update selected display
+                const selectedSpan = selectedElement.querySelector('span');
+                if (selectedSpan) {
+                    selectedSpan.textContent = text;
+                }
+                
+                // Close dropdown
+                departmentDropdown.classList.remove('active');
+                
+                // Filter theses based on department
+                filterProjectsByDepartment(value);
+            });
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!departmentDropdown.contains(e.target)) {
+                departmentDropdown.classList.remove('active');
+            }
         });
     }
 
-    const projectItems = document.querySelectorAll('.project-item');
-    projectItems.forEach(item => {
-        item.addEventListener('click', function() {
-            handleProjectItemClick(this);
+    function initializeFilterDropdowns() {
+        console.log('Initializing filter dropdowns...');
+        
+        // Department Filter Dropdown
+        initializeDepartmentFilter();
+        
+        // Sort Dropdown
+        const sortDropdown = document.getElementById('sortDropdown');
+        if (sortDropdown) {
+            const sortSelectedText = sortDropdown.querySelector('.selected span');
+            const sortOptions = sortDropdown.querySelectorAll('.options div');
+            
+            if (sortSelectedText && sortOptions.length > 0) {
+                // Toggle dropdown on click
+                sortDropdown.querySelector('.selected').addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    sortDropdown.classList.toggle('active');
+                });
+                
+                // Handle option selection
+                sortOptions.forEach(option => {
+                    option.addEventListener('click', function() {
+                        const value = this.getAttribute('data-value');
+                        const displayText = this.textContent;
+                        sortSelectedText.textContent = "Sort by: " + displayText;
+                        sortDropdown.classList.remove('active');
+                        
+                        // Sort projects based on selected criteria
+                        sortProjects(value);
+                    });
+                });
+            }
+        }
+        
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(e) {
+            const departmentFilterDropdown = document.getElementById('departmentFilterDropdown');
+            const sortDropdown = document.getElementById('sortDropdown');
+            
+            if (departmentFilterDropdown && !departmentFilterDropdown.contains(e.target)) {
+                departmentFilterDropdown.classList.remove('active');
+            }
+            if (sortDropdown && !sortDropdown.contains(e.target)) {
+                sortDropdown.classList.remove('active');
+            }
         });
-    });
+    }
+
+    
+    function animateOnScroll() {
+        const projectItems = document.querySelectorAll('.project-item');
+        
+        // Remove any existing animation classes but preserve display state
+        projectItems.forEach(item => {
+            // Only remove animation classes, don't touch display property
+            item.classList.remove('animate__animated', 'animate__fadeInUp', 'animate__fast');
+        });
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    // Only animate if the element is visible (not filtered out)
+                    if (window.getComputedStyle(entry.target).display !== 'none') {
+                        entry.target.classList.add('animate__animated', 'animate__fadeInUp', 'animate__fast');
+                        observer.unobserve(entry.target);
+                    }
+                }
+            });
+        }, {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        });
+        
+        // Observe all project items
+        projectItems.forEach(item => {
+            observer.observe(item);
+        });
+    }
 
     let uploadedFiles = [];
     let currentPdfDoc = null;
@@ -634,171 +994,58 @@ document.addEventListener('DOMContentLoaded', function() {
     // NEW: Filter dropdown functionality
     const sortDropdown = document.getElementById('sortDropdown');
 
-    // Add this function to initialize both dropdowns
-    function initializeFilterDropdowns() {
-        // Department Filter Dropdown
-        if (departmentFilterDropdown) {
-            const deptSelectedText = departmentFilterDropdown.querySelector('.selected span');
-            const deptOptions = departmentFilterDropdown.querySelectorAll('.options div');
-            
-            // Toggle dropdown on click
-            departmentFilterDropdown.querySelector('.selected').addEventListener('click', function(e) {
-                e.stopPropagation();
-                departmentFilterDropdown.classList.toggle('active');
-            });
-            
-            // Handle option selection
-            deptOptions.forEach(option => {
-                option.addEventListener('click', function() {
-                    const value = this.getAttribute('data-value');
-                    deptSelectedText.textContent = this.textContent;
-                    departmentFilterDropdown.classList.remove('active');
-                    
-                    // Filter projects based on selected department
-                    filterProjectsByDepartment(value);
-                });
-            });
-        }
-        
-        // Sort Dropdown
-        if (sortDropdown) {
-            const sortSelectedText = sortDropdown.querySelector('.selected span');
-            const sortOptions = sortDropdown.querySelectorAll('.options div');
-            
-            // Toggle dropdown on click
-            sortDropdown.querySelector('.selected').addEventListener('click', function(e) {
-                e.stopPropagation();
-                sortDropdown.classList.toggle('active');
-            });
-            
-            // Handle option selection
-            sortOptions.forEach(option => {
-                option.addEventListener('click', function() {
-                    const value = this.getAttribute('data-value');
-                    sortSelectedText.textContent = "Sort by: " + this.textContent;
-                    sortDropdown.classList.remove('active');
-                    
-                    // Sort projects based on selected criteria
-                    sortProjects(value);
-                });
-            });
-        }
-        
-        // Close dropdowns when clicking outside
-        document.addEventListener('click', function(e) {
-            if (departmentFilterDropdown && !departmentFilterDropdown.contains(e.target)) {
-                departmentFilterDropdown.classList.remove('active');
-            }
-            if (sortDropdown && !sortDropdown.contains(e.target)) {
-                sortDropdown.classList.remove('active');
-            }
-        });
-    }
+    
 
-    // Add these filter and sort functions
-    function filterProjectsByDepartment(department) {
-        const projectItems = document.querySelectorAll('.project-item');
-        const notFound = document.getElementById('notFound');
-        let foundResults = false;
-        
-        projectItems.forEach(item => {
-            // Add data-department attribute to your project items in HTML
-            // Example: <li class="project-item" data-department="cs" ...>
-            const itemDepartment = item.getAttribute('data-department');
-            
-            if (department === 'all' || itemDepartment === department) {
-                item.style.display = 'flex';
-                foundResults = true;
-            } else {
-                item.style.display = 'none';
-            }
-        });
-        
-        // Show/hide the "No Results Found" message
-        if (foundResults || department === 'all') {
-            notFound.style.display = 'none';
-        } else {
-            notFound.style.display = 'flex';
-        }
-        
-        // Re-run animations after filtering
-        animateOnScroll();
-    }
+    
 
-    initializeFilterDropdowns();
+    
+   
 
-    function sortProjects(criteria) {
-        const projectsContainer = document.querySelector('.projects');
-        const projectItems = Array.from(document.querySelectorAll('.project-item'));
-        
-        // Sort based on criteria
-        switch(criteria) {
-            case 'recent':
-                // Assuming you have a data-upload-date attribute with timestamp
-                projectItems.sort((a, b) => {
-                    return new Date(b.getAttribute('data-upload-date')) - new Date(a.getAttribute('data-upload-date'));
-                });
-                break;
-            case 'popular':
-                // Assuming you have a data-views attribute
-                projectItems.sort((a, b) => {
-                    return parseInt(b.getAttribute('data-views')) - parseInt(a.getAttribute('data-views'));
-                });
-                break;
-            case 'title':
-                projectItems.sort((a, b) => {
-                    const titleA = a.querySelector('h3').textContent.toLowerCase();
-                    const titleB = b.querySelector('h3').textContent.toLowerCase();
-                    return titleA.localeCompare(titleB);
-                });
-                break;
-            case 'department':
-                projectItems.sort((a, b) => {
-                    const deptA = a.getAttribute('data-department');
-                    const deptB = b.getAttribute('data-department');
-                    return deptA.localeCompare(deptB);
-                });
-                break;
-        }
-        
-        // Clear the container and append sorted items
-        projectsContainer.innerHTML = '';
-        projectItems.forEach(item => {
-            projectsContainer.appendChild(item);
-        });
-        
-        // Re-run animations after sorting
-        animateOnScroll();
-    }
+    
 
     // Search functionality
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            const projectItems = document.querySelectorAll('.project-item');
-            const notFound = document.getElementById('notFound');
-            
-            projectItems.forEach(item => {
-                const title = item.querySelector('h3').textContent.toLowerCase();
-                const description = item.querySelector('.desc-row p').textContent.toLowerCase();
-                const tags = item.getAttribute('data-tags').toLowerCase();
+    function initializeSearch() {
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase().trim();
+                const projectItems = document.querySelectorAll('.project-item');
+                const notFound = document.getElementById('notFound');
                 
-                if (title.includes(searchTerm) || description.includes(searchTerm) || tags.includes(searchTerm)) {
-                    item.style.display = 'flex';
+                let foundResults = false;
+                
+                projectItems.forEach(item => {
+                    const title = item.querySelector('h3').textContent.toLowerCase();
+                    
+                    // Only search by title/name now (removed description and tags search)
+                    if (title.includes(searchTerm)) {
+                        item.style.display = 'flex';
+                        foundResults = true;
+                    } else {
+                        item.style.display = 'none';
+                    }
+                    
+                    // Remove animation classes during search
+                    item.classList.remove('animate__animated', 'animate__fadeInUp', 'animate__fast');
+                });
+                
+                // Show/hide the "No Results Found" message based on whether we found any results
+                if (foundResults || searchTerm === '') {
                     notFound.style.display = 'none';
                 } else {
-                    item.style.display = 'none';
-                    notFound.style.display = "flex";
+                    notFound.style.display = 'flex';
                 }
+                
+                // Re-run animations after searching - with a small delay
+                setTimeout(() => {
+                    animateOnScroll();
+                }, 50);
             });
-            
-            // Re-run animations after searching
-            animateOnScroll();
-        });
+        }
     }
 
-    // Display toggle functionality
+// Display toggle functionality
+function initializeDisplayToggle() {
     const listViewIcon = document.getElementById('listViewIcon');
     const gridViewIcon = document.getElementById('gridViewIcon');
 
@@ -829,400 +1076,12 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.add('selected');
         });
     }
+}
 
-    // Animation on scroll functionality
-    const animateOnScroll = function() {
-        const projectItems = document.querySelectorAll('.project-item');
-        
-        // Remove any existing animation classes
-        projectItems.forEach(item => {
-            item.classList.remove('animate__animated', 'animate__fadeInUp', 'animate__fast');
-        });
-        
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('animate__animated', 'animate__fadeInUp', 'animate__fast');
-                    observer.unobserve(entry.target);
-                }
-            });
-        }, {
-            threshold: 0.1
-        });
-        
-        // Observe all project items
-        projectItems.forEach(item => {
-            // Only observe if the item is visible
-            if (window.getComputedStyle(item).display !== 'none') {
-                observer.observe(item);
-            }
-        });
-    };
     
     // Call the animation function
     animateOnScroll();
 
-    // Initialize with recent view visible
-    if (recentView && allView && recentButton) {
-        switchView(recentView, recentButton);
-    }
+    
 });
 
-//Thesis view abstract
-function handleProjectItemClick(projectItem) {
-    const title = projectItem.querySelector('h3').textContent;
-    const uploadedDate = projectItem.querySelector('.links p').textContent;
-    const authors = projectItem.querySelector('.desc-row p').textContent;
-    const fileUrl = projectItem.getAttribute('data-file-url'); // Get the file URL
-    
-    showProjectPreview(title, uploadedDate, authors, fileUrl);
-}
-
-function showProjectPreview(title, uploadedDate, authors, fileUrl) {
-    // Update modal content with project details
-    const modalTitle = document.querySelector('.preview-modal .modal-title');
-    modalTitle.textContent = title;
-    
-    // Create a container for project info
-    const projectInfo = document.createElement('div');
-    projectInfo.className = 'project-info-preview';
-    projectInfo.innerHTML = `
-        <div class="project-detail">
-            <strong>Uploaded:</strong> ${uploadedDate}
-        </div>
-        <div class="project-detail">
-            <strong>Authors:</strong> ${authors}
-        </div>
-    `;
-    
-    /* Insert project info before the document viewer
-    const documentViewer = document.getElementById('document-viewer');
-    documentViewer.parentNode.insertBefore(projectInfo, documentViewer); */
-    
-    // Set up the document preview
-    const fileExtension = fileUrl.split('.').pop().toLowerCase();
-    const fileUrlEncoded = encodeURIComponent(fileUrl);
-    
-    // Reset viewer states
-    const docViewerIframe = document.getElementById('doc-viewer-iframe');
-    const pdfViewer = document.getElementById('pdf-viewer');
-    const unsupportedFile = document.getElementById('unsupported-file');
-    
-    docViewerIframe.style.display = 'none';
-    pdfViewer.style.display = 'none';
-    unsupportedFile.style.display = 'none';
-    
-    // Set download link
-    const downloadLink = document.getElementById('download-link');
-    downloadLink.href = fileUrl;
-    downloadLink.download = title;
-    
-    if (fileExtension === 'pdf') {
-        // Use PDF.js for PDF preview
-        previewPdf(fileUrl);
-        pdfViewer.style.display = 'block';
-    } else {
-        // Show unsupported message for other file types
-        unsupportedFile.style.display = 'block';
-    }
-    
-    // Show preview modal
-    const previewModal = document.getElementById('previewModal');
-    previewModal.classList.add('active');
-    document.body.style.overflow = 'hidden';
-}
-
-// PDF.js functions for PDF preview
-function previewPdf(url) {
-    // Load PDF document
-    const pdfjsLib = window['pdfjs-dist/build/pdf'];
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-    
-    pdfjsLib.getDocument(url).promise.then(function(pdfDoc) {
-        const pdfViewer = document.getElementById('pdf-viewer');
-        let currentPageNum = 1;
-        
-        // Render the first page
-        renderPage(pdfDoc, currentPageNum);
-        
-        // Add PDF controls
-        addPdfControls(pdfDoc, currentPageNum);
-    }).catch(function(error) {
-        console.error('Error loading PDF:', error);
-        // Fallback to iframe if PDF.js fails
-        const docViewerIframe = document.getElementById('doc-viewer-iframe');
-        const pdfViewer = document.getElementById('pdf-viewer');
-        const previewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
-        docViewerIframe.src = previewUrl;
-        docViewerIframe.style.display = 'block';
-        pdfViewer.style.display = 'none';
-    });
-}
-
-function renderPage(pdfDoc, pageNum) {
-    const pdfViewer = document.getElementById('pdf-viewer');
-    
-    pdfDoc.getPage(pageNum).then(function(page) {
-        const scale = 1.5;
-        const viewport = page.getViewport({ scale });
-        
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-        
-        // Clear previous content
-        pdfViewer.innerHTML = '';
-        pdfViewer.appendChild(canvas);
-        
-        const renderContext = {
-            canvasContext: ctx,
-            viewport: viewport
-        };
-        
-        const renderTask = page.render(renderContext);
-        
-        renderTask.promise.then(function() {
-            // Update page info
-            document.getElementById('pdf-page-num').textContent = pageNum;
-        });
-    });
-}
-
-function addPdfControls(pdfDoc, currentPageNum) {
-    const pdfViewer = document.getElementById('pdf-viewer');
-    const controlsHtml = `
-        <div class="pdf-controls">
-            <button id="prev-page" ${currentPageNum <= 1 ? 'disabled' : ''}>Previous</button>
-            <span class="pdf-page-info">Page <span id="pdf-page-num">${currentPageNum}</span> of ${pdfDoc.numPages}</span>
-            <button id="next-page" ${currentPageNum >= pdfDoc.numPages ? 'disabled' : ''}>Next</button>
-        </div>
-    `;
-    
-    pdfViewer.insertAdjacentHTML('afterbegin', controlsHtml);
-    
-    document.getElementById('prev-page').addEventListener('click', function() {
-        if (currentPageNum <= 1) return;
-        currentPageNum--;
-        renderPage(pdfDoc, currentPageNum);
-        updatePdfControls(pdfDoc, currentPageNum);
-    });
-    
-    document.getElementById('next-page').addEventListener('click', function() {
-        if (currentPageNum >= pdfDoc.numPages) return;
-        currentPageNum++;
-        renderPage(pdfDoc, currentPageNum);
-        updatePdfControls(pdfDoc, currentPageNum);
-    });
-}
-
-function updatePdfControls(pdfDoc, currentPageNum) {
-    document.getElementById('prev-page').disabled = currentPageNum <= 1;
-    document.getElementById('next-page').disabled = currentPageNum >= pdfDoc.numPages;
-    document.getElementById('pdf-page-num').textContent = currentPageNum;
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Navigation elements
-    const dashboardSidebarIcon = document.getElementById('dashboardSidebarIcon');
-    const profileSidebarIcon = document.getElementById('profileSidebarIcon');
-    const dashboardContainer = document.getElementById('dashboardContainer');
-    const profileContainer = document.getElementById('profileContainer');
-    const projectsContainer = document.getElementById('projectsContainer');
-
-    // Initialize view
-    showDashboard();
-
-    // Navigation event listeners
-    dashboardSidebarIcon.addEventListener('click', function() {
-        showDashboard();
-        setActiveNav(this);
-    });
-
-    profileSidebarIcon.addEventListener('click', function() {
-        showProfile();
-        setActiveNav(this);
-    });
-
-    // Quick action buttons
-    const uploadThesisBtn = document.getElementById('uploadThesisBtn');
-    const browseCatalogBtn = document.getElementById('browseCatalogBtn');
-    const myThesisBtn = document.getElementById('myThesisBtn');
-    const researchResourcesBtn = document.getElementById('researchResourcesBtn');
-
-    if (uploadThesisBtn) {
-        uploadThesisBtn.addEventListener('click', function() {
-            // Handle upload thesis action
-            Swal.fire({
-                title: 'Upload Thesis',
-                text: 'Thesis upload functionality will be implemented here.',
-                icon: 'info',
-                confirmButtonText: 'OK'
-            });
-        });
-    }
-
-    if (browseCatalogBtn) {
-        browseCatalogBtn.addEventListener('click', function() {
-            showProjects();
-            setActiveNav(dashboardSidebarIcon);
-        });
-    }
-
-    if (myThesisBtn) {
-        myThesisBtn.addEventListener('click', function() {
-            // Handle my thesis action
-            Swal.fire({
-                title: 'My Thesis',
-                text: 'Viewing your thesis submissions.',
-                icon: 'info',
-                confirmButtonText: 'OK'
-            });
-        });
-    }
-
-    if (researchResourcesBtn) {
-        researchResourcesBtn.addEventListener('click', function() {
-            // Handle research resources action
-            Swal.fire({
-                title: 'Research Resources',
-                text: 'Accessing research guidelines and resources.',
-                icon: 'info',
-                confirmButtonText: 'OK'
-            });
-        });
-    }
-
-    // Carousel functionality
-    initCarousel();
-
-    // Search functionality
-    const dashboardSearchBtn = document.getElementById('dashboard-search-btn');
-    const dashboardSearchInput = document.getElementById('dashboard-search-input');
-
-    if (dashboardSearchBtn && dashboardSearchInput) {
-        dashboardSearchBtn.addEventListener('click', handleDashboardSearch);
-        dashboardSearchInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                handleDashboardSearch();
-            }
-        });
-    }
-
-    function handleDashboardSearch() {
-        const searchTerm = dashboardSearchInput.value.trim();
-        if (searchTerm) {
-            showProjects();
-            setActiveNav(dashboardSidebarIcon);
-            // You can add search filtering logic here
-            console.log('Searching for:', searchTerm);
-        }
-    }
-
-    // View management functions
-    function showDashboard() {
-        dashboardContainer.style.display = 'block';
-        profileContainer.style.display = 'none';
-        projectsContainer.style.display = 'none';
-    }
-
-    function showProfile() {
-        dashboardContainer.style.display = 'none';
-        profileContainer.style.display = 'block';
-        projectsContainer.style.display = 'none';
-    }
-
-    function showProjects() {
-        dashboardContainer.style.display = 'none';
-        profileContainer.style.display = 'none';
-        projectsContainer.style.display = 'block';
-    }
-
-    function setActiveNav(activeElement) {
-        // Remove selected class from all nav items
-        const navItems = document.querySelectorAll('.menu-options li');
-        navItems.forEach(item => item.classList.remove('selected'));
-        
-        // Add selected class to active element
-        activeElement.classList.add('selected');
-    }
-
-    // Carousel initialization
-    function initCarousel() {
-        const carousel = document.querySelector('.announcements-carousel');
-        if (!carousel) return;
-
-        const container = carousel.querySelector('.carousel-container');
-        const cards = carousel.querySelector('.announcement-cards');
-        const prevBtn = carousel.querySelector('.carousel-control.prev');
-        const nextBtn = carousel.querySelector('.carousel-control.next');
-        const indicatorsContainer = carousel.querySelector('.carousel-indicators');
-
-        if (!container || !cards || !prevBtn || !nextBtn) return;
-
-        const cardCount = cards.children.length;
-        let currentIndex = 0;
-
-        // Create indicators
-        if (indicatorsContainer) {
-            for (let i = 0; i < cardCount; i++) {
-                const indicator = document.createElement('div');
-                indicator.className = 'indicator' + (i === 0 ? ' active' : '');
-                indicator.addEventListener('click', () => goToSlide(i));
-                indicatorsContainer.appendChild(indicator);
-            }
-        }
-
-        function updateCarousel() {
-            const cardWidth = cards.children[0].offsetWidth + 24; // width + gap
-            cards.style.transform = `translateX(-${currentIndex * cardWidth}px)`;
-            
-            // Update indicators
-            if (indicatorsContainer) {
-                const indicators = indicatorsContainer.querySelectorAll('.indicator');
-                indicators.forEach((indicator, index) => {
-                    indicator.classList.toggle('active', index === currentIndex);
-                });
-            }
-        }
-
-        function goToSlide(index) {
-            currentIndex = index;
-            updateCarousel();
-        }
-
-        function nextSlide() {
-            currentIndex = (currentIndex + 1) % cardCount;
-            updateCarousel();
-        }
-
-        function prevSlide() {
-            currentIndex = (currentIndex - 1 + cardCount) % cardCount;
-            updateCarousel();
-        }
-
-        prevBtn.addEventListener('click', prevSlide);
-        nextBtn.addEventListener('click', nextSlide);
-
-        // Auto-advance carousel
-        setInterval(nextSlide, 5000);
-
-        // Initialize carousel
-        updateCarousel();
-    }
-
-    // Thesis card click handlers
-    const thesisCards = document.querySelectorAll('.thesis-card');
-    thesisCards.forEach(card => {
-        card.addEventListener('click', function() {
-            // Handle thesis card click - you can implement preview or details view
-            const title = this.querySelector('h3').textContent;
-            Swal.fire({
-                title: title,
-                text: 'Thesis details and preview functionality.',
-                icon: 'info',
-                confirmButtonText: 'View Details'
-            });
-        });
-    });
-});

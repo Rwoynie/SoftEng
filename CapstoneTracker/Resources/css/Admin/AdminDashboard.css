@@ -529,6 +529,7 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 25px;
+    padding: 0.5rem;
 }
 
 
@@ -588,7 +589,8 @@ body {
 }
 
 .project-item {
-    margin-top: 0.5rem;
+    
+    
     padding: 20px;
     box-sizing: border-box;
     display: flex;
@@ -890,12 +892,15 @@ body {
     align-items: center;
     text-align: center;
     width: 100%;
-    padding: 2rem;
+    padding: 40px 20px;
+    color: var(--color-lite-grey);
     margin-top: 10vw;
     font-size: 1.2rem;
     color: #666;
     grid-column: 1 / -1; 
 }
+
+
 
 /* Filter Dropdown Styles */
 .select {
@@ -2840,13 +2845,7 @@ body {
     width: 100%;
 }
 
-/* Not found message */
-.notFound {
-    text-align: center;
-    padding: 40px 20px;
-    color: var(--color-lite-grey);
-    display: none;
-}
+
 
 /* checkBoxes */
 

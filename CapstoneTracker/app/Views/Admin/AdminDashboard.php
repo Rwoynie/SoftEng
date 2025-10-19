@@ -140,13 +140,15 @@ class DepartmentManager {
 
 $departmentManager = new DepartmentManager($db);
 
-$departmentManager->addDepartment('cs', 'BECED | AECES', ['Bachelor of Early Childhood Education']);
-$departmentManager->addDepartment('ee', 'BSED | AFSET', ['Bachelor of Secondary Education']);
-$departmentManager->addDepartment('me', 'BTVTED | FTVETS', ['Bachelor of Technical-Vocational Teacher Education']);
-$departmentManager->addDepartment('ee', 'BEED | OFEE', ['Bachelor of Elementary Education']);
-$departmentManager->addDepartment('me', 'BSNED | OFSET', ['Bachelor of Special Needs Education']);
-$departmentManager->addDepartment('ce', 'BSABE | SABES', ['Bachelor of Science in Agriculture and Biosystems Engineering']);
-$departmentManager->addDepartment('it', 'BSIT | SITS', ['Bachelor of Science in Information Technology']);
+$departmentManager->addDepartment('beced', 'BECED | AECES', ['Bachelor of Early Childhood Education']);
+$departmentManager->addDepartment('bsed', 'BSED | AFSET', ['Bachelor of Secondary Education']);
+$departmentManager->addDepartment('btvted', 'BTVTED | FTVETS', ['Bachelor of Technical-Vocational Teacher Education']);
+$departmentManager->addDepartment('beed', 'BEED | OFEE', ['Bachelor of Elementary Education']);
+$departmentManager->addDepartment('bsned', 'BSNED | OFSET', ['Bachelor of Special Needs Education']);
+$departmentManager->addDepartment('bsabe', 'BSABE | SABES', [
+    'Bachelor of Science in Agricultural and Biosystems Engineering', 'Bachelor of Science in Agriculture and Biosystems Engineering'
+]);
+$departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science in Information Technology']);
 
 // Start session
 if (session_status() === PHP_SESSION_NONE) {
