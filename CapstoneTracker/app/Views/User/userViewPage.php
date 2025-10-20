@@ -1,4 +1,22 @@
 <?php
+
+// Start session at the very beginning
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+if (!isset($_SESSION['user_id'])) {
+    // Redirect to login page or show error
+    header('Location: indexlogin.php');
+    exit();
+}
+
+// Generate CSRF token if not exists
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+
 error_reporting(E_ALL);
 ini_set('display_errors', 1); // Changed to 1 to see errors during development
 
@@ -135,13 +153,8 @@ $departmentManager->addDepartment('bsabe', 'BSABE | SABES', [
 ]);
 $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science in Information Technology']);
 // Start session
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
 
-if (!isset($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
+
 
 ?>
 <!DOCTYPE html>
@@ -161,6 +174,7 @@ if (!isset($_SESSION['csrf_token'])) {
     
     <link rel="stylesheet" href="../../../Resources/css/User/userViewPage.css">
     <script type="text/javascript" src="../../../resources/js/User/userViewPage.js"></script>
+    <script type="text/javascript" src="../../../resources/js/User/Profile.js"></script>
     
 </head>
 <body>
@@ -200,22 +214,9 @@ if (!isset($_SESSION['csrf_token'])) {
                         <div class="online-status"></div>
                     </div>
                     <div class="profile-info">
-                        <h2 class="profile-name">John Doe</h2>
-                        <p class="profile-title">BSIT 2IT</p>
-                        <div class="profile-stats">
-                            <div class="stat-item">
-                                <div class="stat-value">15</div>
-                                <div class="stat-label">Thesis</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-value">10</div>
-                                <div class="stat-label">Approved</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-value">5</div>
-                                <div class="stat-label">Pending</div>
-                            </div>
-                        </div>
+                        <h2 data-value="FullName" class="profile-name"></h2>
+                        <p data-value="course" class="profile-title"></p>
+                        
                     </div>
                 </div>
 
@@ -228,23 +229,17 @@ if (!isset($_SESSION['csrf_token'])) {
                         <div class="info-grid">
                             <div class="info-item">
                                 <span class="info-label">Full Name:</span>
-                                <span class="info-value">John Doe</span>
+                                <span data-value="FullName" class="info-value"></span>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">Email:</span>
-                                <span class="info-value">johndoe@example.com</span>
+                                <span data-value="email" class="info-value"></span>
                             </div>
+                            
+                            
                             <div class="info-item">
-                                <span class="info-label">Phone:</span>
-                                <span class="info-value">09091452546</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Location:</span>
-                                <span class="info-value">Tagum City</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Department:</span>
-                                <span class="info-value">BSIT</span>
+                                <span class="info-label">Course:</span>
+                                <span data-value="course" class="info-value"></span>
                             </div>
                         </div>
                     </div>
@@ -257,19 +252,19 @@ if (!isset($_SESSION['csrf_token'])) {
                         <div class="info-grid">
                             <div class="info-item">
                                 <span class="info-label">Member Since:</span>
-                                <span class="info-value">January 15, 2022</span>
+                                <span data-value="member" class="info-value"></span>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">Last Login:</span>
-                                <span class="info-value">Today, 10:30 AM</span>
+                                <span data-value="lastlogin" class="info-value"></span>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">Status:</span>
-                                <span class="info-value status-active">Active</span>
+                                <span data-value="acc_status" class="info-value status-active"></span>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">Role:</span>
-                                <span class="info-value">Student</span>
+                                <span data-value="role" class="info-value">Student</span>
                             </div>
                         </div>
                         
