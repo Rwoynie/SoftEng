@@ -277,6 +277,17 @@
             END;",
 
             // TRIGGER: Log announcement activities
+            "CREATE TRIGGER audit_announcement_creation
+            AFTER INSERT ON ANNOUNCEMENTS
+            FOR EACH ROW
+            BEGIN
+                INSERT INTO AUDIT_LOGS (table_name, record_id, action, new_values, user_id, ip_address)
+                VALUES ('ANNOUNCEMENTS', NEW.id, 'INSERT', 
+                    JSON_OBJECT('title', NEW.title, 'type', NEW.type, 'status', NEW.status, 'is_pinned', NEW.is_pinned),
+                    NEW.created_by, @current_user_ip);
+            END;",
+
+
             "CREATE TRIGGER audit_announcement_changes
             AFTER INSERT ON ANNOUNCEMENTS
             FOR EACH ROW
@@ -291,12 +302,12 @@
             AFTER UPDATE ON ANNOUNCEMENTS
             FOR EACH ROW
             BEGIN
-                IF OLD.title != NEW.title OR OLD.status != NEW.status OR OLD.is_pinned != NEW.is_pinned THEN
-                    INSERT INTO AUDIT_LOGS (table_name, record_id, action, old_values, new_values, user_id)
+                IF OLD.title != NEW.title OR OLD.status != NEW.status OR OLD.is_pinned != NEW.is_pinned OR OLD.type != NEW.type THEN
+                    INSERT INTO AUDIT_LOGS (table_name, record_id, action, old_values, new_values, user_id, ip_address)
                     VALUES ('ANNOUNCEMENTS', NEW.id, 'UPDATE', 
-                           JSON_OBJECT('title', OLD.title, 'status', OLD.status, 'is_pinned', OLD.is_pinned),
-                           JSON_OBJECT('title', NEW.title, 'status', NEW.status, 'is_pinned', NEW.is_pinned),
-                           @current_user_id);
+                        JSON_OBJECT('title', OLD.title, 'status', OLD.status, 'is_pinned', OLD.is_pinned, 'type', OLD.type),
+                        JSON_OBJECT('title', NEW.title, 'status', NEW.status, 'is_pinned', NEW.is_pinned, 'type', NEW.type),
+                        @current_user_id, @current_user_ip);
                 END IF;
             END;",
 
@@ -304,10 +315,10 @@
             BEFORE DELETE ON ANNOUNCEMENTS
             FOR EACH ROW
             BEGIN
-                INSERT INTO AUDIT_LOGS (table_name, record_id, action, old_values, user_id)
+                INSERT INTO AUDIT_LOGS (table_name, record_id, action, old_values, user_id, ip_address)
                 VALUES ('ANNOUNCEMENTS', OLD.id, 'DELETE', 
-                       JSON_OBJECT('title', OLD.title, 'type', OLD.type, 'created_by', OLD.created_by),
-                       @current_user_id);
+                    JSON_OBJECT('title', OLD.title, 'type', OLD.type, 'created_by', OLD.created_by),
+                    @current_user_id, @current_user_ip);
             END;",
 
             // TRIGGER: Prevent last admin deletion

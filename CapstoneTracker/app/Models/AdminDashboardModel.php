@@ -689,54 +689,60 @@ public function updateAnnouncement($id, $data) {
     /**
      * Get audit logs
      */
-    public function getAuditLogs($limit = 100, $tableName = null, $action = null) {
-        try {
-            error_log("Model: Getting audit logs - limit: $limit, table: $tableName, action: $action");
-            
-            $sql = "
-                SELECT 
-                    al.*,
-                    COALESCE(ui.First_Name, 'System') as First_Name,
-                    COALESCE(ui.Last_Name, 'User') as Last_Name,
-                    COALESCE(ui.User_Role, 'system') as User_Role,
-                    COALESCE(ui.Email, 'system@system') as Email
-                FROM AUDIT_LOGS al
-                LEFT JOIN USER_INFORMATION ui ON al.user_id = ui.ID
-                WHERE 1=1
-            ";
-            
-            $params = [];
-            
-            if ($tableName) {
-                $sql .= " AND al.table_name = :table_name";
-                $params[':table_name'] = $tableName;
-            }
-            
-            if ($action) {
-                $sql .= " AND al.action = :action";
-                $params[':action'] = $action;
-            }
-            
-            $sql .= " ORDER BY al.changed_at DESC LIMIT :limit";
-            
-            error_log("Executing SQL: " . $sql);
-            
-            $this->db->query($sql);
-            
-            foreach ($params as $key => $value) {
-                $this->db->bind($key, $value);
-            }
-            $this->db->bind(':limit', $limit);
-            
-            $result = $this->db->resultSet();
-            error_log("Model: Found " . count($result) . " audit logs");
-            
-            return $result;
-        } catch (Exception $e) {
-            error_log("Error getting audit logs: " . $e->getMessage());
-            return [];
+
+public function getAuditLogs($limit, $table = null) {
+    try {
+        $sql = "SELECT 
+                    a.*, 
+                    u.First_Name, 
+                    u.Last_Name, 
+                    u.User_Role
+                FROM AUDIT_LOGS a
+                LEFT JOIN USER_INFORMATION u ON a.user_id = u.ID"; // Use LEFT JOIN for user info
+        
+        $params = [];
+
+        // This conditional logic handles the optional $table parameter correctly.
+        if (!empty($table)) {
+            $sql .= " WHERE a.changed_table = :table";
+            $params[':table'] = $table;
         }
+
+        $sql .= " ORDER BY a.changed_at DESC LIMIT :limit";
+        
+        $this->db->query($sql);
+        
+        // Bind parameters
+        // Cast limit to integer to prevent SQL injection or type errors with LIMIT clause
+        $this->db->bind(':limit', (int)$limit); 
+        if (!empty($table)) {
+            $this->db->bind(':table', $table);
+        }
+        
+        return $this->db->resultSet();
+    } catch (Exception $e) {
+        error_log("Error getting audit logs: " . $e->getMessage());
+        return [];
     }
+}
+
+public function getLoginAttempts($limit) {
+    try {
+        // This query is based on the successful debug query found in the controller
+        $this->db->query("
+            SELECT * FROM LOGIN_ATTEMPTS 
+            ORDER BY attempt_time DESC 
+            LIMIT :limit
+        ");
+        $this->db->bind(':limit', (int)$limit);
+        return $this->db->resultSet();
+    } catch (Exception $e) {
+        error_log("Error getting login attempts: " . $e->getMessage());
+        return [];
+    }
+}
+
+
 
     /**
      * Get user notifications
@@ -807,4 +813,25 @@ public function updateAnnouncement($id, $data) {
         }
     }
 }
+
+if (isset($_GET['action'])) {
+    $action = $_GET['action'];
+    $model = new AdminDashboardModel();
+
+    if ($action === 'getAuditLogs') {
+        $table = $_GET['table'] ?? null;
+        $limit = $_GET['limit'] ?? 50;
+        $logs = $model->getAuditLogs($limit, $table);
+        echo json_encode(['success' => true, 'logs' => $logs]);
+        exit;
+    }
+
+    if ($action === 'getLoginAttempts') {
+        $limit = $_GET['limit'] ?? 50;
+        $attempts = $model->getLoginAttempts($limit);
+        echo json_encode(['success' => true, 'attempts' => $attempts]);
+        exit;
+    }
+}
+
 ?>

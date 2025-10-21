@@ -523,6 +523,53 @@ body {
     background: #a8a8a8;
 }
 
+/* Additional styles for enhanced logs */
+.log-timestamp {
+    font-weight: 600;
+    color: var(--color-dark-grey);
+    margin-bottom: 4px;
+}
+
+.log-ip {
+    color: var(--color-lite-grey);
+    font-size: 0.8rem;
+}
+
+.log-user {
+    font-weight: 500;
+    color: var(--color-dark-grey);
+}
+
+.log-details {
+    line-height: 1.4;
+    color: var(--color-dark-grey);
+}
+
+/* Download button styling */
+.log-download-btn {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(186, 30, 31, 0.3);
+}
+
+.log-download-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(186, 30, 31, 0.4);
+}
+
+
 /* Projects Grid */
 .projects {
     list-style: none;
@@ -2298,6 +2345,15 @@ body {
 }
 
 /* ===== MODERN SYSTEM LOGS DESIGN ===== */
+
+#systemLogs-container {
+    padding: 20px;
+    background-color: var(--color-white);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+
 #logs-container {
     
     background: var(--color-white);
@@ -2312,10 +2368,12 @@ body {
     display: none;
     height: 100%;
     flex-direction: column;
+    padding: 20px;
 }
 
 .log-content.active {
     display: flex;
+    overflow-y: auto;
 }
 
 .log-content .content-header {
@@ -2366,45 +2424,53 @@ body {
 }
 
 .logs-table-container {
-    flex: 1;
-    height: 80%;
-    overflow-y: auto;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    background: var(--color-white);
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    margin-top: 15px;
 }
 
 .logs-table {
     width: 100%;
-    
-    border-collapse: separate;
-    border-spacing: 0;
+    border-collapse: collapse;
+    background: var(--color-white);
 }
 
 .logs-table thead {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
     position: sticky;
     top: 0;
     z-index: 10;
 }
 
-.logs-table th {
-    background: #f1f1f1;
-    padding: 15px 20px;
-    text-align: left;
-    font-weight: 600;
+
+
+.logs-table td {
+    padding: 14px 20px;
+    border-bottom: 1px solid #f0f0f0;
     color: var(--color-dark-grey);
-    border-bottom: 2px solid #dee2e6;
-    font-size: 0.9rem;
+    font-size: 0.92rem;
+    transition: all 0.2s ease;
+}
+
+.logs-table th, .logs-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #e9ecef; 
+    font-size: var(--size-medium);
+}
+
+.logs-table th {
+    background-color: #f8f9fa; 
+    color: var(--color-dark-grey);
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
-.logs-table td {
-    padding: 16px 20px;
-    border-bottom: 1px solid #f1f1f1;
-    color: var(--color-dark-grey);
-    font-size: 0.95rem;
-    transition: background-color 0.2s ease;
-}
+
+
 
 .logs-table tr:last-child td {
     border-bottom: none;
@@ -2412,6 +2478,7 @@ body {
 
 .logs-table tr:hover td {
     background-color: #f8f9fa;
+    transform: translateX(2px);
 }
 
 .logs-table tr:nth-child(even) {
@@ -2421,6 +2488,7 @@ body {
 .logs-table tr:nth-child(even):hover td {
     background-color: #f1f3f5;
 }
+
 
 /* Log type indicators */
 .logs-table tr[data-log-type="login"] td:first-child {
@@ -2439,34 +2507,89 @@ body {
     border-left: 4px solid #9c27b0;
 }
 
+
+
+/* INSERT/CREATE - Good/Success (Green) */
+.logs-table .log-action-INSERT, 
+.logs-table .log-action-CREATE,
+.logs-table .log-status-SUCCESS {
+    color: var(--color-good); 
+    font-weight: 700;
+}
+
+/* UPDATE/SELECT - Informational/Change (Blue) */
+.logs-table .log-action-UPDATE,
+.logs-table .log-action-SELECT {
+    color: var(--color-blue); 
+    font-weight: 600;
+}
+
+/* DELETE/FAIL - Danger/Warning (Red/Orange) */
+.logs-table .log-action-DELETE,
+.logs-table .log-status-FAILURE {
+    color: var(--color-danger); 
+    font-weight: 700;
+}
+
+/* Highlight the row for better readability on hover */
+.logs-table tbody tr:hover {
+    background-color: #f5f5f5;
+    transition: background-color 0.2s ease;
+}
+
+/* Style for the log entry text */
+.logs-table .log-description {
+    font-family: monospace; /* Use monospaced font for log details */
+    color: var(--color-dark-grey);
+}
+
 /* Status badges for actions */
 .log-action {
     display: inline-block;
-    padding: 5px 12px;
-    border-radius: 12px;
+    padding: 6px 14px;
+    border-radius: 20px;
     font-size: 0.8rem;
-    font-weight: 600;
+    font-weight: 700;
     text-align: center;
+    min-width: 100px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .action-login {
-    background-color: rgba(76, 175, 80, 0.15);
-    color: #2e7d32;
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
 }
 
 .action-upload {
-    background-color: rgba(33, 150, 243, 0.15);
-    color: #1565c0;
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+    color: white;
 }
 
 .action-management {
-    background-color: rgba(255, 152, 0, 0.15);
-    color: #ef6c00;
+    background: linear-gradient(135deg, #FF9800, #F57C00);
+    color: white;
 }
 
 .action-system {
-    background-color: rgba(156, 39, 176, 0.15);
-    color: #7b1fa2;
+    background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+    color: white;
+}
+
+/* Log type indicators with colored left border */
+.logs-table tr[data-log-type="login"] td:first-child {
+    border-left: 4px solid #4CAF50;
+}
+
+.logs-table tr[data-log-type="upload"] td:first-child {
+    border-left: 4px solid #2196F3;
+}
+
+.logs-table tr[data-log-type="management"] td:first-child {
+    border-left: 4px solid #FF9800;
+}
+
+.logs-table tr[data-log-type="system"] td:first-child {
+    border-left: 4px solid #9C27B0;
 }
 
 /* Log filter bar */
@@ -2475,62 +2598,444 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
-    padding-bottom: 10px;
-    background: #f8f9fa;
-    border-radius: 10px;
+    padding: 15px 20px;
+    background: var(--color-white);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    flex-wrap: wrap;
+    gap: 15px;
 }
-
 
 .log-filter-options {
     display: flex;
-    gap: 10px;
+    gap: 8px;
 }
 
 .log-filter-btn {
-    font-family: "Quicksand";
-    padding: 8px 15px;
+    padding: 10px 20px;
     background: white;
-    border: 1px solid #ddd;
-    border-radius: 6px;
+    border: 2px solid #e1e5e9;
+    border-radius: 25px;
     font-size: 0.85rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+    color: var(--color-dark-grey);
 }
 
 
-.log-filter-btn.active {
+.log-filter-btn.active,
+.log-filter-btn:hover {
     background: var(--primary-color);
     color: white;
     border-color: var(--primary-color);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(186, 30, 31, 0.3);
 }
 
-.log-filter-btn:hover {
+/* Enhanced search box */
+.log-search-box {
+    display: flex;
+    align-items: center;
     background: white;
-    color: var(--primary-color);
-    border-color: var(--primary-color);
+    border-radius: 25px;
+    padding: 8px 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border: 2px solid #e1e5e9;
+    transition: all 0.3s ease;
 }
 
-/* Empty state for logs */
-.logs-empty-state {
+.log-search-box:focus-within {
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 12px rgba(186, 30, 31, 0.15);
+}
+
+.log-search-box input {
+    border: none;
+    outline: none;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    width: 250px;
+    background: transparent;
+}
+/* Empty and loading states */
+.logs-empty-state,
+.loading-state,
+.error-state {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 40px 20px;
+    padding: 60px 20px;
     text-align: center;
     color: var(--color-lite-grey);
 }
 
-.logs-empty-state i {
+.logs-empty-state i,
+.loading-state i,
+.error-state i {
     font-size: 3rem;
     margin-bottom: 15px;
-    opacity: 0.5;
+    opacity: 0.7;
 }
 
-.logs-empty-state h3 {
-    font-size: 1.2rem;
-    margin-bottom: 10px;
+.loading-state i {
+    color: var(--primary-color);
+}
+
+.error-state i {
+    color: var(--color-danger);
+}
+
+.btn-retry {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: 600;
+    margin-top: 15px;
+    transition: all 0.3s ease;
+}
+
+.btn-retry:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(186, 30, 31, 0.4);
+}
+
+/* ===== SYSTEM LOGS COLOR STYLES ===== */
+
+/* Log Action Color Classes */
+.log-action.action-login-success {
+    color: var(--color-good) !important;
+    font-weight: 700;
+    background: rgba(76, 175, 80, 0.1);
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.log-action.action-login-failed {
+    color: var(--color-danger) !important;
+    font-weight: 700;
+    background: rgba(211, 47, 47, 0.1);
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(211, 47, 47, 0.3);
+}
+
+.log-action.action-user-create {
+    color: var(--color-green) !important;
+    font-weight: 700;
+    background: rgba(23, 201, 147, 0.1);
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(23, 201, 147, 0.3);
+}
+
+.log-action.action-user-update {
+    color: var(--color-blue) !important;
+    font-weight: 700;
+    background: rgba(0, 104, 255, 0.1);
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(0, 104, 255, 0.3);
+}
+
+.log-action.action-user-delete {
+    color: var(--color-danger) !important;
+    font-weight: 700;
+    background: rgba(211, 47, 47, 0.1);
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(211, 47, 47, 0.3);
+}
+
+.log-action.action-announcement-create {
+    color: var(--color-green) !important;
+    font-weight: 700;
+    background: rgba(23, 201, 147, 0.1);
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(23, 201, 147, 0.3);
+}
+
+.log-action.action-announcement-update {
+    color: var(--color-blue) !important;
+    font-weight: 700;
+    background: rgba(0, 104, 255, 0.1);
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(0, 104, 255, 0.3);
+}
+
+.log-action.action-announcement-delete {
+    color: var(--color-danger) !important;
+    font-weight: 700;
+    background: rgba(211, 47, 47, 0.1);
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(211, 47, 47, 0.3);
+}
+
+.log-action.action-thesis-upload {
+    color: var(--color-brown) !important;
+    font-weight: 700;
+    background: rgba(177, 126, 76, 0.1);
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(177, 126, 76, 0.3);
+}
+
+.log-action.action-system {
+    color: var(--color-dark-grey) !important;
+    font-weight: 700;
+    background: rgba(86, 93, 104, 0.1);
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(86, 93, 104, 0.3);
+}
+
+/* Log Type Border Colors */
+.logs-table tr[data-log-type="login"] td:first-child {
+    border-left: 4px solid var(--color-green);
+}
+
+
+.logs-table tr[data-log-type="announcement"] td:first-child {
+    border-left: 4px solid #ffae5d;
+}
+
+.logs-table tr[data-log-type="thesis"] td:first-child {
+    border-left: 4px solid #9c27b0;
+}
+
+.logs-table tr[data-log-type="user_management"] td:first-child {
+    border-left: 4px solid #6886ff;
+}
+
+.logs-table tr[data-log-type="system"] td:first-child {
+    border-left: 4px solid var(--color-dark-grey);
+}
+
+/* Enhanced Table Row Hover Effects */
+.logs-table tr:hover td {
+    background-color: #f8f9fa;
+    transform: translateX(2px);
+    transition: all 0.3s ease;
+}
+
+/* Status Indicators for Login Attempts */
+.logs-table tr[data-log-status="success"] .log-action {
+    color: var(--color-green) !important;
+}
+
+.logs-table tr[data-log-status="failed"] .log-action {
+    color: var(--color-danger) !important;
+}
+
+/* User Role Colors in Logs */
+.log-user[data-role="superAdmin"] {
+    color: var(--color-danger) !important;
+    font-weight: 700;
+}
+
+.log-user[data-role="admin"] {
+    color: var(--color-blue) !important;
+    font-weight: 600;
+}
+
+.log-user[data-role="faculty"] {
+    color: var(--color-brown) !important;
+    font-weight: 600;
+}
+
+.log-user[data-role="student"] {
+    color: var(--color-green) !important;
+}
+
+/* Action Type Icons (Optional) */
+.log-action::before {
+    margin-right: 6px;
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+}
+
+.log-action.action-login-success::before {
+    content: "✓ ";
+}
+
+.log-action.action-login-failed::before {
+    content: "✗ ";
+}
+
+.log-action.action-user-create::before {
+    content: "👤 ";
+}
+
+.log-action.action-announcement-create::before {
+    content: "📢 ";
+}
+
+.log-action.action-thesis-upload::before {
+    content: "📄 ";
+}
+
+/* Filter Button Active States */
+.log-filter-btn.active[data-filter="login"] {
+  
+    color: white !important;
+}
+
+.log-filter-btn.active[data-filter="user"] {
+
+    color: white !important;
+}
+
+.log-filter-btn.active[data-filter="announcement"] {
+ 
+    color: white !important;
+}
+
+.log-filter-btn.active[data-filter="thesis"] {
+ 
+    color: white !important;
+}
+
+.log-filter-btn.active[data-filter="system"] {
+
+    color: white !important;
+}
+
+/* Timestamp Styling */
+.log-timestamp {
+    font-weight: 600;
     color: var(--color-dark-grey);
+    margin-bottom: 4px;
+    font-size: 0.9rem;
+}
+
+.log-ip {
+    color: var(--color-lite-grey);
+    font-size: 0.8rem;
+    font-family: monospace;
+}
+
+/* User Info Styling */
+.log-user {
+    font-weight: 500;
+    color: var(--color-dark-grey);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.log-user::before {
+    content: "👤";
+    font-size: 0.8rem;
+}
+
+/* Details Styling */
+.log-details {
+    line-height: 1.4;
+    color: var(--color-dark-grey);
+    font-size: 0.9rem;
+}
+
+/* Empty and Loading States Enhancement */
+.logs-empty-state,
+.loading-state,
+.error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--color-lite-grey);
+    background: var(--color-white);
+    border-radius: 12px;
+    margin: 20px;
+}
+
+.logs-empty-state i,
+.loading-state i,
+.error-state i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    opacity: 0.7;
+}
+
+.loading-state i {
+    color: var(--primary-color);
+}
+
+.error-state i {
+    color: var(--color-danger);
+}
+
+/* Responsive Log Table */
+@media (max-width: 768px) {
+    .log-action {
+        padding: 4px 8px !important;
+        font-size: 0.8rem !important;
+    }
+    
+    .logs-table td {
+        padding: 10px 12px !important;
+    }
+    
+    .log-timestamp {
+        font-size: 0.8rem;
+    }
+    
+    .log-details {
+        font-size: 0.85rem;
+    }
+}
+
+/* Scrollbar Styling for Logs Container */
+.logs-table-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.logs-table-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.logs-table-container::-webkit-scrollbar-thumb {
+    background: var(--color-lite-grey);
+    border-radius: 3px;
+}
+
+.logs-table-container::-webkit-scrollbar-thumb:hover {
+    background: var(--color-dark-grey);
+}
+
+/* Animation for New Log Entries */
+@keyframes highlightNew {
+    0% {
+        background-color: rgba(76, 175, 80, 0.3);
+    }
+    100% {
+        background-color: transparent;
+    }
+}
+
+.logs-table tr.new-entry {
+    animation: highlightNew 2s ease;
+}
+
+/* Search Box Focus Enhancement */
+.log-search-box:focus-within {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(186, 30, 31, 0.1);
+}
+
+.log-search-box input:focus {
+    outline: none;
 }
 
 /* Responsive adjustments */

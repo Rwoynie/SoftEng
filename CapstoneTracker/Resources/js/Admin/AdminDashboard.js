@@ -139,11 +139,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 // Special handling for logs view
+                // In the initializeSidebar function, update the logs section:
                 if (viewId === 'logs') {
                     // Initialize system logs when logs view is shown
                     setTimeout(() => {
                         if (window.systemLogsManager) {
                             window.systemLogsManager.initialize();
+                            // Set default view to 'all'
+                            window.systemLogsManager.switchLogView('all');
                         }
                     }, 100);
                 }
@@ -158,10 +161,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     setTimeout(() => {
                         if (typeof AnnouncementManager !== 'undefined') {
                             if (!window.announcementManager) {
-                                console.log('Creating AnnouncementManager instance');
+                                
                                 window.announcementManager = new AnnouncementManager();
                             } else {
-                                console.log('AnnouncementManager instance already exists');
+                                
                                 // Ensure the view is properly set
                                 window.announcementManager.switchView('active');
                             }
@@ -169,10 +172,10 @@ document.addEventListener('DOMContentLoaded', function() {
                             // Ensure the container is properly displayed
                             const announcementContainer = document.getElementById('announcement-container');
                             if (announcementContainer) {
-                                console.log('Announcement container found and displayed');
+                                
                             }
                         } else {
-                            console.error('AnnouncementManager class not found');
+                           
                         }
                     }, 300);
                 }
@@ -330,17 +333,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // Open modal when FAB is clicked
     if (fabIcon && uploadModal) {
         fabIcon.addEventListener('click', function() {
-            console.log('FAB clicked, opening modal');
+           
             try {
             uploadModal.classList.add('active');
             document.body.style.overflow = 'hidden';
-                console.log('Modal opened successfully');
+                
             } catch (error) {
-                console.error('Error opening modal:', error);
+               
             }
         });
     } else {
-        console.error('FAB icon or upload modal not found');
+        
     }
 
     function initializeModalCloseHandlers() {
@@ -460,7 +463,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Display file in the list with preview
     function displayFile(file, fileType) {
-        console.log('Displaying file:', file.name, 'Type:', fileType, 'Size:', file.size);
+       
         
         const fileListId = fileType === 'abstract' ? 'abstractFileList' : 'thesisFileList';
         const fileList = document.getElementById(fileListId);
@@ -470,7 +473,7 @@ document.addEventListener('DOMContentLoaded', function() {
         for (let existingItem of existingFileItems) {
             const existingFileName = existingItem.querySelector('.file-name-preview').textContent;
             if (existingFileName === file.name) {
-                console.log('File already displayed:', file.name);
+               
                 return; // Don't add duplicate display
             }
         }
@@ -518,7 +521,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const fileName = this.getAttribute('data-filename');
             const fileType = this.getAttribute('data-filetype');
-            console.log('Removing file:', fileName, 'Type:', fileType);
+            
             
             removeFile(fileName, fileType);
             
@@ -845,7 +848,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function sortProjects(criteria) {
-        console.log('Sorting by:', criteria);
+    
         
         // Get the current active view (allView or recentView)
         const allView = document.getElementById('allView');
@@ -857,7 +860,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const projectItemsArray = Array.from(projectItems);
         
         if (projectItemsArray.length === 0) {
-            console.log('No project items found in current view');
+       
             return;
         }
     
@@ -906,8 +909,7 @@ document.addEventListener('DOMContentLoaded', function() {
             currentView.appendChild(item);
         });
     
-        console.log('Sorting completed for criteria:', criteria, 'in current view');
-        
+  
         // Re-run animations
         animateOnScroll();
     }
@@ -1657,7 +1659,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             throw new Error(result.error || 'Failed to approve account');
                         }
                     } catch (error) {
-                        console.error('Error approving account:', error);
+                        
                         Swal.fire({
                             title: 'Error',
                             text: 'Failed to approve account. Please try again.',
@@ -1672,7 +1674,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         } catch (error) {
-            console.error('Error in approveAccount:', error);
+          
         }
     }
 
@@ -1722,7 +1724,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     throw new Error(result.error || 'Failed to delete account');
                 }
             } catch (error) {
-                console.error('Error deleting account:', error);
+               
                 Swal.fire({
                     title: 'Error',
                     text: 'Failed to delete account. Please try again.',
@@ -1736,7 +1738,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     } catch (error) {
-        console.error('Error in deleteAccount:', error);
+      
     }
 }
 
@@ -1765,7 +1767,7 @@ document.addEventListener('DOMContentLoaded', function() {
         accountsOption.addEventListener('click', function() {
             // The table is already populated with PHP, so no need to load via AJAX
             // But you can add any initialization code here if needed
-            console.log('Accounts section loaded');
+          
         });
     }
 
@@ -1829,7 +1831,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch(error => {
-                console.error('Error validating authors:', error);
+              
                 reject('Unable to verify user roles. Please try again.');
             });
         });
@@ -1877,7 +1879,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch(error => {
-                console.error('Error validating adviser:', error);
+              
                 reject('Unable to verify adviser role. Please try again.');
             });
         });
@@ -3346,6 +3348,26 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    async function testDebugMethod() {
+    try {
+        console.log('=== TESTING DEBUG METHOD ===');
+        const response = await fetch('../../../app/Controllers/AdminDashboardController.php?action=debugLogs');
+        const data = await response.json();
+        console.log('Debug method response:', data);
+        
+        if (data.success) {
+            console.log('Audit logs count:', data.debug_info.audit_logs_count);
+            console.log('Login attempts count:', data.debug_info.login_attempts_count);
+            console.log('Sample audit logs:', data.debug_info.sample_audit_logs);
+            console.log('Sample login attempts:', data.debug_info.sample_login_attempts);
+        }
+    } catch (error) {
+        console.error('Debug method test failed:', error);
+    }
+}
+
+testDebugMethod();
+
     // Initialize announcement functionality
     initializeAnnouncementTab();
 
@@ -4153,9 +4175,10 @@ async function getAllUsersWithCompleteRoles() {
 
 class SystemLogsManager {
     constructor() {
-        this.currentLogView = 'user';
+        this.currentLogView = 'all';
         this.currentLogFilter = 'all';
         this.logsData = {
+            all: [],
             user: [],
             admin: []
         };
@@ -4163,19 +4186,23 @@ class SystemLogsManager {
 
     initialize() {
         this.initializeEventListeners();
-        this.loadUserLogs();
+        this.loadAllLogs();
     }
 
     initializeEventListeners() {
         // Log view switching
-        const userButton = document.getElementById('userButton');
-        const adminButton = document.getElementById('adminButton');
+        const allLogsButton = document.getElementById('allLogsButton');
+        const userLogsButton = document.getElementById('userLogsButton');
+        const adminLogsButton = document.getElementById('adminLogsButton');
         
-        if (userButton) {
-            userButton.addEventListener('click', () => this.switchLogView('user'));
+        if (allLogsButton) {
+            allLogsButton.addEventListener('click', () => this.switchLogView('all'));
         }
-        if (adminButton) {
-            adminButton.addEventListener('click', () => this.switchLogView('admin'));
+        if (userLogsButton) {
+            userLogsButton.addEventListener('click', () => this.switchLogView('user'));
+        }
+        if (adminLogsButton) {
+            adminLogsButton.addEventListener('click', () => this.switchLogView('admin'));
         }
 
         // Log filtering
@@ -4188,9 +4215,13 @@ class SystemLogsManager {
         });
 
         // Search functionality
+        const allLogSearch = document.getElementById('allLogSearchInput');
         const userLogSearch = document.getElementById('userLogSearchInput');
         const adminLogSearch = document.getElementById('adminLogSearchInput');
         
+        if (allLogSearch) {
+            allLogSearch.addEventListener('input', (e) => this.handleLogSearch(e.target.value, 'all'));
+        }
         if (userLogSearch) {
             userLogSearch.addEventListener('input', (e) => this.handleLogSearch(e.target.value, 'user'));
         }
@@ -4199,431 +4230,502 @@ class SystemLogsManager {
         }
     }
 
-    switchLogView(view) {
-        this.currentLogView = view;
-        
-        // Update button states
-        const userButton = document.getElementById('userButton');
-        const adminButton = document.getElementById('adminButton');
-        const userLogView = document.getElementById('userLog-container');
-        const adminLogView = document.getElementById('adminLog-container');
-
-        if (userButton && adminButton && userLogView && adminLogView) {
-            // Update buttons
-            userButton.classList.remove('selected');
-            adminButton.classList.remove('selected');
+        switchLogView(view) {
+            this.currentLogView = view;
             
-            if (view === 'user') {
-                userButton.classList.add('selected');
-                userLogView.style.display = 'block';
-                adminLogView.style.display = 'none';
-                this.loadUserLogs();
-            } else {
-                adminButton.classList.add('selected');
-                userLogView.style.display = 'none';
-                adminLogView.style.display = 'block';
-                this.loadAdminLogs();
+            // Update button states
+            const allLogsButton = document.getElementById('allLogsButton');
+            const userLogsButton = document.getElementById('userLogsButton');
+            const adminLogsButton = document.getElementById('adminLogsButton');
+            
+            const allLogsView = document.getElementById('allLogs-container');
+            const userLogsView = document.getElementById('userLogs-container');
+            const adminLogsView = document.getElementById('adminLogs-container');
+
+            if (allLogsButton && userLogsButton && adminLogsButton && 
+                allLogsView && userLogsView && adminLogsView) {
+                
+                // Update buttons
+                allLogsButton.classList.remove('selected');
+                userLogsButton.classList.remove('selected');
+                adminLogsButton.classList.remove('selected');
+                
+                // Hide all views
+                allLogsView.style.display = 'none';
+                userLogsView.style.display = 'none';
+                adminLogsView.style.display = 'none';
+                
+                // Show selected view and activate button
+                if (view === 'all') {
+                    allLogsButton.classList.add('selected');
+                    allLogsView.style.display = 'block';
+                    if (this.logsData.all.length === 0) {
+                        this.loadAllLogs();
+                    }
+                } else if (view === 'user') {
+                    userLogsButton.classList.add('selected');
+                    userLogsView.style.display = 'block';
+                    if (this.logsData.user.length === 0) {
+                        this.loadUserLogs();
+                    }
+                } else {
+                    adminLogsButton.classList.add('selected');
+                    adminLogsView.style.display = 'block';
+                    if (this.logsData.admin.length === 0) {
+                        this.loadAdminLogs();
+                    }
+                }
             }
         }
-    }
 
-    async loadUserLogs() {
-    try {
-        console.log('Loading user logs...');
-        this.showLogsLoading('user');
-        
-        // Load audit logs for user activities
-        const auditLogsResponse = await fetch('../../../app/Controllers/AdminDashboardController.php?action=getAuditLogs&table=USER_INFORMATION&limit=50');
-        
-        if (!auditLogsResponse.ok) {
-            throw new Error(`Audit logs HTTP error! status: ${auditLogsResponse.status}`);
-        }
-        
-        const auditLogsData = await auditLogsResponse.json();
-        console.log('Audit logs response:', auditLogsData);
-        
-        // Load login attempts
-        const loginAttemptsResponse = await fetch('../../../app/Controllers/AdminDashboardController.php?action=getLoginAttempts&limit=50');
-        
-        if (!loginAttemptsResponse.ok) {
-            throw new Error(`Login attempts HTTP error! status: ${loginAttemptsResponse.status}`);
-        }
-        
-        const loginAttemptsData = await loginAttemptsResponse.json();
-        console.log('Login attempts response:', loginAttemptsData);
-        
-        // Combine and format the data
-        const formattedLogs = this.formatUserLogs(auditLogsData.logs || [], loginAttemptsData.attempts || []);
-        
-        console.log('Formatted user logs:', formattedLogs);
-        
-        this.logsData.user = formattedLogs;
-        this.displayLogs(formattedLogs, 'user');
-        
-    } catch (error) {
-        console.error('Error loading user logs:', error);
-        this.showLogsError('user', `Failed to load user logs: ${error.message}`);
-    }
-}
-
-async loadAdminLogs() {
-    try {
-        console.log('Loading admin logs...');
-        this.showLogsLoading('admin');
-        
-        // Load audit logs for admin activities
-        const response = await fetch('../../../app/Controllers/AdminDashboardController.php?action=getAuditLogs&limit=100');
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('Admin logs response:', data);
-        
-        this.logsData.admin = data.logs || [];
-        console.log('Admin logs data:', this.logsData.admin);
-        
-        this.displayLogs(this.logsData.admin, 'admin');
-        
-    } catch (error) {
-        console.error('Error loading admin logs:', error);
-        this.showLogsError('admin', `Failed to load admin logs: ${error.message}`);
-    }
-}
-
-    formatUserLogs(auditLogs, loginAttempts) {
-    const formattedLogs = [];
-
-    console.log('Raw audit logs:', auditLogs);
-    console.log('Raw login attempts:', loginAttempts);
-
-    // Format audit logs - FIXED VERSION
-    auditLogs.forEach(log => {
-        let action = '';
-        let details = '';
-        let logType = 'management';
-        
-        // Determine action type and details
-        switch (log.action) {
-            case 'UPDATE':
-                if (log.table_name === 'USER_INFORMATION') {
-                    action = 'User Account Updated';
-                    details = this.formatUserUpdateDetails(log);
-                    logType = 'management';
-                } else if (log.table_name === 'THESIS') {
-                    action = 'Thesis Updated';
-                    details = this.formatThesisDetails(log);
-                    logType = 'upload';
-                } else if (log.table_name === 'ANNOUNCEMENTS') {
-                    action = 'Announcement Updated';
-                    details = this.formatAnnouncementDetails(log);
-                    logType = 'management';
-                } else {
-                    action = 'Record Updated';
-                    details = `Table: ${log.table_name}, Record ID: ${log.record_id}`;
-                }
-                break;
+        async loadAllLogs() {
+            try {
+                console.log('=== LOADING ALL LOGS ===');
+                this.showLogsLoading('all');
                 
-            case 'INSERT':
-                if (log.table_name === 'USER_INFORMATION') {
-                    action = 'User Registered';
-                    details = `New user registration`;
-                    logType = 'management';
-                } else if (log.table_name === 'THESIS') {
-                    action = 'Thesis Uploaded';
-                    details = this.formatThesisDetails(log);
-                    logType = 'upload';
-                } else if (log.table_name === 'ANNOUNCEMENTS') {
-                    action = 'Announcement Created';
-                    details = this.formatAnnouncementDetails(log);
-                    logType = 'management';
-                } else {
-                    action = 'Record Created';
-                    details = `Table: ${log.table_name}, Record ID: ${log.record_id}`;
-                }
-                break;
+                // Load audit logs
+                const auditLogsResponse = await fetch('../../../app/Controllers/AdminDashboardController.php?action=getAuditLogs&limit=100');
+                const auditLogsData = await auditLogsResponse.json();
                 
-            case 'DELETE':
-                if (log.table_name === 'USER_INFORMATION') {
-                    action = 'User Deleted';
-                    details = `User account deleted`;
-                    logType = 'management';
-                } else if (log.table_name === 'ANNOUNCEMENTS') {
-                    action = 'Announcement Deleted';
-                    details = this.formatAnnouncementDetails(log);
-                    logType = 'management';
-                } else {
-                    action = 'Record Deleted';
-                    details = `Table: ${log.table_name}, Record ID: ${log.record_id}`;
-                }
-                break;
+                // Load login attempts  
+                const loginAttemptsResponse = await fetch('../../../app/Controllers/AdminDashboardController.php?action=getLoginAttempts&limit=100');
+                const loginAttemptsData = await loginAttemptsResponse.json();
+                
+                // Process the data
+                const auditLogs = auditLogsData.success ? auditLogsData.logs : [];
+                const loginAttempts = loginAttemptsData.success ? loginAttemptsData.attempts : [];
+                
+                console.log('Audit logs:', auditLogs.length, 'Login attempts:', loginAttempts.length);
+                
+                // Combine and format the data
+                const formattedLogs = this.formatAllLogs(auditLogs, loginAttempts);
+                
+                this.logsData.all = formattedLogs;
+                this.displayLogs(formattedLogs, 'all');
+                
+            } catch (error) {
+                console.error('Error loading all logs:', error);
+                this.showLogsError('all', `Failed to load logs: ${error.message}`);
+            }
         }
 
-        if (action) {
-            formattedLogs.push({
-                type: logType,
-                timestamp: log.changed_at,
-                user: log.First_Name && log.Last_Name ? `${log.First_Name} ${log.Last_Name}` : (log.user_id > 0 ? 'User ' + log.user_id : 'System'),
-                action: action,
-                details: details,
-                ip: log.ip_address || 'N/A'
+        async loadUserLogs() {
+            try {
+                this.showLogsLoading('user');
+                
+                // Load user-specific logs (login attempts and user-related audit logs)
+                const loginAttemptsResponse = await fetch('../../../app/Controllers/AdminDashboardController.php?action=getLoginAttempts&limit=100');
+                const loginAttemptsData = await loginAttemptsResponse.json();
+                
+                const auditLogsResponse = await fetch('../../../app/Controllers/AdminDashboardController.php?action=getAuditLogs&table=USER_INFORMATION&limit=50');
+                const auditLogsData = await auditLogsResponse.json();
+                
+                const loginAttempts = loginAttemptsData.success ? loginAttemptsData.attempts : [];
+                const userAuditLogs = auditLogsData.success ? auditLogsData.logs : [];
+                
+                const formattedLogs = this.formatUserLogs(userAuditLogs, loginAttempts);
+                this.logsData.user = formattedLogs;
+                this.displayLogs(formattedLogs, 'user');
+                
+            } catch (error) {
+                console.error('Error loading user logs:', error);
+                this.showLogsError('user', `Failed to load user logs: ${error.message}`);
+            }
+        }
+
+        async loadAdminLogs() {
+            try {
+                this.showLogsLoading('admin');
+                
+                // Load admin-specific logs (system actions, announcements, etc.)
+                const auditLogsResponse = await fetch('../../../app/Controllers/AdminDashboardController.php?action=getAuditLogs&limit=100');
+                const auditLogsData = await auditLogsResponse.json();
+                
+                const adminLogs = auditLogsData.success ? auditLogsData.logs : [];
+                const formattedLogs = this.formatAdminLogs(adminLogs);
+                
+                this.logsData.admin = formattedLogs;
+                this.displayLogs(formattedLogs, 'admin');
+                
+            } catch (error) {
+                console.error('Error loading admin logs:', error);
+                this.showLogsError('admin', `Failed to load admin logs: ${error.message}`);
+            }
+        }
+
+        formatAllLogs(auditLogs, loginAttempts) {
+            const formattedLogs = [];
+
+            // Format audit logs
+            auditLogs.forEach(log => {
+                if (!log) return;
+
+                const userName = this.getUserNameFromLog(log);
+                const action = this.getActionFromLog(log);
+                const details = this.getDetailsFromLog(log);
+                const logType = this.getLogTypeFromLog(log);
+
+                formattedLogs.push({
+                    type: logType,
+                    timestamp: log.changed_at || log.timestamp || new Date().toISOString(),
+                    user: userName,
+                    action: action,
+                    details: details,
+                    ip: log.ip_address || 'N/A',
+                    source: 'audit'
+                });
             });
-        }
-    });
 
-    // Format login attempts
-    loginAttempts.forEach(attempt => {
-        formattedLogs.push({
-            type: 'login',
-            timestamp: attempt.attempt_time,
-            user: attempt.First_Name && attempt.Last_Name ? `${attempt.First_Name} ${attempt.Last_Name}` : attempt.email,
-            action: attempt.success ? 'Login Successful' : 'Login Failed',
-            details: attempt.success ? 
-                `Successful login from IP ${attempt.ip_address}` :
-                `Failed login attempt from IP ${attempt.ip_address}`,
-            ip: attempt.ip_address
-        });
-    });
+            // Format login attempts
+            loginAttempts.forEach(attempt => {
+                if (!attempt) return;
 
-    console.log('Formatted logs:', formattedLogs);
-    
-    // Sort by timestamp (newest first)
-    return formattedLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-}
+                const userName = attempt.First_Name && attempt.Last_Name ? 
+                    `${attempt.First_Name} ${attempt.Last_Name}` : 
+                    (attempt.email || 'Unknown User');
+                    
+                const isSuccess = attempt.success === true || attempt.success === '1' || attempt.status === 'success';
+                
+                formattedLogs.push({
+                    type: 'login',
+                    timestamp: attempt.attempt_time || attempt.timestamp || new Date().toISOString(),
+                    user: userName,
+                    action: isSuccess ? 'Login Successful' : 'Login Failed',
+                    details: isSuccess ? 
+                        `Successful login from IP ${attempt.ip_address || 'Unknown'}` :
+                        `Failed login attempt from IP ${attempt.ip_address || 'Unknown'}`,
+                    ip: attempt.ip_address || 'N/A',
+                    source: 'login'
+                });
+            });
 
-formatUserUpdateDetails(log) {
-    if (!log.old_values && !log.new_values) return 'User information updated';
-    
-    try {
-        const oldValues = log.old_values ? JSON.parse(log.old_values) : {};
-        const newValues = log.new_values ? JSON.parse(log.new_values) : {};
-        
-        const changes = [];
-        
-        // Check for role changes
-        if (oldValues.User_Role !== newValues.User_Role) {
-            changes.push(`Role: ${oldValues.User_Role || 'N/A'} → ${newValues.User_Role}`);
+            // Sort by timestamp (newest first)
+            return formattedLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         }
-        
-        // Check for status changes
-        if (oldValues.Acc_Status !== newValues.Acc_Status) {
-            changes.push(`Status: ${oldValues.Acc_Status || 'N/A'} → ${newValues.Acc_Status}`);
-        }
-        
-        // Check for email changes
-        if (oldValues.Email !== newValues.Email) {
-            changes.push(`Email: ${oldValues.Email || 'N/A'} → ${newValues.Email}`);
-        }
-        
-        return changes.length > 0 ? changes.join('; ') : 'User information updated';
-    } catch (e) {
-        return 'User account modified';
-    }
-}
 
-formatThesisDetails(log) {
-    try {
-        if (log.new_values) {
-            const newValues = JSON.parse(log.new_values);
-            return `Title: "${newValues.Title || 'Unknown'}", Author: ${newValues.Author || 'Unknown'}, Department: ${newValues.Thesis_Department || 'Unknown'}`;
-        }
-        return 'Thesis document modified';
-    } catch (e) {
-        return 'Thesis document modified';
-    }
-}
+        formatUserLogs(userAuditLogs, loginAttempts) {
+            // Filter and format user-specific logs
+            const formattedLogs = [];
 
-formatAnnouncementDetails(log) {
-    try {
-        if (log.new_values) {
-            const newValues = JSON.parse(log.new_values);
-            return `Title: "${newValues.title || 'Unknown'}", Type: ${newValues.type || 'information'}, Status: ${newValues.status || 'draft'}`;
-        } else if (log.old_values) {
-            const oldValues = JSON.parse(log.old_values);
-            return `Title: "${oldValues.title || 'Unknown'}", Type: ${oldValues.type || 'information'}`;
-        }
-        return 'Announcement modified';
-    } catch (e) {
-        return 'Announcement modified';
-    }
-}
+            userAuditLogs.forEach(log => {
+                if (log.table_name === 'USER_INFORMATION') {
+                    const userName = this.getUserNameFromLog(log);
+                    const action = this.getActionFromLog(log);
+                    const details = this.getDetailsFromLog(log);
 
-    formatAuditDetails(log) {
-        if (!log.old_values && !log.new_values) return 'Details not available';
-        
-        const oldValues = log.old_values ? JSON.parse(log.old_values) : {};
-        const newValues = log.new_values ? JSON.parse(log.new_values) : {};
-        
-        const changes = [];
-        
-        // Check for role changes
-        if (oldValues.User_Role !== newValues.User_Role) {
-            changes.push(`Role changed from ${oldValues.User_Role || 'N/A'} to ${newValues.User_Role}`);
-        }
-        
-        // Check for status changes
-        if (oldValues.Acc_Status !== newValues.Acc_Status) {
-            changes.push(`Status changed from ${oldValues.Acc_Status || 'N/A'} to ${newValues.Acc_Status}`);
-        }
-        
-        // Check for email changes
-        if (oldValues.Email !== newValues.Email) {
-            changes.push(`Email changed from ${oldValues.Email || 'N/A'} to ${newValues.Email}`);
-        }
-        
-        return changes.length > 0 ? changes.join('; ') : 'User information updated';
-    }
+                    formattedLogs.push({
+                        type: 'user_management',
+                        timestamp: log.changed_at,
+                        user: userName,
+                        action: action,
+                        details: details,
+                        ip: log.ip_address || 'N/A'
+                    });
+                }
+            });
 
-    displayLogs(logs, type) {
-        const container = type === 'user' ? 
-            document.querySelector('#userLog-container .logs-table tbody') :
-            document.querySelector('#adminLog-container .logs-table tbody');
-        
-        if (!container) return;
+            // Add login attempts
+            loginAttempts.forEach(attempt => {
+                const userName = attempt.First_Name && attempt.Last_Name ? 
+                    `${attempt.First_Name} ${attempt.Last_Name}` : 
+                    (attempt.email || 'Unknown User');
+                    
+                const isSuccess = attempt.success === true || attempt.success === '1' || attempt.status === 'success';
+                
+                formattedLogs.push({
+                    type: 'login',
+                    timestamp: attempt.attempt_time,
+                    user: userName,
+                    action: isSuccess ? 'Login Successful' : 'Login Failed',
+                    details: `IP: ${attempt.ip_address || 'Unknown'}`,
+                    ip: attempt.ip_address || 'N/A'
+                });
+            });
 
-        if (!logs || logs.length === 0) {
-            container.innerHTML = `
-                <tr>
-                    <td colspan="4" class="text-center">
-                        <div class="logs-empty-state">
-                            <i class="fas fa-info-circle"></i>
-                            <p>No logs found</p>
-                        </div>
+            return formattedLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        }
+
+        formatAdminLogs(auditLogs) {
+            // Filter and format admin-specific logs
+            const formattedLogs = auditLogs
+                .filter(log => log.table_name && ['ANNOUNCEMENTS', 'SYSTEM_LOGS', 'THESIS'].includes(log.table_name))
+                .map(log => {
+                    const userName = this.getUserNameFromLog(log);
+                    const action = this.getActionFromLog(log);
+                    const details = this.getDetailsFromLog(log);
+                    const logType = this.getLogTypeFromLog(log);
+
+                    return {
+                        type: logType,
+                        timestamp: log.changed_at,
+                        user: userName,
+                        action: action,
+                        details: details,
+                        ip: log.ip_address || 'N/A'
+                    };
+                });
+
+            return formattedLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        }
+
+        getUserNameFromLog(log) {
+            // Try to get user name from various possible fields
+            if (log.First_Name && log.Last_Name) {
+                return `${log.First_Name} ${log.Last_Name}`;
+            }
+            if (log.user_name) {
+                return log.user_name;
+            }
+            if (log.email) {
+                return log.email;
+            }
+            if (log.user_id) {
+                return `User ID: ${log.user_id}`;
+            }
+            return 'System';
+        }
+
+        getActionFromLog(log) {
+            if (log.action) {
+                switch (log.action.toUpperCase()) {
+                    case 'INSERT':
+                        if (log.table_name === 'ANNOUNCEMENTS') return 'Announcement Created';
+                        if (log.table_name === 'THESIS') return 'Thesis Uploaded';
+                        return 'Record Created';
+                    case 'UPDATE':
+                        if (log.table_name === 'ANNOUNCEMENTS') return 'Announcement Updated';
+                        if (log.table_name === 'USER_INFORMATION') return 'User Updated';
+                        return 'Record Updated';
+                    case 'DELETE':
+                        if (log.table_name === 'ANNOUNCEMENTS') return 'Announcement Deleted';
+                        return 'Record Deleted';
+                    default:
+                        return log.action;
+                }
+            }
+            return 'System Action';
+        }
+
+        getDetailsFromLog(log) {
+            if (log.table_name === 'ANNOUNCEMENTS') {
+                try {
+                    if (log.new_values) {
+                        const newValues = typeof log.new_values === 'string' ? JSON.parse(log.new_values) : log.new_values;
+                        return `Title: "${newValues.title || 'Unknown'}", Type: ${newValues.type || 'information'}`;
+                    }
+                    if (log.old_values) {
+                        const oldValues = typeof log.old_values === 'string' ? JSON.parse(log.old_values) : log.old_values;
+                        return `Title: "${oldValues.title || 'Unknown'}"`;
+                    }
+                } catch (e) {
+                    return 'Announcement modified';
+                }
+            }
+            
+            if (log.table_name === 'USER_INFORMATION') {
+                try {
+                    if (log.new_values) {
+                        const newValues = typeof log.new_values === 'string' ? JSON.parse(log.new_values) : log.new_values;
+                        const changes = [];
+                        if (newValues.User_Role) changes.push(`Role: ${newValues.User_Role}`);
+                        if (newValues.Acc_Status) changes.push(`Status: ${newValues.Acc_Status}`);
+                        return changes.length > 0 ? changes.join('; ') : 'User information updated';
+                    }
+                } catch (e) {
+                    return 'User account modified';
+                }
+            }
+
+            return log.details || 'Details not available';
+        }
+
+        getLogTypeFromLog(log) {
+            if (log.table_name === 'ANNOUNCEMENTS') return 'announcement';
+            if (log.table_name === 'USER_INFORMATION') return 'user';
+            if (log.table_name === 'THESIS') return 'thesis';
+            return 'system';
+        }
+
+        displayLogs(logs, type) {
+            const containerId = type === 'all' ? 'allLogsTableBody' : 
+                            type === 'user' ? 'userLogsTableBody' : 'adminLogsTableBody';
+            const container = document.getElementById(containerId);
+            
+            if (!container) return;
+
+            if (!logs || logs.length === 0) {
+                container.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center">
+                            <div class="logs-empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <h3>No Logs Found</h3>
+                                <p>No ${type} logs available for the selected criteria.</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            container.innerHTML = logs.map(log => this.createLogRow(log)).join('');
+        }
+
+        createLogRow(log) {
+            const timestamp = this.formatTimestamp(log.timestamp);
+            const actionClass = this.getActionClass(log.action);
+            
+            return `
+                <tr data-log-type="${log.type}">
+                    <td>
+                        <div class="log-timestamp">${timestamp}</div>
+                        <small class="log-ip">${log.ip}</small>
                     </td>
-                </tr>
-            `;
-            return;
-        }
-
-        container.innerHTML = logs.map(log => this.createLogRow(log)).join('');
-    }
-
-    createLogRow(log) {
-        const timestamp = this.formatTimestamp(log.timestamp);
-        const actionClass = this.getActionClass(log.action);
-        
-        return `
-            <tr data-log-type="${log.type}">
-                <td>${timestamp}</td>
-                <td>${this.escapeHtml(log.user)}</td>
-                <td><span class="log-action ${actionClass}">${this.escapeHtml(log.action)}</span></td>
-                <td>${this.escapeHtml(log.details)}</td>
-            </tr>
-        `;
-    }
-
-    getActionClass(action) {
-        const actionMap = {
-            'Login Successful': 'action-login',
-            'Login Failed': 'action-login',
-            'User Registered': 'action-management',
-            'User Updated': 'action-management',
-            'User Deleted': 'action-management',
-            'Thesis Uploaded': 'action-upload',
-            'Thesis Updated': 'action-upload',
-            'Thesis Deleted': 'action-upload',
-            'System Update': 'action-system',
-            'Database Backup': 'action-system'
-        };
-        
-        return actionMap[action] || 'action-system';
-    }
-
-    formatTimestamp(timestamp) {
-        const date = new Date(timestamp);
-        return date.toLocaleString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    }
-
-    applyLogFilter(filter) {
-        this.currentLogFilter = filter;
-        
-        // Update filter button states
-        document.querySelectorAll('.log-filter-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        document.querySelector(`.log-filter-btn[data-filter="${filter}"]`).classList.add('active');
-        
-        const logs = this.currentLogView === 'user' ? this.logsData.user : this.logsData.admin;
-        const filteredLogs = filter === 'all' ? 
-            logs : 
-            logs.filter(log => log.type === filter);
-        
-        this.displayLogs(filteredLogs, this.currentLogView);
-    }
-
-    handleLogSearch(searchTerm, type) {
-        const logs = type === 'user' ? this.logsData.user : this.logsData.admin;
-        
-        if (!searchTerm.trim()) {
-            this.applyLogFilter(this.currentLogFilter);
-            return;
-        }
-        
-        const filteredLogs = logs.filter(log => 
-            log.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            log.details.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-        
-        this.displayLogs(filteredLogs, type);
-    }
-
-    showLogsLoading(type) {
-        const container = type === 'user' ? 
-            document.querySelector('#userLog-container .logs-table tbody') :
-            document.querySelector('#adminLog-container .logs-table tbody');
-        
-        if (container) {
-            container.innerHTML = `
-                <tr>
-                    <td colspan="4" class="text-center">
-                        <div class="loading-state">
-                            <i class="fas fa-spinner fa-spin"></i>
-                            <p>Loading logs...</p>
-                        </div>
+                    <td>
+                        <div class="log-user">${this.escapeHtml(log.user)}</div>
+                    </td>
+                    <td>
+                        <span class="log-action ${actionClass}">${this.escapeHtml(log.action)}</span>
+                    </td>
+                    <td>
+                        <div class="log-details">${this.escapeHtml(log.details)}</div>
                     </td>
                 </tr>
             `;
         }
-    }
 
-    showLogsError(type, message) {
-        const container = type === 'user' ? 
-            document.querySelector('#userLog-container .logs-table tbody') :
-            document.querySelector('#adminLog-container .logs-table tbody');
-        
-        if (container) {
-            container.innerHTML = `
-                <tr>
-                    <td colspan="4" class="text-center">
-                        <div class="error-state">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <p>${message}</p>
-                            <button class="btn-retry" onclick="systemLogsManager.load${type === 'user' ? 'User' : 'Admin'}Logs()">
-                                Retry
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
+        applyLogFilter(filter) {
+            this.currentLogFilter = filter;
+            
+            // Update filter button states
+            const currentView = this.currentLogView;
+            const filterContainer = document.querySelector(`#${currentView}Logs-container .log-filter-options`);
+            if (filterContainer) {
+                filterContainer.querySelectorAll('.log-filter-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                filterContainer.querySelector(`.log-filter-btn[data-filter="${filter}"]`).classList.add('active');
+            }
+            
+            const logs = this.logsData[this.currentLogView];
+            const filteredLogs = filter === 'all' ? 
+                logs : 
+                logs.filter(log => log.type === filter);
+            
+            this.displayLogs(filteredLogs, this.currentLogView);
+        }
+
+        handleLogSearch(searchTerm, type) {
+            const logs = this.logsData[type];
+            
+            if (!searchTerm.trim()) {
+                this.applyLogFilter(this.currentLogFilter);
+                return;
+            }
+            
+            const filteredLogs = logs.filter(log => 
+                log.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                log.details.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+            
+            this.displayLogs(filteredLogs, type);
+        }
+
+        showLogsLoading(type) {
+            const containerId = type === 'all' ? 'allLogsTableBody' : 
+                            type === 'user' ? 'userLogsTableBody' : 'adminLogsTableBody';
+            const container = document.getElementById(containerId);
+            
+            if (container) {
+                container.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center">
+                            <div class="loading-state">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>Loading ${type} logs...</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        showLogsError(type, message) {
+            const containerId = type === 'all' ? 'allLogsTableBody' : 
+                            type === 'user' ? 'userLogsTableBody' : 'adminLogsTableBody';
+            const container = document.getElementById(containerId);
+            
+            if (container) {
+                container.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center">
+                            <div class="error-state">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <p>${message}</p>
+                                <button class="btn-retry" onclick="systemLogsManager.load${type.charAt(0).toUpperCase() + type.slice(1)}Logs()">
+                                    Retry
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) {
+                return 'Just now';
+            } else if (diffMins < 60) {
+                return `${diffMins}m ago`;
+            } else if (diffHours < 24) {
+                return `${diffHours}h ago`;
+            } else if (diffDays < 7) {
+                return `${diffDays}d ago`;
+            } else {
+                return date.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+        }
+
+        getActionClass(action) {
+            const actionMap = {
+                'Login Successful': 'action-login-success',
+                'Login Failed': 'action-login-failed',
+                'User Registered': 'action-user-create',
+                'User Updated': 'action-user-update',
+                'User Deleted': 'action-user-delete',
+                'Announcement Created': 'action-announcement-create',
+                'Announcement Updated': 'action-announcement-update',
+                'Announcement Deleted': 'action-announcement-delete',
+                'Thesis Uploaded': 'action-thesis-upload'
+            };
+            
+            return actionMap[action] || 'action-system';
+        }
+
+        escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
     }
 
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-}
 
 
+setTimeout(testAuditQuery, 500);
 
 
 

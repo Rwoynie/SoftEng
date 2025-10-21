@@ -138,6 +138,19 @@ class AdminDashboardController {
             case 'markNotificationRead':
                 $this->markNotificationRead();
                 break;
+
+            case 'testAuditQuery':
+                $this->testAuditQuery();
+                break;
+
+          
+
+
+           
+
+
+
+
             case 'dashboard':
             default:
                 $this->showDashboard();
@@ -148,47 +161,69 @@ class AdminDashboardController {
 
 
     /**
-     * Debug logs - test if data exists
-     */
-    private function debugLogs() {
+ * Debug logs - test if data exists
+ */
+private function debugLogs() {
+    header('Content-Type: application/json');
+    
+    try {
+        $debugInfo = [];
+        
+        // Check if audit_logs table exists and has data
         try {
-            // Test database connection and table existence
-            $debugInfo = [];
-            
-            // Check if audit_logs table exists and has data
             $this->model->getDatabase()->query("SELECT COUNT(*) as count FROM AUDIT_LOGS");
-            $auditCount = $this->model->getDatabase()->single()->count;
-            $debugInfo['audit_logs_count'] = $auditCount;
-            
-            // Check if login_attempts table exists and has data
-            $this->model->getDatabase()->query("SELECT COUNT(*) as count FROM LOGIN_ATTEMPTS");
-            $loginCount = $this->model->getDatabase()->single()->count;
-            $debugInfo['login_attempts_count'] = $loginCount;
+            $auditCount = $this->model->getDatabase()->single();
+            $debugInfo['audit_logs_count'] = $auditCount->count;
             
             // Get sample data from audit_logs
             $this->model->getDatabase()->query("SELECT * FROM AUDIT_LOGS ORDER BY changed_at DESC LIMIT 5");
             $sampleAuditLogs = $this->model->getDatabase()->resultSet();
             $debugInfo['sample_audit_logs'] = $sampleAuditLogs;
+        } catch (Exception $e) {
+            $debugInfo['audit_logs_error'] = $e->getMessage();
+            $debugInfo['audit_logs_count'] = 0;
+            $debugInfo['sample_audit_logs'] = [];
+        }
+        
+        // Check if login_attempts table exists and has data
+        try {
+            $this->model->getDatabase()->query("SELECT COUNT(*) as count FROM LOGIN_ATTEMPTS");
+            $loginCount = $this->model->getDatabase()->single();
+            $debugInfo['login_attempts_count'] = $loginCount->count;
             
             // Get sample data from login_attempts
             $this->model->getDatabase()->query("SELECT * FROM LOGIN_ATTEMPTS ORDER BY attempt_time DESC LIMIT 5");
             $sampleLoginAttempts = $this->model->getDatabase()->resultSet();
             $debugInfo['sample_login_attempts'] = $sampleLoginAttempts;
-            
-            $this->jsonResponse([
-                'success' => true,
-                'debug_info' => $debugInfo,
-                'message' => 'Debug information retrieved successfully'
-            ]);
-            
         } catch (Exception $e) {
-            $this->jsonResponse([
-                'success' => false,
-                'error' => $e->getMessage(),
-                'debug_info' => ['error' => $e->getMessage()]
-            ]);
+            $debugInfo['login_attempts_error'] = $e->getMessage();
+            $debugInfo['login_attempts_count'] = 0;
+            $debugInfo['sample_login_attempts'] = [];
         }
+        
+        // Also check what tables actually exist in the database
+        try {
+            $this->model->getDatabase()->query("SHOW TABLES");
+            $tables = $this->model->getDatabase()->resultSet();
+            $debugInfo['all_tables'] = $tables;
+        } catch (Exception $e) {
+            $debugInfo['tables_error'] = $e->getMessage();
+        }
+        
+        $this->jsonResponse([
+            'success' => true,
+            'debug_info' => $debugInfo,
+            'message' => 'Debug information retrieved successfully'
+        ]);
+        
+    } catch (Exception $e) {
+        $this->jsonResponse([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'debug_info' => ['error' => $e->getMessage()]
+        ]);
     }
+}
 
     /**
      * Show main dashboard
@@ -758,28 +793,134 @@ private function updateAnnouncement() {
     /**
      * Get audit logs
      */
-    private function getAuditLogs() {
-        try {
-            $limit = $_GET['limit'] ?? 100;
-            $tableName = $_GET['table'] ?? null;
-            $action = $_GET['action_type'] ?? null;
-
-            error_log("Getting audit logs - limit: $limit, table: $tableName, action: $action");
-
-            $logs = $this->model->getAuditLogs($limit, $tableName, $action);
-            
-            error_log("Found " . count($logs) . " audit logs");
-            
-            $this->jsonResponse([
-                'success' => true,
-                'logs' => $logs,
-                'total' => count($logs)
-            ]);
-        } catch (Exception $e) {
-            error_log("Error in getAuditLogs: " . $e->getMessage());
-            $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
+private function getAuditLogs() {
+    try {
+        error_log("=== DIRECT CONTROLLER getAuditLogs ===");
+        
+        // Bypass the model and query directly
+        $limit = $_GET['limit'] ?? 100;
+        $tableName = $_GET['table'] ?? null;
+        $action = $_GET['action_type'] ?? null;
+        
+        $db = new Database();
+        
+        $sql = "SELECT * FROM AUDIT_LOGS WHERE 1=1";
+        $params = [];
+        
+        if ($tableName) {
+            $sql .= " AND table_name = :table_name";
+            $params[':table_name'] = $tableName;
         }
+        
+        if ($action) {
+            $sql .= " AND action = :action";
+            $params[':action'] = $action;
+        }
+        
+        $sql .= " ORDER BY changed_at DESC LIMIT :limit";
+        $params[':limit'] = $limit;
+        
+        error_log("Direct controller SQL: " . $sql);
+        
+        $db->query($sql);
+        foreach ($params as $key => $value) {
+            $db->bind($key, $value);
+        }
+        
+        $logs = $db->resultSet();
+        error_log("Direct controller found: " . count($logs) . " logs");
+        
+        $this->jsonResponse([
+            'success' => true,
+            'logs' => $logs,
+            'total' => count($logs),
+            'debug' => [
+                'query_used' => $sql,
+                'parameters' => $params
+            ]
+        ]);
+        
+    } catch (Exception $e) {
+        error_log("Direct controller error: " . $e->getMessage());
+        $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
     }
+}
+
+/**
+ * Direct test of audit logs query
+ */
+private function testAuditQuery() {
+    header('Content-Type: application/json');
+    
+    try {
+        error_log("=== DIRECT AUDIT QUERY TEST ===");
+        
+        // Test 1: Simple count
+        $this->model->getDatabase()->query("SELECT COUNT(*) as count FROM AUDIT_LOGS");
+        $countResult = $this->model->getDatabase()->single();
+        error_log("Simple count: " . $countResult->count);
+        
+        // Test 2: Simple select without joins
+        $this->model->getDatabase()->query("SELECT * FROM AUDIT_LOGS ORDER BY changed_at DESC LIMIT 5");
+        $simpleResults = $this->model->getDatabase()->resultSet();
+        error_log("Simple select count: " . count($simpleResults));
+        
+        // Test 3: Select with joins (like your actual method)
+        $this->model->getDatabase()->query("
+            SELECT al.*, ui.First_Name, ui.Last_Name, ui.Email 
+            FROM AUDIT_LOGS al 
+            LEFT JOIN USER_INFORMATION ui ON al.user_id = ui.ID 
+            ORDER BY al.changed_at DESC 
+            LIMIT 5
+        ");
+        $joinResults = $this->model->getDatabase()->resultSet();
+        error_log("Join select count: " . count($joinResults));
+        
+        // Test 4: Check if user_id column exists and has data
+        $this->model->getDatabase()->query("SELECT user_id FROM AUDIT_LOGS LIMIT 5");
+        $userIds = $this->model->getDatabase()->resultSet();
+        error_log("User IDs in audit logs: " . json_encode($userIds));
+        
+        $this->jsonResponse([
+            'success' => true,
+            'test_results' => [
+                'simple_count' => $countResult->count,
+                'simple_select_count' => count($simpleResults),
+                'join_select_count' => count($joinResults),
+                'user_ids_sample' => $userIds,
+                'simple_results_sample' => $simpleResults,
+                'join_results_sample' => $joinResults
+            ]
+        ]);
+        
+    } catch (Exception $e) {
+        error_log("Direct test error: " . $e->getMessage());
+        $this->jsonResponse([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+    }
+}
+
+        /**
+         * Set current user ID and IP for audit triggers
+         */
+        private function setCurrentUserForAudit() {
+            try {
+                $userId = $this->currentUser['user_db_id'] ?? null;
+                $userIp = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+                
+                if ($userId) {
+                    $this->model->getDatabase()->query("SET @current_user_id = :user_id, @current_user_ip = :user_ip");
+                    $this->model->getDatabase()->bind(':user_id', $userId);
+                    $this->model->getDatabase()->bind(':user_ip', $userIp);
+                    $this->model->getDatabase()->execute();
+                }
+            } catch (Exception $e) {
+                error_log("Error setting current user for audit: " . $e->getMessage());
+            }
+        }
 
     /**
      * Get login attempts
@@ -876,21 +1017,8 @@ private function updateAnnouncement() {
         }
     }
 
-    /**
-     * Set current user ID for audit triggers
-     */
-    private function setCurrentUserForAudit() {
-        try {
-            $userId = $this->currentUser['user_db_id'] ?? null;
-            if ($userId) {
-                $this->model->getDatabase()->query("SET @current_user_id = :user_id");
-                $this->model->getDatabase()->bind(':user_id', $userId);
-                $this->model->getDatabase()->execute();
-            }
-        } catch (Exception $e) {
-            error_log("Error setting current user for audit: " . $e->getMessage());
-        }
-    }
+    
+    
 
     
 

@@ -9,6 +9,12 @@ require_once '../../../app/Controllers/AdminDashboardController.php';
 require_once '../../../app/Models/Thesis.php';
 require_once '../../../app/Controllers/RolesController.php';
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+$canUpload = in_array($_SESSION['user_role'] ?? 'guest', ['SubAdmin', 'superAdmin']);
+
 try {
     $db = new Database();
     $thesisModel = new Thesis($db);
@@ -24,7 +30,7 @@ try {
     
     
 } catch (Exception $e) {
-    error_log("Error loading theses: " . $e->getMessage());
+    // error_log("Error loading theses: " . $e->getMessage()); // Removed
     $thesis = [];
 }
 
@@ -67,7 +73,7 @@ class DepartmentManager {
             return $result['count'] ?? 0;
             
         } catch (Exception $e) {
-            error_log("Error getting department count: " . $e->getMessage());
+            // error_log("Error getting department count: " . $e->getMessage()); // Removed
             return 0;
         }
     }
@@ -81,7 +87,7 @@ class DepartmentManager {
             return $result['count'] ?? 0;
             
         } catch (Exception $e) {
-            error_log("Error getting total count: " . $e->getMessage());
+            // error_log("Error getting total count: " . $e->getMessage()); // Removed
             return 0;
         }
     }
@@ -179,10 +185,8 @@ if ($userRole === 'SubAdmin' && $user_id) {
         if ($user) {
             // SubAdmin never gets access management
             $shouldShowAccessManagement = false;
-            
             // Set account management based on Manage_Access
             $shouldShowAccountManagement = ($user['Manage_Access'] == 'Yes');
-            
             // Set edit management based on Can_Edit
             $shouldShowEditManagement = ($user['Can_Edit'] == 'Yes');
         } else {
@@ -191,27 +195,20 @@ if ($userRole === 'SubAdmin' && $user_id) {
             $shouldShowAccountManagement = false;
             $shouldShowEditManagement = false;
         }
-        
     } catch (Exception $e) {
-        error_log("Error checking SubAdmin permissions: " . $e->getMessage());
+        // error_log("Error checking SubAdmin permissions: " . $e->getMessage()); // Removed
         // On error, restrict all access for SubAdmin (safe default)
         $shouldShowAccessManagement = false;
         $shouldShowAccountManagement = false;
         $shouldShowEditManagement = false;
     }
-} 
-
-
-
-
-
+}
 
 // Check if user is logged in as admin
 if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in'] || !isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
     header('Location: ../User/indexLogin.php');
     exit();
 }
-
 // Get only the necessary user data for display (not the entire session)
 $displayUserData = [
     'user_name' => $_SESSION['user_name'] ?? '',
@@ -339,7 +336,9 @@ $displayUserData = [
 
             
                 <div class="projects-container">
-                    <div class="fab-icon"> + </div>
+                    <?php if ($canUpload): ?>
+                        <div class="fab-icon"> + </div>
+                    <?php endif; ?>
                     
                     <ul class="projects" id="recentView">
                         <?php
@@ -658,160 +657,111 @@ $displayUserData = [
             </div>
 
             <div id="logs-container" class="content-container" style="display: none;">
-                <header class="logHeader" id="logHeader">
-                    <div class="title">System Logs</div>
-                    <div class="logMenu">
-                        <button class="selected" id="userButton"> User </button>
-                        <button id="adminButton"> Admin </button>
+            <header class="logHeader" id="logHeader">
+                <div class="title">System Logs</div>
+                <div class="logMenu">
+                    <button class="selected" id="allLogsButton">All</button>
+                    <button id="userLogsButton">User</button>
+                    <button id="adminLogsButton">Admin</button>
+                </div>
+            </header>
+            
+            <!-- All Logs Container -->
+            <div id="allLogs-container" class="log-content active">
+                <div class="log-filter-bar">
+                    <div class="log-search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search all logs..." id="allLogSearchInput">
                     </div>
-                </header>
+                    <div class="log-filter-options">
+                        <button class="log-filter-btn active" data-filter="all">All Activities</button>
+                        <button class="log-filter-btn" data-filter="login">Logins</button>
+                        <button class="log-filter-btn" data-filter="user">User Management</button>
+                        <button class="log-filter-btn" data-filter="thesis">Thesis</button>
+                        <button class="log-filter-btn" data-filter="announcement">Announcements</button>
+                    </div>
+                </div>
                 
-                <!-- User Log Container -->
-                <div id="userLog-container" class="log-content">
-            <div class="log-filter-bar">
-            <div class="searchbox">
-                        <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
-                        <input type="text" name="search" placeholder="Search accounts..." class="search-text" id="userLogSearchInput">
-                    </div>
-                <div class="log-filter-options">
-                    <button class="log-filter-btn active" data-filter="all">All</button>
-                    <button class="log-filter-btn" data-filter="login">Logins</button>
-                    <button class="log-filter-btn" data-filter="upload">Uploads</button>
-                    <button class="log-filter-btn" data-filter="management">Management</button>
+                <div class="logs-table-container">
+                    <table class="logs-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 20%">Time & IP</th>
+                                <th style="width: 20%">User</th>
+                                <th style="width: 20%">Action</th>
+                                <th style="width: 40%">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="allLogsTableBody">
+                            <!-- Logs will be populated here -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
-            
-            <div class="logs-table-container">
-                <table class="logs-table">
-                                <thead>
-                                    <tr>
-                                        <th>Date & Time</th>
-                                        <th>User</th>
-                                        <th>Action</th>
-                                        <th>Details</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                        <tr data-log-type="login">
-                                        <td>2023-10-15 14:32</td>
-                                        <td>admin@example.com</td>
-                            <td><span class="log-action action-login">Login</span></td>
-                            <td>Successful login from IP 192.168.1.1</td>
-                                    </tr>
-                        <tr data-log-type="upload">
-                                        <td>2023-10-15 13:45</td>
-                                        <td>editor@example.com</td>
-                            <td><span class="log-action action-upload">Thesis Upload</span></td>
-                            <td>Uploaded "Advanced AI Research" (3.2MB)</td>
-                                    </tr>
-                        <tr data-log-type="management">
-                                        <td>2023-10-15 12:18</td>
-                                        <td>admin@example.com</td>
-                            <td><span class="log-action action-management">User Management</span></td>
-                                        <td>Updated permissions for editor@example.com</td>
-                                    </tr>
-                        <tr data-log-type="login">
-                            <td>2023-10-15 11:30</td>
-                            <td>user@example.com</td>
-                            <td><span class="log-action action-login">Login Failed</span></td>
-                            <td>Failed login attempt - incorrect password</td>
-                        </tr>
-                        <tr data-log-type="upload">
-                            <td>2023-10-15 10:15</td>
-                            <td>researcher@example.com</td>
-                            <td><span class="log-action action-upload">Thesis Update</span></td>
-                            <td>Updated metadata for "Machine Learning Applications"</td>
-                        </tr>
-                        <tr data-log-type="upload">
-                            <td>2023-10-15 10:15</td>
-                            <td>researcher@example.com</td>
-                            <td><span class="log-action action-upload">Thesis Update</span></td>
-                            <td>Updated metadata for "Machine Learning Applications"</td>
-                        </tr>
-                        <tr data-log-type="upload">
-                            <td>2023-10-15 10:15</td>
-                            <td>researcher@example.com</td>
-                            <td><span class="log-action action-upload">Thesis Update</span></td>
-                            <td>Updated metadata for "Machine Learning Applications"</td>
-                        </tr>
-                        <tr data-log-type="upload">
-                            <td>2023-10-15 10:15</td>
-                            <td>researcher@example.com</td>
-                            <td><span class="log-action action-upload">Thesis Update</span></td>
-                            <td>Updated metadata for "Machine Learning Applications"</td>
-                        </tr>
-                        <tr data-log-type="upload">
-                            <td>2023-10-15 10:15</td>
-                            <td>researcher@example.com</td>
-                            <td><span class="log-action action-upload">Thesis Update</span></td>
-                            <td>Updated metadata for "Machine Learning Applications"</td>
-                        </tr>
-                                </tbody>
-                            </table>
+
+            <!-- User Log Container -->
+            <div id="userLogs-container" class="log-content" style="display: none;">
+                <div class="log-filter-bar">
+                    <div class="log-search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search user logs..." id="userLogSearchInput">
+                    </div>
+                    <div class="log-filter-options">
+                        <button class="log-filter-btn active" data-filter="all">All Activities</button>
+                        <button class="log-filter-btn" data-filter="login">Logins</button>
+                        <button class="log-filter-btn" data-filter="management">Management</button>
                     </div>
                 </div>
                 
-                <!-- Admin Log Container -->
-                <div id="adminLog-container" class="log-content" style="display: none;">
+                <div class="logs-table-container">
+                    <table class="logs-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 20%">Time & IP</th>
+                                <th style="width: 20%">User</th>
+                                <th style="width: 20%">Action</th>
+                                <th style="width: 40%">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userLogsTableBody">
+                            <!-- User logs will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Admin Log Container -->
+            <div id="adminLogs-container" class="log-content" style="display: none;">
                 <div class="log-filter-bar">
-                <div class="searchbox">
-                        <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
-                        <input type="text" name="search" placeholder="Search accounts..." class="search-text" id="adminLogSearchInput">
+                    <div class="log-search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search admin logs..." id="adminLogSearchInput">
                     </div>
-                <div class="log-filter-options">
-                    <button class="log-filter-btn active" data-filter="all">All</button>
-                    <button class="log-filter-btn" data-filter="system">System</button>
-                    <button class="log-filter-btn" data-filter="management">Management</button>
-                    <button class="log-filter-btn" data-filter="security">Security</button>
-                    </div>
-                </div>
-            
-            <div class="logs-table-container">
-                <table class="logs-table">
-                                <thead>
-                                    <tr>
-                                        <th>Date & Time</th>
-                                        <th>Admin</th>
-                                        <th>Action</th>
-                                        <th>Details</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                        <tr data-log-type="system">
-                                        <td>2023-10-16 09:15</td>
-                                        <td>superadmin@example.com</td>
-                            <td><span class="log-action action-system">System Update</span></td>
-                            <td>Applied security patches to database server</td>
-                                    </tr>
-                        <tr data-log-type="management">
-                                        <td>2023-10-15 16:30</td>
-                                        <td>admin@example.com</td>
-                            <td><span class="log-action action-management">User Creation</span></td>
-                            <td>Created new editor account: editor2@example.com</td>
-                                    </tr>
-                        <tr data-log-type="system">
-                                        <td>2023-10-15 11:05</td>
-                                        <td>superadmin@example.com</td>
-                            <td><span class="log-action action-system">Database Backup</span></td>
-                            <td>Performed full system backup (2.4GB)</td>
-                        </tr>
-                        <tr data-log-type="security">
-                            <td>2023-10-15 09:45</td>
-                            <td>admin@example.com</td>
-                            <td><span class="log-action action-system">Security Audit</span></td>
-                            <td>Ran security audit - no vulnerabilities found</td>
-                        </tr>
-                        <tr data-log-type="management">
-                            <td>2023-10-14 17:20</td>
-                            <td>admin@example.com</td>
-                            <td><span class="log-action action-management">Role Update</span></td>
-                            <td>Changed user permissions for research team</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                    <div class="log-filter-options">
+                        <button class="log-filter-btn active" data-filter="all">All Activities</button>
+                        <button class="log-filter-btn" data-filter="system">System</button>
+                        <button class="log-filter-btn" data-filter="management">Management</button>
+                        <button class="log-filter-btn" data-filter="security">Security</button>
                     </div>
                 </div>
+                
+                <div class="logs-table-container">
+                    <table class="logs-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 20%">Time & IP</th>
+                                <th style="width: 20%">Admin</th>
+                                <th style="width: 20%">Action</th>
+                                <th style="width: 40%">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminLogsTableBody">
+                            <!-- Admin logs will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
 
                 <!-- Announcement Container -->
             <div id="announcement-container" class="content-container" style="display: none;">
