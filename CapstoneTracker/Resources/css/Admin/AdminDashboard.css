@@ -2804,15 +2804,16 @@ body {
 
 
 .logs-table tr[data-log-type="announcement"] td:first-child {
-    border-left: 4px solid #ffae5d;
+    border-left: 4px solid #a70000;
+
 }
 
 .logs-table tr[data-log-type="thesis"] td:first-child {
-    border-left: 4px solid #9c27b0;
+    border-left: 4px solid #e1d902;
 }
 
-.logs-table tr[data-log-type="user_management"] td:first-child {
-    border-left: 4px solid #6886ff;
+.logs-table tr[data-log-type="user"] td:first-child {
+    border-left: 4px solid #cd7f0b;
 }
 
 .logs-table tr[data-log-type="system"] td:first-child {
