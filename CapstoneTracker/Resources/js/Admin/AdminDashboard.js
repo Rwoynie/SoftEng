@@ -3350,19 +3350,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function testDebugMethod() {
     try {
-        console.log('=== TESTING DEBUG METHOD ===');
+        
         const response = await fetch('../../../app/Controllers/AdminDashboardController.php?action=debugLogs');
         const data = await response.json();
-        console.log('Debug method response:', data);
+     
         
-        if (data.success) {
-            console.log('Audit logs count:', data.debug_info.audit_logs_count);
-            console.log('Login attempts count:', data.debug_info.login_attempts_count);
-            console.log('Sample audit logs:', data.debug_info.sample_audit_logs);
-            console.log('Sample login attempts:', data.debug_info.sample_login_attempts);
-        }
+        
     } catch (error) {
-        console.error('Debug method test failed:', error);
+       
     }
 }
 
@@ -4724,8 +4719,8 @@ class SystemLogsManager {
     }
 
 
-
 setTimeout(testAuditQuery, 500);
+
 
 
 
