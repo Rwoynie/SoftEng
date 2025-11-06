@@ -8,6 +8,8 @@ if (session_status() === PHP_SESSION_NONE) {
 
 
 
+
+
 // Include the configuration file
 require_once '..\..\..\Database\config.php';
 
@@ -136,6 +138,7 @@ if ($setupError) {
       <div class="modal-body">
         <form method="POST" action="../../Controllers/AuthController.php" enctype="multipart/form-data">
           <input type="hidden" name="action" value="login">
+          <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
           <input type="hidden" id="roleField" name="role">
           <div class="mb-3">
             <label for="email" class="form-label">Email</label>

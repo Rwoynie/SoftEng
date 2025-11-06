@@ -8,10 +8,40 @@ require_once __DIR__ . '/Controller.php';
 
 class AuthController extends Controller {
     
+    /**
+     * Generate and store CSRF token
+     */
+    private function generateCsrfToken() {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        
+        return $_SESSION['csrf_token'];
+    }
+
+    /**
+     * Validate CSRF token
+     */
+    private function validateCsrfToken($token) {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        return isset($_SESSION['csrf_token']) && 
+            hash_equals($_SESSION['csrf_token'], $token);
+    }
+
     public function handleRequest() {
         // Start session at the beginning
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
+            
+            // Generate CSRF token if it doesn't exist
+            $this->generateCsrfToken();
         }
         
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -40,6 +70,15 @@ class AuthController extends Controller {
         // Get form data
         error_log("Login attempt - Username: " . ($_POST['email'] ?? 'empty'));
     error_log("Login attempt - Role: " . ($_POST['role'] ?? 'empty'));
+
+        // Validate CSRF token first
+        $csrfToken = $_POST['csrf_token'] ?? '';
+        if (!$this->validateCsrfToken($csrfToken)) {
+            $this->redirectWithError('Invalid security token. Please try again.');
+            return;
+        }
+        
+
         $username = $_POST['email'] ?? '';
         $password = $_POST['password'] ?? '';
         // Role may not always be posted (e.g., direct modal open after redirect) – handle gracefully
@@ -147,6 +186,8 @@ class AuthController extends Controller {
         $_SESSION['user_name'] = $user['name'];
         $_SESSION['user_role'] = $user['role'] ?? 'user';
         $_SESSION['logged_in'] = true;
+
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
     
     public function logout() {
