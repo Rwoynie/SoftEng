@@ -465,6 +465,7 @@ body {
 }
 
 
+
 /* Custom scrollbar for projects container */
 .projects-container::-webkit-scrollbar {
     width: 8px;
@@ -520,6 +521,25 @@ body {
 }
 
 .logs-table-container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+
+.accounts-table-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.accounts-table-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.accounts-table-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.accounts-table-container::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
 }
 
@@ -2112,13 +2132,13 @@ body {
 /* Role Box Container */
 .roleBox {
     display: none;
-    position: absolute;
-    right: 3vw;
+    position: fixed !important;
+    right: 9vw;
     background: var(--color-white);
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     padding: 10px;
-    z-index: 1000;
+    z-index: 1000 !important;
     min-width: 200px;
     border: 1px solid #eee;
     animation: fadeInUp 0.3s ease;
@@ -2127,7 +2147,8 @@ body {
 .roleBox.active {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 8px;   
+    
 }
 
 .roleBox button {
@@ -2287,6 +2308,7 @@ body {
 
 .roleBox-overlay.active {
     display: block;
+    
 }
 
 
@@ -4745,11 +4767,14 @@ body {
 }
 
 .accounts-table-container {
+    display: flex;
     background: var(--color-white);
     border-radius: 12px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden !important;
     margin-bottom: 20px;
+    height: 29vw;
     width: 100%;
 }
 
@@ -4757,6 +4782,53 @@ body {
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed; /* Add this for consistent column widths */
+}
+
+.accounts-table tbody {
+    display: block;
+    max-height: calc(29vw - 60px); /* Container height minus header */
+    overflow-y: auto;
+}
+
+.accounts-table thead,
+.accounts-table tbody tr {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+}
+
+.accounts-table thead {
+    position: sticky;
+    top: 0;
+    background-color: #f5f5f5;
+    z-index: 10;
+}
+
+/* Table row styling */
+.accounts-table tr {
+    display: table-row;
+}
+
+.accounts-table td {
+    padding: 15px;
+    padding-top: 1.2vw;
+    padding-bottom: 1.2vw;
+    border-bottom: 1px solid #eee;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    position: relative;
+    cursor: help; /* Change cursor to indicate tooltip */
+}
+
+/* Ensure rows don't stretch */
+.accounts-table tbody tr {
+    height: auto;
+}
+
+/* Fix for single row - prevent stretching */
+.accounts-table tbody tr:only-child {
+    height: auto;
 }
 
 .accounts-table th {
@@ -4770,14 +4842,67 @@ body {
     top: 0;
 }
 
-.accounts-table th:nth-child(1) { width: 20%; } /* Full Name */
-.accounts-table th:nth-child(2) { width: 25%; } /* Email */
+.accounts-table td:nth-child(1), /* Full Name */
+.accounts-table td:nth-child(2) { /* Email */
+    max-width: 0; /* Required for text-overflow to work with table-layout: fixed */
+}
+
 .accounts-table th:nth-child(3) { width: 12%; } /* Status */
 .accounts-table th:nth-child(4) { width: 12%; } /* Role */
 .accounts-table th:nth-child(5) { width: 15%; } /* Join Date */
 .accounts-table th:nth-child(6) { width: 16%; } /* Actions */
 
+.accounts-table td[data-fulltext] {
+    position: relative;
+}
+
+.accounts-table td[data-fulltext]:hover::after {
+    content: attr(data-fulltext);
+    position: absolute;
+    left: 50%;
+    bottom: 30%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: normal;
+    width: 12vw;
+    word-wrap: break-word;
+    z-index: 1000 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    pointer-events: none;
+}
+
+/* Tooltip arrow */
+.accounts-table td[data-fulltext]:hover::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% - 6px);
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.8);
+    z-index: 1001;
+    pointer-events: none;
+}
+
+.accounts-table td:last-child {
+    overflow: visible;
+    white-space: normal;
+}
+
+/* Ensure status and role badges don't get ellipsis */
+.accounts-table .status-badge,
+.accounts-table .role-badge {
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: unset;
+}
+
 .accounts-table td {
+    
     padding: 15px;
     padding-top: 1.2vw;
     padding-bottom: 1.2vw;
@@ -4888,7 +5013,7 @@ body {
     transform: translate(-50%, -10%);
     display: flex;
     position: absolute;
-    bottom: 1vw;
+    bottom: 0.5vw;
     justify-content: center;
     align-items: center;
     gap: 15px;
@@ -4921,11 +5046,16 @@ body {
 /* Responsive adjustments */
 @media (max-width: 992px) {
     .accounts-table-container {
-        overflow-x: auto;
+        height: 42vw;
     }
     
     .accounts-table {
         min-width: 800px;
+    }
+
+    .accounts-table td[data-fulltext]:hover::after {
+        max-width: 200px;
+        font-size: 11px;
     }
 }
 

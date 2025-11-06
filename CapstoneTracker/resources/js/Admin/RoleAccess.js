@@ -251,25 +251,6 @@ async function handleRoleAction(userId, userName, permissionType, currentValue) 
             return;
         }
 
-        // Check if trying to grant Modify Thesis or Manage Access to non-SubAdmin user
-        if ((permissionType === 'can_edit' || permissionType === 'manage_access') && currentValue === 'No') {
-            // Get current Sub-Admin status
-            const userItem = document.querySelector(`.admin-user-item[data-user-id="${userId}"]`);
-            const currentSubAdminValue = userItem.querySelector('[data-permission="sub_admin"]').getAttribute('data-current-value');
-            
-            if (currentSubAdminValue === 'No') {
-                await Swal.fire({
-                    title: 'Sub-Admin Required',
-                    html: `Cannot grant <strong>${permissionType === 'can_edit' ? 'Modify Thesis' : 'Manage Access'}</strong> permission to <strong>${userName}</strong>.<br><br>
-                          <strong>Only Sub-Admin users can have these permissions.</strong><br><br>
-                          Please grant Sub-Admin permission first, then you can assign ${permissionType === 'can_edit' ? 'Modify Thesis' : 'Manage Access'}.`,
-                    icon: 'warning',
-                    confirmButtonText: 'OK'
-                });
-                return;
-            }
-        }
-
         // Determine new value (toggle between Yes/No)
         const newValue = currentValue === 'Yes' ? 'No' : 'Yes';
         
@@ -292,7 +273,26 @@ async function handleRoleAction(userId, userName, permissionType, currentValue) 
                                   <small style="color: #666;">This will:
                                   <br>• Change user role back to their original role
                                   <br>• Remove Sub-Admin status
-                                  <br>• <strong>Preserve other permissions</strong></small>`;
+                                  <br>• <strong>Automatically disable all other permissions</strong></small>`;
+        }
+        
+        // Special message for trying to grant permissions without Sub-Admin
+        if ((permissionType === 'can_edit' || permissionType === 'manage_access') && newValue === 'Yes') {
+            // Get current Sub-Admin status
+            const userItem = document.querySelector(`.admin-user-item[data-user-id="${userId}"]`);
+            const currentSubAdminValue = userItem.querySelector('[data-permission="sub_admin"]').getAttribute('data-current-value');
+            
+            if (currentSubAdminValue === 'No') {
+                await Swal.fire({
+                    title: 'Sub-Admin Required',
+                    html: `Cannot grant <strong>${permissionType === 'can_edit' ? 'Modify Thesis' : 'Manage Access'}</strong> permission to <strong>${userName}</strong>.<br><br>
+                          <strong>Only Sub-Admin users can have these permissions.</strong><br><br>
+                          Please grant Sub-Admin permission first, then you can assign ${permissionType === 'can_edit' ? 'Modify Thesis' : 'Manage Access'}.`,
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
         }
         
         const result = await Swal.fire({
@@ -311,6 +311,11 @@ async function handleRoleAction(userId, userName, permissionType, currentValue) 
             await updateUserPermission(userId, permissionType, newValue);
             
             let successMessage = `Successfully ${action === 'grant' ? 'granted' : 'revoked'} ${displayName} permission for ${userName}.`;
+            
+            // Add note about auto-disabling for Sub-Admin revocation
+            if (permissionType === 'sub_admin' && newValue === 'No') {
+                successMessage += `<br><br><small>All other permissions have been automatically disabled.</small>`;
+            }
             
             await Swal.fire({
                 title: 'Success!',

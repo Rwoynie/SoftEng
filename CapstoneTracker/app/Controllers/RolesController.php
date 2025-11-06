@@ -94,7 +94,14 @@ class RolesController {
             if (!$userStatus || $userStatus['Acc_Status'] === 'pending') {
                 throw new Exception('Cannot modify roles for pending accounts');
             }
-
+    
+            // NEW LOGIC: If revoking Sub-Admin, automatically disable all other permissions
+            if ($subAdmin === 'No') {
+                $canEdit = 'No';
+                $manageAccess = 'No';
+                $restoreOriginalRole = true; // Force restore original role when Sub-Admin is revoked
+            }
+            
             // Allow granting sub-admin permission without the other permissions
             if ($subAdmin === 'No' && ($canEdit === 'Yes' || $manageAccess === 'Yes')) {
                 throw new Exception('Only Sub-Admin users can have Modify Thesis or Manage Access permissions');
@@ -127,7 +134,7 @@ class RolesController {
                     error_log("Storing original role: " . $originalUserRole . " for user: " . $userId);
                 }
             } elseif ($restoreOriginalRole) {
-                // When revoking Sub-Admin and restoring original role - PRESERVE OTHER PERMISSIONS
+                // When revoking Sub-Admin and restoring original role - DISABLE ALL OTHER PERMISSIONS
                 if ($existingRole && !empty($existingRole['Original_User_Role'])) {
                     $originalUserRole = $existingRole['Original_User_Role'];
                     error_log("Restoring original role: " . $originalUserRole . " for user: " . $userId);
@@ -137,12 +144,10 @@ class RolesController {
                     error_log("Using current role as fallback: " . $originalUserRole . " for user: " . $userId);
                 }
                 
-                // IMPORTANT: When revoking Sub-Admin, preserve the existing can_edit and manage_access values
-                // Only change sub_admin to 'No' and restore the original user role
-                if ($existingRole) {
-                    $canEdit = $existingRole['Can_Edit'] = 'No'; // Preserve current value
-                    $manageAccess = $existingRole['Manage_Access'] = 'No'; // Preserve current value
-                }
+                // IMPORTANT: When revoking Sub-Admin, automatically disable all other permissions
+                $canEdit = 'No';
+                $manageAccess = 'No';
+                error_log("Auto-disabled all permissions when revoking Sub-Admin for user: " . $userId);
             } else {
                 // For other permission changes, preserve existing original role
                 if ($existingRole && !empty($existingRole['Original_User_Role'])) {
@@ -176,13 +181,13 @@ class RolesController {
                 $db->execute();
                 error_log("Updated user role to 'subAdmin' for user: " . $userId);
             } elseif ($restoreOriginalRole && $originalUserRole) {
-                // When revoking Sub-Admin, restore the original role but preserve permissions
+                // When revoking Sub-Admin, restore the original role and disable all permissions
                 $db->query("UPDATE USER_INFORMATION SET User_Role = :user_role WHERE ID = :user_id");
                 $db->bind(':user_role', $originalUserRole);
                 $db->bind(':user_id', $userId);
                 $db->execute();
                 error_log("Restored user role to '" . $originalUserRole . "' for user: " . $userId);
-                error_log("Preserved permissions - Can_Edit: " . $canEdit . ", Manage_Access: " . $manageAccess);
+                error_log("Auto-disabled all permissions for user: " . $userId);
             }
             
             // Update session if this is the current user

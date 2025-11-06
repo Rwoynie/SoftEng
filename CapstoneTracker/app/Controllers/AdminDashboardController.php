@@ -365,11 +365,17 @@ private function debugLogs() {
             return;
         }
 
-        $data = json_decode(file_get_contents('php://input'), true);
-        $userId = $data['user_id'] ?? null;
+        $userId = $_POST['user_id'] ?? null;
+        $csrfToken = $_POST['csrf_token'] ?? '';
 
         if (!$userId) {
             $this->jsonResponse(['error' => 'Missing user ID'], 400);
+            return;
+        }
+    
+        // Validate CSRF token
+        if (!$this->validateCsrfToken($csrfToken)) {
+            $this->jsonResponse(['error' => 'Invalid CSRF token'], 400);
             return;
         }
 
@@ -387,6 +393,8 @@ private function debugLogs() {
             $this->jsonResponse(['error' => 'Failed to delete user'], 500);
         }
     }
+
+    
 
     /**
      * Get system statistics
@@ -774,10 +782,11 @@ private function updateAnnouncement() {
     /**
      * Validate CSRF token
      */
-    private function validateCsrfToken() {
-        if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== ($_SESSION['csrf_token'] ?? '')) {
-            throw new Exception("Invalid CSRF token");
+    private function validateCsrfToken($token) {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
         }
+        return isset($_SESSION['csrf_token']) && $token === $_SESSION['csrf_token'];
     }
 
     /**

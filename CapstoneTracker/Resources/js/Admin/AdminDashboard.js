@@ -76,7 +76,28 @@ document.addEventListener('DOMContentLoaded', function() {
     const menuButtons = document.querySelectorAll('.header .menu button');
 
     // for log buttons
-    const logMenuButtons = document.querySelectorAll('.header .logMenu button');
+    window.accountPagination = new AccountPagination();
+    
+    // Initialize when accounts section is shown
+    const accountsOption = document.querySelector('.menu-options li[data-view="accounts"]');
+    if (accountsOption) {
+        accountsOption.addEventListener('click', function() {
+            setTimeout(() => {
+                if (window.accountPagination) {
+                    window.accountPagination.initialize();
+                }
+            }, 100);
+        });
+    }
+
+    const currentView = document.querySelector('.content-container-active');
+    if (currentView && currentView.id === 'accounts-container') {
+        setTimeout(() => {
+            if (window.accountPagination) {
+                window.accountPagination.initialize();
+            }
+        }, 100);
+    }
 
 
     // Function to switch log views
@@ -347,7 +368,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function initializeModalCloseHandlers() {
-        // Close buttons for all modals
+        // Close buttons for all modals - these should reset the form
         const modalCloseButtons = document.querySelectorAll('.modal-close, .btn-cancel');
         
         modalCloseButtons.forEach(btn => {
@@ -357,16 +378,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Find the closest modal overlay
                 const modal = this.closest('.modal-overlay');
                 if (modal) {
+                    // For upload modal, reset the form when explicitly cancelled
+                    if (modal.id === 'uploadModal') {
+                        resetUploadForm();
+                    }
                     closeModal(modal);
                 }
             });
         });
         
-        // Close modal when clicking outside
+        // Close modal when clicking outside - DON'T reset the form
         document.querySelectorAll('.modal-overlay').forEach(modal => {
             if (modal) {
                 modal.addEventListener('click', function(e) {
                     if (e.target === this) {
+                        // Only close the modal, don't reset the form when clicking outside
                         closeModal(this);
                     }
                 });
@@ -1382,8 +1408,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Account status containers
     const allAccountsContainer = document.getElementById('allAccounts-container');
-    const pendingAccountsContainer = document.getElementById('pendingAccounts-container');
-    const approvedAccountsContainer = document.getElementById('approvedAccounts-container');
+  
 
     // Function to switch account views
     function switchAccountView(viewToShow, buttonToSelect) {
@@ -1652,14 +1677,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                 icon: 'success',
                                 confirmButtonColor: '#3085d6'
                             }).then(() => {
-                                // Reload the page to reflect changes
-                                location.reload();
+                                // UPDATE THE UI WITHOUT RELOADING THE PAGE
+                                updateUserStatusInUI(userId, 'approved', button);
                             });
                         } else {
                             throw new Error(result.error || 'Failed to approve account');
                         }
                     } catch (error) {
-                        
+                        console.error('Error approving account:', error);
                         Swal.fire({
                             title: 'Error',
                             text: 'Failed to approve account. Please try again.',
@@ -1674,7 +1699,94 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         } catch (error) {
-          
+            console.error('Error in approveAccount:', error);
+        }
+    }
+
+    function updateUserStatusInUI(userId, newStatus, button) {
+        // Find the user row in the table
+        const userRow = button.closest('tr');
+        if (!userRow) return;
+    
+        // Update the status badge
+        const statusBadge = userRow.querySelector('.status-badge');
+        if (statusBadge) {
+            statusBadge.textContent = newStatus;
+            statusBadge.className = 'status-badge'; // Reset classes
+            
+            // Update badge styling based on status
+            if (newStatus === 'approved') {
+                statusBadge.classList.add('status-approved');
+            } else if (newStatus === 'pending') {
+                statusBadge.classList.add('status-pending');
+            } else if (newStatus === 'rejected') {
+                statusBadge.classList.add('status-rejected');
+            }
+        }
+    
+        // Update the approve button - disable it and change appearance
+        if (button && newStatus === 'approved') {
+            button.innerHTML = '<i class="fas fa-check"></i>';
+            button.classList.add('disabled');
+            button.disabled = true;
+            button.title = 'Account Approved';
+            
+            // Remove click event listener to prevent further actions
+            button.replaceWith(button.cloneNode(true));
+        }
+    
+        // Update counts in the filter tabs if they exist
+        updateAccountCounts();
+    
+        // If we're in a filtered view (pending only), remove the row from view
+        const currentFilter = getCurrentAccountFilter();
+        if (currentFilter === 'pendingButton' && newStatus === 'approved') {
+            // Add fade out animation
+            userRow.style.transition = 'all 0.3s ease';
+            userRow.style.opacity = '0';
+            userRow.style.transform = 'translateX(-100%)';
+            
+            setTimeout(() => {
+                userRow.style.display = 'none';
+                
+                // Check if no more pending accounts are visible
+                const visibleRows = userRow.parentElement.querySelectorAll('tr');
+                const hasVisibleRows = Array.from(visibleRows).some(row => 
+                    row.style.display !== 'none' && 
+                    row.querySelector('.status-badge')?.textContent === 'pending'
+                );
+                
+                if (!hasVisibleRows) {
+                    showNoResultsMessage();
+                }
+            }, 300);
+        }
+    }
+    
+    // Helper function to get current account filter
+    function getCurrentAccountFilter() {
+        const activeButton = document.querySelector('.logMenu button.selected');
+        return activeButton ? activeButton.id : 'allAccountsButton';
+    }
+    
+   
+    
+    // Helper function to show no results message
+    function showNoResultsMessage() {
+        const tableBody = document.querySelector('.accounts-table tbody');
+        if (!tableBody.querySelector('.no-results-row')) {
+            const noResultsRow = document.createElement('tr');
+            noResultsRow.className = 'no-results-row';
+            noResultsRow.innerHTML = `
+                <td colspan="5" class="text-center">
+                    <div class="no-results-message">
+                        <i class="fas fa-inbox"></i>
+                        <h3>No Pending Accounts</h3>
+                        <p>All accounts have been processed.</p>
+                    </div>
+                </td>
+            `;
+            tableBody.appendChild(noResultsRow);
         }
     }
 
@@ -1761,15 +1873,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Load users data when accounts section is shown
-    const accountsOption = document.querySelector('.menu-options li[data-view="accounts"]');
-    if (accountsOption) {
-        accountsOption.addEventListener('click', function() {
-            // The table is already populated with PHP, so no need to load via AJAX
-            // But you can add any initialization code here if needed
-          
-        });
-    }
+    
 
     //Upload Functionality
     function isValidEmail(email) {
@@ -2130,13 +2234,15 @@ document.addEventListener('DOMContentLoaded', function() {
             fabIcon.addEventListener('click', function() {
                 console.log('FAB clicked, opening modal');
                 try {
-                    // FIX: Reset file inputs when modal opens
-                    if (abstractFileInput) abstractFileInput.value = '';
-                    if (thesisFileInput) thesisFileInput.value = '';
+                    // DON'T reset the form when opening modal - keep existing files
+                    // resetUploadForm(); // REMOVE THIS LINE
                     
                     uploadModal.classList.add('active');
                     document.body.style.overflow = 'hidden';
                     console.log('Modal opened successfully');
+                    
+                    // Update button state in case files are already selected
+                    updateUploadButtonState();
                 } catch (error) {
                     console.error('Error opening modal:', error);
                 }
@@ -4059,10 +4165,8 @@ function closeModal(modal) {
             if (unsupportedFile) {
                 unsupportedFile.style.display = 'none';
             }
-        } else if (modal.id === 'uploadModal') {
-            // Reset upload form if needed
-            resetUploadForm();
         }
+        // REMOVED: Don't reset upload form when modal closes
         
         console.log('Modal closed successfully');
     } catch (error) {

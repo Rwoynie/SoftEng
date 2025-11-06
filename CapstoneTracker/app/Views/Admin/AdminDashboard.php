@@ -245,6 +245,7 @@ $displayUserData = [
     <script type="text/javascript" src="../../../resources/js/Admin/AdminDashboard.js"></script>
     <script type="text/javascript" src="../../../resources/js/Admin/RoleAccess.js"></script>
     <script type="text/javascript" src="../../../resources/js/Admin/AdminDashboardAnnouncement.js"></script>
+    <script type="text/javascript" src="../../../resources/js/Admin/AccountPagination.js"></script>
     <script>
         const userDisplayData = <?php echo json_encode($displayUserData); ?>;
     </script>
@@ -443,6 +444,9 @@ $displayUserData = [
 
                                         <p class="notFound" id="adminNotFound">No users found matching your search.</p>
                                     </div>
+
+                                    <div id="globalRoleBoxContainer" style="display: none;"></div>
+                                    
                                 </div>
                             </div>
                             <div class="fab-icon save-fab" id="saveAdminChangesBtn" title="Save Changes">
@@ -641,7 +645,7 @@ $displayUserData = [
                                 <button class="pagination-btn" disabled>
                                     <i class="fa fa-chevron-left"></i>
                                 </button>
-                                <span class="pagination-info">Page 1 of 3</span>
+                                <span class="pagination-info">Page 1 of 1</span>
                                 <button class="pagination-btn">
                                     <i class="fa fa-chevron-right"></i>
                                 </button>
