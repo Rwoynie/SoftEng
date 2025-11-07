@@ -57,6 +57,8 @@ if (isset($_SESSION['admin_error_message'])) {
   unset($_SESSION['admin_error_message']);
 }
 
+
+
 if ($setupError) {
   echo '<div class="alert alert-danger position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999;">';
   echo 'Setup Error: ' . htmlspecialchars($setupError);
@@ -187,6 +189,7 @@ if ($setupError) {
       <div class="modal-body">
       <form id="studentRegisterForm" method="POST" action="../../Controllers/RegistrationController.php" enctype="multipart/form-data">
         <input type="hidden" name="action" value="student_register">
+        <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
           <div class="row g-3">
             <!-- Separate Name Fields -->
             <div class="col-md-4">
@@ -279,6 +282,7 @@ if ($setupError) {
       <form id="facultyRegisterForm" method="POST" action="../../Controllers/RegistrationController.php" enctype="multipart/form-data">
          
           <input type="hidden" name="action" value="faculty_register">
+          <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
           <div class="row g-3">
             <!-- Separate Name Fields -->
             <div class="col-md-4">
@@ -379,6 +383,7 @@ if ($setupError) {
             </div>
             <form id="adminLoginForm" method="POST" action="../../Controllers/AdminController.php">
               <input type="hidden" name="action" value="login">
+              <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
               <div class="mb-3">
                 <label for="adminUsername" class="form-label">Admin ID</label>
                 <input type="text" id="adminUsername" name="admin_username" class="form-control" placeholder="Enter admin ID" required>

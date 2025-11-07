@@ -21,6 +21,33 @@ class RegistrationController {
     public function __construct() {
         $this->userModel = new User();
     }
+
+    /**
+     * Generate and store CSRF token
+     */
+    private function generateCsrfToken() {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        
+        return $_SESSION['csrf_token'];
+    }
+
+    /**
+     * Validate CSRF token
+     */
+    private function validateCsrfToken($token) {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        return isset($_SESSION['csrf_token']) && 
+            hash_equals($_SESSION['csrf_token'], $token);
+    }
     
     /**
      * Handle registration request - determines if it's student or faculty
@@ -43,6 +70,13 @@ class RegistrationController {
      */
     public function registerStudent($data, $files = []) {
         try {
+
+            $csrfToken = $_POST['csrf_token'] ?? '';
+            if (!$this->validateCsrfToken($csrfToken)) {
+                $_SESSION['error_message'] = 'Invalid security token. Please try again.';
+                header('Location: ../../app/Views/User/indexLogin.php');
+                exit();
+            }
 
             $designation = 'Student';
             // Validate required fields

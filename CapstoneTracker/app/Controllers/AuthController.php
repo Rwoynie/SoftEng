@@ -69,24 +69,28 @@ class AuthController extends Controller {
     public function processLogin() {
         // Get form data
         error_log("Login attempt - Username: " . ($_POST['email'] ?? 'empty'));
-    error_log("Login attempt - Role: " . ($_POST['role'] ?? 'empty'));
-
+        error_log("Login attempt - Role: " . ($_POST['role'] ?? 'empty'));
+    
         // Validate CSRF token first
         $csrfToken = $_POST['csrf_token'] ?? '';
         if (!$this->validateCsrfToken($csrfToken)) {
             $this->redirectWithError('Invalid security token. Please try again.');
             return;
         }
-        
 
         $username = $_POST['email'] ?? '';
         $password = $_POST['password'] ?? '';
-        // Role may not always be posted (e.g., direct modal open after redirect) – handle gracefully
         $role = $_POST['role'] ?? '';
         
         // Validate input
         if (empty($username) || empty($password)) {
             $this->redirectWithError('All fields are required.');
+            return;
+        }
+        
+        // Clear any existing error message
+        if (isset($_SESSION['error_message'])) {
+            unset($_SESSION['error_message']);
         }
         
         // Authenticate user
@@ -97,15 +101,17 @@ class AuthController extends Controller {
             $this->createUserSession($user);
             $this->redirect('../../app/Views/User/userViewPage.php');
         } else {
-            // Only redirect with error if no specific error message was already set
+            // Debug: Log the error message that was set
+            $errorMsg = $_SESSION['error_message'] ?? 'No error message set';
+            error_log("Authentication failed with message: " . $errorMsg);
+            
+            // Ensure we have an error message
             if (!isset($_SESSION['error_message']) || empty($_SESSION['error_message'])) {
-                $this->redirectWithError('Invalid credentials. Please try again.');
-            } else {
-                // Redirect with the existing error message
-                
-                header('Location: ../../app/Views/User/indexLogin.php');
-                exit();
+                $_SESSION['error_message'] = 'Invalid credentials. Please try again.';
             }
+            
+            header('Location: ../../app/Views/User/indexLogin.php');
+            exit();
         }
     }
 
@@ -129,8 +135,8 @@ class AuthController extends Controller {
         try {
             $userModel = new User();
             
-            // MODIFIED: For student/faculty login, only authenticate by Email
-            $user = $userModel->loginByEmail($username, $password); // We'll create this method
+            // MODIFIED: Use loginByEmail which now returns user regardless of status
+            $user = $userModel->loginByEmail($username, $password);
             
             if ($user) {
                 // Check if user role matches the selected role
@@ -146,37 +152,43 @@ class AuthController extends Controller {
                 $mappedRole = $roleMapping[$selectedRole] ?? $selectedRole;
                 
                 if ($userRole === $mappedRole) {
-                    // Double-check that the account is approved before allowing login
-                    if ($user->Acc_Status === 'approved') {
+                    // Check account status before allowing login
+                    if ($user->Acc_Status === 'pending') {
+                        $_SESSION['error_message'] = "Your account is pending approval. Please wait for administrator approval before logging in.";
+                        return false;
+                    } else if ($user->Acc_Status === 'rejected') {
+                        $_SESSION['error_message'] = "Your account registration was rejected. Please contact the administrator for more information.";
+                        return false;
+                    } else if ($user->Acc_Status === 'approved') {
+                        // Account is approved - allow login
                         return [
                             'id' => $user->ID,
-                            'username' => $user->Email, // Using email as username
+                            'username' => $user->Email,
                             'email' => $user->Email,
                             'name' => $user->First_Name . ' ' . $user->Last_Name,
                             'role' => $user->User_Role
                         ];
                     } else {
-                        // Account exists but not approved
-                        $_SESSION['error_message'] = "Your account is pending approval. Please wait for approval before logging in.";
+                        // Unknown status
+                        $_SESSION['error_message'] = 'Your account status is invalid. Please contact administrator.';
                         return false;
                     }
                 } else {
                     error_log("Role mismatch: User role is $userRole, but selected role is $selectedRole");
+                    $_SESSION['error_message'] = 'Invalid credentials for the selected role.';
+                    return false;
                 }
+            } else {
+                // No user found or password incorrect
+                $_SESSION['error_message'] = 'Invalid credentials. Please try again.';
+                return false;
             }
+            
         } catch (Exception $e) {
             error_log("Authentication error: " . $e->getMessage());
             $_SESSION['error_message'] = 'Authentication error: ' . $e->getMessage();
+            return false;
         }
-        
-        // Only set default error message if no specific error was already set
-        if (!isset($_SESSION['error_message']) || empty($_SESSION['error_message'])) {
-            $_SESSION['error_message'] = 'Invalid credentials. Please try again.';
-        } else {
-            // Debug: Log what error message is being set
-            error_log("Setting error message: " . $_SESSION['error_message']);
-        }
-        return false;
     }
 
     

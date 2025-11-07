@@ -434,8 +434,8 @@ class User extends Model {
      */
     public function loginByEmail($email, $password) {
         try {
-            // MODIFIED: Only allow login by Email for student/faculty users
-            $this->db->query('SELECT * FROM USER_INFORMATION WHERE Email = :email AND Acc_Status = "approved"');
+            // MODIFIED: Remove Acc_Status check to return user regardless of status
+            $this->db->query('SELECT * FROM USER_INFORMATION WHERE Email = :email');
             $this->db->bind(':email', $email);
             $result = $this->db->single();
             
