@@ -90,30 +90,7 @@
                 UNIQUE KEY unique_review (thesis_id, reviewer_id)
             ) ENGINE=InnoDB;",
 
-            "CREATE TABLE SYSTEM_LOGS (
-                id INT PRIMARY KEY AUTO_INCREMENT,
-                user_id INT NULL,
-                user_type ENUM('user', 'admin') DEFAULT 'user',
-                action VARCHAR(100) NOT NULL,
-                description TEXT NOT NULL,
-                ip_address VARCHAR(45) NOT NULL,
-                user_agent TEXT,
-                log_type ENUM('user', 'admin', 'system', 'security', 'error') DEFAULT 'system',
-                resource_type VARCHAR(100) NULL,
-                resource_id INT NULL,
-                additional_data JSON NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                
-                INDEX idx_user_id (user_id),
-                INDEX idx_action (action),
-                INDEX idx_log_type (log_type),
-                INDEX idx_created_at (created_at),
-                INDEX idx_user_type (user_type),
-                INDEX idx_resource (resource_type, resource_id),
-                
-                FOREIGN KEY (user_id) REFERENCES USER_INFORMATION(User_ID) ON DELETE SET NULL
-            ) ENGINE=InnoDB;",
-
+        
             "CREATE TABLE IF NOT EXISTS ANNOUNCEMENTS (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 title VARCHAR(200) NOT NULL,
@@ -185,33 +162,28 @@
     }
 
     /**
-     * Get all trigger creation queries
+     * all trigger 
      */
     public static function getTriggerQueries() {
         return [
-            // TRIGGER: Audit user information changes
             "CREATE TRIGGER audit_user_changes
             AFTER UPDATE ON USER_INFORMATION
             FOR EACH ROW
             BEGIN
                 DECLARE changes JSON DEFAULT JSON_OBJECT();
                 
-                -- Track role changes
                 IF OLD.User_Role != NEW.User_Role THEN
                     SET changes = JSON_SET(changes, '$.role_changed', JSON_OBJECT('old', OLD.User_Role, 'new', NEW.User_Role));
                 END IF;
                 
-                -- Track status changes
                 IF OLD.Acc_Status != NEW.Acc_Status THEN
                     SET changes = JSON_SET(changes, '$.status_changed', JSON_OBJECT('old', OLD.Acc_Status, 'new', NEW.Acc_Status));
                 END IF;
                 
-                -- Track email changes
                 IF OLD.Email != NEW.Email THEN
                     SET changes = JSON_SET(changes, '$.email_changed', JSON_OBJECT('old', OLD.Email, 'new', NEW.Email));
                 END IF;
                 
-                -- Insert audit log if changes occurred
                 IF JSON_LENGTH(changes) > 0 THEN
                     INSERT INTO AUDIT_LOGS (table_name, record_id, action, old_values, new_values, user_id)
                     VALUES ('USER_INFORMATION', NEW.ID, 'UPDATE', 
@@ -221,7 +193,6 @@
                 END IF;
             END;",
 
-            // TRIGGER: Log user deletions
             "CREATE TRIGGER audit_user_deletions
             BEFORE DELETE ON USER_INFORMATION
             FOR EACH ROW
@@ -232,7 +203,6 @@
                        @current_user_id);
             END;",
 
-            // TRIGGER: Log thesis uploads
             "CREATE TRIGGER audit_thesis_uploads
             AFTER INSERT ON THESIS
             FOR EACH ROW
@@ -242,7 +212,6 @@
                        JSON_OBJECT('Title', NEW.Title, 'Author', NEW.Author, 'Thesis_Department', NEW.Thesis_Department),
                        NEW.User_ID);
                 
-                -- Create notification for admins about new thesis
                 INSERT INTO NOTIFICATIONS (user_id, type, title, message, related_id)
                 SELECT ID, 'thesis_upload', 'New Thesis Uploaded', 
                        CONCAT('A new thesis \"', NEW.Title, '\" has been uploaded by ', NEW.Author),
@@ -251,7 +220,6 @@
                 WHERE User_Role IN ('admin', 'superAdmin') AND Acc_Status = 'approved';
             END;",
 
-            // TRIGGER: Log thesis updates
             "CREATE TRIGGER audit_thesis_updates
             AFTER UPDATE ON THESIS
             FOR EACH ROW
@@ -265,7 +233,6 @@
                 END IF;
             END;",
 
-            // TRIGGER: Log thesis deletions
             "CREATE TRIGGER audit_thesis_deletions
             BEFORE DELETE ON THESIS
             FOR EACH ROW
@@ -276,7 +243,6 @@
                        @current_user_id);
             END;",
 
-            // TRIGGER: Log announcement activities
             "CREATE TRIGGER audit_announcement_creation
             AFTER INSERT ON ANNOUNCEMENTS
             FOR EACH ROW
@@ -338,7 +304,7 @@
                 END IF;
             END;",
 
-            // TRIGGER: Auto-archive expired announcements
+
             "CREATE TRIGGER auto_archive_announcements
             BEFORE UPDATE ON ANNOUNCEMENTS
             FOR EACH ROW
@@ -348,7 +314,6 @@
                 END IF;
             END;",
 
-            // TRIGGER: Notify on user approval
             "CREATE TRIGGER notify_user_approval
             AFTER UPDATE ON USER_INFORMATION
             FOR EACH ROW

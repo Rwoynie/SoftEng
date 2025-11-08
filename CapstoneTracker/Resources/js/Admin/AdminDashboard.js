@@ -1544,6 +1544,16 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="user-name">${displayName}</div>
             <div class="user-role">${userRole}</div>
         </div>
+
+        <div class="menu-item" id="colorSchemeToggle">
+            <i class="fas fa-palette"></i>
+            <span>Change Color</span>
+            <div class="toggle-switch">
+                <input type="checkbox" id="colorSchemeCheckbox">
+                <span class="toggle-slider"></span>
+            </div>
+        </div>
+
         <button class="logout-menu-btn">
             <i class="fas fa-sign-out-alt"></i>Logout
         </button>
@@ -3467,6 +3477,164 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 }
 
+    let inactivityTime = function() {
+        let time;
+        
+        const resetTimer = function() {
+            clearTimeout(time);
+            time = setTimeout(() => {
+                Swal.fire({
+                    title: 'Session Expired',
+                    text: 'Your session has expired due to inactivity. You will be redirected to the login page.',
+                    icon: 'warning',
+                    confirmButtonText: 'OK',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false
+                }).then(() => {
+                    window.location.href = '../User/indexLogin.php';
+                });
+            }, 600000);
+        };
+        
+        window.onload = resetTimer;
+        document.onmousemove = resetTimer;
+        document.onkeypress = resetTimer;
+        document.onclick = resetTimer;
+        document.onscroll = resetTimer;
+        document.onmousedown = resetTimer;
+        document.ontouchstart = resetTimer;
+        
+        resetTimer();
+    };
+    
+    inactivityTime();
+    
+    let warningTime;
+    const setWarningTimer = function() {
+        clearTimeout(warningTime);
+        warningTime = setTimeout(() => {
+            Swal.fire({
+                title: 'Session About to Expire',
+                text: 'Your session will expire in 1 minute due to inactivity. Press Button to continue.',
+                icon: 'info',
+                timer: 60000, 
+                timerProgressBar: true,
+                showConfirmButton: true,
+                confirmButtonText: 'Continue Session',
+                allowOutsideClick: false,
+                allowEscapeKey: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    inactivityTime();
+                    setWarningTimer();
+                }
+            });
+        }, 540000);
+    };
+    
+    setWarningTimer();
+    
+    const resetWarningTimer = function() {
+        setWarningTimer();
+    };
+    
+    document.addEventListener('mousemove', resetWarningTimer);
+    document.addEventListener('keypress', resetWarningTimer);
+    document.addEventListener('click', resetWarningTimer);
+
+    //testinggggg
+
+    console.log('Session timeout set to 20 seconds. Warning at 10 seconds.');
+
+
+    const moreOptionsToggle = document.getElementById('moreOptionsToggle');
+    const moreOptionsMenu = document.getElementById('moreOptionsMenu');
+    
+    if (moreOptionsToggle && moreOptionsMenu) {
+        moreOptionsToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            moreOptionsMenu.classList.toggle('active');
+        });
+        
+
+        document.addEventListener('click', function() {
+            moreOptionsMenu.classList.remove('active');
+        });
+        
+
+        moreOptionsMenu.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    }
+    
+ 
+    const colorSchemeToggle = document.getElementById('colorSchemeToggle');
+
+    const colorSchemeCheckbox = document.getElementById('colorSchemeCheckbox');
+    
+    if (colorSchemeToggle && colorSchemeCheckbox) {
+        const savedTheme = localStorage.getItem('adminDashboardTheme');
+        if (savedTheme === 'dark') {
+            
+            document.documentElement.setAttribute('data-theme', 'dark');
+            
+            colorSchemeCheckbox.checked = true;
+            updateToggleLabel(true);
+        } else {
+            
+            
+            updateToggleLabel(false);
+
+
+        }
+        
+        colorSchemeCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+
+                localStorage.setItem('adminDashboardTheme', 'dark');
+                updateToggleLabel(true);
+
+
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('adminDashboardTheme', 'light');
+                updateToggleLabel(false);
+
+            }
+        });
+        
+
+        colorSchemeToggle.addEventListener('click', function(e) {
+            if (e.target !== colorSchemeCheckbox) {
+                colorSchemeCheckbox.checked = !colorSchemeCheckbox.checked;
+
+                colorSchemeCheckbox.dispatchEvent(new Event('change'));
+
+            }
+
+
+        });
+    }
+    
+    function updateToggleLabel(isDark) {
+        const toggleLabel = document.querySelector('#colorSchemeToggle span');
+        if (toggleLabel) {
+            toggleLabel.textContent = isDark ? 'Change Color' : 'Change Color';
+        }
+    }
+    
+    const logoutOption = document.getElementById('logoutOption');
+    
+    if (logoutOption) {
+
+        logoutOption.addEventListener('click', function() {
+            window.location.href = '../User/indexLogin.php';
+        });
+
+    }
+
+
 testDebugMethod();
 
     // Initialize announcement functionality
@@ -3499,6 +3667,8 @@ testDebugMethod();
 
     
 });
+
+
 
 let changesMade = false;
     let roleChanges = {};

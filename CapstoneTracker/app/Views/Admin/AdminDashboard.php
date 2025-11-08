@@ -13,6 +13,40 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+$session_timeout = 10 * 60; 
+
+if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > $session_timeout)) {
+
+    $session_expired = true;
+    
+  
+    session_unset();
+    session_destroy();
+    session_write_close();
+    
+   
+    if (ini_get("session.use_cookies")) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000,
+            $params["path"], $params["domain"],
+            $params["secure"], $params["httponly"]
+        );
+    }
+    
+   
+    session_start();
+    $_SESSION['session_expired'] = true;
+    session_write_close();
+    
+    header('Location: ../User/indexLogin.php');
+    exit();
+}
+
+
+$_SESSION['LAST_ACTIVITY'] = time();
+
+
+
 $canUpload = in_array($_SESSION['user_role'] ?? 'guest', ['SubAdmin', 'superAdmin']);
 
 try {
