@@ -1,5 +1,7 @@
 <?php
 
+
+
 if (!defined('ROOT_DIR')) {
     define('ROOT_DIR', dirname(__DIR__, 2)); // Adjust based on your directory structure
 }
@@ -219,7 +221,7 @@ class AuthController extends Controller {
                     echo json_encode([
                         'success' => true,
                         'message' => 'Account created and login successful',
-                        'redirect_url' => '../../app/Views/User/userViewPage.php'
+                        'redirect_url' => '../../Views/User/userViewPage.php'
                     ]);
                     exit();
                 } else {
@@ -273,33 +275,29 @@ class AuthController extends Controller {
             $userIdNumber = $this->generateUserIdNumber($userRole);
             error_log("Generated user ID: $userIdNumber");
             
-            // Prepare user data in the format expected by the User model's register() method
+            // Prepare user data
             $userData = [
                 'password' => $autoPassword,
                 'first_name' => $firstName,
                 'last_name' => $lastName,
                 'email' => $email,
                 'user_role' => $userRole,
-                'acc_status' => 'approved', // Auto-approve Google users
-                'profile_pic' => base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7') // Default transparent image
+                'acc_status' => 'approved',
+                'profile_pic' => base64_decode('R0lGODlhAQABAIAAAAAA/P///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')
             ];
             
             // Add role-specific fields
             if ($userRole === 'student') {
                 $userData['student_id'] = $userIdNumber;
-                $userData['course'] = 'Not Specified'; // Default course for Google users
+                $userData['course'] = 'Not Specified';
                 $userData['designation'] = 'Student';
-                error_log("Student data added");
             } else {
                 $userData['employee_id'] = $userIdNumber;
-                $userData['department'] = 'Not Specified'; // Default department for Google users
+                $userData['department'] = 'Not Specified';
                 $userData['designation'] = 'Faculty';
-                error_log("Faculty data added");
             }
             
-            error_log("User data prepared: " . print_r($userData, true));
-            
-            // Register the user using the existing register method
+            // Register the user
             error_log("Calling userModel->register()...");
             $result = $userModel->register($userData);
             error_log("Register result: " . ($result ? 'SUCCESS' : 'FAILED'));
@@ -317,25 +315,33 @@ class AuthController extends Controller {
                     
                     $userId = $newUser['ID'] ?? $newUser->ID ?? null;
                     error_log("New user found with ID: " . $userId);
+                    
+                    // ✅ SEND WELCOME EMAIL WITH PASSWORD
+                    $emailSent = $this->sendWelcomeEmail($email, $name, $autoPassword, $userRole);
+                    
+                    if ($emailSent) {
+                        error_log("Welcome email sent successfully to: " . $email);
+                    } else {
+                        error_log("Failed to send welcome email to: " . $email);
+                        // Don't fail the registration if email fails, just log it
+                    }
+                    
                     error_log("=== AUTO REGISTRATION DEBUG END - SUCCESS ===");
                     return [
                         'success' => true,
                         'user_id' => $userId,
-                        'message' => 'Account created successfully'
+                        'message' => 'Account created successfully' . ($emailSent ? ' and welcome email sent' : '')
                     ];
                 } else {
                     error_log("New user not found after registration");
-                    error_log("=== AUTO REGISTRATION DEBUG END - USER NOT FOUND ===");
                     return [
                         'success' => false,
                         'message' => 'Account created but could not retrieve user ID'
                     ];
                 }
             } else {
-                // Get the specific error from the model
                 $modelError = $userModel->getError();
                 error_log("Registration failed. Model error: " . $modelError);
-                error_log("=== AUTO REGISTRATION DEBUG END - FAILED ===");
                 return [
                     'success' => false,
                     'message' => $modelError ?: 'Failed to create account. Please try again.'
@@ -344,7 +350,6 @@ class AuthController extends Controller {
             
         } catch (Exception $e) {
             error_log("Auto-registration exception: " . $e->getMessage());
-            error_log("=== AUTO REGISTRATION DEBUG END - EXCEPTION ===");
             return [
                 'success' => false,
                 'message' => 'Registration error: ' . $e->getMessage()
@@ -363,6 +368,29 @@ class AuthController extends Controller {
             $password .= $chars[random_int(0, strlen($chars) - 1)];
         }
         return $password;
+    }
+
+    /**
+     * Send welcome email to new Google Sign-In users
+     */
+    private function sendWelcomeEmail($email, $name, $password, $role) {
+        try {
+            // Include the EmailSender class
+            $emailSenderPath = ROOT_DIR . '\app\Utils\EmailSender.php';
+            if (!file_exists($emailSenderPath)) {
+                error_log("EmailSender.php not found at: " . $emailSenderPath);
+                return false;
+            }
+            
+            require_once $emailSenderPath;
+            
+            $emailSender = new EmailSender();
+            return $emailSender->sendWelcomeEmail($email, $name, $password, $role);
+            
+        } catch (Exception $e) {
+            error_log("Welcome email sending failed: " . $e->getMessage());
+            return false;
+        }
     }
 
     /**

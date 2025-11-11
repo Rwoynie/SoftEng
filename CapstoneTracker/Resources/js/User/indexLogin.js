@@ -629,16 +629,6 @@ async function sendGoogleCredentialToBackend(credential) {
 
         console.log('Sending Google authentication for:', userEmail, 'Role:', role);
 
-        // Get fresh CSRF token from the page
-        const csrfTokenInput = document.querySelector('input[name="csrf_token"]');
-        const csrfToken = csrfTokenInput ? csrfTokenInput.value : '';
-
-        if (!csrfToken) {
-            throw new Error('Security token missing. Please refresh the page and try again.');
-        }
-
-        console.log('Using CSRF token:', csrfToken);
-
         // Send to AuthController
         const response = await fetch('../../Controllers/AuthController.php', {
             method: 'POST',
@@ -652,29 +642,49 @@ async function sendGoogleCredentialToBackend(credential) {
                 'email': userEmail,
                 'name': userName,
                 'role': role,
-                'csrf_token': csrfToken
+                'csrf_token': '<?php echo $_SESSION["csrf_token"] ?? ""; ?>'
             })
         });
 
         const responseText = await response.text();
         console.log('Raw response:', responseText);
         
-        // Check if it's a PHP error
-        if (responseText.includes('<b>Fatal error</b>') || responseText.includes('<br />')) {
-            console.error('PHP Fatal Error detected');
-            // Extract error message from PHP error
-            const errorMatch = responseText.match(/<b>Fatal error<\/b>:\s*(.*?)<br/i);
-            const errorMessage = errorMatch ? errorMatch[1] : 'PHP fatal error occurred';
-            throw new Error('Server Error: ' + errorMessage);
+        // Check for PHP fatal errors
+        if (responseText.includes('Fatal error') || 
+            responseText.includes('Parse error') || 
+            responseText.includes('Exception') ||
+            responseText.includes('<b>')) {
+            
+            console.error('PHP Error detected in response');
+            
+            // Try to extract the actual error message
+            let errorMessage = 'PHP fatal error occurred';
+            
+            // Look for common PHP error patterns
+            const fatalErrorMatch = responseText.match(/Fatal error:[^<]*/i);
+            const parseErrorMatch = responseText.match(/Parse error:[^<]*/i);
+            const exceptionMatch = responseText.match(/Exception:[^<]*/i);
+            
+            if (fatalErrorMatch) {
+                errorMessage = fatalErrorMatch[0];
+            } else if (parseErrorMatch) {
+                errorMessage = parseErrorMatch[0];
+            } else if (exceptionMatch) {
+                errorMessage = exceptionMatch[0];
+            } else if (responseText.includes('<!DOCTYPE')) {
+                errorMessage = 'Server returned HTML error page. Check PHP error logs.';
+            }
+            
+            throw new Error(errorMessage);
         }
         
-        // Parse JSON response
+        // Try to parse as JSON
         let result;
         try {
             result = JSON.parse(responseText);
         } catch (jsonError) {
             console.error('JSON parse error:', jsonError);
-            throw new Error('Server returned invalid response. Please check server logs.');
+            throw new Error('Server returned invalid JSON. PHP error likely: ' + responseText.substring(0, 200));
         }
         
         console.log('Parsed JSON result:', result);
@@ -776,9 +786,7 @@ function initializePage() {
                     const googleButton = document.querySelector('#googleButton .abcRioButton');
                     if (googleButton) {
                         googleButton.click();
-                    } else {
-                        Swal.fire('Google Sign-In not ready', 'Please try again in a moment.', 'info');
-                    }
+                    } 
                 };
             }
         }, 300);
