@@ -510,86 +510,6 @@ class ThesisController {
         }
     }
 
-
-    /**
-     * View full thesis file (viewing only)
-     */
-    public function viewThesis() {
-        try {
-            // Get thesis ID from request
-            $thesisId = $_GET['id'] ?? null;
-            
-            if (!$thesisId) {
-                throw new Exception('Thesis ID is required');
-            }
-    
-            $thesisModel = new Thesis();
-            
-            // Get thesis file data
-            $thesisData = $thesisModel->getThesisFile($thesisId);
-            
-            if (!$thesisData || empty($thesisData->Thesis_File)) {
-                throw new Exception('Thesis file not found');
-            }
-    
-            // Set headers for PDF viewing only (no download)
-            header('Content-Type: application/pdf');
-            header('Content-Disposition: inline; filename="view_only.pdf"'); // Generic filename
-            header('Content-Length: ' . strlen($thesisData->Thesis_File));
-            header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-            header('Pragma: no-cache');
-            header('Expires: 0');
-            
-            // Additional headers to prevent downloading
-            header('X-Content-Type-Options: nosniff');
-            header('X-Frame-Options: SAMEORIGIN');
-            
-            // For extra security, you can add these headers
-            header('Content-Security-Policy: default-src \'self\'');
-            
-            // Output the file content
-            echo $thesisData->Thesis_File;
-            
-        } catch (Exception $e) {
-            error_log("Error in viewThesis: " . $e->getMessage());
-            http_response_code(404);
-            echo "Thesis file not available for viewing: " . $e->getMessage();
-        }
-    }
-
-/**
- * Get thesis view information for preview
- 
-public function getThesisViewInfo($thesisId) {
-    try {
-        $thesisModel = new Thesis();
-        
-        $viewInfo = $thesisModel->getThesisViewInfo($thesisId);
-        
-        if (!$viewInfo) {
-            http_response_code(404);
-            echo json_encode([
-                'success' => false,
-                'error' => 'Thesis not found'
-            ]);
-            return;
-        }
-        
-        echo json_encode([
-            'success' => true,
-            'thesis' => $viewInfo
-        ]);
-        
-    } catch (Exception $e) {
-        error_log("Error in getThesisViewInfo: " . $e->getMessage());
-        http_response_code(500);
-        echo json_encode([
-            'success' => false,
-            'error' => 'Internal server error'
-        ]);
-    }
-}
- */
     /**
      * Get thesis statistics
      */
@@ -793,9 +713,6 @@ public function getThesisViewInfo($thesisId) {
             case 'deleteThesis': 
                 $this->deleteThesis();
                 break;
-            case 'viewThesis':
-                $this->viewThesis();
-                break;       
             default:
                 if (ob_get_length()) { ob_clean(); }
                 http_response_code(404);

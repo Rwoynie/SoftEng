@@ -276,7 +276,6 @@ $displayUserData = [
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <link rel="stylesheet" href="../../../resources/css/Admin/AdminDashboard.css">
-    <script type="text/javascript" src="../../../resources/js/Admin/ThesisFunctions.js"></script>
     <script type="text/javascript" src="../../../resources/js/Admin/AdminDashboard.js"></script>
     <script type="text/javascript" src="../../../resources/js/Admin/RoleAccess.js"></script>
     <script type="text/javascript" src="../../../resources/js/Admin/AdminDashboardAnnouncement.js"></script>
@@ -1209,8 +1208,8 @@ $displayUserData = [
                     <a id="download-link" class="btn btn-primary" style="display: none;">
                         <i class="fas fa-download"></i> Download Abstract
                     </a>
-                    <button class="btn btn-tertiary" id="viewThesisBtn">
-                        <i class="fa-solid fa-eye"></i> View Thesis
+                    <button class="btn btn-tertiary"><i class="fa-solid fa-eye"></i>
+                        View Thesis
                     </button>
                     <button class="btn btn-secondary btn-cancel">Close</button>
                 </div>

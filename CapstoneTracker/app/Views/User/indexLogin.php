@@ -7,6 +7,21 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 
+$session_expired = false;
+if (isset($_SESSION['session_expired']) && $_SESSION['session_expired']) {
+    $session_expired = true;
+    session_unset();
+    session_destroy();
+    session_start(); 
+}
+
+if (isset($_GET['session_expired']) && $_GET['session_expired'] == 1) {
+    $session_expired = true;
+    session_unset();
+    session_destroy();
+    session_start();
+}
+
 
 
 
