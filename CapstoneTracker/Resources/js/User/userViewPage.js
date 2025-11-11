@@ -1091,7 +1091,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    
+    // logout
+    const moreOptionsIcon = document.querySelector('.more-options .fa-ellipsis-h');
+    const logoutMenu = document.createElement('div');
+    logoutMenu.id = 'logoutMenu';
+    logoutMenu.className = 'logout-menu';
 
 
 
@@ -1213,10 +1217,18 @@ document.addEventListener('DOMContentLoaded', function() {
     function initializeSearch() {
         const searchInput = document.getElementById('searchInput');
         if (searchInput) {
+            // Hide landing sections when search input is focused or used
+            searchInput.addEventListener('focus', function() {
+                hideLandingSections();
+            });
+            
             searchInput.addEventListener('input', function() {
                 const searchTerm = this.value.toLowerCase().trim();
                 const projectItems = document.querySelectorAll('.project-item');
                 const notFound = document.getElementById('notFound');
+                
+                // Ensure landing sections are hidden when searching
+                hideLandingSections();
                 
                 let foundResults = false;
                 
@@ -1248,6 +1260,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 50);
             });
         }
+    }
+    
+    // Helper function to hide all landing sections and show search interface
+    function hideLandingSections() {
+        const landingAnnouncements = document.getElementById('landingAnnouncements');
+        const landingPrograms = document.getElementById('landingPrograms');
+        const landingQuickActions = document.getElementById('landingQuickActions');
+        const landingFooter = document.getElementById('landingFooter');
+        const landingSection = document.getElementById('landingSection');
+        const appShell = document.getElementById('appContentShell');
+        const projectsContainer = document.getElementById('projectsContainer');
+        
+        // Hide all landing sections
+        if (landingAnnouncements) landingAnnouncements.style.display = 'none';
+        if (landingPrograms) landingPrograms.style.display = 'none';
+        if (landingQuickActions) landingQuickActions.style.display = 'none';
+        if (landingFooter) landingFooter.style.display = 'none';
+        if (landingSection) landingSection.style.display = 'none';
+        
+        // Ensure search interface is visible
+        if (appShell) appShell.style.display = 'block';
+        if (projectsContainer) projectsContainer.style.display = 'block';
     }
 
 // Display toggle functionality

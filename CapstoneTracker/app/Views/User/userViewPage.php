@@ -7,7 +7,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 if (!isset($_SESSION['user_id'])) {
     // Redirect to login page or show error
-    header('Location: indexlogin.php');
+    header('Location: indexLogin.php');
     exit();
 }
 
@@ -173,8 +173,10 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <link rel="stylesheet" href="../../../Resources/css/User/userViewPage.css">
+    <link rel="stylesheet" href="../../../resources/css/User/home.css">
     <script type="text/javascript" src="../../../resources/js/User/userViewPage.js"></script>
     <script type="text/javascript" src="../../../resources/js/User/Profile.js"></script>
+    <meta name="csrf-token" content="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
     
 </head>
 <body>
@@ -190,6 +192,12 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
                 <li id="profileSidebarIcon"> <i class="fa fa-user-o icon" aria-hidden="true"></i> </li>
             </ul>
         </nav>
+        <div class="more-options">
+
+                <i class="fa fa-ellipsis-h icon" aria-hidden="true"></i>
+
+
+            </div>
     </section>
 
     <section class="main-content">
@@ -210,7 +218,7 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
             <div class="profile-card">
                 <div class="profile-header">
                     <div class="profile-avatar">
-                        <img src="../../../resources/Images/profile.png" alt="Profile" class="profile-image">
+                        <img id="profilePicture" src="../../../resources/Images/profile.png" alt="Profile" class="profile-image" data-default-src="../../../resources/Images/profile.png">
                         <div class="online-status"></div>
                     </div>
                     <div class="profile-info">
@@ -252,11 +260,11 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
                         <div class="info-grid">
                             <div class="info-item">
                                 <span class="info-label">Member Since:</span>
-                                <span data-value="member" class="info-value"></span>
+                                <span data-value="member_since" class="info-value"></span>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">Last Login:</span>
-                                <span data-value="lastlogin" class="info-value"></span>
+                                <span data-value="last_login" class="info-value"></span>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">Status:</span>
@@ -283,11 +291,98 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
             </div>
         </div>
 
-            <div class="app-content-header">
-                <div class="searchbox">
-                    <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
-                    <input type="text" name="search" placeholder="Search thesis" class="search-text" id="searchInput">
+            <!-- Landing page (Home style) shown first -->
+            <section id="landingSection" class="dashboard-banner" style="margin-bottom: 1rem;">
+                <div class="banner-content">
+                    <h2>Discover Academic Excellence</h2>
+                    <p>Access theses across departments and programs</p>
+                    <div class="search-container">
+                        <div class="searchbox">
+                            <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
+                            <input type="text" id="landingSearchInput" placeholder="Enter keywords, title, author, or adviser...">
+                            <button class="search-btn" id="landingSearchBtn"><i class="fa fa-search" aria-hidden="true"></i></button>
+                        </div>
+                    </div>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <span class="stat-number">Theses</span>
+                            <span class="stat-label">Explore the repository</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">Researchers</span>
+                            <span class="stat-label">Join the community</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">Departments</span>
+                            <span class="stat-label">Filter by program</span>
+                        </div>
+                    </div>
                 </div>
+            </section>
+
+            <!-- Announcements (UI only, same structure as home) -->
+            <section id="landingAnnouncements" class="announcements-section" style="margin-bottom: 1rem;">
+                <div class="section-header">
+                    <h2>Announcements</h2>
+                </div>
+                <div class="announcements-carousel">
+                    <button class="carousel-control prev"><i class="fas fa-chevron-left"></i></button>
+                    <div class="carousel-container">
+                        <div class="announcement-cards">
+                            <!-- Optional: cards can be injected by your existing scripts later -->
+                        </div>
+                    </div>
+                    <button class="carousel-control next"><i class="fas fa-chevron-right"></i></button>
+                    <div class="carousel-indicators"></div>
+                </div>
+            </section>
+
+            <!-- Programs (UI only) -->
+            <section id="landingPrograms" class="program-logos-section" style="margin-bottom: 1rem;">
+                <div class="section-header">
+                    <h2>Programs</h2>
+                </div>
+                <div class="logo-carousel">
+                    <button class="carousel-control prev"><i class="fas fa-chevron-left"></i></button>
+                    <div class="carousel-container">
+                        <div class="logo-cards"></div>
+                    </div>
+                    <button class="carousel-control next"><i class="fas fa-chevron-right"></i></button>
+                    <div class="carousel-indicators"></div>
+                </div>
+            </section>
+
+            <!-- Quick Access (UI only) -->
+            <section id="landingQuickActions" class="quick-actions" style="margin-bottom: 2rem;">
+                <div class="section-header">
+                    <h2>Quick Access</h2>
+                </div>
+                <div class="action-cards">
+                    <div class="action-card">
+                        <div class="action-icon"><i class="fas fa-book-open"></i></div>
+                        <h3>Browse Catalog</h3>
+                        <p>Explore all available thesis papers</p>
+                    </div>
+                    <div class="action-card">
+                        <div class="action-icon"><i class="fas fa-graduation-cap"></i></div>
+                        <h3>For Researchers</h3>
+                        <p>Resources and guidelines for your research</p>
+                    </div>
+                    <div class="action-card">
+                        <div class="action-icon"><i class="fas fa-question-circle"></i></div>
+                        <h3>Help Center</h3>
+                        <p>Get assistance with the system</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Existing app header/UI hidden until a search happens -->
+            <div id="appContentShell" style="display:none;">
+                <div class="app-content-header">
+                    <div class="searchbox">
+                        <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
+                        <input type="text" name="search" placeholder="Search thesis" class="search-text" id="searchInput">
+                    </div>
 
                 <div class="app-list-options">
                     <!-- Department Filter Dropdown -->
@@ -323,9 +418,10 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
                         <div class="icon selected" id="gridViewIcon"> <i class="fa fa-th" aria-hidden="true"></i> </div>
                     </div>
                 </div>
+                </div>
             </div>
 
-            <div class="projects-container">
+            <div class="projects-container" id="projectsContainer" style="display: none;">
                 <!-- Recent View -->
                 <ul class="projects" id="recentView">
                     
@@ -412,8 +508,209 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
     </div>
 </div>
 
+            <!-- Landing Footer (UI only) -->
+            <footer id="landingFooter" class="main-footer" style="display:block;">
+                <div class="footer-content">
+                    <div class="footer-section">
+                        <div>
+                            <img class="logo" src="../../../resources/images/ThesisCompLogo.png" alt="Logo" />
+                            <img class="logo" src="../../../resources/images/CTET_LOGO.png" alt="Logo" />
+                            <h3>Thesis Compendium System</h3>
+                        </div>
+                        <p class="footer-description">A comprehensive digital repository for thesis papers and capstone projects.</p>
+                        <div class="social-links">
+                            <a href="#"><i class="fab fa-facebook-f"></i></a>
+                            <a href="#"><i class="fab fa-twitter"></i></a>
+                            <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                            <a href="#"><i class="fab fa-instagram"></i></a>
+                        </div>
+                    </div>
+                    <div class="footer-section">
+                        <h4>Quick Links</h4>
+                        <ul>
+                            <li><a href="javascript:void(0)">Home</a></li>
+                            <li><a href="javascript:void(0)">Browse</a></li>
+                            <li><a href="javascript:void(0)">Guidelines</a></li>
+                            <li><a href="javascript:void(0)">Profile</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-section">
+                        <h4>Resources</h4>
+                        <ul>
+                            <li><a href="javascript:void(0)">Research Guidelines</a></li>
+                            <li><a href="javascript:void(0)">Formatting Templates</a></li>
+                            <li><a href="javascript:void(0)">Citation Help</a></li>
+                            <li><a href="javascript:void(0)">FAQ</a></li>
+                            <li><a href="javascript:void(0)">Support Center</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-section">
+                        <h4>Contact Us</h4>
+                        <div class="contact-info">
+                            <p><i class="fas fa-envelope"></i> thesis@usep.edu.ph</p>
+                            <p><i class="fas fa-phone"></i> 0123 456 7890</p>
+                            <p><i class="fas fa-map-marker-alt"></i> University of Southeastern Philippines<br>Tagum-Mabini Campus</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer-bottom">
+                    <p>&copy; 2025 Thesis Compendium System. All rights reserved.</p>
+                    <div class="footer-links">
+                        <a href="#">Privacy Policy</a>
+                        <a href="#">Terms of Service</a>
+                        <a href="#">Accessibility</a>
+                    </div>
+                </div>
+            </footer>
+
 </body>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+<script>
+    // Bridge landing search to existing userViewPage search logic
+    (function(){
+        const landing = document.getElementById('landingSection');
+        const appShell = document.getElementById('appContentShell');
+        const landingInput = document.getElementById('landingSearchInput');
+        const landingBtn = document.getElementById('landingSearchBtn');
+        const mainInput = document.getElementById('searchInput');
+        const projects = document.getElementById('projectsContainer');
+        function revealAppWithQuery(q){
+            if (!appShell || !landing) return;
+            appShell.style.display = 'block';
+            landing.style.display = 'none';
+            if (projects) projects.style.display = 'block';
+            if (mainInput) {
+                mainInput.value = q || '';
+                // Trigger input event so existing listeners filter immediately
+                const ev = new Event('input', { bubbles: true });
+                mainInput.dispatchEvent(ev);
+                mainInput.focus();
+            }
+        }
+        function onSubmit(){
+            const q = (landingInput && landingInput.value || '').trim();
+            revealAppWithQuery(q);
+        }
+        if (landingBtn) landingBtn.addEventListener('click', onSubmit);
+        if (landingInput) landingInput.addEventListener('keypress', function(e){ if (e.key === 'Enter') onSubmit(); });
+    })();
+
+    // Populate announcements and programs for the landing page (UI only)
+    (function(){
+        const annCards = document.querySelector('#landingAnnouncements .announcement-cards');
+        const annIndicators = document.querySelector('#landingAnnouncements .carousel-indicators');
+        const annPrev = document.querySelector('#landingAnnouncements .carousel-control.prev');
+        const annNext = document.querySelector('#landingAnnouncements .carousel-control.next');
+
+        const progCards = document.querySelector('#landingPrograms .logo-cards');
+        const progIndicators = document.querySelector('#landingPrograms .carousel-indicators');
+        const progPrev = document.querySelector('#landingPrograms .carousel-control.prev');
+        const progNext = document.querySelector('#landingPrograms .carousel-control.next');
+
+        const fallbackAnnouncements = [
+            { title:'System Update', description:'Welcome to the Thesis Compendium System.', date:'2025-01-01', image:'../../../resources/images/Announcement_pic.png', type:'info' },
+        ];
+        const fallbackPrograms = [
+            { name:'SITS', meaning:'Society of Information Technology Students', image:'../../../resources/images/SITS_LOGO.png' },
+            { name:'AECES', meaning:'Association of Early Childhood Education', image:'../../../resources/images/AECES_LOGO.png' },
+            { name:'AFSET', meaning:'Association of Future Secondary Teachers', image:'../../../resources/images/AFSET_LOGO.png' }
+        ];
+
+        function formatDate(s){ try { return new Date(s).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'}); } catch(e){ return s; } }
+
+        function mountAnnouncements(items){
+            if (!annCards) return;
+            annCards.innerHTML = '';
+            items.forEach((a, i) => {
+                const card = document.createElement('div');
+                card.className = 'announcement-card';
+                card.innerHTML = `
+                    <div class="card-badge ${a.type || 'info'}">${(a.type || 'info')[0].toUpperCase() + (a.type || 'info').slice(1)}</div>
+                    <div class="card-image"><img src="${a.image}" alt="${a.title}" class="Anncmnt_pic"></div>
+                    <div class="card-content">
+                        <div class="card-header"><h3>${a.title}</h3><div class="date">${formatDate(a.date)}</div></div>
+                        <p>${a.description}</p>
+                        <a href="#" class="read-more">Read More <i class="fas fa-arrow-right"></i></a>
+                    </div>`;
+                annCards.appendChild(card);
+                if (annIndicators){
+                    const ind = document.createElement('div');
+                    ind.className = `indicator ${i===0?'active':''}`;
+                    annIndicators.appendChild(ind);
+                }
+            });
+            wireCarousel('#landingAnnouncements');
+        }
+
+        function mountPrograms(items){
+            if (!progCards) return;
+            progCards.innerHTML = '';
+            items.forEach((p,i)=>{
+                const card = document.createElement('div');
+                card.className = 'logo-card';
+                card.innerHTML = `
+                    <div class="card-image"><img src="${p.image}" alt="${p.name}" class="dept_pic"></div>
+                    <div class="card-content"><div class="card-header"><h3>${p.name}</h3><div class="meaning">${p.meaning}</div></div>
+                    <a href="#" class="read-more">View Department <i class="fas fa-arrow-right"></i></a></div>`;
+                progCards.appendChild(card);
+                if (progIndicators){
+                    const ind = document.createElement('div');
+                    ind.className = `indicator ${i===0?'active':''}`;
+                    progIndicators.appendChild(ind);
+                }
+            });
+            wireCarousel('#landingPrograms');
+        }
+
+        function wireCarousel(sel){
+            const carousel = document.querySelector(sel);
+            if (!carousel) return;
+            const cards = carousel.querySelector('.announcement-cards') || carousel.querySelector('.logo-cards');
+            const prev = carousel.querySelector('.carousel-control.prev');
+            const next = carousel.querySelector('.carousel-control.next');
+            const indicators = carousel.querySelectorAll('.indicator');
+            if (!cards || cards.children.length === 0) return;
+            let current = 0;
+            function update(){
+                const gap = 24;
+                const child = cards.children[0];
+                const w = (child && child.getBoundingClientRect().width) ? child.getBoundingClientRect().width + gap : 300;
+                cards.scrollTo({ left: current * w, behavior:'smooth' });
+                indicators.forEach((d,idx)=>d.classList.toggle('active', idx===current));
+            }
+            if (prev) prev.addEventListener('click', ()=>{ current = Math.max(0, current-1); update(); });
+            if (next) next.addEventListener('click', ()=>{ current = Math.min(cards.children.length-1, current+1); update(); });
+        }
+
+        async function loadAnnouncements(){
+            try {
+                const res = await fetch('../../../app/Controllers/PublicHomeController.php?action=getAnnouncementsAPI');
+                const data = await res.json();
+                if (data && data.success && Array.isArray(data.announcements) && data.announcements.length) {
+                    mountAnnouncements(data.announcements);
+                    return;
+                }
+            } catch(e) { /* fall back */ }
+            mountAnnouncements(fallbackAnnouncements);
+        }
+
+        async function loadPrograms(){
+            try {
+                const res = await fetch('../../../app/Controllers/PublicHomeController.php?action=getProgramsAPI');
+                const data = await res.json();
+                if (data && data.success && Array.isArray(data.programs) && data.programs.length) {
+                    mountPrograms(data.programs);
+                    return;
+                }
+            } catch(e) { /* fall back */ }
+            mountPrograms(fallbackPrograms);
+        }
+
+        // Initialize if the sections are present
+        if (annCards) loadAnnouncements();
+        if (progCards) loadPrograms();
+    })();
+</script>
 </html>
 
 <?php

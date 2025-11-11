@@ -76,89 +76,8 @@ const announcements = [
   }
 ];
 
-// Sample data for thesis papers
-const thesisPapers = [
-  {
-    id: 1,
-    title: "Machine Learning-Based Student Performance Prediction",
-    authors: "John Smith, Maria Garcia",
-    adviser: "Dr. Robert Johnson",
-    abstract: "This study explores the application of machine learning algorithms to predict student academic performance based on various factors...",
-    department: "BSIT | SITS",
-    uploadDate: "2024-11-15",
-    logo: "../../../resources/images/SITS_LOGO.png"
-  },
-  {
-    id: 2,
-    title: "Sustainable Agricultural Practices in Mindanao",
-    authors: "Carlos Reyes, Anna Lopez",
-    adviser: "Dr. Elizabeth Tan",
-    abstract: "Research on sustainable farming methods and their impact on crop yield and environmental conservation...",
-    department: "BSABE | SABES",
-    uploadDate: "2024-11-10",
-    logo: "../../../resources/images/SABES_LOGO.png"
-  },
-  {
-    id: 3,
-    title: "Early Childhood Education Curriculum Development",
-    authors: "Sarah Miller, James Wilson",
-    adviser: "Prof. Patricia Davis",
-    abstract: "Analysis of modern early childhood education approaches and development of an enhanced curriculum model...",
-    department: "BECED | AECES",
-    uploadDate: "2024-11-08",
-    logo: "../../../resources/images/AECES_LOGO.png"
-  },
-  {
-    id: 4,
-    title: "Inclusive Education Strategies for Special Needs",
-    authors: "Emily Chen, David Brown",
-    adviser: "Dr. Michael Anderson",
-    abstract: "Comprehensive study on inclusive education methodologies and their implementation in public schools...",
-    department: "BSNED | OFSET",
-    uploadDate: "2024-11-05",
-    logo: "../../../resources/images/OFSET_LOGO.png"
-  },
-  {
-    id: 5,
-    title: "Technical-Vocational Education Enhancement",
-    authors: "Mark Thompson, Lisa Rodriguez",
-    adviser: "Prof. Susan White",
-    abstract: "Evaluation of technical-vocational education programs and recommendations for curriculum improvement...",
-    department: "BTVTED | FTVETS",
-    uploadDate: "2024-11-03",
-    logo: "../../../resources/images/FTVETS_LOGO.png"
-  },
-  {
-    id: 6,
-    title: "Elementary Education Teaching Methodologies",
-    authors: "Jennifer Lee, Kevin Martinez",
-    adviser: "Dr. Amanda Harris",
-    abstract: "Research on innovative teaching methodologies for elementary education and their effectiveness...",
-    department: "BEED | OFEE",
-    uploadDate: "2024-10-28",
-    logo: "../../../resources/images/OFEE_LOGO.png"
-  },
-  {
-    id: 7,
-    title: "Science Education in Digital Age",
-    authors: "Daniel Kim, Sophia Garcia",
-    adviser: "Prof. Richard Clark",
-    abstract: "Study on integrating digital tools in science education and its impact on student learning outcomes...",
-    department: "BSED Science | AFSET",
-    uploadDate: "2024-10-25",
-    logo: "../../../resources/images/AFSET_LOGO.png"
-  },
-  {
-    id: 8,
-    title: "Mathematics Education Innovation",
-    authors: "Andrew Wilson, Michelle Tan",
-    adviser: "Dr. Christopher Lee",
-    abstract: "Development of innovative approaches to mathematics education focusing on problem-solving skills...",
-    department: "BSED Math | AFSET",
-    uploadDate: "2024-10-20",
-    logo: "../../../resources/images/AFSET_LOGO.png"
-  }
-];
+// Thesis papers data (loaded from API)
+let thesisPapers = [];
 
 // DOM Elements
 const landingPage = document.getElementById('landing-page');
@@ -177,6 +96,16 @@ const gridViewIcon = document.getElementById('gridViewIcon');
 document.addEventListener('DOMContentLoaded', function() {
   initializeAnnouncements();
   initializePrograms();
+  // Use inline preloaded theses first (from PHP), then fall back to API
+  try {
+    if (Array.isArray(window.__THESIS__) && window.__THESIS__.length) {
+      thesisPapers = normalizeTheses(window.__THESIS__);
+    } else {
+      preloadThesis();
+    }
+  } catch (_) {
+    preloadThesis();
+  }
   initializeEventListeners();
 });
 
@@ -352,11 +281,7 @@ function initializeEventListeners() {
   listViewIcon.addEventListener('click', () => toggleView('list'));
   gridViewIcon.addEventListener('click', () => toggleView('grid'));
   
-  // Login button
-  document.querySelector('.btn-login').addEventListener('click', function(e) {
-    e.preventDefault();
-    alert('Login functionality would be implemented here');
-  });
+  
 }
 
 // Perform search from landing page
@@ -364,7 +289,7 @@ function performSearch() {
   const query = searchInput.value.trim();
   if (query) {
     showResultsPage();
-    displaySearchResults(query);
+    searchFromAPI(query);
   }
 }
 
@@ -372,7 +297,7 @@ function performSearch() {
 function performResultsSearch() {
   const query = resultsSearchInput.value.trim();
   if (query) {
-    displaySearchResults(query);
+    searchFromAPI(query);
   }
 }
 
@@ -414,6 +339,77 @@ function displaySearchResults(query) {
       thesisResults.appendChild(card);
     });
   }
+}
+
+// Load initial theses to enable instant filtering when network is slow
+async function preloadThesis() {
+  try {
+    const resp = await fetch('../../../app/Controllers/ThesisController.php?action=getAllTheses', { cache: 'no-store' });
+    const ct = resp.headers.get('content-type') || '';
+    const text = await resp.text();
+    console.debug('getAllTheses raw:', text?.slice(0, 300));
+    let data = null;
+    if (resp.ok && ct.includes('application/json') && text.trim().length) {
+      try { data = JSON.parse(text); } catch (e) { console.error('JSON parse error getAllTheses:', e); }
+    }
+    if (data && data.success && Array.isArray(data.theses) && data.theses.length) {
+      thesisPapers = normalizeTheses(data.theses);
+      return;
+    }
+    // Fallback: try department endpoint
+    const resp2 = await fetch('../../../app/Controllers/ThesisController.php?action=getThesesByDepartment&department=all', { cache: 'no-store' });
+    const ct2 = resp2.headers.get('content-type') || '';
+    const text2 = await resp2.text();
+    console.debug('getThesesByDepartment raw:', text2?.slice(0, 300));
+    let data2 = null;
+    if (resp2.ok && ct2.includes('application/json') && text2.trim().length) {
+      try { data2 = JSON.parse(text2); } catch (_) {}
+    }
+    if (data2 && data2.success && Array.isArray(data2.theses) && data2.theses.length) {
+      thesisPapers = normalizeTheses(data2.theses);
+      return;
+    }
+  } catch (e) {
+    console.error('Failed to preload theses:', e);
+  }
+}
+
+// Search via API (server-side) and render results
+async function searchFromAPI(query) {
+  try {
+    // Fetch all theses then filter client-side to ensure consistent results for guests
+    if (!thesisPapers || thesisPapers.length === 0) {
+      await preloadThesis();
+    }
+    displaySearchResults(query);
+  } catch (e) {
+    console.error('Search error:', e);
+    displaySearchResults(query);
+  }
+}
+
+function normalizeTheses(theses) {
+  return theses.map(t => {
+    const title = t.Title || t.title || '';
+    const authors = t.Author || t.authors || '';
+    const adviser = t.Adviser || t.adviser || '';
+    const abstractRaw = t.Thesis_AbstractFile || t.abstract || '';
+    const abstractText = typeof abstractRaw === 'string' ? abstractRaw : '';
+    const course = t.Thesis_Course || t.course || '';
+    const dept = t.Thesis_Department || t.department || '';
+    const department = course && dept && !String(dept).includes('|') ? `${course} | ${dept}` : (dept || '');
+    const uploadDate = t.uploaded_at || t.uploadDate || '';
+    return {
+      id: t.ID || t.id,
+      title,
+      authors,
+      adviser,
+      abstract: abstractText,
+      department,
+      uploadDate,
+      logo: '../../../resources/images/ThesisCompLogo.png'
+    };
+  });
 }
 
 // Create thesis card element
