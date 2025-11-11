@@ -5,6 +5,7 @@ require_once 'RoleModel.php'; // Include the RoleModel
 
 class User extends Model {
     protected $tableName = 'USER_INFORMATION'; // Set table name
+	protected $error = null;
     
     /**
      * Get database instance for external use
@@ -114,6 +115,20 @@ class User extends Model {
         } catch (Exception $e) {
             error_log("User registration error: " . $e->getMessage());
             throw $e; // Re-throw to let controller handle it
+        }
+    }
+
+    /**
+     * Register a user from Google Sign-In
+     */
+    public function registerGoogleUser($userData) {
+        try {
+            // Use the existing register method but with Google-specific defaults
+            return $this->register($userData);
+        } catch (Exception $e) {
+            $this->error = $e->getMessage();
+            error_log("Google user registration error: " . $e->getMessage());
+            return false;
         }
     }
     

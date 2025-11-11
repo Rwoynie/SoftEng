@@ -88,7 +88,7 @@ if ($setupError) {
     <script type="text/javascript" src="../../../resources/js/User/indexLogin.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://apis.google.com/js/platform.js?onload=onGoogleLoad" async defer></script>
+  
     
 
     <script>
@@ -162,9 +162,13 @@ if ($setupError) {
           <div class="d-flex justify-content-center mb-2">
             <div id="googleButton"></div>
           </div>
-          <button type="button" id="googleModalBtn" class="btn w-100 mb-3" style="background:#db4437; color:white;">
-            <i class="fab fa-google me-2"></i> Sign in with USeP Email
-          </button>
+          
+          <div class="d-flex justify-content-center mb-2">
+              <button id="googleModalBtn" type="button" class="btn btn-outline-danger w-100">
+                  <i class="fab fa-google me-2"></i> Sign in with USeP Email
+              </button>
+          </div>
+          
           
           <div class="text-center">
             <a href="#" id="openRegisterLink" class="btn btn-link">Not yet registered?</a>

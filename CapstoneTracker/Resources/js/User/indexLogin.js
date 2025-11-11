@@ -317,84 +317,431 @@ function hideLoading() {
     }
 }
 
-function onSignIn(googleUser) {
-    var profile = googleUser.getBasicProfile();
-    var email = (profile.getEmail() || '').toLowerCase();
-    if (!email.endsWith('@usep.edu.ph')) {
+function setupCustomGoogleButton() {
+    const googleModalBtn = document.getElementById('googleModalBtn');
+    if (googleModalBtn) {
+        googleModalBtn.addEventListener('click', function() {
+            handleGoogleButtonClick();
+        });
+        console.log('Custom Google button setup completed');
+    } else {
+        console.error('Google modal button not found');
+    }
+}
+
+
+let googleSignInInitialized = false;
+const googleClientId = '650560808203-6v58k39kme14720dh0u78chb4i33chre.apps.googleusercontent.com'; // Use only ONE client ID
+
+function initializeGoogleSignIn() {
+    
+    
+    // Check if already initialized
+    if (googleSignInInitialized) {
+        console.log('Google Sign-In already initialized');
+        return;
+    }
+    
+    // Remove any existing Google scripts to avoid conflicts
+    const existingScripts = document.querySelectorAll('script[src*="accounts.google.com"]');
+    existingScripts.forEach(script => script.remove());
+    
+    // Load Google Identity Services
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+        
+        initializeGSI();
+    };
+    script.onerror = (error) => {
+        console.error('Failed to load Google Identity Services:', error);
+        setupManualOAuth();
+    };
+    document.head.appendChild(script);
+}
+
+
+
+    function initializeGSI() {
+        if (typeof google === 'undefined' || !google.accounts) {
+            console.error('Google accounts not available');
+            setupManualOAuth();
+            return;
+        }
+        
+        try {
+            
+            
+            google.accounts.id.initialize({
+                client_id: googleClientId,
+                callback: handleCredentialResponse,
+                auto_select: false,
+                cancel_on_tap_outside: true
+            });
+            
+            googleSignInInitialized = true;
+            
+            
+        } catch (error) {
+            console.error('GSI initialization failed:', error);
+            setupManualOAuth();
+        }
+    }
+
+    function setupCustomGoogleButton() {
+        const googleModalBtn = document.getElementById('googleModalBtn');
+        if (googleModalBtn) {
+            // Remove any existing event listeners
+            const newBtn = googleModalBtn.cloneNode(true);
+            googleModalBtn.parentNode.replaceChild(newBtn, googleModalBtn);
+            
+            // Add new event listener
+            newBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                handleGoogleSignIn();
+            });
+            
+            
+        } else {
+            console.error('Google modal button not found');
+        }
+    }
+
+    function handleGoogleSignIn() {
+        
+        
+        const customBtn = document.getElementById('googleModalBtn');
+        
+        // Show loading state
+        if (customBtn) {
+            customBtn.disabled = true;
+            customBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Connecting...';
+        }
+        
+        // Check if Google Sign-In is available
+        if (!googleSignInInitialized || typeof google === 'undefined') {
+            
+            showGoogleSignInPopup();
+            return;
+        }
+        
+        try {
+            attemptGoogleButtonRender();
+        } catch (error) {
+            console.error('Google Sign-In failed:', error);
+            showGoogleSignInPopup();
+        }
+    }
+
+    function attemptGoogleButtonRender() {
+        // Create a hidden container for the Google button
+        const containerId = 'hiddenGoogleButtonContainer';
+        let container = document.getElementById(containerId);
+        
+        if (!container) {
+            container = document.createElement('div');
+            container.id = containerId;
+            container.style.position = 'fixed';
+            container.style.left = '-9999px';
+            container.style.top = '-9999px';
+            container.style.zIndex = '-9999';
+            document.body.appendChild(container);
+        }
+        
+        // Clear previous button
+        container.innerHTML = '';
+        
+        // Render Google button
+        google.accounts.id.renderButton(container, {
+            type: 'standard',
+            theme: 'outline',
+            text: 'signin_with',
+            size: 'large',
+            logo_alignment: 'left',
+            width: 400
+        });
+        
+        // Wait for button to render and click it
+        setTimeout(() => {
+            const googleButton = container.querySelector('div[role="button"]');
+            if (googleButton) {
+                
+                googleButton.click();
+                
+                // Reset button after click
+                setTimeout(resetGoogleButton, 2000);
+            } else {
+                console.error('Google button not rendered');
+                showGoogleSignInPopup();
+            }
+        }, 100);
+    }
+
+    function showGoogleSignInPopup() {
+        console.log('Showing Google Sign-In popup instructions');
+        
         Swal.fire({
-            title: 'Invalid Email',
-            text: 'Please use your USeP (@usep.edu.ph) account.',
+            title: 'Sign in with Google',
+            html: `
+                <div class="text-start">
+                    <p><strong>To sign in with your USeP email:</strong></p>
+                    <ol>
+                        <li>Click the "Open Google Sign-In" button below</li>
+                        <li>Sign in with your <strong style="color: #d93025;">@usep.edu.ph</strong> email</li>
+                        <li>You'll be redirected back automatically</li>
+                    </ol>
+                    <div class="alert alert-warning mt-3">
+                        <small>
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            <strong>Note:</strong> Make sure you're using your University of Southeastern Philippines email account.
+                        </small>
+                    </div>
+                </div>
+            `,
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fab fa-google me-2"></i> Open Google Sign-In',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true,
+            customClass: {
+                confirmButton: 'btn btn-danger',
+                cancelButton: 'btn btn-secondary'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                startManualGoogleOAuth();
+            } else {
+                resetGoogleButton();
+            }
+        });
+    }
+
+    function startManualGoogleOAuth() {
+        const redirectUri = encodeURIComponent(window.location.origin);
+        const scope = encodeURIComponent('email profile openid');
+        
+        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+                       `client_id=${googleClientId}&` +
+                       `redirect_uri=${redirectUri}&` +
+                       `response_type=code&` +
+                       `scope=${scope}&` +
+                       `access_type=online&` +
+                       `prompt=select_account`;
+        
+        console.log('Redirecting to Google OAuth');
+        window.location.href = authUrl;
+    }
+
+    function setupManualOAuth() {
+        console.log('Setting up manual OAuth flow');
+        const googleModalBtn = document.getElementById('googleModalBtn');
+        if (googleModalBtn) {
+            googleModalBtn.onclick = function() {
+                startManualGoogleOAuth();
+            };
+        }
+    }
+
+    function handleCredentialResponse(response) {
+        
+        
+        try {
+            const responsePayload = parseJwt(response.credential);
+            
+            
+            // Validate USeP email
+            if (!responsePayload.email.endsWith('@usep.edu.ph')) {
+                Swal.fire('Invalid Email', 'Please use your USeP email address.', 'error');
+                resetGoogleButton();
+                return;
+            }
+            
+            // Show loading state
+            Swal.fire({
+                title: 'Signing In...',
+                text: 'Please wait while we authenticate your account',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Send to backend
+            sendGoogleCredentialToBackend(response.credential);
+            
+        } catch (error) {
+            console.error('Error processing Google credential:', error);
+            Swal.fire({
+                title: 'Authentication Error',
+                text: 'Failed to process Google sign-in. Please try again.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            resetGoogleButton();
+        }
+    }
+
+    function resetGoogleButton() {
+        const customBtn = document.getElementById('googleModalBtn');
+        if (customBtn) {
+            customBtn.disabled = false;
+            customBtn.innerHTML = '<i class="fab fa-google me-2"></i> Sign in with USeP Email';
+        }
+    }
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Send credential to backend
+async function sendGoogleCredentialToBackend(credential) {
+    try {
+        // Show loading state
+        Swal.fire({
+            title: 'Authenticating...',
+            text: 'Please wait while we verify your credentials',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Decode the token to get user info
+        const responsePayload = parseJwt(credential);
+        const userEmail = responsePayload.email;
+        const userName = responsePayload.name;
+        
+        // Get the role from the login modal
+        const roleField = document.getElementById('roleField');
+        const role = roleField ? roleField.value : 'student';
+
+        console.log('Sending Google authentication for:', userEmail, 'Role:', role);
+
+        // Get fresh CSRF token from the page
+        const csrfTokenInput = document.querySelector('input[name="csrf_token"]');
+        const csrfToken = csrfTokenInput ? csrfTokenInput.value : '';
+
+        if (!csrfToken) {
+            throw new Error('Security token missing. Please refresh the page and try again.');
+        }
+
+        console.log('Using CSRF token:', csrfToken);
+
+        // Send to AuthController
+        const response = await fetch('../../Controllers/AuthController.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            credentials: 'include',
+            body: new URLSearchParams({
+                'action': 'google_login',
+                'credential': credential,
+                'email': userEmail,
+                'name': userName,
+                'role': role,
+                'csrf_token': csrfToken
+            })
+        });
+
+        const responseText = await response.text();
+        console.log('Raw response:', responseText);
+        
+        // Check if it's a PHP error
+        if (responseText.includes('<b>Fatal error</b>') || responseText.includes('<br />')) {
+            console.error('PHP Fatal Error detected');
+            // Extract error message from PHP error
+            const errorMatch = responseText.match(/<b>Fatal error<\/b>:\s*(.*?)<br/i);
+            const errorMessage = errorMatch ? errorMatch[1] : 'PHP fatal error occurred';
+            throw new Error('Server Error: ' + errorMessage);
+        }
+        
+        // Parse JSON response
+        let result;
+        try {
+            result = JSON.parse(responseText);
+        } catch (jsonError) {
+            console.error('JSON parse error:', jsonError);
+            throw new Error('Server returned invalid response. Please check server logs.');
+        }
+        
+        console.log('Parsed JSON result:', result);
+        
+        if (result.success) {
+            Swal.fire({
+                title: 'Success!',
+                text: result.message,
+                icon: 'success',
+                confirmButtonText: 'OK'
+            }).then(() => {
+                window.location.href = result.redirect_url || '../../app/Views/User/userViewPage.php';
+            });
+        } else {
+            throw new Error(result.message || 'Authentication failed');
+        }
+        
+    } catch (error) {
+        console.error('Backend authentication error:', error);
+        Swal.fire({
+            title: 'Authentication Failed',
+            text: error.message || 'Failed to authenticate. Please try again.',
             icon: 'error',
             confirmButtonText: 'OK'
         });
-        try {
-            if (typeof gapi !== 'undefined' && gapi.auth2) {
-                var auth2 = gapi.auth2.getAuthInstance();
-                if (auth2) auth2.signOut();
-            }
-        } catch (e) {}
-        return;
+        resetGoogleButton();
     }
-    var id_token = googleUser.getAuthResponse().id_token;
-    sessionStorage.setItem('userEmail', email);
-    sessionStorage.setItem('googleIdToken', id_token);
 }
 
-// Wait for the Google API to load
-function onGoogleLoad() {
-    console.log('Google API loaded');
-    renderGoogleButton();
+function parseJwt(token) {
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+    } catch (error) {
+        console.error('Error parsing JWT:', error);
+        throw new Error('Invalid token format');
+    }
 }
 
-// Initialize Google Sign-In button
-function renderGoogleButton() {
-    if (typeof gapi !== 'undefined' && gapi.signin2) {
-        gapi.signin2.render('googleButton', {
-            'scope': 'profile email',
-            'width': 240,
-            'height': 40,
-            'longtitle': true,
-            'theme': 'light',
-            'onsuccess': onSignIn,
-            'onfailure': function(error) {
-                console.log('Google Sign-In failed:', error);
-                hideLoading();
-            }
+
+// Sign out function
+function signOut() {
+    if (typeof google !== 'undefined' && google.accounts.id) {
+        google.accounts.id.disableAutoSelect();
+        google.accounts.id.revoke((done) => {
+            console.log('Google Sign-Out completed');
         });
-        
-        // Add event listener to custom button after Google button is rendered
-        setTimeout(() => {
-            const customBtn = document.getElementById('customGoogleBtn');
-            if (customBtn) {
-                customBtn.addEventListener('click', function() {
-                    showLoading();
-                    const googleButton = document.querySelector('#googleButton .abcRioButton');
-                    if (googleButton) {
-                        googleButton.click();
-                    } else {
-                        console.log('Google button not found');
-                        hideLoading();
-                    }
-                });
-            }
-        }, 1000);
-    } else {
-        console.log('Google API not available yet, retrying...');
-        setTimeout(renderGoogleButton, 500);
     }
 }
+
+
+
+
 
 // Initialize when document is ready
 function initializePage() {
-    console.log('Initializing page functionality...');
     
-    // Check if Google API is already loaded
-    if (typeof gapi !== 'undefined') {
-        renderGoogleButton();
-    }
     
-    // Add a fallback in case the Google API doesn't load properly
-    setTimeout(renderGoogleButton, 2000);
+    initializeGoogleSignIn();
+    
+    setupCustomGoogleButton();
+    
+    
 
     // Modal open buttons - ADD NULL CHECKS
     const researcherBtn = document.getElementById("researcherBtn");
@@ -633,6 +980,7 @@ function initializePage() {
             console.log('Shift released - sequence reset');
         }
     });
+    
     
 };
 
