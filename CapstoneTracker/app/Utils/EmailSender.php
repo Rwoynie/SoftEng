@@ -62,30 +62,56 @@ class EmailSender {
             return false;
         }
     }
+
+	public function sendHtmlEmail($toEmail, $toName, $subject, $body) {
+		try {
+			error_log("Sending custom HTML email to: " . $toEmail . " with subject: " . $subject);
+			return $this->sendEmailPHPMailer($toEmail, $toName, $subject, $body);
+		} catch (\Exception $e) {
+			error_log("Custom email sending error: " . $e->getMessage());
+			return false;
+		}
+	}
     
     private function sendEmailPHPMailer($toEmail, $toName, $subject, $body) {
+        if (!$this->mailerAvailable) {
+            error_log("PHPMailer not available in sendEmailPHPMailer().");
+            return false;
+        }
+        
         $mail = new PHPMailer(true);
         
         try {
+            error_log("Configuring PHPMailer for: " . $this->host . ":" . $this->port);
+            
             // Server settings
             $mail->isSMTP();
+            $mail->Timeout    = 30;
+            $mail->SMTPKeepAlive = false; // Important: Don't keep connection alive
+            $mail->CharSet    = 'UTF-8';
             $mail->Host       = $this->host;
             $mail->SMTPAuth   = true;
             $mail->Username   = $this->username;
             $mail->Password   = $this->password;
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port       = $this->port;
             
+            // Choose encryption based on port
+            $mail->Port = (int)$this->port;
+            if ($mail->Port === 465) {
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+            } else {
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            }
             
-            
-            // SSL options for development
-            $mail->SMTPOptions = [
-                'ssl' => [
+            error_log("Using encryption: " . $mail->SMTPSecure . " on port: " . $mail->Port);
+    
+            // SSL options
+            $mail->SMTPOptions = array(
+                'ssl' => array(
                     'verify_peer' => false,
                     'verify_peer_name' => false,
                     'allow_self_signed' => true
-                ]
-            ];
+                )
+            );
             
             // Recipients
             $mail->setFrom($this->username, $this->fromName);
@@ -98,20 +124,45 @@ class EmailSender {
             $mail->Body    = $body;
             $mail->AltBody = $this->generatePlainText($body);
             
-            error_log("Attempting to send to: " . $toEmail);
+            error_log("Attempting to send email to: " . $toEmail);
+            
+            // Send email
             $result = $mail->send();
             
             if ($result) {
-                error_log("✅ Email sent successfully to: " . $toEmail);
+                error_log("PHPMailer: Email sent successfully to: " . $toEmail);
             } else {
-                error_log("❌ Email failed to send to: " . $toEmail);
+                error_log("PHPMailer: Send method returned false for: " . $toEmail);
+                error_log("PHPMailer Error: " . $mail->ErrorInfo);
             }
+            
+            // Explicitly close the connection
+            $mail->smtpClose();
             
             return $result;
             
         } catch (PHPMailerException $e) {
-            error_log("PHPMailer Exception: " . $e->getMessage());
+            error_log("PHPMailer Exception: Could not send email to {$toEmail}. Error: " . $e->getMessage());
             error_log("PHPMailer ErrorInfo: " . $mail->ErrorInfo);
+            
+            // Ensure connection is closed even on error
+            try {
+                $mail->smtpClose();
+            } catch (Exception $e) {
+                // Ignore close errors
+            }
+            
+            return false;
+        } catch (Exception $e) {
+            error_log("General Exception in sendEmailPHPMailer: " . $e->getMessage());
+            
+            // Ensure connection is closed even on error
+            try {
+                $mail->smtpClose();
+            } catch (Exception $e) {
+                // Ignore close errors
+            }
+            
             return false;
         }
     }

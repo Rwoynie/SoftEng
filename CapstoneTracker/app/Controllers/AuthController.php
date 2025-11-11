@@ -134,7 +134,8 @@ class AuthController extends Controller {
             header('Content-Type: application/json');
             echo json_encode([
                 'success' => true,
-                'message' => 'Login successful',
+                'head' => 'Login successful',
+                'message' => 'Check you email for further information.',
                 'redirect_url' => '../../Views/User/userViewPage.php'
             ]);
             exit();
@@ -142,9 +143,9 @@ class AuthController extends Controller {
             // TEMPORARY: Skip CSRF validation for Google login during development
             error_log("CSRF validation skipped for development");
     
-            $credential = $_POST['credential'] ?? '';
-            $email = $_POST['email'] ?? '';
-            $name = $_POST['name'] ?? '';
+        $credential = $_POST['credential'] ?? '';
+        $email = $_POST['email'] ?? '';
+        $name = $_POST['name'] ?? '';
             $role = $_POST['role'] ?? 'student';
     
             // Basic validation
@@ -198,11 +199,11 @@ class AuthController extends Controller {
                     ]);
                     
                     error_log("Session created successfully");
-                    echo json_encode([
-                        'success' => true,
-                        'message' => 'Login successful',
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Login successful',
                         'redirect_url' => '../../Views/User/userViewPage.php'
-                    ]);
+                ]);
                     exit();
                 } else {
                     throw new Exception('Your account status is invalid. Please contact administrator.');
@@ -224,7 +225,7 @@ class AuthController extends Controller {
                     ]);
                     
                     error_log("Session created for new user");
-                    echo json_encode([
+                echo json_encode([
                         'success' => true,
                         'message' => 'Account created and login successful',
                         'redirect_url' => '../../Views/User/userViewPage.php'
@@ -270,10 +271,43 @@ class AuthController extends Controller {
      */
     private function autoRegisterGoogleUser($email, $name, $role) {
         error_log("=== AUTO REGISTRATION DEBUG START ===");
+        error_log("Email: $email, Name: $name, Role: $role");
+        
         require_once ROOT_DIR . '\app\Models\User.php';
         
         try {
             $userModel = new User();
+            
+            // First, check if user exists but was soft/hard deleted
+            $existingUser = $this->findByEmail($email);
+            if ($existingUser) {
+                error_log("User already exists in database (possibly deleted): " . print_r($existingUser, true));
+                
+                // Check if user is soft deleted (has deletion flag)
+                $isDeleted = isset($existingUser['is_deleted']) && $existingUser['is_deleted'] == 1;
+                $isDeleted = $isDeleted || (isset($existingUser['deleted_at']) && !empty($existingUser['deleted_at']));
+                
+                if ($isDeleted) {
+                    error_log("User was previously deleted. Attempting to restore...");
+                    
+                    // Restore the user account instead of creating new one
+                    $restoreResult = $this->restoreDeletedUser($email);
+                    if ($restoreResult) {
+                        error_log("User restored successfully");
+                        
+                        // Send welcome back email
+                        $this->sendWelcomeBackEmail($email, $name, $role);
+                        
+                        return [
+                            'success' => true,
+                            'user_id' => $existingUser['ID'],
+                            'message' => 'Account restored successfully'
+                        ];
+                    } else {
+                        error_log("Failed to restore user");
+                    }
+                }
+            }
             
             // Generate auto password
             $autoPassword = $this->generateAutoPassword();
@@ -360,6 +394,21 @@ class AuthController extends Controller {
             } else {
                 $modelError = $userModel->getError();
                 error_log("Registration failed. Model error: " . $modelError);
+                
+                // Check if it's a duplicate entry error
+                if (strpos($modelError, 'Duplicate') !== false || strpos($modelError, 'already exists') !== false) {
+                    error_log("Duplicate user detected, attempting to find existing user...");
+                    $existingUser = $this->findByEmail($email);
+                    if ($existingUser) {
+                        error_log("Found existing user, returning success");
+                        return [
+                            'success' => true,
+                            'user_id' => $existingUser['ID'] ?? $existingUser->ID,
+                            'message' => 'Account already exists'
+                        ];
+                    }
+                }
+                
                 return [
                     'success' => false,
                     'message' => $modelError ?: 'Failed to create account. Please try again.'
@@ -374,6 +423,40 @@ class AuthController extends Controller {
             ];
         }
     }
+
+    /**
+ * Restore a previously deleted user
+ */
+private function restoreDeletedUser($email) {
+    try {
+        require_once ROOT_DIR . '\app\Models\User.php';
+        $userModel = new User();
+        
+        // Update the user status to approved and clear deletion flags
+        $db = $userModel->getDb();
+        
+        // Build update query based on your database structure
+        $updateData = [
+            'Acc_Status' => 'approved',
+            'is_deleted' => 0,
+            'deleted_at' => null
+        ];
+        
+        $db->query('UPDATE USER_INFORMATION SET Acc_Status = :acc_status, is_deleted = 0, deleted_at = NULL WHERE Email = :email');
+        $db->bind(':acc_status', 'approved');
+        $db->bind(':email', $email);
+        
+        $result = $db->execute();
+        error_log("User restore result: " . ($result ? 'SUCCESS' : 'FAILED'));
+        
+        return $result;
+        
+    } catch (Exception $e) {
+        error_log("Error restoring user: " . $e->getMessage());
+        return false;
+    }
+}
+
 
     /**
      * Generate auto password for Google users
@@ -422,6 +505,94 @@ class AuthController extends Controller {
             return false;
         }
     }
+
+    /**
+ * Send welcome back email for restored users
+ */
+private function sendWelcomeBackEmail($email, $name, $role) {
+    try {
+        $emailSenderPath = ROOT_DIR . '\app\Utils\EmailSender.php';
+        if (!file_exists($emailSenderPath)) {
+            error_log("EmailSender.php not found at: " . $emailSenderPath);
+            return false;
+        }
+        
+        require_once $emailSenderPath;
+        
+        $emailSender = new EmailSender();
+        
+        // Create a welcome back email
+        $subject = 'Welcome Back to Compendium System';
+        $body = $this->getWelcomeBackBody($name, $email, $role);
+        
+        return $emailSender->sendHtmlEmail($email, $name, $subject, $body);
+        
+    } catch (Exception $e) {
+        error_log("Welcome back email sending failed: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Generate welcome back email body
+ */
+private function getWelcomeBackBody($name, $email, $role) {
+    return "
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: #2c3e50; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+            .content { background: #f9f9f9; padding: 30px; border: 1px solid #ddd; }
+            .footer { background: #34495e; color: white; padding: 15px; text-align: center; font-size: 12px; border-radius: 0 0 5px 5px; }
+            .info-box { background: #ecf0f1; padding: 15px; border-left: 4px solid #3498db; margin: 15px 0; }
+        </style>
+    </head>
+    <body>
+        <div class='container'>
+            <div class='header'>
+                <h1>Compendium System</h1>
+                <p>University of Southeastern Philippines</p>
+            </div>
+            
+            <div class='content'>
+                <h2>Welcome Back, {$name}!</h2>
+                <p>Your account has been successfully restored in the Compendium System.</p>
+                
+                <div class='info-box'>
+                    <p><strong>Account Details:</strong></p>
+                    <ul>
+                        <li><strong>Email:</strong> {$email}</li>
+                        <li><strong>Role:</strong> " . ucfirst($role) . "</li>
+                        <li><strong>Login Method:</strong> Google Sign-In</li>
+                    </ul>
+                </div>
+                
+                <div class='info-box'>
+                    <p><strong>Important Information:</strong></p>
+                    <ul>
+                        <li>You can continue using your previous password or use Google Sign-In</li>
+                        <li>If you forgot your password, please contact the administrator</li>
+                        <li>All your previous data has been restored</li>
+                    </ul>
+                </div>
+                
+                <p><strong>Access the system:</strong> <a href='http://localhost:3000'>Compendium System Portal</a></p>
+                
+                <p>If you have any questions, please contact the system administrator.</p>
+            </div>
+            
+            <div class='footer'>
+                <p>&copy; " . date('Y') . " University of Southeastern Philippines | Compendium System</p>
+                <p>This is an automated message. Please do not reply to this email.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    ";
+}
 
     /**
      * Parse full name into first and last name
@@ -513,6 +684,8 @@ class AuthController extends Controller {
         require_once ROOT_DIR . '\app\Models\User.php';
         $userModel = new User();
         $db = $userModel->getDb();
+        
+        // Query to find user including soft-deleted ones
         $db->query('SELECT * FROM USER_INFORMATION WHERE Email = :email LIMIT 1');
         $db->bind(':email', $email);
         $result = $db->single();
@@ -522,7 +695,12 @@ class AuthController extends Controller {
             $result = (array)$result;
         }
         
-        error_log("findByEmail result: " . print_r($result, true));
+        error_log("findByEmail result for $email: " . ($result ? 'FOUND' : 'NOT FOUND'));
+        if ($result) {
+            error_log("User status: " . ($result['Acc_Status'] ?? 'unknown'));
+            error_log("Is deleted: " . (isset($result['is_deleted']) ? $result['is_deleted'] : 'not set'));
+        }
+        
         return $result;
     }
 
@@ -636,8 +814,8 @@ if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
         exit();
     } else {
         // Handle other requests normally
-        $authController = new AuthController();
-        $authController->handleRequest();
+    $authController = new AuthController();
+    $authController->handleRequest();
     }
 }
 ?>
