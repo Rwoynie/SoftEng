@@ -132,20 +132,11 @@ class AuthController extends Controller {
             
             // Set header first to ensure clean JSON
             header('Content-Type: application/json');
-            echo json_encode([
-                'success' => true,
-                'head' => 'Login successful',
-                'message' => 'Check you email for further information.',
-                'redirect_url' => '../../Views/User/userViewPage.php'
-            ]);
-            exit();
             
-            // TEMPORARY: Skip CSRF validation for Google login during development
-            error_log("CSRF validation skipped for development");
-    
-        $credential = $_POST['credential'] ?? '';
-        $email = $_POST['email'] ?? '';
-        $name = $_POST['name'] ?? '';
+            
+            $credential = $_POST['credential'] ?? '';
+            $email = $_POST['email'] ?? '';
+            $name = $_POST['name'] ?? '';
             $role = $_POST['role'] ?? 'student';
     
             // Basic validation
@@ -199,11 +190,11 @@ class AuthController extends Controller {
                     ]);
                     
                     error_log("Session created successfully");
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'Login successful',
+                    echo json_encode([
+                        'success' => true,
+                        'message' => 'Login successful',
                         'redirect_url' => '../../Views/User/userViewPage.php'
-                ]);
+                    ]);
                     exit();
                 } else {
                     throw new Exception('Your account status is invalid. Please contact administrator.');
@@ -225,7 +216,7 @@ class AuthController extends Controller {
                     ]);
                     
                     error_log("Session created for new user");
-                echo json_encode([
+                    echo json_encode([
                         'success' => true,
                         'message' => 'Account created and login successful',
                         'redirect_url' => '../../Views/User/userViewPage.php'
@@ -237,21 +228,12 @@ class AuthController extends Controller {
             }
     
         } catch (Exception $e) {
-        
             // Clear any output that might have been generated
-            ob_clean();
-
             while (ob_get_level() > 0) {
                 ob_end_clean();
             }
             
             header('Content-Type: application/json');
-            echo json_encode([
-                'success' => false,
-                'message' => $e->getMessage()
-            ]);
-            exit();
-            
             error_log("Google login exception: " . $e->getMessage());
             echo json_encode([
                 'success' => false,
@@ -278,19 +260,33 @@ class AuthController extends Controller {
         try {
             $userModel = new User();
             
+            // Check database connection first
+            $db = $userModel->getDb();
+            if (!$db) {
+                throw new Exception('Database connection failed');
+            }
+            
+            // Test the connection
+            try {
+                $db->query('SELECT 1');
+                $db->execute();
+            } catch (Exception $e) {
+                throw new Exception('Database connection test failed: ' . $e->getMessage());
+            }
+            
             // First, check if user exists but was soft/hard deleted
             $existingUser = $this->findByEmail($email);
             if ($existingUser) {
-                error_log("User already exists in database (possibly deleted): " . print_r($existingUser, true));
+                error_log("User already exists in database: " . print_r($existingUser, true));
                 
-                // Check if user is soft deleted (has deletion flag)
+                // Check if user is soft deleted
                 $isDeleted = isset($existingUser['is_deleted']) && $existingUser['is_deleted'] == 1;
                 $isDeleted = $isDeleted || (isset($existingUser['deleted_at']) && !empty($existingUser['deleted_at']));
                 
                 if ($isDeleted) {
                     error_log("User was previously deleted. Attempting to restore...");
                     
-                    // Restore the user account instead of creating new one
+                    // Restore the user account
                     $restoreResult = $this->restoreDeletedUser($email);
                     if ($restoreResult) {
                         error_log("User restored successfully");
@@ -300,12 +296,20 @@ class AuthController extends Controller {
                         
                         return [
                             'success' => true,
-                            'user_id' => $existingUser['ID'],
+                            'user_id' => $existingUser['ID'] ?? $existingUser->ID,
                             'message' => 'Account restored successfully'
                         ];
                     } else {
-                        error_log("Failed to restore user");
+                        throw new Exception("Failed to restore previously deleted account");
                     }
+                } else {
+                    // User exists and is not deleted - just return success
+                    error_log("User already exists and is active");
+                    return [
+                        'success' => true,
+                        'user_id' => $existingUser['ID'] ?? $existingUser->ID,
+                        'message' => 'Account already exists'
+                    ];
                 }
             }
             
@@ -360,22 +364,17 @@ class AuthController extends Controller {
                 $newUser = $this->findByEmail($email);
                 
                 if ($newUser) {
-                    // Convert to array if it's an object
-                    if (is_object($newUser)) {
-                        $newUser = (array)$newUser;
-                    }
-                    
                     $userId = $newUser['ID'] ?? $newUser->ID ?? null;
                     error_log("New user found with ID: " . $userId);
                     
-                    // ✅ SEND WELCOME EMAIL WITH PASSWORD
+                    // Send welcome email
                     $emailSent = $this->sendWelcomeEmail($email, $name, $autoPassword, $userRole);
                     
                     if ($emailSent) {
                         error_log("Welcome email sent successfully to: " . $email);
                     } else {
                         error_log("Failed to send welcome email to: " . $email);
-                        // Don't fail the registration if email fails, just log it
+                        // Don't fail registration if email fails
                     }
                     
                     error_log("=== AUTO REGISTRATION DEBUG END - SUCCESS ===");
@@ -394,20 +393,6 @@ class AuthController extends Controller {
             } else {
                 $modelError = $userModel->getError();
                 error_log("Registration failed. Model error: " . $modelError);
-                
-                // Check if it's a duplicate entry error
-                if (strpos($modelError, 'Duplicate') !== false || strpos($modelError, 'already exists') !== false) {
-                    error_log("Duplicate user detected, attempting to find existing user...");
-                    $existingUser = $this->findByEmail($email);
-                    if ($existingUser) {
-                        error_log("Found existing user, returning success");
-                        return [
-                            'success' => true,
-                            'user_id' => $existingUser['ID'] ?? $existingUser->ID,
-                            'message' => 'Account already exists'
-                        ];
-                    }
-                }
                 
                 return [
                     'success' => false,

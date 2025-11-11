@@ -46,6 +46,44 @@ class EmailSender {
         $this->fromName = EmailConfig::SMTP_FROM_NAME;
         
         error_log("EmailSender initialized with: " . $this->host . ":" . $this->port);
+        
+        // Test SMTP connection on construction
+        $this->testSmtpConnection();
+    }
+
+    private function testSmtpConnection() {
+        try {
+            $mail = new PHPMailer(true);
+            $mail->isSMTP();
+            $mail->Host = $this->host;
+            $mail->SMTPAuth = true;
+            $mail->Username = $this->username;
+            $mail->Password = $this->password;
+            $mail->Port = (int)$this->port;
+            $mail->SMTPSecure = ($mail->Port === 465) ? PHPMailer::ENCRYPTION_SMTPS : PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->SMTPDebug = 0; // Set to 0 for production, 2 for debugging
+            $mail->Timeout = 10;
+            
+            $mail->SMTPOptions = array(
+                'ssl' => array(
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                    'allow_self_signed' => true
+                )
+            );
+            
+            // Test connection
+            if (!$mail->smtpConnect()) {
+                error_log("SMTP connection test FAILED for {$this->host}:{$this->port}");
+                $this->mailerAvailable = false;
+            } else {
+                error_log("SMTP connection test SUCCESS for {$this->host}:{$this->port}");
+                $mail->smtpClose();
+            }
+        } catch (Exception $e) {
+            error_log("SMTP connection test exception: " . $e->getMessage());
+            $this->mailerAvailable = false;
+        }
     }
     
     public function sendWelcomeEmail($toEmail, $toName, $password, $role) {
