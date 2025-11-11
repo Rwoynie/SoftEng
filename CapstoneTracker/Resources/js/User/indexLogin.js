@@ -299,84 +299,256 @@ function hideLoading() {
     }
 }
 
-function onSignIn(googleUser) {
-    var profile = googleUser.getBasicProfile();
-    var email = (profile.getEmail() || '').toLowerCase();
-    if (!email.endsWith('@usep.edu.ph')) {
-        Swal.fire({
-            title: 'Invalid Email',
-            text: 'Please use your USeP (@usep.edu.ph) account.',
-            icon: 'error',
-            confirmButtonText: 'OK'
-        });
-        try {
-            if (typeof gapi !== 'undefined' && gapi.auth2) {
-                var auth2 = gapi.auth2.getAuthInstance();
-                if (auth2) auth2.signOut();
-            }
-        } catch (e) {}
+function initializeGoogleSignIn() {
+    console.log('Initializing Google Identity Services...');
+    
+    // Load Google Identity Services
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+        console.log('Google Identity Services loaded');
+        renderGoogleButton();
+    };
+    script.onerror = (error) => {
+        console.error('Failed to load Google Identity Services:', error);
+    };
+    document.head.appendChild(script);
+}
+
+function loadGoogleAPI() {
+    return new Promise((resolve, reject) => {
+        if (window.gapi) {
+            resolve();
+            return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = 'https://apis.google.com/js/platform.js';
+        script.async = true;
+        script.defer = true;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+}
+
+function renderGoogleButton() {
+    if (typeof google === 'undefined') {
+        console.error('Google Identity Services not loaded');
         return;
     }
-    var id_token = googleUser.getAuthResponse().id_token;
-    sessionStorage.setItem('userEmail', email);
-    sessionStorage.setItem('googleIdToken', id_token);
+    
+    try {
+        // Initialize Google Identity Services
+        google.accounts.id.initialize({
+            client_id: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com', // REPLACE WITH YOUR ACTUAL CLIENT ID
+            callback: handleCredentialResponse,
+            auto_select: false,
+            cancel_on_tap_outside: true,
+            context: 'signin',
+            ux_mode: 'popup',
+            itp_support: true
+        });
+        
+        // Optional: Display the One Tap prompt
+         google.accounts.id.prompt((notification) => {
+             if (notification.isNotDisplayed() || notification.isSkipped()) {
+                 console.log('One Tap not displayed');
+             }
+         });
+        
+        console.log('Google Identity Services initialized successfully');
+        
+    } catch (error) {
+        console.error('Error initializing Google Sign-In:', error);
+    }
 }
 
-// Wait for the Google API to load
-function onGoogleLoad() {
-    console.log('Google API loaded');
-    renderGoogleButton();
-}
-
-// Initialize Google Sign-In button
-function renderGoogleButton() {
-    if (typeof gapi !== 'undefined' && gapi.signin2) {
-        gapi.signin2.render('googleButton', {
-            'scope': 'profile email',
-            'width': 240,
-            'height': 40,
-            'longtitle': true,
-            'theme': 'light',
-            'onsuccess': onSignIn,
-            'onfailure': function(error) {
-                console.log('Google Sign-In failed:', error);
-                hideLoading();
+function handleCredentialResponse(response) {
+    console.log('Google Sign-In response received');
+    
+    try {
+        // Decode the JWT token to get user info
+        const responsePayload = parseJwt(response.credential);
+        
+        console.log('Google User Info:', {
+            id: responsePayload.sub,
+            name: responsePayload.name,
+            email: responsePayload.email,
+            picture: responsePayload.picture
+        });
+        
+        // Validate USeP email
+        if (!responsePayload.email.endsWith('@usep.edu.ph')) {
+            Swal.fire({
+                title: 'Invalid Email',
+                text: 'Please use your USeP (@usep.edu.ph) email address.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            
+            // Sign out the user
+            google.accounts.id.disableAutoSelect();
+            google.accounts.id.revoke(responsePayload.email, (done) => {
+                console.log('Credentials revoked for non-USeP email');
+            });
+            return;
+        }
+        
+        // Show loading state
+        Swal.fire({
+            title: 'Signing In...',
+            text: 'Please wait while we authenticate your account',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
             }
         });
         
-        // Add event listener to custom button after Google button is rendered
-        setTimeout(() => {
-            const customBtn = document.getElementById('customGoogleBtn');
-            if (customBtn) {
-                customBtn.addEventListener('click', function() {
-                    showLoading();
-                    const googleButton = document.querySelector('#googleButton .abcRioButton');
-                    if (googleButton) {
-                        googleButton.click();
-                    } else {
-                        console.log('Google button not found');
-                        hideLoading();
-                    }
-                });
-            }
-        }, 1000);
-    } else {
-        console.log('Google API not available yet, retrying...');
-        setTimeout(renderGoogleButton, 500);
+        // Send the credential to your backend for verification
+        sendGoogleCredentialToBackend(response.credential);
+        
+    } catch (error) {
+        console.error('Error processing Google credential:', error);
+        Swal.fire({
+            title: 'Authentication Error',
+            text: 'Failed to process Google sign-in. Please try again.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        
+        // Reset custom button
+        resetGoogleButton();
     }
 }
 
-// Initialize when document is ready
+async function sendGoogleCredentialToBackend(credential) {
+    try {
+        const response = await fetch('/AuthController/google-auth', { // Update with your actual endpoint
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                credential: credential,
+                _token: 'YOUR_CSRF_TOKEN' // Add if using Laravel or similar
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            // Successful login - redirect or show success
+            Swal.fire({
+                title: 'Success!',
+                text: 'Signed in successfully',
+                icon: 'success',
+                confirmButtonText: 'OK'
+            }).then(() => {
+                window.location.href = result.redirect_url || '/dashboard';
+            });
+        } else {
+            // Handle errors from backend
+            throw new Error(result.message || 'Authentication failed');
+        }
+        
+    } catch (error) {
+        console.error('Backend authentication error:', error);
+        Swal.fire({
+            title: 'Authentication Failed',
+            text: error.message || 'Failed to authenticate with server',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        
+        // Revoke Google auth on failure
+        google.accounts.id.disableAutoSelect();
+        resetGoogleButton();
+    }
+}
+
+function parseJwt(token) {
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+    } catch (error) {
+        console.error('Error parsing JWT:', error);
+        throw new Error('Invalid token format');
+    }
+}
+
+function signOut() {
+    if (typeof google !== 'undefined' && google.accounts.id) {
+        google.accounts.id.disableAutoSelect();
+        google.accounts.id.revoke((done) => {
+            console.log('Google Sign-Out completed');
+        });
+    }
+}
+
+function handleGoogleButtonClick() {
+    console.log('Custom Google button clicked');
+    
+    // Show loading state on custom button
+    const customBtn = document.getElementById('googleModalBtn');
+    if (customBtn) {
+        customBtn.disabled = true;
+        customBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Connecting to Google...';
+    }
+    
+    // Trigger Google Sign-In
+    if (typeof google !== 'undefined' && google.accounts.id) {
+        google.accounts.id.prompt(); // Show the Google One Tap or regular prompt
+        
+        // Alternatively, you can render a button explicitly:
+        // google.accounts.id.renderButton(
+        //     document.getElementById('googleButtonContainer'),
+        //     { theme: 'outline', size: 'large', text: 'signin_with' }
+        // );
+    } else {
+        console.error('Google Identity Services not available');
+        Swal.fire({
+            title: 'Service Unavailable',
+            text: 'Google Sign-In is not available at the moment. Please try again later.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        resetGoogleButton();
+    }
+}
+
+function resetGoogleButton() {
+    const customBtn = document.getElementById('googleModalBtn');
+    if (customBtn) {
+        customBtn.disabled = false;
+        customBtn.innerHTML = '<i class="fab fa-google me-2"></i> Sign in with USeP Email';
+    }
+}
+
 function initializePage() {
     console.log('Initializing page functionality...');
     
-    // Check if Google API is already loaded
-    if (typeof gapi !== 'undefined') {
-        renderGoogleButton();
-    }
+    setupCustomGoogleButton();
+    // Start Google button initialization
+    renderGoogleButton();
+
+    
     
     // Add a fallback in case the Google API doesn't load properly
-    setTimeout(renderGoogleButton, 2000);
+    setTimeout(function() {
+        const googleButton = document.querySelector('#googleButton iframe, #googleButton .abcRioButton');
+        if (!googleButton) {
+            console.log('Google button still not available after timeout');
+            // You can choose to hide the Google button container here if needed
+            // document.getElementById('googleButton').style.display = 'none';
+        }
+    }, 5000);
 
     // Modal open buttons - ADD NULL CHECKS
     const researcherBtn = document.getElementById("researcherBtn");
@@ -405,18 +577,16 @@ function initializePage() {
         const loginModal = new bootstrap.Modal(modalEl);
         loginModal.show();
         
-        setTimeout(() => {
-            if (googleModalBtn) {
-                googleModalBtn.onclick = function() {
-                    const googleButton = document.querySelector('#googleButton .abcRioButton');
-                    if (googleButton) {
-                        googleButton.click();
-                    } else {
-                        Swal.fire('Google Sign-In not ready', 'Please try again in a moment.', 'info');
-                    }
-                };
-            }
-        }, 300);
+        
+    }
+
+    function setupCustomGoogleButton() {
+        const googleModalBtn = document.getElementById('googleModalBtn');
+        if (googleModalBtn) {
+            googleModalBtn.addEventListener('click', function() {
+                handleGoogleButtonClick();
+            });
+        }
     }
 
     // ADD NULL CHECKS FOR EVENT LISTENERS
@@ -606,6 +776,7 @@ function initializePage() {
     });
     
 };
+
 
 //Open Admin Modal
 let adminModalOpen = false;

@@ -5,7 +5,7 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 // Composer autoload
-require_once __DIR__ . '/../../vendor/autoload.php'; // adjust if config.php is in app/config
+require_once __DIR__ . '/../vendor/autoload.php'; // adjust if config.php is in app/config
 
 use Dotenv\Dotenv;
 

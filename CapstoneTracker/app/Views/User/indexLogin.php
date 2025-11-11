@@ -94,8 +94,8 @@ if ($setupError) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://apis.google.com/js/platform.js?onload=onGoogleLoad" async defer></script>
-    
-
+    <meta name="google-signin-client_id" content="650560808203-4me7u51pnnkiggjd7sp935egrj2p4vrd.apps.googleusercontent.com">
+   
     <script>
         const errorMessage = "<?php echo addslashes($errorMessage); ?>";
         const errorModal = "<?php echo addslashes($errorModal); ?>";
@@ -170,12 +170,26 @@ if ($setupError) {
           </div>
           <button type="submit" class="btn btn-success w-100 mb-2">Login</button>
 
-          <div class="d-flex justify-content-center mb-2">
-            <div id="googleButton"></div>
+          <div class="d-flex justify-content-center mb-2" style="display: none !important;">
+              <div id="googleButton"></div>
           </div>
-          <button type="button" id="googleModalBtn" class="btn w-100 mb-3" style="background:#db4437; color:white;">
-            <i class="fab fa-google me-2"></i> Sign in with USeP Email
-          </button>
+          <div id="g_id_onload"
+     data-client_id="YOUR_GOOGLE_CLIENT_ID"
+     data-context="signin"
+     data-ux_mode="popup"
+     data-callback="handleCredentialResponse"
+     data-auto_prompt="false">
+</div>
+
+<div class="g_id_signin"
+     data-type="standard"
+     data-shape="rectangular"
+     data-theme="outline"
+     data-text="signin_with"
+     data-size="large"
+     data-logo_alignment="left">
+</div>
+          <div class="g-signin2" data-onsuccess="onSignIn"></div>
           
           <div class="text-center">
   <a>Not yet registered?</a>
