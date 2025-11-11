@@ -9,7 +9,7 @@ class EmailConfig {
     
     
     
-    const SMTP_FROM_EMAIL = 'noreply@usep.edu.ph';
+    const SMTP_FROM_EMAIL = 'rltiempo25@gmail.com';
     const SMTP_FROM_NAME = 'Compendium System';
     
     // Email Templates

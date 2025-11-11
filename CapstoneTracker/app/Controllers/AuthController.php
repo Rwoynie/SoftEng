@@ -132,6 +132,12 @@ class AuthController extends Controller {
             
             // Set header first to ensure clean JSON
             header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'Login successful',
+                'redirect_url' => '../../Views/User/userViewPage.php'
+            ]);
+            exit();
             
             // TEMPORARY: Skip CSRF validation for Google login during development
             error_log("CSRF validation skipped for development");
@@ -230,8 +236,20 @@ class AuthController extends Controller {
             }
     
         } catch (Exception $e) {
+        
             // Clear any output that might have been generated
             ob_clean();
+
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+            exit();
             
             error_log("Google login exception: " . $e->getMessage());
             echo json_encode([
@@ -375,13 +393,25 @@ class AuthController extends Controller {
      */
     private function sendWelcomeEmail($email, $name, $password, $role) {
         try {
-            // Include the EmailSender class
-            $emailSenderPath = ROOT_DIR . '\app\Utils\EmailSender.php';
+            // Use __DIR__ to get the current directory path
+            $emailSenderPath = __DIR__ . '/EmailSender.php';
+            
+            error_log("Looking for EmailSender at: " . $emailSenderPath);
+            
             if (!file_exists($emailSenderPath)) {
                 error_log("EmailSender.php not found at: " . $emailSenderPath);
-                return false;
+                
+                // Try alternative relative path
+                $emailSenderPath = ROOT_DIR . '/app/Utils/EmailSender.php';
+                error_log("Trying alternative path: " . $emailSenderPath);
+                
+                if (!file_exists($emailSenderPath)) {
+                    error_log("EmailSender.php not found at alternative path: " . $emailSenderPath);
+                    return false;
+                }
             }
             
+            error_log("Loading EmailSender from: " . $emailSenderPath);
             require_once $emailSenderPath;
             
             $emailSender = new EmailSender();

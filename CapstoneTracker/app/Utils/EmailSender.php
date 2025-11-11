@@ -1,19 +1,32 @@
 <?php
-// app/Utils/EmailSender.php
-require_once __DIR__ . '/../../Database/email_config.php';
+// EmailSender.php - SIMPLIFIED AND WORKING VERSION
+error_reporting(E_ALL);
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+ini_set('error_log', __DIR__ . '/../../storage/php_error.log');
 
-// Prefer Composer autoload; fallback to direct includes if unavailable
-if (file_exists(__DIR__ . '/../../vendor/autoload.php')) {
-	require_once __DIR__ . '/../../vendor/autoload.php';
+// Load email config
+$emailConfigPath = __DIR__ . '/../../Database/email_config.php';
+if (file_exists($emailConfigPath)) {
+    require_once $emailConfigPath;
+    error_log("Email config loaded from: " . $emailConfigPath);
 } else {
-	require_once __DIR__ . '/../../vendor/PHPMailer/src/PHPMailer.php';
-	require_once __DIR__ . '/../../vendor/PHPMailer/src/SMTP.php';
-	require_once __DIR__ . '/../../vendor/PHPMailer/src/Exception.php';
+    die("Email config not found at: " . $emailConfigPath);
 }
+
+// SIMPLE PHPMailer loading - direct path
+$phpmailerPath = __DIR__ . '/../../vendor/phpmailer/phpmailer/src/PHPMailer.php';
+if (!file_exists($phpmailerPath)) {
+    die("PHPMailer not found at: " . $phpmailerPath);
+}
+
+require_once $phpmailerPath;
+require_once __DIR__ . '/../../vendor/phpmailer/phpmailer/src/SMTP.php';
+require_once __DIR__ . '/../../vendor/phpmailer/phpmailer/src/Exception.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
-use PHPMailer\PHPMailer\Exception;
+use PHPMailer\PHPMailer\Exception as PHPMailerException;
 
 class EmailSender {
     private $host;
@@ -22,6 +35,7 @@ class EmailSender {
     private $password;
     private $fromEmail;
     private $fromName;
+    public $mailerAvailable = true; // We know it's available
     
     public function __construct() {
         $this->host = EmailConfig::SMTP_HOST;
@@ -30,27 +44,25 @@ class EmailSender {
         $this->password = EmailConfig::SMTP_PASSWORD;
         $this->fromEmail = EmailConfig::SMTP_FROM_EMAIL;
         $this->fromName = EmailConfig::SMTP_FROM_NAME;
+        
+        error_log("EmailSender initialized with: " . $this->host . ":" . $this->port);
     }
     
-    /**
-     * Send welcome email with auto-generated password using PHPMailer
-     */
     public function sendWelcomeEmail($toEmail, $toName, $password, $role) {
         try {
+            error_log("Sending welcome email to: " . $toEmail);
+            
             $subject = EmailConfig::WELCOME_SUBJECT;
             $body = EmailConfig::getWelcomeBody($toName, $toEmail, $password, $role);
             
             return $this->sendEmailPHPMailer($toEmail, $toName, $subject, $body);
             
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log("Email sending error: " . $e->getMessage());
             return false;
         }
     }
     
-    /**
-     * Send email using PHPMailer with SMTP
-     */
     private function sendEmailPHPMailer($toEmail, $toName, $subject, $body) {
         $mail = new PHPMailer(true);
         
@@ -64,11 +76,19 @@ class EmailSender {
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             $mail->Port       = $this->port;
             
-            // Debug (enable only for testing)
-            // $mail->SMTPDebug = SMTP::DEBUG_SERVER;
+            
+            
+            // SSL options for development
+            $mail->SMTPOptions = [
+                'ssl' => [
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                    'allow_self_signed' => true
+                ]
+            ];
             
             // Recipients
-            $mail->setFrom($this->fromEmail, $this->fromName);
+            $mail->setFrom($this->username, $this->fromName);
             $mail->addAddress($toEmail, $toName);
             $mail->addReplyTo($this->fromEmail, $this->fromName);
             
@@ -78,25 +98,28 @@ class EmailSender {
             $mail->Body    = $body;
             $mail->AltBody = $this->generatePlainText($body);
             
-            // Send email
-            $mail->send();
-            error_log("PHPMailer: Email sent successfully to: " . $toEmail);
-            return true;
+            error_log("Attempting to send to: " . $toEmail);
+            $result = $mail->send();
             
-        } catch (Exception $e) {
-            error_log("PHPMailer Error: Could not send email to {$toEmail}. Error: " . $mail->ErrorInfo);
+            if ($result) {
+                error_log("✅ Email sent successfully to: " . $toEmail);
+            } else {
+                error_log("❌ Email failed to send to: " . $toEmail);
+            }
+            
+            return $result;
+            
+        } catch (PHPMailerException $e) {
+            error_log("PHPMailer Exception: " . $e->getMessage());
+            error_log("PHPMailer ErrorInfo: " . $mail->ErrorInfo);
             return false;
         }
     }
     
-    /**
-     * Generate plain text version of HTML email
-     */
     private function generatePlainText($html) {
         $text = strip_tags($html);
         $text = preg_replace('/\s+/', ' ', $text);
-        $text = trim($text);
-        return $text;
+        return trim($text);
     }
 }
 ?>

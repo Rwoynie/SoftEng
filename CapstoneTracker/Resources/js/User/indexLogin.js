@@ -649,57 +649,25 @@ async function sendGoogleCredentialToBackend(credential) {
         const responseText = await response.text();
         console.log('Raw response:', responseText);
         
-        // Check for PHP fatal errors
-        if (responseText.includes('Fatal error') || 
-            responseText.includes('Parse error') || 
-            responseText.includes('Exception') ||
-            responseText.includes('<b>')) {
+        // Check if response contains PHP errors or debug output
+        if (responseText.includes('PHPMailer:') || 
+            responseText.includes('<br>') ||
+            responseText.includes('SMTP') ||
+            responseText.trim().startsWith('PHPMailer:')) {
             
-            console.error('PHP Error detected in response');
-            
-            // Try to extract the actual error message
-            let errorMessage = 'PHP fatal error occurred';
-            
-            // Look for common PHP error patterns
-            const fatalErrorMatch = responseText.match(/Fatal error:[^<]*/i);
-            const parseErrorMatch = responseText.match(/Parse error:[^<]*/i);
-            const exceptionMatch = responseText.match(/Exception:[^<]*/i);
-            
-            if (fatalErrorMatch) {
-                errorMessage = fatalErrorMatch[0];
-            } else if (parseErrorMatch) {
-                errorMessage = parseErrorMatch[0];
-            } else if (exceptionMatch) {
-                errorMessage = exceptionMatch[0];
-            } else if (responseText.includes('<!DOCTYPE')) {
-                errorMessage = 'Server returned HTML error page. Check PHP error logs.';
+            console.error('Debug output detected in response');
+            // Try to extract JSON from the response if it's mixed with debug output
+            const jsonMatch = responseText.match(/\{.*\}/s);
+            if (jsonMatch) {
+                const result = JSON.parse(jsonMatch[0]);
+                handleAuthResult(result);
+            } else {
+                throw new Error('Server returned debug output instead of JSON');
             }
-            
-            throw new Error(errorMessage);
-        }
-        
-        // Try to parse as JSON
-        let result;
-        try {
-            result = JSON.parse(responseText);
-        } catch (jsonError) {
-            console.error('JSON parse error:', jsonError);
-            throw new Error('Server returned invalid JSON. PHP error likely: ' + responseText.substring(0, 200));
-        }
-        
-        console.log('Parsed JSON result:', result);
-        
-        if (result.success) {
-            Swal.fire({
-                title: 'Success!',
-                text: result.message,
-                icon: 'success',
-                confirmButtonText: 'OK'
-            }).then(() => {
-                window.location.href = result.redirect_url || '../../app/Views/User/userViewPage.php';
-            });
         } else {
-            throw new Error(result.message || 'Authentication failed');
+            // Normal JSON response
+            const result = JSON.parse(responseText);
+            handleAuthResult(result);
         }
         
     } catch (error) {
@@ -713,6 +681,23 @@ async function sendGoogleCredentialToBackend(credential) {
         resetGoogleButton();
     }
 }
+
+function handleAuthResult(result) {
+    if (result.success) {
+        Swal.fire({
+            title: 'Success!',
+            text: result.message,
+            icon: 'success',
+            confirmButtonText: 'OK'
+        }).then(() => {
+            window.location.href = result.redirect_url || '../../app/Views/User/userViewPage.php';
+        });
+    } else {
+        throw new Error(result.message || 'Authentication failed');
+    }
+}
+
+
 
 function parseJwt(token) {
     try {
