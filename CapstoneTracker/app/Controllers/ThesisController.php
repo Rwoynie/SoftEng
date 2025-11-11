@@ -1,11 +1,8 @@
 <?php
-// Ensure clean JSON-only responses for public/guest endpoints
-while (ob_get_level()) { ob_end_clean(); }
 ob_start();
 
 error_reporting(E_ALL);
-ini_set('display_errors', 0);
-ini_set('log_errors', 1);
+ini_set('display_errors', 1);
 header('Content-Type: application/json');
 
 require_once __DIR__ . '/../Models/Database.php';
@@ -126,7 +123,7 @@ class ThesisController {
     public function getAllTheses() {
         try {
             $theses = $this->thesisModel->getAllTheses();
-            if (ob_get_length()) { ob_clean(); }
+            
             http_response_code(200);
             echo json_encode([
                 'success' => true,
@@ -160,7 +157,7 @@ class ThesisController {
         try {
             $userId = $_SESSION['user_db_id'];
             $theses = $this->thesisModel->getUserTheses($userId);
-            if (ob_get_length()) { ob_clean(); }
+            
             http_response_code(200);
             echo json_encode([
                 'success' => true,
@@ -188,7 +185,7 @@ class ThesisController {
             } else {
                 $theses = $this->adminModel->getThesesByDepartment($department);
             }
-            if (ob_get_length()) { ob_clean(); }
+            
             http_response_code(200);
             echo json_encode([
                 'success' => true,
@@ -210,7 +207,7 @@ class ThesisController {
     public function getRecentTheses() {
         try {
             $theses = $this->adminModel->getRecentTheses();
-            if (ob_get_length()) { ob_clean(); }
+            
             http_response_code(200);
             echo json_encode([
                 'success' => true,
@@ -234,7 +231,6 @@ class ThesisController {
             $searchTerm = $_GET['q'] ?? '';
             
             if (empty($searchTerm)) {
-                if (ob_get_length()) { ob_clean(); }
                 http_response_code(200);
                 echo json_encode([
                     'success' => true,
@@ -244,7 +240,7 @@ class ThesisController {
             }
 
             $theses = $this->adminModel->searchTheses($searchTerm);
-            if (ob_get_length()) { ob_clean(); }
+            
             http_response_code(200);
             echo json_encode([
                 'success' => true,
@@ -797,7 +793,6 @@ public function getThesisViewInfo($thesisId) {
                 $this->viewThesis();
                 break;       
             default:
-                if (ob_get_length()) { ob_clean(); }
                 http_response_code(404);
                 echo json_encode(['success' => false, 'error' => 'Action not found']);
                 break;
@@ -812,3 +807,6 @@ if (isset($_GET['action'])) {
     $controller->handleRequest();
     exit;
 }
+
+
+?>

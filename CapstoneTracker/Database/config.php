@@ -4,24 +4,20 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Composer autoload
-require_once __DIR__ . '/../../vendor/autoload.php'; // adjust if config.php is in app/config
+require_once __DIR__ . '/../vendor/autoload.php'; 
+// Load helper functions
+require_once __DIR__ . '/../app/helpers/functions.php';
 
-use Dotenv\Dotenv;
-
-// Get the CapstoneTracker root (one level up from Database folder)
-$projectRoot = dirname(__DIR__); // Database/config.php → CapstoneTracker/
-$dotenvPath = $projectRoot . '/.env';
-
+$dotenvPath = dirname(__DIR__) . '/.env';
 if (!file_exists($dotenvPath)) {
     die("Error: .env file not found at: " . $dotenvPath);
 }
 
-$dotenv = Dotenv::createImmutable($projectRoot);
+$dotenv = Dotenv\Dotenv::createImmutable(dirname(__DIR__)); 
 $dotenv->load();
 
 // Define BASE_URL
-define('BASE_URL', $_ENV['BASE_URL'] ?? 'http://localhost/CapstoneTracker');
+define('BASE_URL', $_ENV['BASE_URL'] ?? 'http://localhost/');
 
 // Start session
 if (session_status() === PHP_SESSION_NONE) {
@@ -35,5 +31,6 @@ define('DB_PASS', $_ENV['DB_PASS']);
 define('DB_NAME', $_ENV['DB_NAME']);
 define('URLROOT', 'http://localhost/CapstoneTracker');
 
-// Helper functions
-require_once __DIR__ . '/../app/helpers/functions.php';
+// Remove the MySQLi connection code since we're using PDO through Database class
+// The Database class will handle the connection using these constants
+?>

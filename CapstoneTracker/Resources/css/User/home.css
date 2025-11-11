@@ -870,12 +870,6 @@ body {
   margin-top: auto;
 }
 
-/* When used inside user dashboard with fixed 80px sidebar */
-.main-footer.has-sidebar {
-  margin-left: 80px;             /* align with main content */
-  width: calc(100% - 80px);      /* prevent overlap under sidebar */
-}
-
 .footer-content {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -987,10 +981,6 @@ body {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .main-footer.has-sidebar {
-    margin-left: 0;
-    width: 100%;
-  }
   .main-header {
     padding: 0 1rem;
     flex-direction: column;

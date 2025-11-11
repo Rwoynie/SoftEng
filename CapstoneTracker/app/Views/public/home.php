@@ -7,6 +7,31 @@ $programs = $data['programs'] ?? [];
 $stats = $data['stats'] ?? [];
 ?>
 
+<!-- Update the search form -->
+<form id="search-form" method="POST" action="/search">
+    <div class="searchbox">
+        <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
+        <input type="text" id="search-input" name="query" placeholder="Enter keywords, title, author, or adviser...">
+        <button type="submit" class="search-btn" id="search-btn">Search</button>
+    </div>
+</form>
+
+<!-- Update stats section -->
+<div class="stats">
+    <div class="stat-item">
+        <span class="stat-number"><?php echo $stats['total_papers'] ?? '200+'; ?></span>
+        <span class="stat-label">Thesis Papers</span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-number"><?php echo $stats['total_authors'] ?? '150+'; ?></span>
+        <span class="stat-label">Active Researchers</span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-number"><?php echo $stats['total_departments'] ?? '1'; ?></span>
+        <span class="stat-label">Department</span>
+    </div>
+</div>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -20,23 +45,6 @@ $stats = $data['stats'] ?? [];
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Quicksand">
-  <?php
-    // Inline preload of theses for reliable search (guest mode)
-    try {
-        require_once __DIR__ . '/../../Models/Database.php';
-        // Ensure model dependencies resolve when loading from a view
-        require_once __DIR__ . '/../../Models/Model.php';
-        require_once __DIR__ . '/../../Models/User.php';
-        require_once __DIR__ . '/../../Models/Thesis.php';
-        $db = new Database();
-        $thesisModel = new Thesis($db);
-        $allTheses = $thesisModel->getAllTheses();
-        echo '<script>window.__THESIS__ = ' . json_encode($allTheses) . ';</script>';
-    } catch (Exception $e) {
-        // Fail silently in view; JS will fallback to API
-        echo '<script>window.__THESIS__ = [];</script>';
-    }
-  ?>
 </head>
 <body>
   <div class="dashboard-container">
@@ -50,7 +58,7 @@ $stats = $data['stats'] ?? [];
 
         </div>
         
-      </div>    
+      </div>
       <nav class="tabs">
         <a href="../../../app/Views/User/indexLogin.php" class="btn-login">Login</a>
       </nav>
