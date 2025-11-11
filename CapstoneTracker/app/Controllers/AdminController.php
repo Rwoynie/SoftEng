@@ -32,19 +32,37 @@ class AdminController extends Controller {
     /**
      * Validate CSRF token
      */
-    private function validateCsrfToken($token) {
+    private function validateCsrfToken($token, $maxRetries = 3) {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
         
-        return isset($_SESSION['csrf_token']) && 
-            hash_equals($_SESSION['csrf_token'], $token);
+        $retryCount = 0;
+        while ($retryCount < $maxRetries) {
+            if (isset($_SESSION['csrf_token']) && 
+                hash_equals($_SESSION['csrf_token'], $token)) {
+                return true;
+            }
+            
+            // Wait a bit and retry (session might not be ready)
+            usleep(50000); // 50ms
+            session_write_close();
+            session_start();
+            $retryCount++;
+        }
+        
+        return false;
     }
     
     public function login() {
-        // Start session if not already started
+        // Start session if not already started - use consistent approach
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
+        }
+        
+        // Ensure CSRF token exists
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         }
         
         // Check if user is already logged in as admin
@@ -64,13 +82,19 @@ class AdminController extends Controller {
 
         error_log("=== PROCESS ADMIN LOGIN STARTED ===");
 
+        usleep(100000); // 100ms delay
+
         $csrfToken = $_POST['csrf_token'] ?? '';
+
+        error_log("CSRF Token from form: " . $csrfToken);
+        error_log("CSRF Token from session: " . ($_SESSION['csrf_token'] ?? 'NOT SET'));
+
         if (!$this->validateCsrfToken($csrfToken)) {
-            $_SESSION['error_message'] = 'Invalid security token. Please try again.';
-            header('Location: ../../app/Views/User/indexLogin.php');
-            exit();
-        }
-    
+        error_log("CSRF TOKEN VALIDATION FAILED");
+        $_SESSION['admin_error_message'] = 'Invalid security token. Please try again.';
+        header('Location: ../../app/Views/User/indexLogin.php?admin=1');
+        exit();
+    }
         // Get form data
         $identifier = $_POST['admin_username'] ?? '';
         $password = $_POST['admin_password'] ?? '';
