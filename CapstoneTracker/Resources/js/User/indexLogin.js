@@ -1061,31 +1061,23 @@ function initializeGoogleSignIn() {
     }
 
     function handleCredentialResponse(response) {
-        
+        console.log('Google credential received');
         
         try {
             const responsePayload = parseJwt(response.credential);
+            const userEmail = responsePayload.email;
+            const userName = responsePayload.name;
             
-            
-            // Validate USeP email
-            if (!responsePayload.email.endsWith('@usep.edu.ph')) {
-                Swal.fire('Invalid Email', 'Please use your USeP email address.', 'error');
-                resetGoogleButton();
-                return;
-            }
-            
-            // Show loading state
-            Swal.fire({
-                title: 'Signing In...',
-                text: 'Please wait while we authenticate your account',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-            
-            // Send to backend
-            sendGoogleCredentialToBackend(response.credential);
+            console.log('Google authentication for:', userEmail);
+    
+            // Get the role from the login modal
+            const roleField = document.getElementById('roleField');
+            const selectedRole = roleField ? roleField.value : 'student';
+    
+            console.log('Selected role for Google Sign-In:', selectedRole);
+    
+            // Send to backend for authentication with role validation
+            sendGoogleCredentialToBackend(response.credential, userEmail, userName, selectedRole);
             
         } catch (error) {
             console.error('Error processing Google credential:', error);
@@ -1095,7 +1087,6 @@ function initializeGoogleSignIn() {
                 icon: 'error',
                 confirmButtonText: 'OK'
             });
-            resetGoogleButton();
         }
     }
 
@@ -1121,29 +1112,20 @@ function initializeGoogleSignIn() {
 
 
 
-// Send credential to backend
-async function sendGoogleCredentialToBackend(credential) {
+// Send Google credential to backend with role validation
+async function sendGoogleCredentialToBackend(credential, userEmail, userName, selectedRole) {
     try {
         // Show loading state
         Swal.fire({
-            title: 'Authenticating...',
-            text: 'Please wait while we verify your credentials',
+            title: 'Signing In...',
+            text: 'Please wait while we authenticate your account',
             allowOutsideClick: false,
             didOpen: () => {
                 Swal.showLoading();
             }
         });
 
-        // Decode the token to get user info
-        const responsePayload = parseJwt(credential);
-        const userEmail = responsePayload.email;
-        const userName = responsePayload.name;
-        
-        // Get the role from the login modal
-        const roleField = document.getElementById('roleField');
-        const role = roleField ? roleField.value : 'student';
-
-        console.log('Sending Google authentication for:', userEmail, 'Role:', role);
+        console.log('Sending Google authentication with role:', selectedRole);
 
         // Send to AuthController
         const response = await fetch('../../Controllers/AuthController.php', {
@@ -1153,11 +1135,11 @@ async function sendGoogleCredentialToBackend(credential) {
             },
             credentials: 'include',
             body: new URLSearchParams({
-                'action': 'google_login',
+                'action': 'googleLogin',
                 'credential': credential,
                 'email': userEmail,
                 'name': userName,
-                'role': role,
+                'role': selectedRole, // Include the selected role
                 'csrf_token': '<?php echo $_SESSION["csrf_token"] ?? ""; ?>'
             })
         });
@@ -1165,36 +1147,65 @@ async function sendGoogleCredentialToBackend(credential) {
         const responseText = await response.text();
         console.log('Raw response:', responseText);
         
-        // Check if response contains PHP errors or debug output
+        let result;
+        // Handle response
         if (responseText.includes('PHPMailer:') || 
             responseText.includes('<br>') ||
             responseText.includes('SMTP') ||
             responseText.trim().startsWith('PHPMailer:')) {
             
-            console.error('Debug output detected in response');
-            // Try to extract JSON from the response if it's mixed with debug output
             const jsonMatch = responseText.match(/\{.*\}/s);
             if (jsonMatch) {
-                const result = JSON.parse(jsonMatch[0]);
-                handleAuthResult(result);
+                result = JSON.parse(jsonMatch[0]);
             } else {
                 throw new Error('Server returned debug output instead of JSON');
             }
         } else {
             // Normal JSON response
-            const result = JSON.parse(responseText);
-            handleAuthResult(result);
+            result = JSON.parse(responseText);
         }
         
+        handleGoogleAuthResult(result);
+        
     } catch (error) {
-        console.error('Backend authentication error:', error);
+        console.error('Google authentication error:', error);
         Swal.fire({
             title: 'Authentication Failed',
             text: error.message || 'Failed to authenticate. Please try again.',
             icon: 'error',
             confirmButtonText: 'OK'
         });
-        resetGoogleButton();
+    }
+}
+
+function handleGoogleAuthResult(result) {
+    if (result.success) {
+        Swal.fire({
+            title: 'Success!',
+            text: result.message,
+            icon: 'success',
+            confirmButtonText: 'OK'
+        }).then(() => {
+            console.log('Redirecting to:', result.redirect_url);
+            window.location.href = result.redirect_url || '../../app/Views/User/userViewPage.php';
+        });
+    } else {
+        // Show specific error message for role mismatch
+        if (result.message.includes('registered as') && result.message.includes('Please use')) {
+            Swal.fire({
+                title: 'Role Mismatch',
+                html: result.message + '<br><br><strong>Please:</strong><br>1. Go back to login<br>2. Select the correct role option<br>3. Try Google Sign-In again',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+        } else {
+            Swal.fire({
+                title: 'Authentication Failed',
+                text: result.message,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        }
     }
 }
 

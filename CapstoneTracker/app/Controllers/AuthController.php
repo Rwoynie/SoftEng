@@ -808,146 +808,200 @@ public function debugDatabaseState() {
 
 
 
-    public function googleLogin() {
-        // Start output buffering to catch any errors
-        ob_start();
+public function googleLogin() {
+    // Start output buffering to catch any errors
+    ob_start();
+    
+    try {
+        error_log("=== GOOGLE LOGIN DEBUG WITH ROLE VALIDATION ===");
+        error_log("POST data: " . print_r($_POST, true));
         
-        try {
-            error_log("=== GOOGLE LOGIN DEBUG START ===");
-            error_log("POST data: " . print_r($_POST, true));
-            
-            // Clear any previous output
-            while (ob_get_level() > 1) {
-                ob_end_clean();
+        // Clear any previous output
+        while (ob_get_level() > 1) {
+            ob_end_clean();
+        }
+        
+        // Set header first to ensure clean JSON
+        header('Content-Type: application/json');
+        
+        
+        $credential = $_POST['credential'] ?? '';
+        $email = $_POST['email'] ?? '';
+        $name = $_POST['name'] ?? '';
+        $selectedRole = $_POST['role'] ?? 'student'; // Get the selected role
+    
+        // Basic validation
+        if (empty($credential) || empty($email)) {
+            throw new Exception('Missing required Google authentication data.');
+        }
+    
+        error_log("Email: " . $email);
+        error_log("Name: " . $name);
+        error_log("Selected Role: " . $selectedRole);
+    
+        // TEMPORARY: Skip Google token validation during development
+        $isValidToken = true;
+        error_log("Google token validation SKIPPED for development");
+    
+        // Check if user exists in your database
+        error_log("Checking if user exists in database...");
+        $user = $this->findByEmail($email);
+        
+        
+        if ($user) {
+            // Convert user to array if it's an object
+            if (is_object($user)) {
+                $user = (array)$user;
             }
             
-            // Set header first to ensure clean JSON
-            header('Content-Type: application/json');
+            // Safely get user properties
+            $accStatus = $user['Acc_Status'] ?? $user->Acc_Status ?? 'unknown';
+            $userId = $user['ID'] ?? $user->ID ?? null;
+            $userEmail = $user['Email'] ?? $user->Email ?? '';
+            $firstName = $user['First_Name'] ?? $user->First_Name ?? '';
+            $lastName = $user['Last_Name'] ?? $user->Last_Name ?? '';
+            $userRole = $user['User_Role'] ?? $user->User_Role ?? '';
             
+            error_log("User found in database. Account status: " . $accStatus);
+            error_log("User ID: " . $userId);
+            error_log("User Role: " . $userRole);
+            error_log("Selected Role: " . $selectedRole);
             
-            $credential = $_POST['credential'] ?? '';
-            $email = $_POST['email'] ?? '';
-            $name = $_POST['name'] ?? '';
-            $role = $_POST['role'] ?? 'student';
-    
-            // Basic validation
-            if (empty($credential) || empty($email)) {
-                throw new Exception('Missing required Google authentication data.');
+            // ✅ ROLE VALIDATION: Check if user role matches selected role
+            $normalizedUserRole = strtolower($userRole);
+            $normalizedSelectedRole = strtolower($selectedRole);
+            
+            // Map role names for compatibility
+            $roleMapping = [
+                'researcher' => 'student',  // Map 'researcher' to 'student' for validation
+                'student' => 'student',     // Add direct mapping
+                'faculty' => 'faculty'      // Add direct mapping
+            ];
+            
+            $mappedSelectedRole = $roleMapping[$normalizedSelectedRole] ?? $normalizedSelectedRole;
+            
+            error_log("Normalized User Role: " . $normalizedUserRole);
+            error_log("Mapped Selected Role: " . $mappedSelectedRole);
+            
+            if ($normalizedUserRole !== $mappedSelectedRole) {
+                error_log("❌ ROLE MISMATCH: User role ($normalizedUserRole) does not match selected role ($mappedSelectedRole)");
+                throw new Exception("This account is registered as a " . ucfirst($normalizedUserRole) . ". Please use the " . ucfirst($normalizedUserRole) . " login option.");
             }
-    
-            error_log("Email: " . $email);
-            error_log("Name: " . $name);
-            error_log("Role: " . $role);
-    
-            // TEMPORARY: Skip Google token validation during development
-            $isValidToken = true;
-            error_log("Google token validation SKIPPED for development");
-    
-            // Check if user exists in your database
-            error_log("Checking if user exists in database...");
-            $user = $this->findByEmail($email);
             
-            
-            if ($user) {
-                // Convert user to array if it's an object
-                if (is_object($user)) {
-                    $user = (array)$user;
+            // Check for admin roles (they have special handling)
+            if ($userRole === 'superAdmin' || $userRole === 'SubAdmin') {
+                // Add additional admin validation here if needed
+                $isAuthorizedAdmin = $this->isAuthorizedAdminEmail($email);
+                if (!$isAuthorizedAdmin) {
+                    throw new Exception('This Google account is not authorized for admin access.');
                 }
-                
-                // Safely get user properties
-                $accStatus = $user['Acc_Status'] ?? $user->Acc_Status ?? 'unknown';
-                $userId = $user['ID'] ?? $user->ID ?? null;
-                $userEmail = $user['Email'] ?? $user->Email ?? '';
-                $firstName = $user['First_Name'] ?? $user->First_Name ?? '';
-                $lastName = $user['Last_Name'] ?? $user->Last_Name ?? '';
-                $userRole = $user['User_Role'] ?? $user->User_Role ?? '';
-                
-                error_log("User found in database. Account status: " . $accStatus);
-                error_log("User ID: " . $userId);
-                error_log("User Role: " . $userRole);
-                
-                // ✅ EXISTING USER: Check if account is approved
-                if ($userRole === 'superAdmin' || $userRole === 'SubAdmin') {
-                    // Add additional admin validation here if needed
-                    // For example, check if the email is in an admin whitelist
-                    $isAuthorizedAdmin = $this->isAuthorizedAdminEmail($email);
-                    if (!$isAuthorizedAdmin) {
-                        throw new Exception('This Google account is not authorized for admin access.');
-                    }
-                }
+            }
 
-                if ($accStatus === 'pending') {
-                    throw new Exception('Your account is pending approval. Please wait for administrator approval.');
-                } else if ($accStatus === 'rejected') {
-                    throw new Exception('Your account registration was rejected. Please contact the administrator.');
-                } else if ($accStatus === 'approved') {
-                    // ✅ EXISTING APPROVED USER: Log them in
-                    error_log("User account approved, creating session...");
-                    $this->createUserSession([
-                        'id' => $userId,
-                        'email' => $userEmail,
-                        'name' => $firstName . ' ' . $lastName,
-                        'role' => $userRole
-                    ]);
-                    
-                    error_log("Session created successfully");
-                    echo json_encode([
-                        'success' => true,
-                        'message' => 'Login successful',
-                        'redirect_url' => '../../Views/User/userViewPage.php'
-                    ]);
-                    exit();
-                } else {
-                    throw new Exception('Your account status is invalid. Please contact administrator.');
-                }
-            } else {
-                error_log("User not found in database, starting auto-registration...");
-                // ❌ NEW USER: Auto-register them
-                $registrationResult = $this->autoRegisterGoogleUser($email, $name, $role);
-                error_log("Auto-registration result: " . print_r($registrationResult, true));
+            // ✅ EXISTING USER: Check if account is approved
+            if ($accStatus === 'pending') {
+                throw new Exception('Your account is pending approval. Please wait for administrator approval.');
+            } else if ($accStatus === 'rejected') {
+                throw new Exception('Your account registration was rejected. Please contact the administrator.');
+            } else if ($accStatus === 'approved') {
+                // ✅ EXISTING APPROVED USER: Log them in
+                error_log("User account approved, creating session...");
+                $this->createUserSession([
+                    'id' => $userId,
+                    'email' => $userEmail,
+                    'name' => $firstName . ' ' . $lastName,
+                    'role' => $userRole
+                ]);
                 
-                if ($registrationResult['success']) {
-                    error_log("Auto-registration successful, creating session...");
-                    // Log the user in after registration
-                    $this->createUserSession([
-                        'id' => $registrationResult['user_id'],
-                        'email' => $email,
-                        'name' => $name,
-                        'role' => $role
-                    ]);
-                    
-                    error_log("Session created for new user");
-                    echo json_encode([
-                        'success' => true,
-                        'message' => 'Account created, check your email for further instruction.',
-                        'redirect_url' => '../../Views/User/userViewPage.php'
-                    ]);
-                    exit();
-                } else {
-                    throw new Exception($registrationResult['message']);
-                }
+                error_log("Session created successfully");
+                
+                // Determine redirect URL based on role
+                $redirectUrl = $this->getRedirectUrlByRole($userRole);
+                error_log("Redirecting to: " . $redirectUrl);
+                
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Login successful',
+                    'redirect_url' => $redirectUrl
+                ]);
+                exit();
+            } else {
+                throw new Exception('Your account status is invalid. Please contact administrator.');
             }
-    
-        } catch (Exception $e) {
-            // Clear any output that might have been generated
-            while (ob_get_level() > 0) {
-                ob_end_clean();
-            }
+        } else {
+            error_log("User not found in database, starting auto-registration...");
+            // ❌ NEW USER: Auto-register them with the selected role
+            $registrationResult = $this->autoRegisterGoogleUser($email, $name, $selectedRole);
+            error_log("Auto-registration result: " . print_r($registrationResult, true));
             
-            header('Content-Type: application/json');
-            error_log("Google login exception: " . $e->getMessage());
-            echo json_encode([
-                'success' => false,
-                'message' => $e->getMessage()
-            ]);
-            exit();
-        } finally {
-            // Ensure no extra output
-            if (ob_get_length()) {
-                ob_end_clean();
+            if ($registrationResult['success']) {
+                error_log("Auto-registration successful, creating session...");
+                // Log the user in after registration
+                $this->createUserSession([
+                    'id' => $registrationResult['user_id'],
+                    'email' => $email,
+                    'name' => $name,
+                    'role' => $selectedRole
+                ]);
+                
+                error_log("Session created for new user");
+                
+                // Determine redirect URL based on role
+                $redirectUrl = $this->getRedirectUrlByRole($selectedRole);
+                error_log("Redirecting to: " . $redirectUrl);
+                
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Account created, check your email for further instruction.',
+                    'redirect_url' => $redirectUrl
+                ]);
+                exit();
+            } else {
+                throw new Exception($registrationResult['message']);
             }
         }
+    
+    } catch (Exception $e) {
+        // Clear any output that might have been generated
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        
+        header('Content-Type: application/json');
+        error_log("Google login exception: " . $e->getMessage());
+        echo json_encode([
+            'success' => false,
+            'message' => $e->getMessage()
+        ]);
+        exit();
+    } finally {
+        // Ensure no extra output
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
     }
+}
+
+private function getRedirectUrlByRole($userRole) {
+    $normalizedRole = strtolower($userRole);
+    
+    switch ($normalizedRole) {
+        case 'student':
+        case 'researcher':
+            return '../../Views/User/userViewPage.php';
+            
+        case 'faculty':
+            return '../../Views/User/userViewPage.php'; // Adjust path as needed
+            
+        case 'superadmin':
+        case 'subadmin':
+        case 'admin':
+            return '../../Views/Admin/AdminDashboard.php';
+            
+        default:
+            error_log("Unknown role for redirect: " . $userRole);
+            return '../../Views/User/userViewPage.php'; // Default fallback
+    }
+}
 
     /**
      * Handle Google Sign-In for admin users
@@ -1058,166 +1112,173 @@ public function debugDatabaseState() {
     }
 
 
-    /**
-     * Auto-register a user from Google Sign-In
-     */
-    private function autoRegisterGoogleUser($email, $name, $role) {
-        error_log("=== AUTO REGISTRATION DEBUG START ===");
-        error_log("Email: $email, Name: $name, Role: $role");
+   /**
+ * Auto-register a user from Google Sign-In - WITH PROPER ROLE ASSIGNMENT
+ */
+private function autoRegisterGoogleUser($email, $name, $selectedRole) {
+    error_log("=== AUTO REGISTRATION DEBUG WITH ROLE ===");
+    error_log("Email: $email, Name: $name, Selected Role: $selectedRole");
+    
+    require_once ROOT_DIR . '\app\Models\User.php';
+    
+    try {
+        $userModel = new User();
         
-        require_once ROOT_DIR . '\app\Models\User.php';
+        // Check database connection first
+        $db = $userModel->getDb();
+        if (!$db) {
+            throw new Exception('Database connection failed');
+        }
         
+        // Test the connection
         try {
-            $userModel = new User();
+            $db->query('SELECT 1');
+            $db->execute();
+        } catch (Exception $e) {
+            throw new Exception('Database connection test failed: ' . $e->getMessage());
+        }
+        
+        // First, check if user exists but was soft/hard deleted
+        $existingUser = $this->findByEmail($email);
+        if ($existingUser) {
+            error_log("User already exists in database: " . print_r($existingUser, true));
             
-            // Check database connection first
-            $db = $userModel->getDb();
-            if (!$db) {
-                throw new Exception('Database connection failed');
-            }
+            // Check if user is soft deleted
+            $isDeleted = isset($existingUser['is_deleted']) && $existingUser['is_deleted'] == 1;
+            $isDeleted = $isDeleted || (isset($existingUser['deleted_at']) && !empty($existingUser['deleted_at']));
             
-            // Test the connection
-            try {
-                $db->query('SELECT 1');
-                $db->execute();
-            } catch (Exception $e) {
-                throw new Exception('Database connection test failed: ' . $e->getMessage());
-            }
-            
-            // First, check if user exists but was soft/hard deleted
-            $existingUser = $this->findByEmail($email);
-            if ($existingUser) {
-                error_log("User already exists in database: " . print_r($existingUser, true));
+            if ($isDeleted) {
+                error_log("User was previously deleted. Attempting to restore...");
                 
-                // Check if user is soft deleted
-                $isDeleted = isset($existingUser['is_deleted']) && $existingUser['is_deleted'] == 1;
-                $isDeleted = $isDeleted || (isset($existingUser['deleted_at']) && !empty($existingUser['deleted_at']));
-                
-                if ($isDeleted) {
-                    error_log("User was previously deleted. Attempting to restore...");
+                // Restore the user account
+                $restoreResult = $this->restoreDeletedUser($email);
+                if ($restoreResult) {
+                    error_log("User restored successfully");
                     
-                    // Restore the user account
-                    $restoreResult = $this->restoreDeletedUser($email);
-                    if ($restoreResult) {
-                        error_log("User restored successfully");
-                        
-                        // Send welcome back email
-                        $this->sendWelcomeBackEmail($email, $name, $role);
-                        
-                        return [
-                            'success' => true,
-                            'user_id' => $existingUser['ID'] ?? $existingUser->ID,
-                            'message' => 'Account restored successfully'
-                        ];
-                    } else {
-                        throw new Exception("Failed to restore previously deleted account");
-                    }
-                } else {
-                    // User exists and is not deleted - just return success
-                    error_log("User already exists and is active");
+                    // Send welcome back email
+                    $this->sendWelcomeBackEmail($email, $name, $selectedRole);
+                    
                     return [
                         'success' => true,
                         'user_id' => $existingUser['ID'] ?? $existingUser->ID,
-                        'message' => 'Account already exists'
-                    ];
-                }
-            }
-            
-            // Generate auto password
-            $autoPassword = $this->generateAutoPassword();
-            error_log("Generated auto password: " . $autoPassword);
-            
-            // Parse name into first and last name
-            $nameParts = $this->parseName($name);
-            $firstName = $nameParts['first_name'];
-            $lastName = $nameParts['last_name'];
-            error_log("Parsed name - First: $firstName, Last: $lastName");
-            
-            // Determine user role
-            $userRole = ($role === 'faculty') ? 'faculty' : 'student';
-            error_log("User role: $userRole");
-            
-            // Generate student/employee ID based on role
-            $userIdNumber = $this->generateUserIdNumber($userRole);
-            error_log("Generated user ID: $userIdNumber");
-            
-            // Prepare user data
-            $userData = [
-                'password' => $autoPassword,
-                'first_name' => $firstName,
-                'last_name' => $lastName,
-                'email' => $email,
-                'user_role' => $userRole,
-                'acc_status' => 'approved',
-                'profile_pic' => base64_decode('R0lGODlhAQABAIAAAAAA/P///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')
-            ];
-            
-            // Add role-specific fields
-            if ($userRole === 'student') {
-                $userData['student_id'] = $userIdNumber;
-                $userData['course'] = 'Not Specified';
-                $userData['designation'] = 'Student';
-            } else {
-                $userData['employee_id'] = $userIdNumber;
-                $userData['department'] = 'Not Specified';
-                $userData['designation'] = 'Faculty';
-            }
-            
-            // Register the user
-            error_log("Calling userModel->register()...");
-            $result = $userModel->register($userData);
-            error_log("Register result: " . ($result ? 'SUCCESS' : 'FAILED'));
-            
-            if ($result) {
-                // Get the newly created user ID
-                error_log("Getting newly created user...");
-                $newUser = $this->findByEmail($email);
-                
-                if ($newUser) {
-                    $userId = $newUser['ID'] ?? $newUser->ID ?? null;
-                    error_log("New user found with ID: " . $userId);
-                    
-                    // Send welcome email
-                    $emailSent = $this->sendWelcomeEmail($email, $name, $autoPassword, $userRole);
-                    
-                    if ($emailSent) {
-                        error_log("Welcome email sent successfully to: " . $email);
-                    } else {
-                        error_log("Failed to send welcome email to: " . $email);
-                        // Don't fail registration if email fails
-                    }
-                    
-                    error_log("=== AUTO REGISTRATION DEBUG END - SUCCESS ===");
-                    return [
-                        'success' => true,
-                        'user_id' => $userId,
-                        'message' => 'Account created successfully' . ($emailSent ? ' and welcome email sent' : '')
+                        'message' => 'Account restored successfully'
                     ];
                 } else {
-                    error_log("New user not found after registration");
-                    return [
-                        'success' => false,
-                        'message' => 'Account created but could not retrieve user ID'
-                    ];
+                    throw new Exception("Failed to restore previously deleted account");
                 }
             } else {
-                $modelError = $userModel->getError();
-                error_log("Registration failed. Model error: " . $modelError);
-                
+                // User exists and is not deleted - just return success
+                error_log("User already exists and is active");
                 return [
-                    'success' => false,
-                    'message' => $modelError ?: 'Failed to create account. Please try again.'
+                    'success' => true,
+                    'user_id' => $existingUser['ID'] ?? $existingUser->ID,
+                    'message' => 'Account already exists'
                 ];
             }
+        }
+        
+        // Generate auto password
+        $autoPassword = $this->generateAutoPassword();
+        error_log("Generated auto password: " . $autoPassword);
+        
+        // Parse name into first and last name
+        $nameParts = $this->parseName($name);
+        $firstName = $nameParts['first_name'];
+        $lastName = $nameParts['last_name'];
+        error_log("Parsed name - First: $firstName, Last: $lastName");
+        
+        // ✅ USE THE SELECTED ROLE FROM GOOGLE LOGIN
+        // Determine user role based on which button was clicked
+        $userRole = $selectedRole; // Use the role from the login modal
+        error_log("User role for auto-registration: $userRole (from selected role: $selectedRole)");
+        
+        // Generate student/employee ID based on role
+        $userIdNumber = $this->generateUserIdNumber($userRole);
+        error_log("Generated user ID: $userIdNumber");
+        
+        // Prepare user data
+        $userData = [
+            'password' => $autoPassword,
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'email' => $email,
+            'user_role' => $userRole, // Use the selected role
+            'acc_status' => 'approved',
+            'profile_pic' => base64_decode('R0lGODlhAQABAIAAAAAA/P///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')
+        ];
+        
+        // Add role-specific fields
+        if ($userRole === 'student' || $userRole === 'researcher') {
+            $userData['student_id'] = $userIdNumber;
+            $userData['course'] = 'Not Specified';
+            $userData['designation'] = 'Student';
+            error_log("Setting student-specific fields");
+        } else if ($userRole === 'faculty') {
+            $userData['employee_id'] = $userIdNumber;
+            $userData['department'] = 'Not Specified';
+            $userData['designation'] = 'Faculty';
+            error_log("Setting faculty-specific fields");
+        }
+        
+        // Register the user
+        error_log("Calling userModel->register() with role: $userRole");
+        $result = $userModel->register($userData);
+        error_log("Register result: " . ($result ? 'SUCCESS' : 'FAILED'));
+        
+        if ($result) {
+            // Get the newly created user ID
+            error_log("Getting newly created user...");
+            $newUser = $this->findByEmail($email);
             
-        } catch (Exception $e) {
-            error_log("Auto-registration exception: " . $e->getMessage());
+            if ($newUser) {
+                $userId = $newUser['ID'] ?? $newUser->ID ?? null;
+                error_log("New user found with ID: " . $userId);
+                
+                // Get the actual role from the database to confirm
+                $actualRole = $newUser['User_Role'] ?? $newUser->User_Role ?? 'unknown';
+                error_log("Actual role in database: " . $actualRole);
+                
+                // Send welcome email
+                $emailSent = $this->sendWelcomeEmail($email, $name, $autoPassword, $userRole);
+                
+                if ($emailSent) {
+                    error_log("Welcome email sent successfully to: " . $email);
+                } else {
+                    error_log("Failed to send welcome email to: " . $email);
+                    // Don't fail registration if email fails
+                }
+                
+                error_log("=== AUTO REGISTRATION DEBUG END - SUCCESS ===");
+                return [
+                    'success' => true,
+                    'user_id' => $userId,
+                    'message' => 'Account created successfully as ' . ucfirst($userRole) . ($emailSent ? ' and welcome email sent' : '')
+                ];
+            } else {
+                error_log("New user not found after registration");
+                return [
+                    'success' => false,
+                    'message' => 'Account created but could not retrieve user ID'
+                ];
+            }
+        } else {
+            $modelError = $userModel->getError();
+            error_log("Registration failed. Model error: " . $modelError);
+            
             return [
                 'success' => false,
-                'message' => 'Registration error: ' . $e->getMessage()
+                'message' => $modelError ?: 'Failed to create account. Please try again.'
             ];
         }
+        
+    } catch (Exception $e) {
+        error_log("Auto-registration exception: " . $e->getMessage());
+        return [
+            'success' => false,
+            'message' => 'Registration error: ' . $e->getMessage()
+        ];
     }
+}
 
     /**
  * Restore a previously deleted user
