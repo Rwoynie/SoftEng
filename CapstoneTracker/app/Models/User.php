@@ -448,28 +448,34 @@ class User extends Model {
      * Student/Faculty login method - ONLY allows login by Email
      */
     public function loginByEmail($email, $password) {
-        try {
-            // MODIFIED: Remove Acc_Status check to return user regardless of status
-            $this->db->query('SELECT * FROM USER_INFORMATION WHERE Email = :email');
-            $this->db->bind(':email', $email);
-            $result = $this->db->single();
+        error_log("=== USER MODEL loginByEmail ===");
+        error_log("Email: " . $email);
+        
+        $this->db->query('SELECT * FROM USER_INFORMATION WHERE Email = :email');
+        $this->db->bind(':email', $email);
+        
+        $row = $this->db->single();
+        
+        if ($row) {
+            error_log("User found in database");
             
-            if ($result) {
-                // Verify password
-                $hashedPassword = $result->pswrd;
-                $salt = $result->Salt;
-                
-                if (password_verify($password . $salt, $hashedPassword)) {
-                    return $result;
-                }
+            // FIXED: Using correct column name 'pswrd'
+            $hashed_password = is_object($row) ? $row->pswrd : $row['pswrd'];
+            
+            error_log("Stored password hash: " . $hashed_password);
+            error_log("Provided password: ***");
+            
+            if (password_verify($password, $hashed_password)) {
+                error_log("✅ Password verification SUCCESS");
+                return $row;
+            } else {
+                error_log("❌ Password verification FAILED");
             }
-            
-            return false;
-            
-        } catch (Exception $e) {
-            error_log("Email login error: " . $e->getMessage());
-            return false;
+        } else {
+            error_log("❌ No user found with email: " . $email);
         }
+        
+        return false;
     }
 
     /**

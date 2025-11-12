@@ -1517,10 +1517,16 @@ private function getWelcomeBackBody($name, $email, $role) {
         try {
             $userModel = new User();
             
+            error_log("=== AUTHENTICATE USER DEBUG ===");
+            error_log("Username: " . $username);
+            error_log("Role: " . $role);
+            
             // MODIFIED: Use loginByEmail which now returns user regardless of status
             $user = $userModel->loginByEmail($username, $password);
             
             if ($user) {
+                error_log("✅ User found in database");
+                
                 // Check if user role matches the selected role
                 $userRole = strtolower($user->User_Role ?? '');
                 $selectedRole = strtolower($role);
@@ -1533,16 +1539,23 @@ private function getWelcomeBackBody($name, $email, $role) {
                 
                 $mappedRole = $roleMapping[$selectedRole] ?? $selectedRole;
                 
+                error_log("User role: " . $userRole);
+                error_log("Selected role: " . $mappedRole);
+                error_log("Account status: " . ($user->Acc_Status ?? 'unknown'));
+                
                 if ($userRole === $mappedRole) {
                     // Check account status before allowing login
                     if ($user->Acc_Status === 'pending') {
+                        error_log("❌ Account pending approval");
                         $_SESSION['error_message'] = "Your account is pending approval. Please wait for administrator approval before logging in.";
                         return false;
                     } else if ($user->Acc_Status === 'rejected') {
+                        error_log("❌ Account rejected");
                         $_SESSION['error_message'] = "Your account registration was rejected. Please contact the administrator for more information.";
                         return false;
                     } else if ($user->Acc_Status === 'approved') {
                         // Account is approved - allow login
+                        error_log("✅ Account approved - login allowed");
                         return [
                             'id' => $user->ID,
                             'username' => $user->Email,
@@ -1552,22 +1565,39 @@ private function getWelcomeBackBody($name, $email, $role) {
                         ];
                     } else {
                         // Unknown status
+                        error_log("❌ Unknown account status: " . ($user->Acc_Status ?? 'unknown'));
                         $_SESSION['error_message'] = 'Your account status is invalid. Please contact administrator.';
                         return false;
                     }
                 } else {
-                    error_log("Role mismatch: User role is $userRole, but selected role is $selectedRole");
+                    error_log("❌ Role mismatch: User role is $userRole, but selected role is $selectedRole");
                     $_SESSION['error_message'] = 'Invalid credentials for the selected role.';
                     return false;
                 }
             } else {
                 // No user found or password incorrect
+                error_log("❌ No user found or password incorrect");
+                
+                // Debug: Check if user exists but password is wrong
+                $userExists = $userModel->findByEmail($username);
+                if ($userExists) {
+                    error_log("⚠️ User exists but password verification failed");
+                    error_log("Stored password hash: " . ($userExists->pswrd ?? 'not found'));
+                    
+                    // Test password verification
+                    $storedPassword = $userExists->pswrd ?? '';
+                    $passwordValid = password_verify($password, $storedPassword);
+                    error_log("Password verification result: " . ($passwordValid ? 'VALID' : 'INVALID'));
+                } else {
+                    error_log("⚠️ User not found with email: " . $username);
+                }
+                
                 $_SESSION['error_message'] = 'Invalid credentials. Please try again.';
                 return false;
             }
             
         } catch (Exception $e) {
-            error_log("Authentication error: " . $e->getMessage());
+            error_log("💥 Authentication error: " . $e->getMessage());
             $_SESSION['error_message'] = 'Authentication error: ' . $e->getMessage();
             return false;
         }
