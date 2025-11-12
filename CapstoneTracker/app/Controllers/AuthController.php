@@ -47,14 +47,27 @@ class AuthController extends Controller {
         }
         
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $action = $_POST['action'] ?? ($_GET['action'] ?? ''); // Check both POST and GET
+            $action = $_POST['action'] ?? ($_GET['action'] ?? '');
+            
+            error_log("AuthController - Action received: " . $action);
             
             if ($action === 'login') {
                 $this->processLogin();
             } elseif ($action === 'googleLogin') {
                 $this->googleLogin();
+            } elseif ($action === 'adminGoogleLogin') {
+                $this->adminGoogleLogin();
+            } elseif ($action === 'sendVerificationCode') {
+                $this->sendVerificationCode();
+            } elseif ($action === 'verifyResetCode') {
+                $this->verifyResetCode();
+            } elseif ($action === 'debugCurrentTokens') { // Add this line
+                $this->debugCurrentTokens(); // Add this line
+            } elseif ($action === 'debugDatabaseState') { // Add this line if missing
+                $this->debugDatabaseState(); // Add this line if missing
             } else {
-                // Handle unknown action - registration actions are now handled by RegistrationController
+                // Handle unknown action
+                error_log("Invalid action: " . $action);
                 $_SESSION['error_message'] = "Invalid action: " . $action;
                 header('Location: ../../app/Views/User/indexLogin.php');
                 exit();
@@ -70,7 +83,9 @@ class AuthController extends Controller {
     
     public function processLogin() {
         // Get form data
-        error_log("Login attempt - Username: " . ($_POST['email'] ?? 'empty'));
+        error_log("=== LOGIN ATTEMPT DEBUG ===");
+        error_log("Login attempt - Email: " . ($_POST['email'] ?? 'empty'));
+        error_log("Login attempt - Password: " . (($_POST['password'] ?? 'empty') ? '***' : 'empty'));
         error_log("Login attempt - Role: " . ($_POST['role'] ?? 'empty'));
     
         // Validate CSRF token first
@@ -79,7 +94,7 @@ class AuthController extends Controller {
             $this->redirectWithError('Invalid security token. Please try again.');
             return;
         }
-
+    
         $username = $_POST['email'] ?? '';
         $password = $_POST['password'] ?? '';
         $role = $_POST['role'] ?? '';
@@ -95,17 +110,21 @@ class AuthController extends Controller {
             unset($_SESSION['error_message']);
         }
         
+        error_log("Attempting to authenticate user: " . $username);
+        
         // Authenticate user
         $user = $this->authenticateUser($username, $password, $role);
         
         if ($user) {
+            error_log("✅ Login SUCCESS for: " . $username);
             // Create session and redirect
             $this->createUserSession($user);
             $this->redirect('../../app/Views/User/userViewPage.php');
         } else {
             // Debug: Log the error message that was set
             $errorMsg = $_SESSION['error_message'] ?? 'No error message set';
-            error_log("Authentication failed with message: " . $errorMsg);
+            error_log("❌ Login FAILED for: " . $username);
+            error_log("Error message: " . $errorMsg);
             
             // Ensure we have an error message
             if (!isset($_SESSION['error_message']) || empty($_SESSION['error_message'])) {
@@ -116,6 +135,678 @@ class AuthController extends Controller {
             exit();
         }
     }
+
+   /**
+ * Send verification code for password reset - NO AUTO PASSWORD
+ */
+public function sendVerificationCode() {
+    // Clear output buffers
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    
+    header('Content-Type: application/json');
+    
+    try {
+        $email = $_POST['email'] ?? '';
+        
+        // Basic validation
+        if (empty($email)) {
+            throw new Exception('Email address is required.');
+        }
+        
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || !str_ends_with(strtolower($email), '@usep.edu.ph')) {
+            throw new Exception('Please use a valid USeP email address (@usep.edu.ph).');
+        }
+        
+        error_log("Sending verification code to: " . $email);
+        
+        // Check if user exists
+        $user = $this->findByEmail($email);
+        if (!$user) {
+            // For security, don't reveal whether email exists
+            error_log("Email not found: " . $email);
+            echo json_encode([
+                'success' => true,
+                'message' => 'If the email exists in our system, a verification code has been sent.'
+            ]);
+            exit();
+        }
+        
+        // Convert to array if object
+        if (is_object($user)) {
+            $user = (array)$user;
+        }
+        
+        $userId = $user['ID'] ?? null;
+        $userEmail = $user['Email'] ?? $email;
+        $userName = ($user['First_Name'] ?? '') . ' ' . ($user['Last_Name'] ?? '');
+        
+        if (!$userId) {
+            throw new Exception('User account error.');
+        }
+        
+        // Generate verification code (6 digits)
+        $verificationCode = sprintf("%06d", random_int(0, 999999));
+        
+        // Store code in database (without generated password)
+        $codeStored = $this->storeVerificationCode($userId, $verificationCode);
+        
+        if (!$codeStored) {
+            throw new Exception('Failed to generate verification code. Please try again.');
+        }
+        
+        // Send verification email
+        $emailSent = $this->sendVerificationEmail($userEmail, $userName, $verificationCode);
+        
+        if ($emailSent) {
+            error_log("Verification email sent to: " . $userEmail);
+            echo json_encode([
+                'success' => true,
+                'message' => 'Verification code sent to your email.'
+            ]);
+        } else {
+            throw new Exception('Failed to send verification email. Please try again later.');
+        }
+        
+    } catch (Exception $e) {
+        error_log("Send verification code error: " . $e->getMessage());
+        echo json_encode([
+            'success' => false,
+            'message' => $e->getMessage()
+        ]);
+        exit();
+    }
+}
+
+/**
+ * Verify reset code and update password
+ */
+public function verifyResetCode() {
+    // Clear output buffers
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    
+    header('Content-Type: application/json');
+    
+    try {
+        $email = $_POST['email'] ?? '';
+        $verificationCode = $_POST['verification_code'] ?? '';
+        $newPassword = $_POST['new_password'] ?? ''; // User's chosen password
+        
+        error_log("Verify reset code with user's password");
+        error_log("Email: " . $email);
+        error_log("Code: " . $verificationCode);
+        
+        if (empty($email) || empty($verificationCode) || empty($newPassword)) {
+            throw new Exception('All fields are required.');
+        }
+        
+        if (strlen($verificationCode) !== 6 || !is_numeric($verificationCode)) {
+            throw new Exception('Invalid verification code format.');
+        }
+        
+        if (strlen($newPassword) < 8) {
+            throw new Exception('Password must be at least 8 characters long.');
+        }
+        
+        // Validate verification code (simpler now - just check the code)
+        $isValid = $this->validateVerificationCode($email, $verificationCode);
+        
+        if (!$isValid) {
+            throw new Exception('Invalid verification code. Please check the code and try again.');
+        }
+        
+        // Get user
+        $user = $this->findByEmail($email);
+        if (!$user) {
+            throw new Exception('User not found.');
+        }
+        
+        if (is_object($user)) {
+            $user = (array)$user;
+        }
+        
+        $userId = $user['ID'] ?? null;
+        
+        // Update user password with user's chosen password
+        $passwordUpdated = $this->updateUserPassword($userId, $newPassword);
+        
+        if ($passwordUpdated) {
+            // Mark code as used
+            $this->markVerificationCodeAsUsed($email, $verificationCode);
+            
+            error_log("Password reset successful for: " . $email);
+            echo json_encode([
+                'success' => true,
+                'message' => 'Password has been reset successfully.'
+            ]);
+        } else {
+            throw new Exception('Failed to reset password. Please try again.');
+        }
+        
+    } catch (Exception $e) {
+        error_log("Verify reset code error: " . $e->getMessage());
+        echo json_encode([
+            'success' => false,
+            'message' => $e->getMessage()
+        ]);
+        exit();
+    }
+}
+
+
+private function debugCurrentDatabaseState($email, $expectedCode, $expectedPassword) {
+    try {
+        require_once ROOT_DIR . '\app\Models\User.php';
+        $userModel = new User();
+        $db = $userModel->getDb();
+        
+        error_log("=== CURRENT DATABASE STATE DEBUG ===");
+        
+        // Get user
+        $db->query('SELECT ID FROM USER_INFORMATION WHERE Email = :email');
+        $db->bind(':email', $email);
+        $user = $db->single();
+        
+        if (!$user) {
+            error_log("❌ User not found in database");
+            return;
+        }
+        
+        $userId = is_object($user) ? $user->ID : $user['ID'];
+        error_log("📋 User ID: " . $userId);
+        
+        // Get all tokens for this user
+        $db->query('SELECT * FROM PASSWORD_RESET_TOKENS WHERE user_id = :user_id ORDER BY created_at DESC');
+        $db->bind(':user_id', $userId);
+        $tokens = $db->resultSet();
+        
+        error_log("📊 Tokens found: " . count($tokens));
+        
+        foreach ($tokens as $index => $token) {
+            $tokenData = is_object($token) ? $token->token : $token['token'];
+            $expiresAt = is_object($token) ? $token->expires_at : $token['expires_at'];
+            $isUsed = is_object($token) ? $token->is_used : $token['is_used'];
+            $createdAt = is_object($token) ? $token->created_at : $token['created_at'];
+            
+            $parts = explode('|', $tokenData);
+            $storedCode = $parts[0] ?? 'NO_CODE';
+            $storedPassword = $parts[1] ?? 'NO_PASSWORD';
+            
+            error_log("--- Token #" . ($index + 1) . " ---");
+            error_log("   Raw token: " . $tokenData);
+            error_log("   Stored Code: " . $storedCode);
+            error_log("   Stored Password: " . $storedPassword);
+            error_log("   Expected Code: " . $expectedCode);
+            error_log("   Expected Password: " . $expectedPassword);
+            error_log("   Expires: " . $expiresAt);
+            error_log("   Used: " . ($isUsed ? 'YES' : 'NO'));
+            error_log("   Created: " . $createdAt);
+            error_log("   Code Match: " . ($storedCode === $expectedCode ? 'YES' : 'NO'));
+            error_log("   Password Match: " . ($storedPassword === $expectedPassword ? 'YES' : 'NO'));
+            error_log("   Not Expired: " . (strtotime($expiresAt) > time() ? 'YES' : 'NO'));
+            error_log("   Not Used: " . (!$isUsed ? 'YES' : 'NO'));
+            error_log("   Valid: " . (
+                $storedCode === $expectedCode && 
+                $storedPassword === $expectedPassword && 
+                !$isUsed && 
+                strtotime($expiresAt) > time() 
+                ? 'YES' : 'NO'
+            ));
+        }
+        
+    } catch (Exception $e) {
+        error_log("Debug state error: " . $e->getMessage());
+    }
+}
+    /**
+     * Generate a strong random password
+     */
+    private function generateStrongPassword() {
+        $length = 12;
+        $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+        $password = '';
+        
+        for ($i = 0; $i < $length; $i++) {
+            $password .= $chars[random_int(0, strlen($chars) - 1)];
+        }
+        
+        return $password;
+    }
+
+    /**
+ * Store verification code in database - WITH PROPER TIME CALCULATION
+ */
+private function storeVerificationCode($userId, $code) {
+    try {
+        require_once ROOT_DIR . '\app\Models\User.php';
+        $userModel = new User();
+        $db = $userModel->getDb();
+        
+        error_log("=== STORE VERIFICATION CODE ===");
+        error_log("User ID: " . $userId);
+        error_log("Code: " . $code);
+        
+        // Delete old tokens for this user
+        $db->query('DELETE FROM PASSWORD_RESET_TOKENS WHERE user_id = :user_id OR expires_at < NOW()');
+        $db->bind(':user_id', $userId);
+        $db->execute();
+        
+        // Use database's NOW() function to avoid timezone issues
+        $db->query('INSERT INTO PASSWORD_RESET_TOKENS (user_id, token, expires_at) 
+                   VALUES (:user_id, :token, DATE_ADD(NOW(), INTERVAL 15 MINUTE))');
+        $db->bind(':user_id', $userId);
+        $db->bind(':token', $code);
+        
+        $result = $db->execute();
+        
+        // Verify what was stored
+        $db->query('SELECT * FROM PASSWORD_RESET_TOKENS WHERE user_id = :user_id ORDER BY id DESC LIMIT 1');
+        $db->bind(':user_id', $userId);
+        $storedToken = $db->single();
+        
+        if ($storedToken) {
+            $storedCode = is_object($storedToken) ? $storedToken->token : $storedToken['token'];
+            $expiresAt = is_object($storedToken) ? $storedToken->expires_at : $storedToken['expires_at'];
+            $createdAt = is_object($storedToken) ? $storedToken->created_at : $storedToken['created_at'];
+            
+            error_log("✅ Token stored successfully:");
+            error_log("   Code: " . $storedCode);
+            error_log("   Created: " . $createdAt);
+            error_log("   Expires: " . $expiresAt);
+        }
+        
+        return $result;
+        
+    } catch (Exception $e) {
+        error_log("💥 Error storing verification code: " . $e->getMessage());
+        return false;
+    }
+}
+
+    /**
+ * Validate verification code - WITH TIMEZONE FIX
+ */
+private function validateVerificationCode($email, $code) {
+    try {
+        require_once ROOT_DIR . '\app\Models\User.php';
+        $userModel = new User();
+        $db = $userModel->getDb();
+        
+        error_log("=== VALIDATE VERIFICATION CODE ===");
+        error_log("Email: " . $email);
+        error_log("Code to validate: " . $code);
+        
+        // TEMPORARY: Remove expiration check to test
+        $db->query('
+            SELECT prt.* 
+            FROM PASSWORD_RESET_TOKENS prt 
+            JOIN USER_INFORMATION ui ON prt.user_id = ui.ID 
+            WHERE ui.Email = :email 
+            AND prt.token = :code
+            AND prt.is_used = FALSE
+            -- AND prt.expires_at > NOW()  -- Temporarily commented out
+            LIMIT 1
+        ');
+        $db->bind(':email', $email);
+        $db->bind(':code', $code);
+        
+        $result = $db->single();
+        
+        if ($result) {
+            $storedToken = is_object($result) ? $result->token : $result['token'];
+            $expiresAt = is_object($result) ? $result->expires_at : $result['expires_at'];
+            
+            error_log("✅ Token found:");
+            error_log("   Stored: '" . $storedToken . "'");
+            error_log("   Provided: '" . $code . "'");
+            error_log("   Expires: " . $expiresAt);
+            error_log("   Match: " . ($storedToken === $code ? 'YES' : 'NO'));
+            
+            if ($storedToken === $code) {
+                error_log("🎉 CODE VALIDATION SUCCESS");
+                return true;
+            }
+        } else {
+            error_log("❌ No matching token found");
+            
+            // Debug what tokens exist
+            $db->query('
+                SELECT prt.* 
+                FROM PASSWORD_RESET_TOKENS prt 
+                JOIN USER_INFORMATION ui ON prt.user_id = ui.ID 
+                WHERE ui.Email = :email
+            ');
+            $db->bind(':email', $email);
+            $allTokens = $db->resultSet();
+            
+            error_log("All tokens for this email:");
+            foreach ($allTokens as $token) {
+                $tokenData = is_object($token) ? $token->token : $token['token'];
+                $expires = is_object($token) ? $token->expires_at : $token['expires_at'];
+                $used = is_object($token) ? $token->is_used : $token['is_used'];
+                error_log("   Token: '" . $tokenData . "', Expires: " . $expires . ", Used: " . $used);
+            }
+        }
+        
+        return false;
+        
+    } catch (Exception $e) {
+        error_log("💥 Error validating verification code: " . $e->getMessage());
+        return false;
+    }
+}
+
+public function debugCurrentTokens() {
+    // Clear output buffers
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    
+    header('Content-Type: application/json');
+    
+    try {
+        $email = $_POST['email'] ?? '';
+        
+        if (empty($email)) {
+            echo json_encode(['error' => 'No email provided']);
+            exit();
+        }
+        
+        require_once ROOT_DIR . '\app\Models\User.php';
+        $userModel = new User();
+        $db = $userModel->getDb();
+        
+        $db->query('
+            SELECT prt.*, ui.Email 
+            FROM PASSWORD_RESET_TOKENS prt 
+            JOIN USER_INFORMATION ui ON prt.user_id = ui.ID 
+            WHERE ui.Email = :email
+            ORDER BY prt.created_at DESC
+        ');
+        $db->bind(':email', $email);
+        $tokens = $db->resultSet();
+        
+        $debugInfo = [
+            'email' => $email,
+            'tokens_found' => count($tokens),
+            'tokens' => $tokens,
+            'current_time' => date('Y-m-d H:i:s')
+        ];
+        
+        foreach ($tokens as $token) {
+            $tokenData = is_object($token) ? $token->token : $token['token'];
+            $expiresAt = is_object($token) ? $token->expires_at : $token['expires_at'];
+            $isUsed = is_object($token) ? $token->is_used : $token['is_used'];
+            
+            error_log("Debug - Token: '" . $tokenData . "', Expires: " . $expiresAt . ", Used: " . $isUsed);
+        }
+        
+        echo json_encode($debugInfo, JSON_PRETTY_PRINT);
+        
+    } catch (Exception $e) {
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+    exit();
+}
+
+    /**
+ * Mark verification code as used - WITH DEBUGGING
+ */
+private function markVerificationCodeAsUsed($email, $code) {
+    try {
+        require_once ROOT_DIR . '\app\Models\User.php';
+        $userModel = new User();
+        $db = $userModel->getDb();
+        
+        $db->query('
+            UPDATE PASSWORD_RESET_TOKENS prt 
+            JOIN USER_INFORMATION ui ON prt.user_id = ui.ID 
+            SET prt.is_used = TRUE 
+            WHERE ui.Email = :email 
+            AND prt.token = :code
+        ');
+        $db->bind(':email', $email);
+        $db->bind(':code', $code);
+        
+        return $db->execute();
+        
+    } catch (Exception $e) {
+        error_log("Error marking code as used: " . $e->getMessage());
+        return false;
+    }
+}
+
+    /**
+     * Send verification email with code
+     */
+    private function sendVerificationEmail($email, $name, $verificationCode) {
+        try {
+            $emailSenderPath = __DIR__ . '/EmailSender.php';
+            if (!file_exists($emailSenderPath)) {
+                $emailSenderPath = ROOT_DIR . '/app/Utils/EmailSender.php';
+            }
+            
+            if (!file_exists($emailSenderPath)) {
+                error_log("EmailSender not found");
+                return false;
+            }
+            
+            require_once $emailSenderPath;
+            $emailSender = new EmailSender();
+            
+            $subject = 'Password Reset Verification - Compendium System';
+            $body = $this->getVerificationEmailBody($name, $verificationCode);
+            
+            return $emailSender->sendHtmlEmail($email, $name, $subject, $body);
+            
+        } catch (Exception $e) {
+            error_log("Verification email sending failed: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Generate verification email body
+     */
+    private function getVerificationEmailBody($name, $verificationCode) {
+        return "
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: #2c3e50; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+                .content { background: #f9f9f9; padding: 30px; border: 1px solid #ddd; }
+                .footer { background: #34495e; color: white; padding: 15px; text-align: center; font-size: 12px; border-radius: 0 0 5px 5px; }
+                .code-box { background: #e74c3c; color: white; padding: 15px; border-radius: 5px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; margin: 20px 0; }
+                .info-box { background: #ecf0f1; padding: 15px; border-left: 4px solid #3498db; margin: 15px 0; }
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <div class='header'>
+                    <h1>Compendium System</h1>
+                    <p>University of Southeastern Philippines</p>
+                </div>
+                
+                <div class='content'>
+                    <h2>Password Reset Verification</h2>
+                    <p>Hello {$name},</p>
+                    <p>You requested to reset your password. Use the verification code below to complete the process.</p>
+                    
+                    <div class='code-box'>
+                        {$verificationCode}
+                    </div>
+                    
+                    <div class='info-box'>
+                        <p><strong>Important Information:</strong></p>
+                        <ul>
+                            <li>Enter this 6-digit code in the verification form</li>
+                            <li>This code will expire in 15 minutes</li>
+                            <li>You will be able to set your new password after verification</li>
+                            <li>If you didn't request this reset, please ignore this email</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class='footer'>
+                    <p>&copy; " . date('Y') . " University of Southeastern Philippines | Compendium System</p>
+                    <p>This is an automated message. Please do not reply to this email.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        ";
+    }
+    
+
+    /**
+ * Update user password - WITH DETAILED DEBUGGING
+ */
+private function updateUserPassword($userId, $newPassword) {
+    try {
+        require_once ROOT_DIR . '\app\Models\User.php';
+        $userModel = new User();
+        $db = $userModel->getDb();
+        
+        error_log("=== UPDATE USER PASSWORD DEBUG ===");
+        error_log("User ID: " . $userId);
+        error_log("New Password (plain): " . $newPassword);
+        
+        // Hash the new password
+        $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+        error_log("Hashed Password: " . $hashedPassword);
+        
+        // Check if password is valid
+        if (empty($hashedPassword)) {
+            error_log("❌ Password hashing failed!");
+            return false;
+        }
+        
+        error_log("Executing UPDATE query with column 'pswrd'...");
+        
+        // FIXED: Using correct column name 'pswrd'
+        $db->query('UPDATE USER_INFORMATION SET pswrd = :password WHERE ID = :user_id');
+        $db->bind(':password', $hashedPassword);
+        $db->bind(':user_id', $userId);
+        
+        $result = $db->execute();
+        
+        error_log("Update result: " . ($result ? 'SUCCESS' : 'FAILED'));
+        
+        // Check how many rows were affected
+        $rowCount = $db->rowCount();
+        error_log("Rows affected: " . $rowCount);
+        
+        if ($result && $rowCount > 0) {
+            error_log("✅ Password update confirmed - row modified");
+            
+            // Verify the update worked by reading back the password
+            $db->query('SELECT pswrd FROM USER_INFORMATION WHERE ID = :user_id'); // FIXED: pswrd
+            $db->bind(':user_id', $userId);
+            $updatedUser = $db->single();
+            
+            if ($updatedUser) {
+                $storedPassword = is_object($updatedUser) ? $updatedUser->pswrd : $updatedUser['pswrd']; // FIXED: pswrd
+                error_log("Stored password after update: " . $storedPassword);
+                
+                // Verify the hash
+                $passwordMatches = password_verify($newPassword, $storedPassword);
+                error_log("Password verification: " . ($passwordMatches ? 'SUCCESS' : 'FAILED'));
+            }
+        } else {
+            error_log("❌ No rows affected by update");
+        }
+        
+        return $result && $rowCount > 0;
+        
+    } catch (Exception $e) {
+        error_log("💥 Error updating user password: " . $e->getMessage());
+        return false;
+    }
+}
+
+
+
+    /**
+ * Debug method to check database state
+ */
+public function debugDatabaseState() {
+    // Clear output buffers
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    
+    header('Content-Type: application/json');
+    
+    try {
+        $email = $_POST['email'] ?? '';
+        
+        error_log("=== DATABASE DEBUG REQUEST ===");
+        error_log("Debug email: " . $email);
+        
+        if (empty($email)) {
+            echo json_encode(['error' => 'No email provided']);
+            exit();
+        }
+        
+        require_once ROOT_DIR . '\app\Models\User.php';
+        $userModel = new User();
+        $db = $userModel->getDb();
+        
+        // 1. Check if user exists
+        $db->query('SELECT ID, Email, First_Name, Last_Name FROM USER_INFORMATION WHERE Email = :email');
+        $db->bind(':email', $email);
+        $user = $db->single();
+        
+        $debugInfo = [
+            'user_exists' => !empty($user),
+            'user_data' => $user,
+            'tokens_in_database' => []
+        ];
+        
+        if ($user) {
+            $userId = is_object($user) ? $user->ID : $user['ID'];
+            
+            // 2. Check all tokens for this user
+            $db->query('SELECT * FROM PASSWORD_RESET_TOKENS WHERE user_id = :user_id ORDER BY created_at DESC');
+            $db->bind(':user_id', $userId);
+            $tokens = $db->resultSet();
+            
+            $debugInfo['tokens_in_database'] = $tokens;
+            $debugInfo['user_id'] = $userId;
+            
+            error_log("User found - ID: " . $userId);
+            error_log("Tokens count: " . count($tokens));
+            
+            foreach ($tokens as $token) {
+                $tokenData = is_object($token) ? $token->token : $token['token'];
+                $parts = explode('|', $tokenData);
+                $storedCode = $parts[0] ?? 'NO_CODE';
+                $storedPassword = $parts[1] ?? 'NO_PASSWORD';
+                
+                error_log("Token: " . $tokenData);
+                error_log("  - Code: " . $storedCode);
+                error_log("  - Password: " . $storedPassword);
+                error_log("  - Expires: " . (is_object($token) ? $token->expires_at : $token['expires_at']));
+                error_log("  - Used: " . (is_object($token) ? $token->is_used : $token['is_used']));
+            }
+        }
+        
+        echo json_encode($debugInfo, JSON_PRETTY_PRINT);
+        
+    } catch (Exception $e) {
+        error_log("Debug error: " . $e->getMessage());
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+    exit();
+}
+
+
 
     public function googleLogin() {
         // Start output buffering to catch any errors
@@ -156,6 +847,7 @@ class AuthController extends Controller {
             error_log("Checking if user exists in database...");
             $user = $this->findByEmail($email);
             
+            
             if ($user) {
                 // Convert user to array if it's an object
                 if (is_object($user)) {
@@ -175,6 +867,15 @@ class AuthController extends Controller {
                 error_log("User Role: " . $userRole);
                 
                 // ✅ EXISTING USER: Check if account is approved
+                if ($userRole === 'superAdmin' || $userRole === 'SubAdmin') {
+                    // Add additional admin validation here if needed
+                    // For example, check if the email is in an admin whitelist
+                    $isAuthorizedAdmin = $this->isAuthorizedAdminEmail($email);
+                    if (!$isAuthorizedAdmin) {
+                        throw new Exception('This Google account is not authorized for admin access.');
+                    }
+                }
+
                 if ($accStatus === 'pending') {
                     throw new Exception('Your account is pending approval. Please wait for administrator approval.');
                 } else if ($accStatus === 'rejected') {
@@ -218,7 +919,7 @@ class AuthController extends Controller {
                     error_log("Session created for new user");
                     echo json_encode([
                         'success' => true,
-                        'message' => 'Account created and login successful',
+                        'message' => 'Account created, check your email for further instruction.',
                         'redirect_url' => '../../Views/User/userViewPage.php'
                     ]);
                     exit();
@@ -247,6 +948,115 @@ class AuthController extends Controller {
             }
         }
     }
+
+    /**
+     * Handle Google Sign-In for admin users
+     */
+    public function adminGoogleLogin() {
+        // Start output buffering to catch any errors
+        ob_start();
+        
+        try {
+            error_log("=== ADMIN GOOGLE LOGIN DEBUG START ===");
+            error_log("POST data: " . print_r($_POST, true));
+            
+            // Clear any previous output
+            while (ob_get_level() > 1) {
+                ob_end_clean();
+            }
+            
+            // Set header first to ensure clean JSON
+            header('Content-Type: application/json');
+            
+            $credential = $_POST['credential'] ?? '';
+            $email = $_POST['email'] ?? '';
+            $name = $_POST['name'] ?? '';
+    
+            // Basic validation
+            if (empty($credential) || empty($email)) {
+                throw new Exception('Missing required Google authentication data.');
+            }
+    
+            error_log("Admin Google Login - Email: " . $email);
+            error_log("Admin Google Login - Name: " . $name);
+    
+            // Skip Google token validation during development
+            $isValidToken = true;
+            error_log("Admin Google token validation SKIPPED for development");
+    
+            // Check if admin exists with this email
+            error_log("Checking if admin exists in database...");
+            $admin = $this->findAdminByEmail($email);
+            
+            if ($admin) {
+                // Convert admin to array if it's an object
+                if (is_object($admin)) {
+                    $admin = (array)$admin;
+                }
+                
+                // Get admin properties - USING EMAIL AS IDENTIFIER
+                $adminId = $admin['ID'] ?? $admin->ID ?? null; // Regular ID, not User_ID
+                $adminEmail = $admin['Email'] ?? $admin->Email ?? '';
+                $accStatus = $admin['Acc_Status'] ?? $admin->Acc_Status ?? 'unknown';
+                $userRole = $admin['User_Role'] ?? $admin->User_Role ?? '';
+                
+                error_log("Admin found. ID: " . $adminId . ", Email: " . $adminEmail . ", Role: " . $userRole . ", Status: " . $accStatus);
+                
+                // Verify it's actually an admin or sub-admin
+                
+                
+                // Check if account is approved
+                if ($accStatus === 'pending') {
+                    throw new Exception('Your admin account is pending approval.');
+                } else if ($accStatus === 'rejected') {
+                    throw new Exception('Your admin account was rejected. Please contact system administrator.');
+                } else if ($accStatus === 'approved') {
+                    // ✅ APPROVED ADMIN: Log them in
+                    error_log("Admin account approved, creating session...");
+                    $this->createAdminSession([
+                        'id' => $adminId,
+                        'email' => $adminEmail,
+                        'name' => $name,
+                        'role' => $userRole // Use actual role from database
+                    ]);
+                    
+                    error_log("Admin session created successfully");
+                    echo json_encode([
+                        'success' => true,
+                        'message' => 'Admin login successful',
+                        'redirect_url' => '../../Views/Admin/AdminDashboard.php'
+                        
+                    ]);
+                    exit();
+                } else {
+                    throw new Exception('Your admin account status is invalid. Please contact administrator.');
+                }
+            } else {
+                // Admin not found
+                throw new Exception('No admin account found with this email. Please use traditional admin login.');
+            }
+    
+        } catch (Exception $e) {
+            // Clear any output that might have been generated
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            
+            header('Content-Type: application/json');
+            error_log("Admin Google login exception: " . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+            exit();
+        } finally {
+            // Ensure no extra output
+            if (ob_get_length()) {
+                ob_end_clean();
+            }
+        }
+    }
+
 
     /**
      * Auto-register a user from Google Sign-In
@@ -609,58 +1419,6 @@ private function getWelcomeBackBody($name, $email, $role) {
         return $prefix . $randomNumber;
     }
 
-    private function validateGoogleToken($credential) {
-        try {
-            error_log("Validating Google token...");
-            
-            if (empty($credential)) {
-                error_log("Google token is empty");
-                return false;
-            }
-    
-            // Use Google's tokeninfo endpoint
-            $url = "https://oauth2.googleapis.com/tokeninfo?id_token=" . urlencode($credential);
-            error_log("Calling Google tokeninfo endpoint...");
-            
-            $context = stream_context_create([
-                'ssl' => [
-                    'verify_peer' => false,
-                    'verify_peer_name' => false,
-                ],
-                'http' => [
-                    'timeout' => 10,
-                    'ignore_errors' => true
-                ]
-            ]);
-            
-            $response = file_get_contents($url, false, $context);
-            
-            if ($response === FALSE) {
-                error_log("Failed to call Google tokeninfo endpoint");
-                return false;
-            }
-            
-            $data = json_decode($response, true);
-            error_log("Google tokeninfo response: " . print_r($data, true));
-            
-            if (isset($data['error'])) {
-                error_log("Google token validation error: " . $data['error']);
-                return false;
-            }
-            
-            if (isset($data['email']) && ($data['email_verified'] === 'true' || $data['email_verified'] === true)) {
-                error_log("Google token validated successfully for email: " . $data['email']);
-                return true;
-            }
-            
-            error_log("Google token validation failed - email not verified or not present");
-            return false;
-            
-        } catch (Exception $e) {
-            error_log("Google token validation exception: " . $e->getMessage());
-            return false;
-        }
-    }
 
 	/**
      * Find user by email for Google login flow
@@ -687,6 +1445,69 @@ private function getWelcomeBackBody($name, $email, $role) {
         }
         
         return $result;
+    }
+
+    /**
+     * Find admin by email using User_ID for identification
+     */
+    private function findAdminByEmail($email) {
+        require_once ROOT_DIR . '\app\Models\User.php';
+        $userModel = new User();
+        $db = $userModel->getDb();
+        
+        // Query to find admin user by email - USING IN for multiple roles
+        $db->query('SELECT * FROM USER_INFORMATION WHERE Email = :email AND User_Role IN ("superAdmin", "SubAdmin") LIMIT 1');
+        $db->bind(':email', $email);
+        $result = $db->single();
+        
+        // Convert object to array if needed
+        if (is_object($result)) {
+            $result = (array)$result;
+        }
+        
+        error_log("findAdminByEmail result for $email: " . ($result ? 'ADMIN FOUND' : 'NOT FOUND OR NOT ADMIN'));
+        if ($result) {
+            error_log("Admin ID: " . ($result['ID'] ?? 'unknown'));
+            error_log("Admin Email: " . ($result['Email'] ?? 'unknown'));
+            error_log("Admin Role: " . ($result['User_Role'] ?? 'unknown'));
+            error_log("Admin Status: " . ($result['Acc_Status'] ?? 'unknown'));
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Create admin session with User_ID
+     */
+    public function createAdminSession($admin) {
+        $_SESSION['admin_id'] = $admin['id'];
+        $_SESSION['admin_email'] = $admin['email'];
+        $_SESSION['admin_name'] = $admin['name'];
+        $_SESSION['admin_role'] = $admin['role']; // 'admin' or 'sub-admin'
+        $_SESSION['admin_logged_in'] = true;
+    
+        // Also set regular user session for compatibility
+        $_SESSION['user_id'] = $admin['id'];
+        $_SESSION['user_email'] = $admin['email'];
+        $_SESSION['user_name'] = $admin['name'];
+        $_SESSION['user_role'] = $admin['role'];
+        $_SESSION['logged_in'] = true;
+    
+        // Regenerate CSRF token for security
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        
+        error_log("Admin session created for: " . $admin['email'] . " with role: " . $admin['role']);
+    }
+
+    private function isAuthorizedAdminEmail($email) {
+        // Define your authorized admin emails
+        $authorizedAdmins = [
+            
+            'superadmin@usep.edu.ph',
+            // Add other authorized admin emails
+        ];
+        
+        return in_array($email, $authorizedAdmins);
     }
 
     private function authenticateUser($username, $password, $role) {

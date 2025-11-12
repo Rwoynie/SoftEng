@@ -471,5 +471,19 @@ class User extends Model {
             return false;
         }
     }
+
+    /**
+     * Get user by ID
+     */
+    public function getUserById($userId) {
+        try {
+            $this->db->query('SELECT * FROM USER_INFORMATION WHERE ID = :user_id LIMIT 1');
+            $this->db->bind(':user_id', $userId);
+            return $this->db->single();
+        } catch (Exception $e) {
+            error_log("Error getting user by ID: " . $e->getMessage());
+            return false;
+        }
+    }
 }
 ?>
