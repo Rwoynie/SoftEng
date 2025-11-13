@@ -1374,14 +1374,14 @@ async function sendAdminGoogleCredentialToBackend(credential, userEmail, userNam
         });
 
         // Send to AdminController instead of AuthController
-        const response = await fetch('../../Controllers/AdminController.php', { // Changed to AdminController
+        const response = await fetch('../../Controllers/AdminController.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
             credentials: 'include',
             body: new URLSearchParams({
-                'action': 'adminGoogleLogin', // Different action for admin
+                'action': 'adminGoogleLogin',
                 'credential': credential,
                 'email': userEmail,
                 'name': userName,
@@ -1392,23 +1392,36 @@ async function sendAdminGoogleCredentialToBackend(credential, userEmail, userNam
         const responseText = await response.text();
         console.log('Admin Google raw response:', responseText);
         
-        // Handle response
-        if (responseText.includes('PHPMailer:') || 
-            responseText.includes('<br>') ||
-            responseText.includes('SMTP') ||
-            responseText.trim().startsWith('PHPMailer:')) {
-            
-            const jsonMatch = responseText.match(/\{.*\}/s);
-            if (jsonMatch) {
-                const result = JSON.parse(jsonMatch[0]);
-                handleAdminAuthResult(result);
-            } else {
-                throw new Error('Server returned debug output instead of JSON');
-            }
-        } else {
-            const result = JSON.parse(responseText);
-            handleAdminAuthResult(result);
+        // Clean the response text - remove any whitespace or HTML tags
+        const cleanResponse = responseText.trim();
+        
+        if (!cleanResponse) {
+            throw new Error('Empty response from server');
         }
+        
+        let result;
+        
+        try {
+            // Try to parse as JSON directly
+            result = JSON.parse(cleanResponse);
+        } catch (parseError) {
+            console.log('Direct JSON parse failed, trying to extract JSON from response:', parseError);
+            
+            // Try to extract JSON from the response
+            const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                try {
+                    result = JSON.parse(jsonMatch[0]);
+                } catch (extractError) {
+                    console.log('JSON extraction failed:', extractError);
+                    throw new Error('Invalid server response format');
+                }
+            } else {
+                throw new Error('Server returned an invalid response: ' + cleanResponse.substring(0, 100));
+            }
+        }
+        
+        handleAdminAuthResult(result);
         
     } catch (error) {
         console.error('Admin Google authentication error:', error);

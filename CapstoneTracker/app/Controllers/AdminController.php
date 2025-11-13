@@ -1,5 +1,9 @@
 <?php
 
+// Error reporting - ONLY for development
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 error_log("=== ADMIN CONTROLLER ACCESSED ===");
 error_log("Request Method: " . ($_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN'));
 error_log("POST Data: " . print_r($_POST, true));
@@ -205,37 +209,36 @@ class AdminController extends Controller {
      * Handle Google Sign-In for admin users
      */
     public function adminGoogleLogin() {
-        // Start output buffering to catch any errors
+        // Clear all output buffers completely
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        
+        // Start fresh output buffer
         ob_start();
         
         try {
             error_log("=== ADMIN GOOGLE LOGIN DEBUG START ===");
             error_log("POST data: " . print_r($_POST, true));
             
-            // Clear any previous output
-            while (ob_get_level() > 1) {
-                ob_end_clean();
+            // Check if ROOT_DIR is defined
+            if (!defined('ROOT_DIR')) {
+                error_log("ROOT_DIR not defined, trying to define it...");
+                define('ROOT_DIR', dirname(__DIR__, 2)); // Adjust based on your directory structure
             }
-            
-            // Set header first to ensure clean JSON
-            header('Content-Type: application/json');
             
             $credential = $_POST['credential'] ?? '';
             $email = $_POST['email'] ?? '';
             $name = $_POST['name'] ?? '';
-    
+        
             // Basic validation
             if (empty($credential) || empty($email)) {
                 throw new Exception('Missing required Google authentication data.');
             }
-    
+        
             error_log("Admin Google Login - Email: " . $email);
             error_log("Admin Google Login - Name: " . $name);
-    
-            // Skip Google token validation during development
-            $isValidToken = true;
-            error_log("Admin Google token validation SKIPPED for development");
-    
+        
             // Check if admin exists with this email
             error_log("Checking if admin exists in database...");
             $admin = $this->findAdminByEmail($email);
@@ -283,6 +286,10 @@ class AdminController extends Controller {
                     $this->createAdminSession($userData);
                     
                     error_log("Admin session created successfully");
+                    
+                    // Clear buffer and send clean JSON
+                    ob_clean();
+                    header('Content-Type: application/json');
                     echo json_encode([
                         'success' => true,
                         'message' => 'Admin login successful',
@@ -296,13 +303,10 @@ class AdminController extends Controller {
                 // Admin not found
                 throw new Exception('No admin account found with this email. Please use traditional admin login.');
             }
-    
+        
         } catch (Exception $e) {
-            // Clear any output that might have been generated
-            while (ob_get_level() > 0) {
-                ob_end_clean();
-            }
-            
+            // Clear buffer and send clean error JSON
+            ob_clean();
             header('Content-Type: application/json');
             error_log("Admin Google login exception: " . $e->getMessage());
             echo json_encode([
@@ -322,29 +326,58 @@ class AdminController extends Controller {
      * Find admin by email
      */
     private function findAdminByEmail($email) {
-        require_once ROOT_DIR . '\app\Models\User.php';
-        $userModel = new User();
-        $db = $userModel->getDb();
-        
-        // Query to find admin user by email - USING IN for multiple roles
-        $db->query('SELECT * FROM USER_INFORMATION WHERE Email = :email AND User_Role IN ("superAdmin", "SubAdmin", "admin") LIMIT 1');
-        $db->bind(':email', $email);
-        $result = $db->single();
-        
-        // Convert object to array if needed
-        if (is_object($result)) {
-            $result = (array)$result;
+        try {
+            error_log("findAdminByEmail called with: " . $email);
+            
+            // Check if ROOT_DIR is defined
+            if (!defined('ROOT_DIR')) {
+                define('ROOT_DIR', dirname(__DIR__, 2));
+            }
+            
+            $userModelPath = ROOT_DIR . '/app/Models/User.php';
+            error_log("Looking for User model at: " . $userModelPath);
+            
+            if (!file_exists($userModelPath)) {
+                error_log("User model not found at: " . $userModelPath);
+                // Try alternative path
+                $userModelPath = __DIR__ . '/../Models/User.php';
+                error_log("Trying alternative path: " . $userModelPath);
+            }
+            
+            if (!file_exists($userModelPath)) {
+                throw new Exception('User model file not found');
+            }
+            
+            require_once $userModelPath;
+            
+            $userModel = new User();
+            $db = $userModel->getDb();
+            
+            // Query to find admin user by email
+            $db->query('SELECT * FROM USER_INFORMATION WHERE Email = :email AND User_Role IN ("superAdmin", "SubAdmin", "admin") LIMIT 1');
+            $db->bind(':email', $email);
+            $result = $db->single();
+            
+            // Convert object to array if needed
+            if (is_object($result)) {
+                $result = (array)$result;
+            }
+            
+            error_log("findAdminByEmail result for $email: " . ($result ? 'ADMIN FOUND' : 'NOT FOUND OR NOT ADMIN'));
+            if ($result) {
+                error_log("Admin ID: " . ($result['ID'] ?? 'unknown'));
+                error_log("Admin Email: " . ($result['Email'] ?? 'unknown'));
+                error_log("Admin Role: " . ($result['User_Role'] ?? 'unknown'));
+                error_log("Admin Status: " . ($result['Acc_Status'] ?? 'unknown'));
+            }
+            
+            return $result;
+            
+        } catch (Exception $e) {
+            error_log("Error in findAdminByEmail: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            return false;
         }
-        
-        error_log("findAdminByEmail result for $email: " . ($result ? 'ADMIN FOUND' : 'NOT FOUND OR NOT ADMIN'));
-        if ($result) {
-            error_log("Admin ID: " . ($result['ID'] ?? 'unknown'));
-            error_log("Admin Email: " . ($result['Email'] ?? 'unknown'));
-            error_log("Admin Role: " . ($result['User_Role'] ?? 'unknown'));
-            error_log("Admin Status: " . ($result['Acc_Status'] ?? 'unknown'));
-        }
-        
-        return $result;
     }
 
     private function isAuthorizedAdminEmail($email) {
@@ -462,9 +495,9 @@ class AdminController extends Controller {
 }
 
 
-// Error reporting
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+// Error reporting - TURN OFF for production to avoid HTML output
+error_reporting(0);
+ini_set('display_errors', 0);
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
