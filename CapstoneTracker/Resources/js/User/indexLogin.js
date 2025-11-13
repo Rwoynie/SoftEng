@@ -1373,8 +1373,8 @@ async function sendAdminGoogleCredentialToBackend(credential, userEmail, userNam
             }
         });
 
-        // Send to AuthController with admin-specific action
-        const response = await fetch('../../Controllers/AuthController.php', {
+        // Send to AdminController instead of AuthController
+        const response = await fetch('../../Controllers/AdminController.php', { // Changed to AdminController
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',

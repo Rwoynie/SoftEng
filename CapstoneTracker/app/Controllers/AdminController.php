@@ -201,6 +201,162 @@ class AdminController extends Controller {
         // etc.
     }
 
+    /**
+     * Handle Google Sign-In for admin users
+     */
+    public function adminGoogleLogin() {
+        // Start output buffering to catch any errors
+        ob_start();
+        
+        try {
+            error_log("=== ADMIN GOOGLE LOGIN DEBUG START ===");
+            error_log("POST data: " . print_r($_POST, true));
+            
+            // Clear any previous output
+            while (ob_get_level() > 1) {
+                ob_end_clean();
+            }
+            
+            // Set header first to ensure clean JSON
+            header('Content-Type: application/json');
+            
+            $credential = $_POST['credential'] ?? '';
+            $email = $_POST['email'] ?? '';
+            $name = $_POST['name'] ?? '';
+    
+            // Basic validation
+            if (empty($credential) || empty($email)) {
+                throw new Exception('Missing required Google authentication data.');
+            }
+    
+            error_log("Admin Google Login - Email: " . $email);
+            error_log("Admin Google Login - Name: " . $name);
+    
+            // Skip Google token validation during development
+            $isValidToken = true;
+            error_log("Admin Google token validation SKIPPED for development");
+    
+            // Check if admin exists with this email
+            error_log("Checking if admin exists in database...");
+            $admin = $this->findAdminByEmail($email);
+            
+            if ($admin) {
+                // Convert admin to array if it's an object
+                if (is_object($admin)) {
+                    $admin = (array)$admin;
+                }
+                
+                // Get admin properties
+                $adminId = $admin['ID'] ?? $admin->ID ?? null;
+                $adminEmail = $admin['Email'] ?? $admin->Email ?? '';
+                $accStatus = $admin['Acc_Status'] ?? $admin->Acc_Status ?? 'unknown';
+                $userRole = $admin['User_Role'] ?? $admin->User_Role ?? '';
+                $firstName = $admin['First_Name'] ?? $admin->First_Name ?? '';
+                $lastName = $admin['Last_Name'] ?? $admin->Last_Name ?? '';
+                
+                error_log("Admin found. ID: " . $adminId . ", Email: " . $adminEmail . ", Role: " . $userRole . ", Status: " . $accStatus);
+                
+                // Verify it's actually an admin or sub-admin
+                if (!in_array(strtolower($userRole), ['superadmin', 'subadmin', 'admin'])) {
+                    throw new Exception('This account does not have admin privileges.');
+                }
+                
+                // Check if account is approved
+                if ($accStatus === 'pending') {
+                    throw new Exception('Your admin account is pending approval.');
+                } else if ($accStatus === 'rejected') {
+                    throw new Exception('Your admin account was rejected. Please contact system administrator.');
+                } else if ($accStatus === 'approved') {
+                    // ✅ APPROVED ADMIN: Log them in
+                    error_log("Admin account approved, creating session...");
+                    
+                    // Prepare user data for session using the existing createAdminSession format
+                    $userData = [
+                        'id' => $adminId,
+                        'user_id' => $adminId, // Use same ID for user_db_id
+                        'email' => $adminEmail,
+                        'first_name' => $firstName,
+                        'last_name' => $lastName,
+                        'role' => $userRole
+                    ];
+                    
+                    $this->createAdminSession($userData);
+                    
+                    error_log("Admin session created successfully");
+                    echo json_encode([
+                        'success' => true,
+                        'message' => 'Admin login successful',
+                        'redirect_url' => '../../Views/Admin/AdminDashboard.php'
+                    ]);
+                    exit();
+                } else {
+                    throw new Exception('Your admin account status is invalid. Please contact administrator.');
+                }
+            } else {
+                // Admin not found
+                throw new Exception('No admin account found with this email. Please use traditional admin login.');
+            }
+    
+        } catch (Exception $e) {
+            // Clear any output that might have been generated
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            
+            header('Content-Type: application/json');
+            error_log("Admin Google login exception: " . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+            exit();
+        } finally {
+            // Ensure no extra output
+            if (ob_get_length()) {
+                ob_end_clean();
+            }
+        }
+    }
+
+    /**
+     * Find admin by email
+     */
+    private function findAdminByEmail($email) {
+        require_once ROOT_DIR . '\app\Models\User.php';
+        $userModel = new User();
+        $db = $userModel->getDb();
+        
+        // Query to find admin user by email - USING IN for multiple roles
+        $db->query('SELECT * FROM USER_INFORMATION WHERE Email = :email AND User_Role IN ("superAdmin", "SubAdmin", "admin") LIMIT 1');
+        $db->bind(':email', $email);
+        $result = $db->single();
+        
+        // Convert object to array if needed
+        if (is_object($result)) {
+            $result = (array)$result;
+        }
+        
+        error_log("findAdminByEmail result for $email: " . ($result ? 'ADMIN FOUND' : 'NOT FOUND OR NOT ADMIN'));
+        if ($result) {
+            error_log("Admin ID: " . ($result['ID'] ?? 'unknown'));
+            error_log("Admin Email: " . ($result['Email'] ?? 'unknown'));
+            error_log("Admin Role: " . ($result['User_Role'] ?? 'unknown'));
+            error_log("Admin Status: " . ($result['Acc_Status'] ?? 'unknown'));
+        }
+        
+        return $result;
+    }
+
+    private function isAuthorizedAdminEmail($email) {
+        // Define your authorized admin emails
+        $authorizedAdmins = [
+            'superadmin@usep.edu.ph',
+            // Add other authorized admin emails
+        ];
+        
+        return in_array($email, $authorizedAdmins);
+    }
+
     public function dashboard() {
         // Start session if not already started
         if (session_status() === PHP_SESSION_NONE) {
@@ -325,5 +481,7 @@ if ($action === 'login') {
     $adminController->dashboard();
 } elseif ($action === 'logout') {
     $adminController->logout();
+} elseif ($action === 'adminGoogleLogin') {
+    $adminController->adminGoogleLogin();
 }
 ?>
