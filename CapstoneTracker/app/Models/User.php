@@ -118,16 +118,106 @@ class User extends Model {
         }
     }
 
+  
     /**
-     * Register a user from Google Sign-In
+     * Register a user from Google Sign-In - SEPARATE METHOD with different requirements
      */
-    public function registerGoogleUser($userData) {
+    public function registerGoogleUser($data) {
         try {
-            // Use the existing register method but with Google-specific defaults
-            return $this->register($userData);
+            error_log("=== GOOGLE REGISTRATION DEBUG ===");
+            error_log("Received user_role: " . ($data['user_role'] ?? 'NOT SET'));
+            error_log("All data keys: " . implode(', ', array_keys($data)));
+            
+            // Get user_role from data, with proper validation
+            $userRole = $data['user_role'] ?? '';
+            if (empty($userRole)) {
+                throw new Exception("User role is required for Google registration");
+            }
+            
+            // Generate salt and hash password
+            $salt = bin2hex(random_bytes(16));
+            $hashedPassword = password_hash($data['password'] . $salt, PASSWORD_DEFAULT);
+            
+            // Generate unique User_ID based on role
+            $userId = $this->generateUserId($userRole, $data);
+            
+            // Check if User_ID already exists
+            if ($this->userIdExists($userId)) {
+                throw new Exception("User ID '$userId' is already registered");
+            }
+            
+            // Check if email already exists
+            if ($this->emailExists($data['email'])) {
+                throw new Exception("Email address '{$data['email']}' is already registered");
+            }
+            
+            // Build the SQL query for Google registration
+            $fields = ['pswrd', 'Salt', 'First_Name', 'Last_Name', 'Email', 'User_ID', 'User_Role', 'Acc_Status', 'Profile_Pic'];
+            $values = [':password', ':salt', ':first_name', ':last_name', ':email', ':user_id', ':user_role', ':acc_status', ':profile_pic'];
+            $bindings = [
+                ':password' => $hashedPassword,
+                ':salt' => $salt,
+                ':first_name' => $data['first_name'] ?? '',
+                ':last_name' => $data['last_name'] ?? '',
+                ':email' => $data['email'] ?? '',
+                ':user_id' => $userId,
+                ':user_role' => $userRole, // Use the provided role
+                ':acc_status' => 'approved', // Google users are auto-approved
+                ':profile_pic' => $data['profile_pic']
+            ];
+            
+            // Optional fields for Google registration
+            $optionalFields = [
+                'course' => 'Course',
+                'department' => 'Department',
+                'designation' => 'Designation',
+            ];
+            
+            foreach ($optionalFields as $dataKey => $dbField) {
+                if (!empty($data[$dataKey])) {
+                    $fields[] = $dbField;
+                    $values[] = ":$dataKey";
+                    $bindings[":$dataKey"] = $data[$dataKey];
+                }
+            }
+            
+            // Add Student_ID or Employee_ID based on role - with fallbacks for Google
+            if (($userRole === 'student' || $userRole === 'researcher') && !empty($data['student_id'])) {
+                $fields[] = 'Student_ID';
+                $values[] = ':student_id';
+                $bindings[':student_id'] = $data['student_id'];
+            } elseif ($userRole === 'faculty' && !empty($data['employee_id'])) {
+                $fields[] = 'Employee_ID';
+                $values[] = ':employee_id';
+                $bindings[':employee_id'] = $data['employee_id'];
+            }
+            
+            // Build the final query
+            $sql = 'INSERT INTO ' . $this->tableName . ' (' . implode(', ', $fields) . ') 
+                    VALUES (' . implode(', ', $values) . ')';
+            
+            $this->db->query($sql);
+            
+            // Bind all parameters
+            foreach ($bindings as $key => $value) {
+                $this->db->bind($key, $value);
+            }
+            
+            // Execute the query
+            $result = $this->db->execute();
+            
+            // If registration successful, create default role entry
+            if ($result) {
+                $newUserId = $this->db->lastInsertId();
+                $this->createDefaultRole($newUserId, $userRole);
+            }
+            
+            error_log("Google registration result: " . ($result ? 'SUCCESS' : 'FAILED'));
+            return $result;
+            
         } catch (Exception $e) {
-            $this->error = $e->getMessage();
             error_log("Google user registration error: " . $e->getMessage());
+            $this->error = $e->getMessage();
             return false;
         }
     }
@@ -177,28 +267,58 @@ class User extends Model {
     }
     
     /**
-     * Generate unique User_ID based on role
-     */
-    private function generateUserId($role, $data) {
-        if ($role === 'student') {
-            // For students: S + Student_ID (e.g., S2025-12345)
-            $studentId = $data['student_id'] ?? '';
-            if (empty($studentId)) {
-                throw new Exception("Student ID is required for student registration");
-            }
-            return 'S' . $studentId;
-        } elseif ($role === 'faculty') {
-            // For faculty: F + Employee_ID (e.g., FEMP-12345)
-            $employeeId = $data['employee_id'] ?? '';
-            if (empty($employeeId)) {
-                throw new Exception("Employee ID is required for faculty registration");
-            }
-            return 'F' . $employeeId;
-        } else {
-            // For other roles (like admin), use as is
-            return $data['user_id'] ?? uniqid();
+ * Generate unique User_ID based on role - FIXED VERSION
+ */
+private function generateUserId($role, $data) {
+    error_log("=== GENERATE USER ID DEBUG ===");
+    error_log("Role: " . $role);
+    error_log("Data keys: " . implode(', ', array_keys($data)));
+    
+    // Convert role to lowercase for consistent comparison
+    $role = strtolower($role);
+    
+    // Handle student/researcher roles
+    if ($role === 'student' || $role === 'researcher') {
+        // For students/researchers: S + Student_ID (e.g., S2025-12345)
+        $studentId = $data['student_id'] ?? '';
+        error_log("Student ID from data: " . $studentId);
+        
+        if (empty($studentId)) {
+            // Generate a fallback student ID if not provided
+            $studentId = 'STU-' . random_int(10000, 99999);
+            error_log("Generated fallback Student ID: " . $studentId);
         }
+        return '' . $studentId;
+        
+    } elseif ($role === 'faculty') {
+        // For faculty: F + Employee_ID (e.g., FAC-12345)
+        $employeeId = $data['employee_id'] ?? '';
+        error_log("Employee ID from data: " . $employeeId);
+        
+        if (empty($employeeId)) {
+            // Generate a fallback employee ID if not provided
+            $employeeId = 'FAC-' . random_int(10000, 99999);
+            error_log("Generated fallback Employee ID: " . $employeeId);
+        }
+        return '' . $employeeId;
+        
+    } elseif ($role === 'admin' || $role === 'superadmin' || $role === 'subadmin') {
+        // For admin roles: A + Employee_ID or generated ID
+        $employeeId = $data['employee_id'] ?? '';
+        if (!empty($employeeId)) {
+            return 'A' . $employeeId;
+        } else {
+            // Generate admin-specific ID
+            return 'ADM-' . random_int(10000, 99999);
+        }
+    } else {
+        // For other unknown roles, use role-specific prefix
+        $prefix = strtoupper(substr($role, 0, 3));
+        $userId = $data['user_id'] ?? $prefix . '-' . random_int(10000, 99999);
+        error_log("Other role User ID: " . $userId);
+        return $userId;
     }
+}
     
     /**
      * User login method

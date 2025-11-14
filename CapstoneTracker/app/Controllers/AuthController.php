@@ -1085,28 +1085,33 @@ private function autoRegisterGoogleUser($email, $name, $selectedRole) {
         $lastName = $nameParts['last_name'];
         error_log("Parsed name - First: $firstName, Last: $lastName");
         
-        // ✅ USE THE SELECTED ROLE FROM GOOGLE LOGIN
-        // Determine user role based on which button was clicked
-        $userRole = $selectedRole; // Use the role from the login modal
-        error_log("User role for auto-registration: $userRole (from selected role: $selectedRole)");
+        // ✅ FIXED: Handle role mapping properly for auto-registration
+        $userRole = $selectedRole; // This will be 'student' for students
+        
+        error_log("Final user role for registration: $userRole");
         
         // Generate student/employee ID based on role
         $userIdNumber = $this->generateUserIdNumber($userRole);
         error_log("Generated user ID: $userIdNumber");
         
-        // Prepare user data
+        // Parse name into first and last name
+        $nameParts = $this->parseName($name);
+        $firstName = $nameParts['first_name'];
+        $lastName = $nameParts['last_name'];
+        
+        // Prepare user data for Google registration
         $userData = [
             'password' => $autoPassword,
             'first_name' => $firstName,
             'last_name' => $lastName,
             'email' => $email,
-            'user_role' => $userRole, // Use the selected role
+            'user_role' => $userRole, // This will be 'student' for students
             'acc_status' => 'approved',
             'profile_pic' => base64_decode('R0lGODlhAQABAIAAAAAA/P///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')
         ];
         
         // Add role-specific fields
-        if ($userRole === 'student' || $userRole === 'researcher') {
+        if ($userRole === 'student') {
             $userData['student_id'] = $userIdNumber;
             $userData['course'] = 'Not Specified';
             $userData['designation'] = 'Student';
@@ -1118,10 +1123,18 @@ private function autoRegisterGoogleUser($email, $name, $selectedRole) {
             error_log("Setting faculty-specific fields");
         }
         
-        // Register the user
-        error_log("Calling userModel->register() with role: $userRole");
-        $result = $userModel->register($userData);
-        error_log("Register result: " . ($result ? 'SUCCESS' : 'FAILED'));
+        // Debug the final user data
+        error_log("FINAL USER DATA FOR GOOGLE REGISTRATION:");
+        foreach ($userData as $key => $value) {
+            if ($key !== 'password') {
+                error_log("  $key: $value");
+            }
+        }
+        
+        // Register the user using the Google-specific method
+        error_log("Calling userModel->registerGoogleUser() with role: $userRole");
+        $result = $userModel->registerGoogleUser($userData);
+        error_log("Google register result: " . ($result ? 'SUCCESS' : 'FAILED'));
         
         if ($result) {
             // Get the newly created user ID
@@ -1130,21 +1143,13 @@ private function autoRegisterGoogleUser($email, $name, $selectedRole) {
             
             if ($newUser) {
                 $userId = $newUser['ID'] ?? $newUser->ID ?? null;
-                error_log("New user found with ID: " . $userId);
-                
-                // Get the actual role from the database to confirm
                 $actualRole = $newUser['User_Role'] ?? $newUser->User_Role ?? 'unknown';
+                
+                error_log("New user found with ID: " . $userId);
                 error_log("Actual role in database: " . $actualRole);
                 
                 // Send welcome email
                 $emailSent = $this->sendWelcomeEmail($email, $name, $autoPassword, $userRole);
-                
-                if ($emailSent) {
-                    error_log("Welcome email sent successfully to: " . $email);
-                } else {
-                    error_log("Failed to send welcome email to: " . $email);
-                    // Don't fail registration if email fails
-                }
                 
                 error_log("=== AUTO REGISTRATION DEBUG END - SUCCESS ===");
                 return [
@@ -1161,7 +1166,7 @@ private function autoRegisterGoogleUser($email, $name, $selectedRole) {
             }
         } else {
             $modelError = $userModel->getError();
-            error_log("Registration failed. Model error: " . $modelError);
+            error_log("Google registration failed. Model error: " . $modelError);
             
             return [
                 'success' => false,
@@ -1373,9 +1378,21 @@ private function getWelcomeBackBody($name, $email, $role) {
      * Generate user ID number based on role
      */
     private function generateUserIdNumber($role) {
-        $prefix = ($role === 'faculty') ? 'EMP-' : 'STU-';
-        $randomNumber = random_int(10000, 99999);
-        return $prefix . $randomNumber;
+        error_log("=== GENERATE USER ID NUMBER DEBUG ===");
+        error_log("Role received: " . $role);
+        
+        // Determine prefix based on role
+        if ($role === 'faculty' || $role === 'Faculty') {
+            $userIdNumber = 'FAC-' . random_int(10000, 99999);
+        } else {
+            // For student/researcher roles
+            $userIdNumber = 'STU-' . random_int(10000, 99999);
+        }
+        
+        error_log("Generated User ID Number: " . $userIdNumber);
+        error_log("=== GENERATE USER ID NUMBER DEBUG END ===");
+        
+        return $userIdNumber;
     }
 
 

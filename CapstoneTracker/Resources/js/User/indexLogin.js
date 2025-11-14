@@ -1061,32 +1061,19 @@ function initializeGoogleSignIn() {
     }
 
     function handleCredentialResponse(response) {
-        console.log('Google credential received');
-        
         try {
             const responsePayload = parseJwt(response.credential);
             const userEmail = responsePayload.email;
             const userName = responsePayload.name;
             
             console.log('Google authentication for:', userEmail);
+            console.log('Current user role:', currentUserRole);
     
-            // Get the role from the login modal
-            const roleField = document.getElementById('roleField');
-            const selectedRole = roleField ? roleField.value : 'student';
-    
-            console.log('Selected role for Google Sign-In:', selectedRole);
-    
-            // Send to backend for authentication with role validation
-            sendGoogleCredentialToBackend(response.credential, userEmail, userName, selectedRole);
+            // Use the global role variable instead of relying on the form field
+            sendGoogleCredentialToBackend(response.credential, userEmail, userName, currentUserRole);
             
         } catch (error) {
             console.error('Error processing Google credential:', error);
-            Swal.fire({
-                title: 'Authentication Error',
-                text: 'Failed to process Google sign-in. Please try again.',
-                icon: 'error',
-                confirmButtonText: 'OK'
-            });
         }
     }
 
@@ -1593,11 +1580,12 @@ async function handleAdminGoogleCredentialResponse(response) {
 
 
 
-
+let currentUserRole = 'student';
 
 // Initialize when document is ready
 function initializePage() {
     
+    setupRoleTracking();
     initializeGoogleSignIn();
     setupCustomGoogleButton();
     setupAdminGoogleButton();
@@ -1640,6 +1628,40 @@ function initializePage() {
                 };
             }
         }, 300);
+    }
+
+    function setupRoleTracking() {
+        const researcherBtn = document.getElementById("researcherBtn");
+        const facultyBtn = document.getElementById("facultyBtn");
+        
+        if (researcherBtn) {
+            researcherBtn.addEventListener("click", function() {
+                currentUserRole = 'student'; // or 'researcher' depending on your system
+                console.log('Role set to:', currentUserRole);
+            });
+        }
+        
+        if (facultyBtn) {
+            facultyBtn.addEventListener("click", function() {
+                currentUserRole = 'faculty';
+                console.log('Role set to:', currentUserRole);
+            });
+        }
+        
+        // Also set role when opening login modal directly
+        function openLogin(role){
+            if (modalTitle) modalTitle.innerText = role + " Login";
+            if (roleField) roleField.value = role;
+            
+            // Set the global role variable
+            currentUserRole = role.toLowerCase();
+            console.log('Role set to:', currentUserRole);
+            
+            const modalEl = document.getElementById('loginModal');
+            if (!modalEl) return;
+            const loginModal = new bootstrap.Modal(modalEl);
+            loginModal.show();
+        }
     }
 
     // ADD NULL CHECKS FOR EVENT LISTENERS
