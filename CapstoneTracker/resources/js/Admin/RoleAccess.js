@@ -118,19 +118,43 @@ function createUserItem(user) {
     const canEditValue = user.Can_Edit || 'No';
     const manageAccessValue = user.Manage_Access || 'No';
     
-    // Create user item WITHOUT the roleBox inside
+    // Concatenate department and course
+    const department = user.Department || '';
+    const course = user.Course || '';
+    let departmentCourse = '';
+    
+    if (department && course) {
+        departmentCourse = `${department} • ${course}`;
+    } else if (department) {
+        departmentCourse = department;
+    } else if (course) {
+        departmentCourse = course;
+    } else {
+        departmentCourse = 'No Department/Course';
+    }
+    
+    // Check if user is super admin - hide rolebox for super admin
+    const isSuperAdmin = user.User_Role === 'superAdmin';
+    
+    // Create user item - hide role button for super admin
     userItem.innerHTML = `
     <div class="access-info">
         <h4>${user.First_Name} ${user.Middle_Name || ''} ${user.Last_Name} ${user.Extension || ''}</h4>
-        <p>${user.Email} • ${user.Department || 'No Department'} • Status: ${user.Acc_Status}</p>
+        <p>${user.Email} • ${departmentCourse} • Status: ${user.Acc_Status}</p>
         </div>
         <div class="role-checkbox-container">
             <label class="role-checkbox">
                 <p>${userRoleDisplay}</p>
             </label>
+            ${!isSuperAdmin ? `
             <button class="role-button" title="Manage Roles">
                 <i class="fa-solid fa-circle-plus"></i>
             </button>
+            ` : `
+            <div class="role-button-disabled" title="Super Admin roles cannot be modified">
+                <i class="fa-solid fa-crown" style="color: #ffd700;"></i>
+            </div>
+            `}
         </div>
     `;
     
