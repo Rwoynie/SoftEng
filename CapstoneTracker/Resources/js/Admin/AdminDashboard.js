@@ -2559,6 +2559,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                 .then(data => {
                                     console.log('Upload response:', data);
                                     if (data.success) {
+                                        // Send email notifications
+                                        const thesisTitle = document.getElementById('thesisTitle').value;
+                                        const authorEmails = document.getElementById('thesisAuthor').value.split(',').map(email => email.trim());
+                                        const adviserEmail = document.getElementById('thesisAdviser').value.trim();
+                                        
+                                        // Send notifications (fire and forget - don't wait for response)
+                                        sendThesisUploadNotifications(data.thesis_id, thesisTitle, authorEmails, adviserEmail);
+                                        
                                         Swal.fire({
                                             title: 'Upload Successful!',
                                             text: data.message || 'Your thesis has been uploaded successfully.',
@@ -2567,7 +2575,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                         }).then(() => {
                                             resetUploadForm();
                                             closeModal(uploadModal);
-                                            // RELOAD THE PAGE HERE
                                             location.reload();
                                         });
                                     } else {
@@ -3351,6 +3358,43 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
+
+    const sendThesisUploadNotifications = async (thesisId, thesisTitle, authorEmails, adviserEmail) => {
+        try {
+            console.log('Sending notifications for thesis:', thesisId);
+            
+            const payload = {
+                thesis_id: thesisId,
+                thesis_title: thesisTitle,
+                author_emails: Array.isArray(authorEmails) ? authorEmails : [authorEmails],
+                adviser_email: adviserEmail
+            };
+    
+            console.log('Payload:', payload);
+    
+            const response = await fetch('ThesisController.php?action=sendThesisNotifications', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            });
+    
+            const result = await response.json();
+            
+            if (result.success) {
+                Swal.fire('Success!', 'Notifications sent successfully.', 'success');
+                return true;
+            } else {
+                throw new Error(result.error || 'Unknown error occurred');
+            }
+            
+        } catch (error) {
+            console.error('Notification error:', error);
+            Swal.fire('Warning', `Thesis uploaded but notifications failed: ${error.message}`, 'warning');
+            return false;
+        }
+    };
 
     function resetUploadForm() {
         // Clear uploaded files arrays

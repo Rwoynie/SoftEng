@@ -787,6 +787,10 @@ class Thesis extends Model {
         return $errors[$errorCode] ?? 'Unknown upload error';
     }
 
+    public function getLastInsertId() {
+        return $this->db->lastInsertId();
+    }
+
     /**
      * Get error message
      */

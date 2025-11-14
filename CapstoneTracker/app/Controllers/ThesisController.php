@@ -24,7 +24,7 @@ class ThesisController {
      * Handle thesis upload
      */
     public function uploadThesis() {
-       
+   
         // Start session if not already started
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
@@ -59,7 +59,7 @@ class ThesisController {
                     throw new Exception(ucfirst($field) . ' is required');
                 }
             }
-
+    
             // Check for duplicate title
             $title = trim($_POST['thesistitle']);
             if ($this->thesisModel->titleExists($title)) {
@@ -74,7 +74,7 @@ class ThesisController {
             if (empty($_FILES['thesis_file']) || $_FILES['thesis_file']['error'] === UPLOAD_ERR_NO_FILE) {
                 throw new Exception('Please select a thesis file to upload');
             }
-
+    
             $userId = $_SESSION['user_db_id'];
             $postData = [
                 'thesistitle' => trim($_POST['thesistitle']),
@@ -95,6 +95,12 @@ class ThesisController {
             $success = $this->thesisModel->uploadThesis($postData, $files, $userId);
             
             if ($success) {
+                // Get the inserted thesis ID
+                $thesisId = $this->thesisModel->getLastInsertId();
+                
+                // Send email notifications to authors and adviser
+                $this->sendThesisUploadEmails($thesisId, $postData);
+                
                 // Log the upload activity
                 $this->logUploadActivity($userId, $postData['thesistitle']);
                 
@@ -102,7 +108,8 @@ class ThesisController {
                 echo json_encode([
                     'success' => true, 
                     'message' => 'Thesis uploaded successfully!',
-                    'title' => $postData['thesistitle']
+                    'title' => $postData['thesistitle'],
+                    'thesis_id' => $thesisId
                 ]);
             } else {
                 throw new Exception($this->thesisModel->getError() ?: 'Failed to upload thesis');
@@ -688,6 +695,274 @@ public function getThesisViewInfo($thesisId) {
         }
     }
 
+    public function sendThesisNotifications() {
+        // Clear any previous output
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        
+        // Set headers immediately
+        header('Content-Type: application/json');
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        
+        try {
+            // Get raw input
+            $rawInput = file_get_contents('php://input');
+            
+            if (empty($rawInput)) {
+                throw new Exception('No input data received');
+            }
+            
+            $input = json_decode($rawInput, true);
+            
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new Exception('Invalid JSON input: ' . json_last_error_msg());
+            }
+            
+            $thesisId = $input['thesis_id'] ?? null;
+            $thesisTitle = $input['thesis_title'] ?? '';
+            $authorEmails = $input['author_emails'] ?? [];
+            $adviserEmail = $input['adviser_email'] ?? '';
+            
+            if (!$thesisId) {
+                throw new Exception('Thesis ID required');
+            }
+            
+            // Validate emails
+            $validAuthorEmails = array_filter($authorEmails, function($email) {
+                return filter_var($email, FILTER_VALIDATE_EMAIL);
+            });
+            
+            if (empty($validAuthorEmails)) {
+                throw new Exception('No valid author emails provided');
+            }
+            
+            // Include EmailSender with error handling
+            $emailSenderPath = __DIR__ . '/../Models/EmailSender.php';
+            if (!file_exists($emailSenderPath)) {
+                throw new Exception('Email sender not found');
+            }
+            
+            require_once $emailSenderPath;
+            
+            if (!class_exists('EmailSender')) {
+                throw new Exception('EmailSender class not loaded');
+            }
+            
+            $emailSender = new EmailSender();
+            
+            $success = $emailSender->sendThesisUploadNotification($validAuthorEmails, $adviserEmail, $thesisTitle, $thesisId);
+            
+            // Output JSON response
+            echo json_encode([
+                'success' => $success,
+                'message' => $success ? 'Notifications sent successfully' : 'Failed to send notifications'
+            ]);
+            exit;
+            
+        } catch (Exception $e) {
+            error_log("Error in sendThesisNotifications: " . $e->getMessage());
+            
+            // Output JSON error
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]);
+            exit;
+        }
+    }
+
+    
+
+    private function sendThesisUploadEmails($thesisId, $postData) {
+        try {
+            // Include the EmailSender class with better error handling
+            $emailSenderPath = __DIR__ . '/../Models/EmailSender.php';
+            if (!file_exists($emailSenderPath)) {
+                error_log("EmailSender not found at: " . $emailSenderPath);
+                return false;
+            }
+            
+            require_once $emailSenderPath;
+            $emailSender = new EmailSender();
+            
+            // Parse author emails (comma-separated string to array)
+            $authorEmails = array_map('trim', explode(',', $postData['thesisauthor']));
+            $adviserEmail = trim($postData['thesisadviser']);
+            $thesisTitle = trim($postData['thesistitle']);
+            
+            // Validate emails
+            $validAuthorEmails = array_filter($authorEmails, function($email) {
+                return filter_var($email, FILTER_VALIDATE_EMAIL);
+            });
+            
+            $validAdviserEmail = filter_var($adviserEmail, FILTER_VALIDATE_EMAIL) ? $adviserEmail : null;
+            
+            if (empty($validAuthorEmails)) {
+                error_log("No valid author emails found for thesis ID: " . $thesisId);
+                return false;
+            }
+            
+            // Send notifications using the public method
+            $emailSent = $emailSender->sendThesisUploadNotification($validAuthorEmails, $validAdviserEmail, $thesisTitle, $thesisId);
+            
+            if ($emailSent) {
+                error_log("Thesis upload notifications sent successfully for thesis ID: " . $thesisId);
+                return true;
+            } else {
+                error_log("Failed to send thesis upload notifications for thesis ID: " . $thesisId);
+                return false;
+            }
+            
+        } catch (Exception $e) {
+            // Log error but don't fail the upload
+            error_log("Error sending thesis notification emails: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function sendThesisUploadNotification($authorEmails, $adviserEmail, $thesisTitle, $thesisId) {
+        try {
+            error_log("Sending thesis upload notification to authors: " . implode(', ', $authorEmails) . " and adviser: " . $adviserEmail);
+            
+            require_once __DIR__ . '/../Utils/EmailSender.php';
+            $emailSender = new EmailSender();
+            
+            $subject = "Thesis Uploaded Successfully - Compendium System";
+            $successCount = 0;
+            
+            // Send to each author
+            foreach ($authorEmails as $authorEmail) {
+                $authorBody = $this->getThesisUploadAuthorBody($thesisTitle, $thesisId);
+                if ($emailSender->sendHtmlEmail($authorEmail, 'Thesis Author', $subject, $authorBody)) {
+                    $successCount++;
+                }
+            }
+            
+            // Send to adviser
+            if ($adviserEmail) {
+                $adviserBody = $this->getThesisUploadAdviserBody($thesisTitle, $thesisId, $authorEmails);
+                if ($emailSender->sendHtmlEmail($adviserEmail, 'Thesis Adviser', $subject, $adviserBody)) {
+                    $successCount++;
+                }
+            }
+            
+            return $successCount > 0; // Return true if at least one email was sent
+            
+        } catch (\Exception $e) {
+            error_log("Thesis notification email error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    private function getThesisUploadAuthorBody($thesisTitle, $thesisId) {
+        return "
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: #2c3e50; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+                .content { background: #f9f9f9; padding: 30px; border: 1px solid #ddd; }
+                .footer { background: #34495e; color: white; padding: 15px; text-align: center; font-size: 12px; border-radius: 0 0 5px 5px; }
+                .thesis-info { background: #e8f4fd; padding: 15px; border-left: 4px solid #3498db; margin: 15px 0; }
+                .btn { display: inline-block; padding: 12px 24px; background: #3498db; color: white; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <div class='header'>
+                    <h1>Compendium System</h1>
+                    <p>University of Southeastern Philippines</p>
+                </div>
+                
+                <div class='content'>
+                    <h2>Thesis Upload Successful!</h2>
+                    <p>Your thesis has been successfully uploaded to the Compendium System.</p>
+                    
+                    <div class='thesis-info'>
+                        <h3>Thesis Details:</h3>
+                        <p><strong>Title:</strong> {$thesisTitle}</p>
+                        <p><strong>Thesis ID:</strong> {$thesisId}</p>
+                        <p><strong>Upload Date:</strong> " . date('F j, Y') . "</p>
+                    </div>
+                    
+                    <p>Your thesis is now available in the system and can be accessed by authorized users.</p>
+                    
+                    <p><strong>Access the system:</strong> 
+                        <a href='http://localhost:3000' class='btn'>View Compendium</a>
+                    </p>
+                    
+                    <p>If you have any questions or need to make changes, please contact the system administrator.</p>
+                </div>
+                
+                <div class='footer'>
+                    <p>&copy; " . date('Y') . " University of Southeastern Philippines | Compendium System</p>
+                    <p>This is an automated message. Please do not reply to this email.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        ";
+    }
+    
+    private function getThesisUploadAdviserBody($thesisTitle, $thesisId, $authorEmails) {
+        $authorsList = implode(', ', $authorEmails);
+        
+        return "
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: #2c3e50; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+                .content { background: #f9f9f9; padding: 30px; border: 1px solid #ddd; }
+                .footer { background: #34495e; color: white; padding: 15px; text-align: center; font-size: 12px; border-radius: 0 0 5px 5px; }
+                .thesis-info { background: #e8f4fd; padding: 15px; border-left: 4px solid #3498db; margin: 15px 0; }
+                .btn { display: inline-block; padding: 12px 24px; background: #3498db; color: white; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <div class='header'>
+                    <h1>Compendium System</h1>
+                    <p>University of Southeastern Philippines</p>
+                </div>
+                
+                <div class='content'>
+                    <h2>New Thesis Upload - Adviser Notification</h2>
+                    <p>A new thesis where you are listed as the adviser has been uploaded to the Compendium System.</p>
+                    
+                    <div class='thesis-info'>
+                        <h3>Thesis Details:</h3>
+                        <p><strong>Title:</strong> {$thesisTitle}</p>
+                        <p><strong>Thesis ID:</strong> {$thesisId}</p>
+                        <p><strong>Authors:</strong> {$authorsList}</p>
+                        <p><strong>Upload Date:</strong> " . date('F j, Y') . "</p>
+                    </div>
+                    
+                    <p>The thesis is now available in the system for review and access by authorized users.</p>
+                    
+                    <p><strong>Access the system:</strong> 
+                        <a href='http://localhost:3000' class='btn'>View Compendium</a>
+                    </p>
+                    
+                    <p>If you have any questions about this thesis, please contact the authors or system administrator.</p>
+                </div>
+                
+                <div class='footer'>
+                    <p>&copy; " . date('Y') . " University of Southeastern Philippines | Compendium System</p>
+                    <p>This is an automated message. Please do not reply to this email.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        ";
+    }
+
     /**
      * Check if thesis title exists
      */
@@ -749,6 +1024,14 @@ public function getThesisViewInfo($thesisId) {
     public function handleRequest() {
         $action = $_GET['action'] ?? '';
         
+        // Clear output buffer at start
+        if (ob_get_length()) {
+            ob_clean();
+        }
+        
+        // Set JSON header for all responses
+        header('Content-Type: application/json');
+        
         switch ($action) {
             case 'upload':
                 $this->uploadThesis();
@@ -791,13 +1074,20 @@ public function getThesisViewInfo($thesisId) {
                 break;
             case 'viewThesis':
                 $this->viewThesis();
+                break;
+            case 'sendThesisNotifications':
+                $this->sendThesisNotifications();
                 break;       
             default:
                 http_response_code(404);
                 echo json_encode(['success' => false, 'error' => 'Action not found']);
                 break;
         }
-        ob_end_flush();
+        
+        // End output buffering
+        if (ob_get_length()) {
+            ob_end_flush();
+        }
     }
 }
 
