@@ -2137,23 +2137,24 @@ body {
 /* Role Box Container */
 .roleBox {
     display: none;
-    position: fixed !important;
-    right: 9vw;
+    position: fixed !important; /* Keep as fixed */
     background: var(--color-white);
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     padding: 10px;
-    z-index: 1000 !important;
+    z-index: 1001 !important; /* Higher z-index */
     min-width: 200px;
     border: 1px solid #eee;
     animation: fadeInUp 0.3s ease;
+    margin-right: 8vw;
+    margin-left: -3vw;
+    margin-top: -5.5vw;
 }
 
 .roleBox.active {
     display: flex;
     flex-direction: column;
     gap: 8px;   
-    
 }
 
 .roleBox button {
