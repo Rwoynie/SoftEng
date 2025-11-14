@@ -1799,16 +1799,21 @@ body {
     margin-bottom: 0;
 }
 
-/* Category-specific colors */
-.file-category:nth-child(1) h4 {
+/* Category-specific colors - default empty state */
+.file-category:nth-child(1) h4,
+.file-category:nth-child(2) h4 {
+    border-bottom-color: #c1c1c1;
+    color: #c1c1c1;
+}
+
+/* Active state when files are present */
+.file-category:nth-child(1).has-files h4,
+.file-category:nth-child(2).has-files h4 {
     border-bottom-color: var(--color-green);
     color: var(--color-green);
 }
 
-.file-category:nth-child(2) h4 {
-    border-bottom-color: #e74c3c;
-    color: #c0392b;
-}
+
 
 .file-category .empty-state {
     grid-column: 1 / -1;
