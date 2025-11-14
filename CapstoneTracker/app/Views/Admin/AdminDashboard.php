@@ -1117,6 +1117,7 @@ $displayUserData = [
                         <div class="upload-text">
                             <h3>Abstract File</h3>
                             <p>Supported files: PDF only</p>
+                            <p>(Include in File Name: _Abstract.pdf)</p>
                         </div>
                         <div class="browse-btn">Browse files</div>
                         <input type="file" class="file-input" id="abstractFileInput" name="abstract_file" accept=".pdf">
@@ -1130,6 +1131,7 @@ $displayUserData = [
                         <div class="upload-text">
                             <h3>Thesis File</h3>
                             <p>Supported files: PDF only</p>
+                            <p>(Include in File Name: _Thesis.pdf)</p>
                         </div>
                         <div class="browse-btn">Browse files</div>
                         <input type="file" class="file-input" id="thesisFileInput" name="thesis_file" accept=".pdf">
