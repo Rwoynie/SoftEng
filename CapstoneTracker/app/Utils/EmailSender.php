@@ -47,11 +47,21 @@ class EmailSender {
         
         error_log("EmailSender initialized with: " . $this->host . ":" . $this->port);
         
-        // Test SMTP connection on construction
-        $this->testSmtpConnection();
+        // Test connection but don't block if it fails
+        try {
+            $this->mailerAvailable = $this->testConnection();
+            if ($this->mailerAvailable) {
+                error_log("SMTP connection test SUCCESS for {$this->host}:{$this->port}");
+            } else {
+                error_log("SMTP connection test FAILED for {$this->host}:{$this->port}");
+            }
+        } catch (Exception $e) {
+            error_log("SMTP connection test exception: " . $e->getMessage());
+            $this->mailerAvailable = false;
+        }
     }
 
-    private function testSmtpConnection() {
+    public function testConnection() {
         try {
             $mail = new PHPMailer(true);
             $mail->isSMTP();
@@ -61,7 +71,7 @@ class EmailSender {
             $mail->Password = $this->password;
             $mail->Port = (int)$this->port;
             $mail->SMTPSecure = ($mail->Port === 465) ? PHPMailer::ENCRYPTION_SMTPS : PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->SMTPDebug = 0; // Set to 0 for production, 2 for debugging
+            $mail->SMTPDebug = 0;
             $mail->Timeout = 10;
             
             $mail->SMTPOptions = array(
@@ -72,17 +82,10 @@ class EmailSender {
                 )
             );
             
-            // Test connection
-            if (!$mail->smtpConnect()) {
-                error_log("SMTP connection test FAILED for {$this->host}:{$this->port}");
-                $this->mailerAvailable = false;
-            } else {
-                error_log("SMTP connection test SUCCESS for {$this->host}:{$this->port}");
-                $mail->smtpClose();
-            }
+            return $mail->smtpConnect();
         } catch (Exception $e) {
-            error_log("SMTP connection test exception: " . $e->getMessage());
-            $this->mailerAvailable = false;
+            error_log("SMTP connection test failed: " . $e->getMessage());
+            return false;
         }
     }
     
@@ -209,6 +212,106 @@ class EmailSender {
         $text = strip_tags($html);
         $text = preg_replace('/\s+/', ' ', $text);
         return trim($text);
+    }
+
+    /*Thesis email sender function*/ 
+
+    public function sendThesisNotification($toEmail, $toName, $thesisTitle, $department, $course, $role = 'author') {
+        try {
+            error_log("Sending thesis notification email to: " . $toEmail . " as " . $role);
+            
+            if ($role === 'author') {
+                $subject = "Thesis Upload Confirmation: " . $thesisTitle;
+                $body = $this->getAuthorNotificationBody($toName, $thesisTitle, $department, $course);
+            } else {
+                $subject = "New Thesis Assignment: " . $thesisTitle;
+                $body = $this->getAdviserNotificationBody($toName, $thesisTitle, $department, $course);
+            }
+            
+            return $this->sendEmailPHPMailer($toEmail, $toName, $subject, $body);
+            
+        } catch (\Exception $e) {
+            error_log("Thesis notification email sending error: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    private function getAuthorNotificationBody($name, $title, $department, $course) {
+        return "
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: #007bff; color: white; padding: 20px; text-align: center; }
+                .content { padding: 20px; background: #f9f9f9; }
+                .thesis-info { background: white; padding: 15px; border-radius: 5px; margin: 15px 0; }
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <div class='header'>
+                    <h1>Thesis Upload Confirmation</h1>
+                </div>
+                <div class='content'>
+                    <p>Dear " . ($name ?: 'Author') . ",</p>
+                    <p>Your thesis has been successfully uploaded to the Capstone Tracker System.</p>
+                    
+                    <div class='thesis-info'>
+                        <h3>Thesis Details</h3>
+                        <p><strong>Title:</strong> {$title}</p>
+                        <p><strong>Department:</strong> {$department}</p>
+                        <p><strong>Course:</strong> {$course}</p>
+                        <p><strong>Date Uploaded:</strong> " . date('F j, Y') . "</p>
+                    </div>
+                    
+                    <p>You can access your thesis through the system dashboard at any time.</p>
+                    <p>Best regards,<br>Capstone Tracker System</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        ";
+    }
+    
+    private function getAdviserNotificationBody($name, $title, $department, $course) {
+        return "
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: #28a745; color: white; padding: 20px; text-align: center; }
+                .content { padding: 20px; background: #f9f9f9; }
+                .thesis-info { background: white; padding: 15px; border-radius: 5px; margin: 15px 0; }
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <div class='header'>
+                    <h1>New Thesis Assignment</h1>
+                </div>
+                <div class='content'>
+                    <p>Dear " . ($name ?: 'Adviser') . ",</p>
+                    <p>A new thesis has been assigned to you for review and guidance.</p>
+                    
+                    <div class='thesis-info'>
+                        <h3>Thesis Details</h3>
+                        <p><strong>Title:</strong> {$title}</p>
+                        <p><strong>Department:</strong> {$department}</p>
+                        <p><strong>Course:</strong> {$course}</p>
+                        <p><strong>Date Submitted:</strong> " . date('F j, Y') . "</p>
+                    </div>
+                    
+                    <p>Please log in to the system to review this thesis.</p>
+                    <p>Best regards,<br>Capstone Tracker System</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        ";
     }
 }
 ?>
