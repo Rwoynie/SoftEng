@@ -230,9 +230,18 @@ class Thesis extends Model {
                 'uploaded_at' => date('Y-m-d H:i:s')
             ]);
             
-            if (!$success) {
-                error_log("Failed to save thesis to database: " . $this->error);
-                return false;
+            if ($success) {
+                // Send notification emails
+                $emailSent = $this->sendThesisNotificationEmails($postData, $authorNames, $adviserNames);
+                
+                if ($emailSent) {
+                    error_log("Thesis notification emails sent successfully");
+                } else {
+                    error_log("Failed to send thesis notification emails, but thesis was uploaded successfully");
+                }
+                
+                error_log("Thesis uploaded successfully: " . $postData['thesistitle']);
+                return true;
             }
             
             error_log("Thesis uploaded successfully: " . $postData['thesistitle']);
@@ -785,6 +794,221 @@ class Thesis extends Model {
         ];
         
         return $errors[$errorCode] ?? 'Unknown upload error';
+    }
+
+    private function sendThesisNotificationEmails($postData, $authorNames, $adviserNames) {
+        try {
+            // Load email sender
+            require_once __DIR__ . '/../Utils/EmailSender.php';
+            
+            $emailSender = new EmailSender();
+            
+            if (!$emailSender->mailerAvailable) {
+                error_log("Email service not available, skipping email notifications");
+                return false;
+            }
+            
+            $thesisTitle = $postData['thesistitle'];
+            $department = $postData['department'];
+            $course = $postData['course'];
+            
+            // Send emails to authors
+            $authorEmails = array_map('trim', explode(',', $postData['thesisauthor']));
+            foreach ($authorEmails as $email) {
+                if (!empty($email)) {
+                    $this->sendAuthorNotification($emailSender, $email, $thesisTitle, $department, $course);
+                }
+            }
+            
+            // Send emails to advisers
+            $adviserEmails = array_map('trim', explode(',', $postData['thesisadviser']));
+            foreach ($adviserEmails as $email) {
+                if (!empty($email)) {
+                    $this->sendAdviserNotification($emailSender, $email, $thesisTitle, $department, $course, $authorNames);
+                }
+            }
+            
+            return true;
+            
+        } catch (Exception $e) {
+            error_log("Error sending thesis notification emails: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    private function sendAuthorNotification($emailSender, $email, $title, $department, $course) {
+        $subject = "Your Thesis Has Been Uploaded Successfully";
+        
+        $body = "
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: #007bff; color: white; padding: 20px; text-align: center; }
+                .content { padding: 20px; background: #f9f9f9; }
+                .footer { padding: 20px; text-align: center; font-size: 12px; color: #666; }
+                .thesis-info { background: white; padding: 15px; border-radius: 5px; margin: 15px 0; }
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <div class='header'>
+                    <h1>Thesis Upload Confirmation</h1>
+                </div>
+                <div class='content'>
+                    <p>Dear Author,</p>
+                    <p>Your thesis has been successfully uploaded to the system with the following details:</p>
+                    
+                    <div class='thesis-info'>
+                        <h3>Thesis Information</h3>
+                        <p><strong>Title:</strong> {$title}</p>
+                        <p><strong>Department:</strong> {$department}</p>
+                        <p><strong>Course/Program:</strong> {$course}</p>
+                        <p><strong>Upload Date:</strong> " . date('F j, Y') . "</p>
+                    </div>
+                    
+                    <p>You can now access your thesis through the system dashboard.</p>
+                    <p>If you have any questions or need to make changes, please contact the system administrator.</p>
+                </div>
+                <div class='footer'>
+                    <p>This is an automated notification. Please do not reply to this email.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        ";
+        
+        return $emailSender->sendHtmlEmail($email, "Thesis Author", $subject, $body);
+    }
+    
+    private function sendAdviserNotification($emailSender, $email, $title, $department, $course, $authorNames) {
+        $subject = "New Thesis Assigned to You";
+        
+        $authorList = is_array($authorNames) ? implode(', ', $authorNames) : $authorNames;
+        
+        $body = "
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: #28a745; color: white; padding: 20px; text-align: center; }
+                .content { padding: 20px; background: #f9f9f9; }
+                .footer { padding: 20px; text-align: center; font-size: 12px; color: #666; }
+                .thesis-info { background: white; padding: 15px; border-radius: 5px; margin: 15px 0; }
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <div class='header'>
+                    <h1>New Thesis Assignment</h1>
+                </div>
+                <div class='content'>
+                    <p>Dear Adviser,</p>
+                    <p>A new thesis has been assigned to you with the following details:</p>
+                    
+                    <div class='thesis-info'>
+                        <h3>Thesis Information</h3>
+                        <p><strong>Title:</strong> {$title}</p>
+                        <p><strong>Authors:</strong> {$authorList}</p>
+                        <p><strong>Department:</strong> {$department}</p>
+                        <p><strong>Course/Program:</strong> {$course}</p>
+                        <p><strong>Submission Date:</strong> " . date('F j, Y') . "</p>
+                    </div>
+                    
+                    <p>You can review this thesis through the system dashboard.</p>
+                    <p>Thank you for your guidance and support.</p>
+                </div>
+                <div class='footer'>
+                    <p>This is an automated notification. Please do not reply to this email.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        ";
+        
+        return $emailSender->sendHtmlEmail($email, "Thesis Adviser", $subject, $body);
+    }
+
+    private function sendThesisUpdateNotification($postData, $authorNames, $adviserNames) {
+        try {
+            require_once __DIR__ . '/../Utils/EmailSender.php';
+            
+            $emailSender = new EmailSender();
+            
+            if (!$emailSender->mailerAvailable) {
+                error_log("Email service not available, skipping update notifications");
+                return false;
+            }
+            
+            $thesisTitle = $postData['thesistitle'];
+            $department = $postData['department'];
+            $course = $postData['course'];
+            
+            // Send update notifications
+            $authorEmails = array_map('trim', explode(',', $postData['thesisauthor']));
+            foreach ($authorEmails as $email) {
+                if (!empty($email)) {
+                    $this->sendUpdateNotification($emailSender, $email, $thesisTitle, $department, $course, 'author');
+                }
+            }
+            
+            $adviserEmails = array_map('trim', explode(',', $postData['thesisadviser']));
+            foreach ($adviserEmails as $email) {
+                if (!empty($email)) {
+                    $this->sendUpdateNotification($emailSender, $email, $thesisTitle, $department, $course, 'adviser');
+                }
+            }
+            
+            return true;
+            
+        } catch (Exception $e) {
+            error_log("Error sending thesis update emails: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    private function sendUpdateNotification($emailSender, $email, $title, $department, $course, $role) {
+        $subject = "Thesis Updated: " . $title;
+        
+        $body = "
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: #ffc107; color: #333; padding: 20px; text-align: center; }
+                .content { padding: 20px; background: #f9f9f9; }
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <div class='header'>
+                    <h1>Thesis Update Notification</h1>
+                </div>
+                <div class='content'>
+                    <p>Dear " . ucfirst($role) . ",</p>
+                    <p>The thesis you are associated with has been updated:</p>
+                    
+                    <div style='background: white; padding: 15px; border-radius: 5px; margin: 15px 0;'>
+                        <p><strong>Title:</strong> {$title}</p>
+                        <p><strong>Department:</strong> {$department}</p>
+                        <p><strong>Course:</strong> {$course}</p>
+                        <p><strong>Last Updated:</strong> " . date('F j, Y g:i A') . "</p>
+                    </div>
+                    
+                    <p>Please check the system for the latest changes.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        ";
+        
+        return $emailSender->sendHtmlEmail($email, "Thesis " . ucfirst($role), $subject, $body);
     }
 
     /**
