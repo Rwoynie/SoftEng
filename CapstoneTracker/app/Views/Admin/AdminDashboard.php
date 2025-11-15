@@ -312,6 +312,9 @@ $displayUserData = [
             <div id="user-info-display" style="display: none;">
                 <span id="user-full-name"><?php echo htmlspecialchars($displayUserData['user_name']); ?></span>
                 <span id="user-role"><?php echo htmlspecialchars($displayUserData['user_role']); ?></span>
+<!--    <form action="backup.php" method="post">
+                    <button type="submit">Download Database Backup</button>
+                </form> --> 
             </div>
 
         </section>
