@@ -5,7 +5,6 @@ require_once '../../Controllers/PublicHomeController.php';
 require_once '../../Models/Thesis.php';  
 require_once '../../Models/PublicHomeModel.php';  
 
-
 $model = new PublicHomeModel();
 $announcements = $model->getActiveAnnouncements();
 $programs = $model->getPrograms();
@@ -26,8 +25,6 @@ $stats = $model->getThesisStats();
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Quicksand">
-
-
 </head>
 <body>
   
@@ -79,7 +76,7 @@ $stats = $model->getThesisStats();
         </div>
       </section>
 
-      <!-- Announcements Carousel - Always show the section -->
+      <!-- Announcements Carousel -->
       <section class="announcements-section">
         <div class="section-header">
           <h2>Announcements</h2>
@@ -89,11 +86,38 @@ $stats = $model->getThesisStats();
           <button class="carousel-control prev">
             <i class="fas fa-chevron-left"></i>
           </button>
+
           <div class="carousel-container">
             <div class="announcement-cards">
               <?php if (!empty($announcements)): ?>
-                <?php foreach ($announcements as $announcement): ?>
-                  <div class="announcement-card">
+                <?php 
+                // Sort announcements: pinned first, then by date (newest first)
+                usort($announcements, function($a, $b) {
+                  $aPinned = isset($a['is_pinned']) ? $a['is_pinned'] : 0;
+                  $bPinned = isset($b['is_pinned']) ? $b['is_pinned'] : 0;
+                  
+                  // Pinned announcements first
+                  if ($aPinned && !$bPinned) return -1;
+                  if (!$aPinned && $bPinned) return 1;
+                  
+                  // Then sort by date (newest first)
+                  $aDate = strtotime($a['date']);
+                  $bDate = strtotime($b['date']);
+                  return $bDate - $aDate;
+                });
+                ?>
+                <?php foreach ($announcements as $index => $announcement): ?>
+                  <?php 
+                  $isPinned = isset($announcement['is_pinned']) ? $announcement['is_pinned'] : 0;
+                  $announcementId = isset($announcement['id']) ? $announcement['id'] : $index;
+                  ?>
+                  <div class="announcement-card <?php echo $isPinned ? 'pinned' : ''; ?>" 
+                      data-announcement-id="<?php echo $announcementId; ?>">
+                    <?php if ($isPinned): ?>
+                      <div class="pin-indicator" title="Pinned Announcement">
+                        <i class="fas fa-thumbtack"></i>
+                      </div>
+                    <?php endif; ?>
                     <div class="card-badge <?php echo $announcement['type']; ?>">
                       <?php 
                         $badgeTexts = [
@@ -107,7 +131,9 @@ $stats = $model->getThesisStats();
                       ?>
                     </div>
                     <div class="card-image">
-                      <img src="<?php echo $announcement['image']; ?>" alt="<?php echo htmlspecialchars($announcement['title']); ?>" class="Anncmnt_pic">
+                      <img src="<?php echo htmlspecialchars($announcement['image']); ?>" 
+                        alt="<?php echo htmlspecialchars($announcement['title']); ?>" 
+                        class="Anncmnt_pic">
                     </div>
                     <div class="card-content">
                       <div class="card-header">
@@ -119,8 +145,10 @@ $stats = $model->getThesisStats();
                           ?>
                         </div>
                       </div>
-                      <p><?php echo htmlspecialchars($announcement['description']); ?></p>
-                      <a href="#" class="read-more">Read More <i class="fas fa-arrow-right"></i></a>
+                      <p class="announcement-preview"><?php echo htmlspecialchars($announcement['description']); ?></p>
+                      <a href="#" class="read-more" data-announcement-id="<?php echo $announcementId; ?>">
+                        Read More <i class="fas fa-arrow-right"></i>
+                      </a>
                     </div>
                   </div>
                 <?php endforeach; ?>
@@ -136,24 +164,85 @@ $stats = $model->getThesisStats();
               <?php endif; ?>
             </div>
           </div>
+          
           <button class="carousel-control next">
             <i class="fas fa-chevron-right"></i>
           </button>
+          
           <div class="carousel-indicators">
             <?php if (!empty($announcements)): ?>
               <?php for ($i = 0; $i < count($announcements); $i++): ?>
-                <div class="indicator <?php echo $i === 0 ? 'active' : ''; ?>"></div>
+                <div class="indicator <?php echo $i === 0 ? 'active' : ''; ?>" data-index="<?php echo $i; ?>"></div>
               <?php endfor; ?>
             <?php endif; ?>
           </div>
         </div>
       </section>
 
-      <!-- Programs Carousel - Rendered in PHP -->
+     
+        <div id="announcementModal" class="premium-modal">
+            <div class="premium-modal-backdrop"></div>
+            <div class="premium-modal-container">
+                <div class="premium-modal-content">
+
+                    <div class="premium-modal-header">
+                        <div class="premium-modal-badge-container">
+                            <span id="modalBadge" class="premium-modal-badge"></span>
+                            <?php if ($isPinned): ?>
+                            <div class="premium-pin-indicator" title="Pinned Announcement">
+                                <i class="fas fa-thumbtack"></i>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                        <button type="button" class="premium-close-btn" onclick="closeAnnModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <div class="premium-modal-body">
+                        <div class="premium-modal-image-container">
+                            <img id="modalImage" src="" alt="Announcement image" class="premium-modal-image">
+                            <div class="premium-modal-image-overlay"></div>
+                        </div>
+                        
+                        <div class="premium-modal-text-content">
+                            <div class="premium-modal-meta">
+                                <h2 id="modalTitle" class="premium-modal-title"></h2>
+                                <div class="premium-modal-date-container">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    <span id="modalDate" class="premium-modal-date"></span>
+                                </div>
+                            </div>
+                            
+                            <div class="premium-modal-text">
+                                <p id="modalContent"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    
+                    <div class="premium-modal-footer">
+                        <div class="premium-modal-actions">
+                            <button type="button" class="premium-btn secondary" onclick="closeAnnModal()">
+                                <i class="fas fa-times"></i>
+                                Close
+                            </button>
+                            <button type="button" class="premium-btn primary" onclick="shareAnnouncement()">
+                                <i class="fas fa-share-alt"></i>
+                                Share
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+      <!-- Programs Carousel -->
       <section class="program-logos-section">
         <div class="section-header">
           <h2>Programs</h2>
         </div>
+        
         <div class="logo-carousel">
           <button class="carousel-control prev">
             <i class="fas fa-chevron-left"></i>
@@ -186,7 +275,7 @@ $stats = $model->getThesisStats();
           <div class="carousel-indicators">
             <?php if (!empty($programs)): ?>
               <?php for ($i = 0; $i < count($programs); $i++): ?>
-                <div class="indicator <?php echo $i === 0 ? 'active' : ''; ?>"></div>
+                <div class="indicator <?php echo $i === 0 ? 'active' : ''; ?>" data-index="<?php echo $i; ?>"></div>
               <?php endfor; ?>
             <?php endif; ?>
           </div>

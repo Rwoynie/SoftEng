@@ -94,6 +94,11 @@ function createUserItem(user) {
     userItem.className = 'access-item admin-user-item';
     userItem.setAttribute('data-user-id', user.User_ID);
     
+    // Store permission data in data attributes
+    userItem.setAttribute('data-sub-admin', user.Sub_Admin || 'No');
+    userItem.setAttribute('data-can-edit', user.Can_Edit || 'No');
+    userItem.setAttribute('data-manage-access', user.Manage_Access || 'No');
+    
     // Get role display text from User_Role (USER_INFORMATION table)
     let userRoleDisplay = '';
     if (user.User_Role === 'faculty') {
@@ -113,44 +118,43 @@ function createUserItem(user) {
     const canEditValue = user.Can_Edit || 'No';
     const manageAccessValue = user.Manage_Access || 'No';
     
-    // Set colors based on actual ROLES table values
-    const subAdminColor = subAdminValue === 'Yes' ? 'red' : 'gray';
-    const canEditColor = canEditValue === 'Yes' ? 'red' : 'gray';
-    const manageAccessColor = manageAccessValue === 'Yes' ? 'red' : 'gray';
+    // Concatenate department and course
+    const department = user.Department || '';
+    const course = user.Course || '';
+    let departmentCourse = '';
     
+    if (department && course) {
+        departmentCourse = `${department} • ${course}`;
+    } else if (department) {
+        departmentCourse = department;
+    } else if (course) {
+        departmentCourse = course;
+    } else {
+        departmentCourse = 'No Department/Course';
+    }
+    
+    // Check if user is super admin - hide rolebox for super admin
+    const isSuperAdmin = user.User_Role === 'superAdmin';
+    
+    // Create user item - hide role button for super admin
     userItem.innerHTML = `
     <div class="access-info">
         <h4>${user.First_Name} ${user.Middle_Name || ''} ${user.Last_Name} ${user.Extension || ''}</h4>
-        <p>${user.Email} • ${user.Department || 'No Department'} • Status: ${user.Acc_Status}</p>
+        <p>${user.Email} • ${departmentCourse} • Status: ${user.Acc_Status}</p>
         </div>
         <div class="role-checkbox-container">
             <label class="role-checkbox">
                 <p>${userRoleDisplay}</p>
             </label>
+            ${!isSuperAdmin ? `
             <button class="role-button" title="Manage Roles">
                 <i class="fa-solid fa-circle-plus"></i>
             </button>
-            <div class="roleBox">
-                <button class="role-action-btn" 
-                        data-permission="sub_admin" 
-                        data-current-value="${subAdminValue}">
-                    <i class="fa-solid fa-user-shield" style="color: ${subAdminColor};"></i> Sub-Admin
-                </button>
-                <button class="role-action-btn ${subAdminValue === 'No' ? 'disabled-role' : ''}" 
-                        data-permission="can_edit" 
-                        data-current-value="${canEditValue}"
-                        ${subAdminValue === 'No' ? 'disabled' : ''}>
-                    <i class="fa-solid fa-file-pen" style="color: ${canEditColor};"></i> Modify Thesis
-                    ${subAdminValue === 'No' ? '<span class="role-hint">(Sub-Admin only)</span>' : ''}
-                </button>
-                <button class="role-action-btn ${subAdminValue === 'No' ? 'disabled-role' : ''}" 
-                        data-permission="manage_access" 
-                        data-current-value="${manageAccessValue}"
-                        ${subAdminValue === 'No' ? 'disabled' : ''}>
-                    <i class="fa-solid fa-key" style="color: ${manageAccessColor};"></i> Manage Access
-                    ${subAdminValue === 'No' ? '<span class="role-hint">(Sub-Admin only)</span>' : ''}
-                </button>
+            ` : `
+            <div class="role-button-disabled" title="Super Admin roles cannot be modified">
+                <i class="fa-solid fa-crown" style="color: #ffd700;"></i>
             </div>
+            `}
         </div>
     `;
     
@@ -163,6 +167,14 @@ function initializeRoleBox() {
     const overlay = document.createElement('div');
     overlay.className = 'roleBox-overlay';
     document.body.appendChild(overlay);
+    
+    // Create global roleBox container
+    const globalRoleBoxContainer = document.getElementById('globalRoleBoxContainer');
+    if (!globalRoleBoxContainer) {
+        const container = document.createElement('div');
+        container.id = 'globalRoleBoxContainer';
+        document.body.appendChild(container);
+    }
     
     // Close all roleBoxes when clicking overlay
     overlay.addEventListener('click', function() {
@@ -177,51 +189,136 @@ function initializeRoleBox() {
             e.stopPropagation();
             
             const accessItem = roleButton.closest('.access-item');
-            const roleBox = accessItem.querySelector('.roleBox');
+            const userId = accessItem.getAttribute('data-user-id');
             
             // Close all other roleBoxes
             closeAllRoleBoxes();
             
-            // Toggle current roleBox
-            if (roleBox) {
-                roleBox.classList.toggle('active');
-                overlay.classList.toggle('active');
-            }
+            // Create and show roleBox for this user
+            showRoleBoxForUser(roleButton, userId, accessItem);
         }
         
         // Handle roleBox button clicks
         const roleActionBtn = e.target.closest('.role-action-btn');
-        if (roleActionBtn) {
+        if (roleActionBtn && !roleActionBtn.disabled) {
             e.preventDefault();
             e.stopPropagation();
             
             const roleBox = roleActionBtn.closest('.roleBox');
-            const accessItem = roleBox.closest('.access-item');
-            const userId = accessItem.getAttribute('data-user-id');
-            const userName = accessItem.querySelector('h4').textContent;
-            const permissionType = roleActionBtn.getAttribute('data-permission');
-            const currentValue = roleActionBtn.getAttribute('data-current-value');
-            
-            // Call the function to handle the role action
-            handleRoleAction(userId, userName, permissionType, currentValue);
-            
-            // Close the roleBox after action
-            closeAllRoleBoxes();
-        }
-    });
-    
-    // Close roleBox when pressing Escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeAllRoleBoxes();
+            if (roleBox) {
+                const userId = roleBox.getAttribute('data-user-id');
+                const userName = roleBox.getAttribute('data-user-name');
+                const permissionType = roleActionBtn.getAttribute('data-permission');
+                const currentValue = roleActionBtn.getAttribute('data-current-value');
+                
+                // Get current permission values from rolebox data attributes
+                const currentSubAdmin = roleBox.getAttribute('data-sub-admin');
+                const currentCanEdit = roleBox.getAttribute('data-can-edit');
+                const currentManageAccess = roleBox.getAttribute('data-manage-access');
+                
+                // Call the function to handle the role action with all current values
+                handleRoleAction(userId, userName, permissionType, currentValue, currentSubAdmin, currentCanEdit, currentManageAccess);
+                
+                // Close the roleBox after action
+                closeAllRoleBoxes();
+            }
         }
     });
 }
+
+function showRoleBoxForUser(roleButton, userId, accessItem) {
+    // Get user data from the access item
+    const userName = accessItem.querySelector('h4').textContent;
+    
+    // Get permission values from data attributes
+    const subAdminValue = accessItem.getAttribute('data-sub-admin') || 'No';
+    const canEditValue = accessItem.getAttribute('data-can-edit') || 'No';
+    const manageAccessValue = accessItem.getAttribute('data-manage-access') || 'No';
+    
+    const subAdminColor = subAdminValue === 'Yes' ? 'red' : 'gray';
+    const canEditColor = canEditValue === 'Yes' ? 'red' : 'gray';
+    const manageAccessColor = manageAccessValue === 'Yes' ? 'red' : 'gray';
+    
+    // Create roleBox HTML with ALL necessary data attributes
+    const roleBoxHTML = `
+        <div class="roleBox active" 
+             data-user-id="${userId}" 
+             data-user-name="${userName}"
+             data-sub-admin="${subAdminValue}"
+             data-can-edit="${canEditValue}"
+             data-manage-access="${manageAccessValue}">
+            <button class="role-action-btn" 
+                    data-permission="sub_admin" 
+                    data-current-value="${subAdminValue}">
+                <i class="fa-solid fa-user-shield" style="color: ${subAdminColor};"></i> Sub-Admin
+            </button>
+            <button class="role-action-btn ${subAdminValue === 'No' ? 'disabled-role' : ''}" 
+                    data-permission="can_edit" 
+                    data-current-value="${canEditValue}"
+                    ${subAdminValue === 'No' ? 'disabled' : ''}>
+                <i class="fa-solid fa-file-pen" style="color: ${canEditColor};"></i> Modify Thesis
+                ${subAdminValue === 'No' ? '<span class="role-hint">(Sub-Admin only)</span>' : ''}
+            </button>
+            <button class="role-action-btn ${subAdminValue === 'No' ? 'disabled-role' : ''}" 
+                    data-permission="manage_access" 
+                    data-current-value="${manageAccessValue}"
+                    ${subAdminValue === 'No' ? 'disabled' : ''}>
+                <i class="fa-solid fa-key" style="color: ${manageAccessColor};"></i> Manage Access
+                ${subAdminValue === 'No' ? '<span class="role-hint">(Sub-Admin only)</span>' : ''}
+            </button>
+        </div>
+    `;
+    
+    // Add to global container
+    const globalContainer = document.getElementById('globalRoleBoxContainer');
+    globalContainer.innerHTML = roleBoxHTML;
+    globalContainer.style.display = 'block';
+    
+    // Position the roleBox relative to the button
+    const roleBox = globalContainer.querySelector('.roleBox');
+    positionRoleBox(roleBox, roleButton);
+    
+    // Show overlay
+    document.querySelector('.roleBox-overlay').classList.add('active');
+}
+
+function positionRoleBox(roleBox, roleButton) {
+    const buttonRect = roleButton.getBoundingClientRect();
+    const roleBoxRect = roleBox.getBoundingClientRect();
+    
+    // Position below the button
+    let top = buttonRect.bottom + 5;
+    let left = buttonRect.right - roleBoxRect.width;
+    
+    // Adjust if roleBox would go off screen
+    if (left + roleBoxRect.width > window.innerWidth) {
+        left = window.innerWidth - roleBoxRect.width - 10;
+    }
+    
+    if (top + roleBoxRect.height > window.innerHeight) {
+        top = buttonRect.top - roleBoxRect.height - 5;
+    }
+    
+    roleBox.style.top = top + 'px';
+    roleBox.style.left = left + 'px';
+}
+
 
 
 async function handleRoleAction(userId, userName, permissionType, currentValue) {
     try {
         console.log(`Starting role action for user ${userId}, permission ${permissionType}, current value ${currentValue}`);
+
+        // Get the rolebox to access all current permission values
+        const roleBox = document.querySelector('#globalRoleBoxContainer .roleBox.active');
+        if (!roleBox) {
+            throw new Error('Role box not found');
+        }
+
+        // Get current permission values from the rolebox data attributes
+        const currentSubAdmin = roleBox.getAttribute('data-sub-admin') || 'No';
+        const currentCanEdit = roleBox.getAttribute('data-can-edit') || 'No';
+        const currentManageAccess = roleBox.getAttribute('data-manage-access') || 'No';
 
         // First, check if the user's account status is pending
         let userStatus;
@@ -278,11 +375,7 @@ async function handleRoleAction(userId, userName, permissionType, currentValue) 
         
         // Special message for trying to grant permissions without Sub-Admin
         if ((permissionType === 'can_edit' || permissionType === 'manage_access') && newValue === 'Yes') {
-            // Get current Sub-Admin status
-            const userItem = document.querySelector(`.admin-user-item[data-user-id="${userId}"]`);
-            const currentSubAdminValue = userItem.querySelector('[data-permission="sub_admin"]').getAttribute('data-current-value');
-            
-            if (currentSubAdminValue === 'No') {
+            if (currentSubAdmin === 'No') {
                 await Swal.fire({
                     title: 'Sub-Admin Required',
                     html: `Cannot grant <strong>${permissionType === 'can_edit' ? 'Modify Thesis' : 'Manage Access'}</strong> permission to <strong>${userName}</strong>.<br><br>
@@ -308,7 +401,7 @@ async function handleRoleAction(userId, userName, permissionType, currentValue) 
         
         if (result.isConfirmed) {
             // Update the specific permission in the database
-            await updateUserPermission(userId, permissionType, newValue);
+            await updateUserPermission(userId, permissionType, newValue, currentSubAdmin, currentCanEdit, currentManageAccess);
             
             let successMessage = `Successfully ${action === 'grant' ? 'granted' : 'revoked'} ${displayName} permission for ${userName}.`;
             
@@ -340,7 +433,7 @@ async function handleRoleAction(userId, userName, permissionType, currentValue) 
 }
 
 
-async function updateUserPermission(userId, permissionType, newValue) {
+async function updateUserPermission(userId, permissionType, newValue, currentSubAdmin, currentCanEdit, currentManageAccess) {
     let swalInstance = null;
     
     try {
@@ -364,13 +457,7 @@ async function updateUserPermission(userId, permissionType, newValue) {
             }
         });
 
-        // Get current permission values to preserve unchanged ones
-        const userItem = document.querySelector(`.admin-user-item[data-user-id="${userId}"]`);
-        const currentSubAdmin = userItem.querySelector('[data-permission="sub_admin"]').getAttribute('data-current-value');
-        const currentCanEdit = userItem.querySelector('[data-permission="can_edit"]').getAttribute('data-current-value');
-        const currentManageAccess = userItem.querySelector('[data-permission="manage_access"]').getAttribute('data-current-value');
-
-        // Prepare the data for the request
+        // Prepare the data for the request using the passed current values
         const formData = new FormData();
         formData.append('action', 'update_user_role');
         formData.append('user_id', userId);
@@ -516,10 +603,12 @@ function updateUserCounts(users) {
 
 
 function closeAllRoleBoxes() {
-    document.querySelectorAll('.roleBox').forEach(box => {
-        box.classList.remove('active');
-    });
-    document.querySelector('.roleBox-overlay').classList.remove('active');
+    const globalContainer = document.getElementById('globalRoleBoxContainer');
+    if (globalContainer) {
+        globalContainer.innerHTML = '';
+        globalContainer.style.display = 'none';
+    }
+    document.querySelector('.roleBox-overlay')?.classList.remove('active');
 }
 
 

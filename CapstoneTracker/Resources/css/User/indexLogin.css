@@ -210,22 +210,60 @@ body {
     outline: none;
 }
 
-
-.Forg_Pass {
-    color: #000000;
-    font-family: "Quicksand", serif;
-    font-size: 0.9rem;
-    font-weight: 400;
-    cursor: pointer;
-    margin: 0.5rem 0;
-    text-align: right;
-    transition: color 0.2s ease;
+/* Forgot Password Modal Styles */
+.mt-5 {
+    margin-top: 0.5rem !important;
+    margin-bottom: 1rem;
+    margin-left: 17.5rem;
 }
 
-.Forg_Pass:hover {
-    color: #0a5c97;
-    text-decoration: underline;
+.mt-4 {
+    margin-top: 0.8rem !important;
 }
+
+.accountCreate {
+    margin-top: 2vw;
+    margin-bottom: 0vw;
+}
+
+#forgotPasswordLink {
+    
+    font-family: Quicksand;
+    color: #272727;
+    transition: all 0.15s ease;
+}
+
+#forgotPasswordLink:hover {
+    
+    text-decoration: underline !important;
+    
+
+}
+
+#forgotPasswordStep2 .fa-check-circle {
+    color: #28a745;
+}
+
+.admin-google-section {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.admin-google-note {
+    font-size: 0.8rem;
+}
+
+/* Reset button styling */
+.reset-btn {
+    transition: all 0.3s ease;
+}
+
+.reset-btn:hover {
+    background: #c82333 !important;
+    transform: translateY(-2px);
+}
+
 
 h2 {
     color: black;
@@ -874,8 +912,12 @@ h2 {
     font-size: 0.95rem;
 }
 
+hr {
+    margin: 0.4rem 0;
+}
+
 #loginModal .btn-success {
-    border-radius: 10px;
+    border-radius: 6px;
     font-weight: 600;
 }
 

@@ -11,11 +11,9 @@ if (!isset($_SESSION['csrf_token'])) {
 }
 
 
-
-
-
-
-
+if (empty($_SESSION['csrf_token'])) {
+  $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 
 // Include the configuration file
 require_once '..\..\..\Database\config.php';
@@ -94,7 +92,7 @@ if ($setupError) {
     <script type="text/javascript" src="../../../resources/js/User/indexLogin.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://apis.google.com/js/platform.js?onload=onGoogleLoad" async defer></script>
+  
     
 
     <script>
@@ -162,18 +160,28 @@ if ($setupError) {
                 <i class="far fa-eye"></i>
               </button>
             </div>
+
+            <div class="text-center mt-5">
+            <a href="#" id="forgotPasswordLink" class="text-decoration-none">Forgot password?</a>
+          </div>
           </div>
           <button type="submit" class="btn btn-success w-100 mb-2">Login</button>
+          
 
+          <hr>
           <div class="d-flex justify-content-center mb-2">
             <div id="googleButton"></div>
           </div>
-          <button type="button" id="googleModalBtn" class="btn w-100 mb-3" style="background:#db4437; color:white;">
-            <i class="fab fa-google me-2"></i> Sign in with USeP Email
-          </button>
+          
+          <div class="d-flex justify-content-center mb-2">
+              <button id="googleModalBtn" type="button" class="btn btn-outline-danger w-100">
+                  <i class="fab fa-google me-2"></i> Sign in with USeP Email
+              </button>
+          </div>
+          
           
           <div class="text-center">
-            <a href="#" id="openRegisterLink" class="btn btn-link">Not yet registered?</a>
+            <p class="accountCreate">Not yet registered?<a href="#" id="openRegisterLink" class="btn btn-link">Create an account</a></p>
           </div>
         </form>
       </div>
@@ -389,6 +397,8 @@ if ($setupError) {
                 <i class="fas fa-exclamation-triangle"></i>
                 <strong>Restricted Access:</strong> Authorized personnel only.
             </div>
+            
+            <!-- Regular Admin Login Form -->
             <form id="adminLoginForm" method="POST" action="../../Controllers/AdminController.php">
               <input type="hidden" name="action" value="login">
               <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
@@ -405,18 +415,155 @@ if ($setupError) {
                   </button>
                 </div>
               </div>
+              
               <br>
               <button type="submit" class="btn btn-danger w-100 mb-2">
                 <i class="fas fa-sign-in-alt me-2"></i>Admin Login
               </button>
-              
-              
             </form>
+            
+            <!-- Admin Google Sign-In Section -->
+            <div class="admin-google-section mt-4 pt-3 border-top">
+              <div class="text-center mb-3">
+                <small class="text-muted">Or sign in with Google</small>
+              </div>
+              
+              <div class="d-flex justify-content-center mb-2">
+                <button id="adminGoogleBtn" type="button" class="btn btn-outline-dark w-100">
+                    <i class="fab fa-google me-2"></i> Sign in with Admin Google Account
+                </button>
+              </div>
+              
+              <div class="admin-google-note text-center">
+                <small class="text-muted">
+                  <i class="fas fa-info-circle me-1"></i>
+                  Must use authorized admin Google account
+                </small>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
     
+<!-- FORGOT PASSWORD MODAL -->
+<div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content p-4">
+      <div class="modal-header border-0 text-center w-100 d-block position-relative">
+        <img src="../../../resources/Images/ThesisCompLogo.png" class="sysLogo mb-2" alt="Logo" style="width:80px;">
+        <h5 class="modal-title">Reset Password</h5>
+        <button type="button" class="btn btn-link text-muted position-absolute" style="top:8px; right:10px; font-size:24px; text-decoration:none;" data-bs-dismiss="modal" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted mb-4">Enter your email address and we'll send you a verification code to reset your password.</p>
+        <form id="forgotPasswordForm">
+          <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
+          <div class="mb-3">
+            <label for="forgotEmail" class="form-label">Email Address</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+              <input type="email" id="forgotEmail" name="email" class="form-control" placeholder="your.email@usep.edu.ph" required>
+            </div>
+            <small class="text-muted">Use your registered USeP email address</small>
+          </div>
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary" id="sendCodeBtn">
+              <i class="fas fa-paper-plane me-2"></i>Send Verification Code
+            </button>
+            <button type="button" class="btn btn-link" data-bs-dismiss="modal">Back to Login</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+    <!-- PASSWORD RESET VERIFICATION MODAL -->
+<!-- PASSWORD RESET VERIFICATION MODAL -->
+<div class="modal fade" id="passwordResetModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content p-4">
+      <div class="modal-header border-0 text-center w-100 d-block position-relative">
+        <img src="../../../resources/Images/ThesisCompLogo.png" class="sysLogo mb-2" alt="Logo" style="width:80px;">
+        <h5 class="modal-title">Set New Password</h5>
+        <button type="button" class="btn btn-link text-muted position-absolute" style="top:8px; right:10px; font-size:24px; text-decoration:none;" data-bs-dismiss="modal" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="verificationStep1">
+          <p class="text-muted mb-4">We've sent a 6-digit verification code to your email. Enter it below and set your new password.</p>
+          <form id="verificationForm">
+            <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
+            <input type="hidden" id="resetEmail" name="email">
+            
+            <div class="mb-3">
+              <label for="verificationCode" class="form-label">Verification Code</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-shield-alt"></i></span>
+                <input type="text" id="verificationCode" name="verification_code" class="form-control text-center" 
+                       placeholder="000000" maxlength="6" required pattern="[0-9]{6}">
+              </div>
+              <small class="text-muted">Enter the 6-digit code sent to your email</small>
+            </div>
+
+            <div class="mb-3">
+              <label for="newPassword" class="form-label">New Password</label>
+              <div class="input-group">
+                <input type="password" id="newPassword" name="new_password" class="form-control" 
+                       placeholder="Enter your new password" required minlength="8">
+                <button class="btn btn-outline-secondary" type="button" id="toggleNewPassword">
+                  <i class="far fa-eye"></i>
+                </button>
+              </div>
+              <div class="password-strength mt-2" id="passwordStrength"></div>
+              <div class="form-text">
+                Password must be at least 8 characters long
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label for="confirmPassword" class="form-label">Confirm New Password</label>
+              <div class="input-group">
+                <input type="password" id="confirmPassword" name="confirm_password" class="form-control" 
+                       placeholder="Confirm your new password" required minlength="8">
+                <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword">
+                  <i class="far fa-eye"></i>
+                </button>
+              </div>
+              <div class="form-text" id="passwordMatch"></div>
+            </div>
+            
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-primary" id="verifyCodeBtn">
+                <i class="fas fa-check-circle me-2"></i>Set New Password
+              </button>
+              <button type="button" class="btn btn-link" id="resendCodeBtn">
+                <i class="fas fa-redo me-2"></i>Resend Code
+              </button>
+            </div>
+          </form>
+        </div>
+        
+        <div id="verificationStep2" style="display: none;">
+          <div class="text-center">
+            <i class="fas fa-check-circle text-success mb-3" style="font-size: 3rem;"></i>
+            <h5 class="text-success">Password Reset Successful!</h5>
+            <p class="text-muted">Your password has been reset successfully. You can now login with your new password.</p>
+            
+            <div class="alert alert-success mt-3">
+              <i class="fas fa-info-circle me-2"></i>
+              <strong>Success!</strong> You can now use your new password to login.
+            </div>
+            
+            <button type="button" class="btn btn-primary mt-3" data-bs-dismiss="modal">
+              <i class="fas fa-sign-in-alt me-2"></i>Return to Login
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
     
 </body>
 

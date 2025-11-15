@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeDOMElements();
     initializeCarousels();
     initializeEventListeners();
+    initializeAnnouncementModals();
     
     // Initialize search page if we're on search page
     if (document.getElementById('results-page')) {
@@ -17,7 +18,7 @@ function initializeDOMElements() {
     landingPage = document.getElementById('landing-page');
 }
 
-// === FLICKITY-LIKE CAROUSEL WITH WRAP-AROUND ===
+// === ENHANCED FLICKITY-LIKE CAROUSEL WITH WRAP-AROUND AND CENTERED DESIGN ===
 class FlickityCarousel {
     constructor(element, options = {}) {
         this.element = element;
@@ -29,8 +30,11 @@ class FlickityCarousel {
         
         this.options = {
             wrapAround: true,
-            cellAlign: 'left',
+            cellAlign: 'center',
             contain: false,
+            autoPlay: element.classList.contains('logo-carousel'), 
+            autoPlayDelay: 4000,
+            centered: element.classList.contains('logo-carousel'), 
             ...options
         };
         
@@ -39,6 +43,7 @@ class FlickityCarousel {
         this.startX = 0;
         this.scrollLeft = 0;
         this.autoPlayInterval = null;
+        this.isProgramCarousel = element.classList.contains('logo-carousel');
         
         this.init();
     }
@@ -47,13 +52,18 @@ class FlickityCarousel {
         if (!this.cards || this.cards.children.length === 0) return;
         
         this.cardCount = this.cards.children.length;
-        this.cardWidth = this.cards.children[0].offsetWidth + 24; // width + gap
+        this.cardWidth = this.cards.children[0].offsetWidth + 24; 
         
         this.setupEventListeners();
         this.updateCarousel();
         
         if (this.cardCount <= 1) {
             this.hideControls();
+        }
+        
+        // Start auto-play if enabled
+        if (this.options.autoPlay) {
+            this.startAutoPlay();
         }
     }
     
@@ -87,6 +97,12 @@ class FlickityCarousel {
             }
         });
         
+        // Pause auto-play on hover for programs carousel
+        if (this.options.autoPlay) {
+            this.container.addEventListener('mouseenter', () => this.pauseAutoPlay());
+            this.container.addEventListener('mouseleave', () => this.resumeAutoPlay());
+        }
+        
         // Resize handling
         let resizeTimeout;
         window.addEventListener('resize', () => {
@@ -105,6 +121,11 @@ class FlickityCarousel {
             this.scrollLeft = this.cards.scrollLeft;
             this.cards.style.scrollBehavior = 'auto';
             this.cards.style.cursor = 'grabbing';
+            
+            // Pause auto-play during drag
+            if (this.options.autoPlay) {
+                this.pauseAutoPlay();
+            }
         };
         
         const duringDrag = (e) => {
@@ -124,6 +145,11 @@ class FlickityCarousel {
             const scrollPos = this.cards.scrollLeft;
             this.currentIndex = Math.round(scrollPos / this.cardWidth);
             this.updateCarousel();
+            
+            // Resume auto-play after drag
+            if (this.options.autoPlay) {
+                this.resumeAutoPlay();
+            }
         };
         
         // Mouse events
@@ -148,6 +174,11 @@ class FlickityCarousel {
             this.currentIndex = Math.min(this.currentIndex + 1, this.cardCount - 1);
         }
         this.updateCarousel();
+        
+        // Reset auto-play timer
+        if (this.options.autoPlay) {
+            this.resetAutoPlay();
+        }
     }
     
     previous() {
@@ -157,11 +188,21 @@ class FlickityCarousel {
             this.currentIndex = Math.max(this.currentIndex - 1, 0);
         }
         this.updateCarousel();
+        
+        // Reset auto-play timer
+        if (this.options.autoPlay) {
+            this.resetAutoPlay();
+        }
     }
     
     select(index) {
         this.currentIndex = index;
         this.updateCarousel();
+        
+        // Reset auto-play timer
+        if (this.options.autoPlay) {
+            this.resetAutoPlay();
+        }
     }
     
     updateCarousel() {
@@ -182,10 +223,62 @@ class FlickityCarousel {
             card.setAttribute('aria-hidden', idx !== this.currentIndex);
             if (idx === this.currentIndex) {
                 card.setAttribute('tabindex', '0');
+                card.classList.add('active');
             } else {
                 card.removeAttribute('tabindex');
+                card.classList.remove('active');
             }
         });
+        
+        // Apply centered effect for programs carousel
+        if (this.isProgramCarousel && this.options.centered) {
+            this.applyCenteredEffect();
+        }
+    }
+    
+    applyCenteredEffect() {
+        const cards = this.cards.querySelectorAll('.logo-card');
+        cards.forEach((card, index) => {
+            // Reset all cards first
+            card.style.transform = 'scale(0.9)';
+            card.style.opacity = '0.7';
+            card.style.filter = 'blur(2px)';
+            card.style.zIndex = '1';
+            
+            // Apply active state to current card
+            if (index === this.currentIndex) {
+                card.style.transform = 'scale(1)';
+                card.style.opacity = '1';
+                card.style.filter = 'blur(0)';
+                card.style.zIndex = '2';
+            }
+        });
+    }
+    
+    startAutoPlay() {
+        if (this.cardCount <= 1) return;
+        
+        this.autoPlayInterval = setInterval(() => {
+            this.next();
+        }, this.options.autoPlayDelay);
+    }
+    
+    pauseAutoPlay() {
+        if (this.autoPlayInterval) {
+            clearInterval(this.autoPlayInterval);
+            this.autoPlayInterval = null;
+        }
+    }
+    
+    resumeAutoPlay() {
+        if (this.options.autoPlay && !this.autoPlayInterval) {
+            this.startAutoPlay();
+        }
+    }
+    
+    resetAutoPlay() {
+        this.pauseAutoPlay();
+        this.resumeAutoPlay();
     }
     
     hideControls() {
@@ -205,26 +298,142 @@ class FlickityCarousel {
 }
 
 function initializeCarousels() {
+    // ---------- ANNOUNCEMENTS CAROUSEL ----------
     const announcementCarousels = document.querySelectorAll('.announcements-carousel');
-    const programCarousels = document.querySelectorAll('.logo-carousel');
-    
-    // Initialize announcement carousels
     announcementCarousels.forEach(carousel => {
         const instance = new FlickityCarousel(carousel, {
             wrapAround: true,
-            cellAlign: 'center'
+            cellAlign: 'left',
+            autoPlay: false,
+            centered: false
         });
         carouselInstances.push(instance);
     });
-    
-    // Initialize program carousels
-    programCarousels.forEach(carousel => {
-        const instance = new FlickityCarousel(carousel, {
-            wrapAround: true,
-            cellAlign: 'center'
+
+    // ---------- PROGRAMS CAROUSEL (IMPROVED SEAMLESS LOOPING IN BOTH DIRECTIONS) ----------
+    // ---------- PROGRAMS CAROUSEL (SEAMLESS LOOP + NO BLUR) ----------
+const programCarousels = document.querySelectorAll('.logo-carousel');
+programCarousels.forEach(carousel => {
+    const container   = carousel.querySelector('.carousel-container');
+    const cardsWrap   = carousel.querySelector('.logo-cards');
+    const cards       = cardsWrap.querySelectorAll('.logo-card');
+    const prevBtn     = carousel.querySelector('.carousel-control.prev');
+    const nextBtn     = carousel.querySelector('.carousel-control.next');
+    const indicators  = carousel.querySelectorAll('.indicator');
+
+    if (!cards.length) return;
+
+    const CARD_GAP    = 24;
+    const cardWidth   = cards[0].offsetWidth + CARD_GAP;
+    const original    = Array.from(cards);
+    const originalCnt = original.length;
+
+    // ---- clone for infinite scroll (prepend + append) ----
+    // prepend reversed clones
+    for (let i = originalCnt - 1; i >= 0; i--) {
+        cardsWrap.insertBefore(original[i].cloneNode(true), cardsWrap.firstChild);
+    }
+    // append normal clones
+    original.forEach(c => cardsWrap.appendChild(c.cloneNode(true)));
+
+    const allCards = cardsWrap.querySelectorAll('.logo-card');   // 3×original
+    const total    = allCards.length;
+
+    // start in the *middle* block (original cards)
+    let currentIdx = originalCnt;          // points to first original
+    let autoPlayId = null;
+
+    // ---- helper: move to any index (smooth = true/false) ----
+    const goTo = (idx, smooth = true) => {
+        currentIdx = idx;
+
+        const offset = currentIdx * cardWidth -
+                      (container.offsetWidth - cardWidth) / 2;
+
+        cardsWrap.style.transition = smooth ? 'transform 0.4s ease' : 'none';
+        cardsWrap.style.transform   = `translateX(${-offset}px)`;
+
+        // ----- indicators (original index) -----
+        const origIdx = (currentIdx - originalCnt) % originalCnt;
+        indicators.forEach((ind, i) => ind.classList.toggle('active', i === origIdx));
+
+        // ----- visual active state (ALL clones that match the original index) -----
+        allCards.forEach((c, i) => {
+            const isActive = (i - originalCnt) % originalCnt === origIdx;
+            c.classList.toggle('active', isActive);
+            c.style.transform = isActive ? 'scale(1)' : 'scale(0.9)';
+            c.style.opacity   = isActive ? '1'     : '0.7';
+            c.style.filter    = isActive ? 'blur(0)' : 'blur(2px)';
+            c.style.zIndex    = isActive ? '2' : '1';
         });
-        carouselInstances.push(instance);
+    };
+
+    // ---- seamless reset after transition (no flicker) ----
+    cardsWrap.addEventListener('transitionend', () => {
+        let shifted = false;
+
+        if (currentIdx < originalCnt) {                 // went too far left
+            currentIdx += originalCnt;
+            shifted = true;
+        } else if (currentIdx >= originalCnt * 2) {     // went too far right
+            currentIdx -= originalCnt;
+            shifted = true;
+        }
+
+        if (shifted) {
+            const offset = currentIdx * cardWidth -
+                          (container.offsetWidth - cardWidth) / 2;
+            cardsWrap.style.transition = 'none';
+            cardsWrap.style.transform   = `translateX(${-offset}px)`;
+            // force reflow so the next smooth transition works
+            void cardsWrap.offsetHeight;
+        }
     });
+
+    // ---- navigation ----
+    prevBtn?.addEventListener('click', () => { goTo(currentIdx - 1); resetAuto(); });
+    nextBtn?.addEventListener('click', () => { goTo(currentIdx + 1); resetAuto(); });
+
+    indicators.forEach((ind, i) => ind.addEventListener('click', () => {
+        const targetOriginal = i;
+        const currentOriginal = (currentIdx - originalCnt) % originalCnt;
+        const diff = targetOriginal - currentOriginal;
+        goTo(currentIdx + diff);
+        resetAuto();
+    }));
+
+    // ---- auto-play ----
+    const startAuto = () => {
+        autoPlayId = setInterval(() => goTo(currentIdx + 1), 4000);
+    };
+    const stopAuto  = () => clearInterval(autoPlayId);
+    const resetAuto = () => { stopAuto(); startAuto(); };
+
+    if (originalCnt > 1) {
+        startAuto();
+        carousel.addEventListener('mouseenter', stopAuto);
+        carousel.addEventListener('mouseleave', startAuto);
+    } else {
+        prevBtn && (prevBtn.style.display = 'none');
+        nextBtn && (nextBtn.style.display = 'none');
+        indicators[0] && (indicators[0].parentElement.style.display = 'none');
+    }
+
+    // ---- init ----
+    goTo(currentIdx, false);
+
+    // ---- cleanup ----
+    carouselInstances.push({
+        destroy: () => {
+            stopAuto();
+            // remove all clones
+            while (cardsWrap.children.length > originalCnt) {
+                cardsWrap.removeChild(cardsWrap.firstChild);
+                cardsWrap.removeChild(cardsWrap.lastChild);
+            }
+        }
+    });
+});
 }
 
 // === SEARCH PAGE FUNCTIONALITY ===
@@ -351,6 +560,259 @@ function initializeEventListeners() {
         });
     }
 }
+
+
+function initializeAnnouncementModals() {
+    const modal = document.getElementById('announcementModal');
+    const readMoreLinks = document.querySelectorAll('.read-more[data-announcement-id]');
+    
+    // Close modal function with transition
+    function closeModal() {
+        const modalContent = modal.querySelector('.premium-modal-content');
+        const backdrop = modal.querySelector('.premium-modal-backdrop');
+        
+        // Add closing animations
+        modalContent.style.animation = 'premiumModalIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) reverse';
+        backdrop.style.animation = 'premiumBackdropIn 0.3s ease reverse';
+        
+        setTimeout(() => {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            
+            // Reset animations
+            modalContent.style.animation = '';
+            backdrop.style.animation = '';
+        }, 250);
+    }
+    
+    // Open modal function with transition
+    function openModal(announcementId) {
+        const announcementCard = document.querySelector(`[data-announcement-id="${announcementId}"]`);
+        if (!announcementCard) return;
+        
+        // Get announcement data from the card
+        const title = announcementCard.querySelector('h3').textContent;
+        const date = announcementCard.querySelector('.date').textContent;
+        const badge = announcementCard.querySelector('.card-badge').cloneNode(true);
+        const imageSrc = announcementCard.querySelector('.Anncmnt_pic').src;
+        const content = announcementCard.querySelector('.announcement-preview').textContent;
+        const isPinned = announcementCard.classList.contains('pinned');
+        
+        // Populate modal
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('modalDate').textContent = date;
+        document.getElementById('modalImage').src = imageSrc;
+        document.getElementById('modalContent').textContent = content;
+        
+        // Update badge
+        const modalBadge = document.getElementById('modalBadge');
+        modalBadge.className = 'premium-modal-badge';
+        modalBadge.textContent = badge.textContent.trim();
+        
+        // Show/hide pinned indicator
+        const pinIndicator = modal.querySelector('.premium-pin-indicator');
+        if (pinIndicator) {
+            pinIndicator.style.display = isPinned ? 'flex' : 'none';
+        }
+        
+        // Show modal with animation
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        
+        // Trigger animations
+        setTimeout(() => {
+            const modalContent = modal.querySelector('.premium-modal-content');
+            const backdrop = modal.querySelector('.premium-modal-backdrop');
+            
+            modalContent.style.animation = 'premiumModalIn 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+            backdrop.style.animation = 'premiumBackdropIn 0.4s ease';
+        }, 50);
+    }
+    
+    // Event listeners for read more links
+    readMoreLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const announcementId = this.getAttribute('data-announcement-id');
+            openModal(announcementId);
+        });
+    });
+    
+    // Event listeners for announcement cards
+    document.querySelectorAll('.announcement-card').forEach(card => {
+        card.addEventListener('click', function(e) {
+            if (!e.target.closest('.read-more') && !e.target.closest('.pin-indicator')) {
+                const announcementId = this.getAttribute('data-announcement-id');
+                openModal(announcementId);
+            }
+        });
+    });
+    
+    // Close modal events
+    const closeBtn = modal.querySelector('.premium-close-btn');
+    const backdrop = modal.querySelector('.premium-modal-backdrop');
+    
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeModal);
+    }
+    
+    if (backdrop) {
+        backdrop.addEventListener('click', closeModal);
+    }
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal.style.display === 'block') {
+            closeModal();
+        }
+    });
+}
+
+// Share announcement function
+function shareAnnouncement() {
+    const title = document.getElementById('modalTitle').textContent;
+    const text = document.getElementById('modalContent').textContent.slice(0, 100) + '...';
+    
+    if (navigator.share) {
+        navigator.share({
+            title: title,
+            text: text,
+            url: window.location.href
+        }).catch(err => {
+            console.log('Error sharing:', err);
+        });
+    } else {
+        // Fallback: copy to clipboard
+        const shareText = `${title}\n\n${text}\n\n${window.location.href}`;
+        navigator.clipboard.writeText(shareText).then(() => {
+            alert('Announcement link copied to clipboard!');
+        }).catch(err => {
+            console.log('Error copying to clipboard:', err);
+        });
+    }
+}
+
+// Enhanced open modal function for external calls
+function openAnnModal(announcementId) {
+    const modal = document.getElementById('announcementModal');
+    const card = document.querySelector(`[data-announcement-id="${announcementId}"]`);
+    
+    if (!card) return;
+
+    const title = card.querySelector('h3').textContent.trim();
+    const date = card.querySelector('.date').textContent.trim();
+    const badge = card.querySelector('.card-badge').cloneNode(true);
+    const imgSrc = card.querySelector('.Anncmnt_pic').src;
+    const content = card.querySelector('.announcement-preview').textContent.trim();
+    const isPinned = card.classList.contains('pinned');
+
+    // Populate modal
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalDate').textContent = date;
+    document.getElementById('modalImage').src = imgSrc;
+    document.getElementById('modalContent').textContent = content;
+
+    // Update badge
+    const modalBadge = document.getElementById('modalBadge');
+    modalBadge.className = 'premium-modal-badge';
+    modalBadge.textContent = badge.textContent.trim();
+
+    // Show/hide pinned indicator
+    const pinIndicator = modal.querySelector('.premium-pin-indicator');
+    if (pinIndicator) {
+        pinIndicator.style.display = isPinned ? 'flex' : 'none';
+    }
+
+    // Show modal with animation
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+
+    // Trigger animations
+    setTimeout(() => {
+        const modalContent = modal.querySelector('.premium-modal-content');
+        const backdrop = modal.querySelector('.premium-modal-backdrop');
+        
+        modalContent.style.animation = 'premiumModalIn 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+        backdrop.style.animation = 'premiumBackdropIn 0.4s ease';
+    }, 50);
+}
+
+// Enhanced close modal function
+function closeAnnModal() {
+    const modal = document.getElementById('announcementModal');
+    const modalContent = modal.querySelector('.premium-modal-content');
+    const backdrop = modal.querySelector('.premium-modal-backdrop');
+    
+    // Add closing animations
+    modalContent.style.animation = 'premiumModalIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) reverse';
+    backdrop.style.animation = 'premiumBackdropIn 0.3s ease reverse';
+    
+    setTimeout(() => {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        
+        // Reset animations
+        modalContent.style.animation = '';
+        backdrop.style.animation = '';
+    }, 250);
+}
+
+// Initialize modals when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    initializeAnnouncementModals();
+});
+
+// Initialize modals when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    initializeAnnouncementModals();
+});
+
+/* ---------- Announcement Modal ---------- */
+function openAnnModal(announcementId) {
+    const card = document.querySelector(`[data-announcement-id="${announcementId}"]`);
+    if (!card) return;
+
+    const title   = card.querySelector('h3').textContent.trim();
+    const date    = card.querySelector('.date').textContent.trim();
+    const badge   = card.querySelector('.card-badge').cloneNode(true);
+    const imgSrc  = card.querySelector('.Anncmnt_pic').src;
+    const content = card.querySelector('.announcement-preview').textContent.trim();
+
+    document.getElementById('modalTitle').textContent   = title;
+    document.getElementById('modalDate').textContent    = date;
+    document.getElementById('modalImage').src           = imgSrc;
+    document.getElementById('modalContent').textContent = content;
+
+    const badgeEl = document.getElementById('modalBadge');
+    badgeEl.className = 'annc-badge ' + badge.className.replace('card-badge', '').trim();
+    badgeEl.textContent = badge.textContent.trim();
+
+    document.getElementById('announcementModal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeAnnModal() {
+    document.getElementById('announcementModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+/* Keep the click-to-open logic (same as before) */
+document.querySelectorAll('.announcement-card').forEach(card => {
+    card.addEventListener('click', function (e) {
+        if (!e.target.closest('.read-more') && !e.target.closest('.pin-indicator')) {
+            const id = this.getAttribute('data-announcement-id');
+            openAnnModal(id);
+        }
+    });
+});
+
+/* Close with Esc */
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && document.getElementById('announcementModal').style.display === 'flex') {
+        closeAnnModal();
+    }
+});
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', () => {
