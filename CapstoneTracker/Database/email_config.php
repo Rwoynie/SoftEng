@@ -15,7 +15,7 @@ class EmailConfig {
     // Email Templates
     const WELCOME_SUBJECT = 'Welcome to Compendium System - Your Account Details';
     
-    public static function getWelcomeBody($name, $email, $password, $role) {
+    public static function getWelcomeBody($name, $email, $password, $role, $userIdentifier) {
         return "
         <!DOCTYPE html>
         <html>
@@ -54,7 +54,12 @@ class EmailConfig {
                         <p><strong>Your Auto-Generated Password:</strong></p>
                         <p style='font-size: 24px; letter-spacing: 2px;'>{$password}</p>
                     </div>
-                    
+
+                    <div class='password-box'>
+                        <p><strong>Your User ID:</strong></p>
+                        <p style='font-size: 24px; letter-spacing: 2px;'>{$userIdentifier}</p>
+                    </div>
+
                     <div class='info-box'>
                         <p><strong>Important Information:</strong></p>
                         <ul>
