@@ -1181,7 +1181,7 @@ $displayUserData = [
                             <div class="chart-container">
                                 <canvas id="studentPieChart"></canvas>
                             </div>
-                            <div id="pieChartLegend" class="chart-legend"></div>
+                            
                         </div>
 
                         <div class="chart-card">

@@ -4445,7 +4445,7 @@ async function getAllRolesData() {
             },
             body: JSON.stringify({
                 action: 'get_all_roles_data',
-                csrf_token: 'your_csrf_token_here' // You'll need to implement CSRF token handling
+                csrf_token: 'your_csrf_token_here' 
             })
         });
         

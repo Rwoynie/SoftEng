@@ -227,12 +227,12 @@ if ($setupError) {
               <select id="regCourse" name="course" class="form-select" required>
                 <option value="" selected disabled>Select your program</option>
                 <option>Bachelor of Technical-Vocational Teacher Education</option>
-                <option>Bachelor of Special Need Education</option>
+                <option>Bachelor of Special Needs Education</option>
                 <option>Bachelor of Early Childhood Education</option>
                 <option>Bachelor of Secondary Education</option>
                 <option>Bachelor of Science in Information Technology</option>
                 <option>Bachelor of Elementary Education</option>
-                <option>Bachelor Science in Agricultural and Biosystems Engineering</option>
+                <option>Bachelor of Science in Agricultural and Biosystems Engineering</option>
               </select>
             </div>
             <div class="col-12">
