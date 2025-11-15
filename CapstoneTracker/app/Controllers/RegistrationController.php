@@ -48,6 +48,89 @@ class RegistrationController {
         return isset($_SESSION['csrf_token']) && 
             hash_equals($_SESSION['csrf_token'], $token);
     }
+
+    /**
+     * Validate and format name (capitalize first letter, lowercase the rest)
+     */
+    private function validateAndFormatName($name, $fieldName) {
+        if (empty($name)) {
+            return $name; // Return empty as is, required field validation will catch it
+        }
+        
+        // Remove extra whitespace
+        $name = trim($name);
+        
+        // Check if name contains only letters, spaces, hyphens, and apostrophes
+        if (!preg_match('/^[a-zA-Z\s\-\'\.]+$/', $name)) {
+            throw new Exception("$fieldName can only contain letters, spaces, hyphens (-), apostrophes ('), and periods (.)");
+        }
+        
+        // Check for consecutive special characters
+        if (preg_match('/[\-\'\\.]{2,}/', $name)) {
+            throw new Exception("$fieldName cannot have consecutive special characters");
+        }
+        
+        // Capitalize first letter of each word
+        $formattedName = $this->properCaseName($name);
+        
+        return $formattedName;
+    }
+
+    /**
+     * Convert name to proper case (First Letter Capital, rest lowercase)
+     */
+    private function properCaseName($name) {
+        if (empty(trim($name))) {
+            return $name;
+        }
+        
+        // Trim and normalize spaces
+        $name = trim(preg_replace('/\s+/', ' ', $name));
+        
+        // Use PHP's built-in function for basic title case
+        $name = mb_convert_case($name, MB_CASE_TITLE, "UTF-8");
+        
+        // Handle special cases for names with apostrophes
+        $name = preg_replace_callback("/\b([A-Z])'([A-Z])\b/", function($matches) {
+            return $matches[1] . "'" . $matches[2];
+        }, $name);
+        
+        // Handle hyphenated names (ensure both parts are capitalized)
+        $name = preg_replace_callback('/\b([a-z]+)-([a-z]+)\b/i', function($matches) {
+            return ucfirst($matches[1]) . '-' . ucfirst($matches[2]);
+        }, $name);
+        
+        // Handle common name prefixes
+        $exceptions = [
+            '/\bMc([a-z])/' => 'Mc$1',
+            '/\bMac([a-z])/' => 'Mac$1',
+            "/\bO'([a-z])/" => "O'$1",
+            '/\bDe\sLa\s/' => 'de la ',
+            '/\bDe\s/' => 'de ',
+            '/\bVan\s/' => 'van ',
+            '/\bVon\s/' => 'von ',
+        ];
+        
+        foreach ($exceptions as $pattern => $replacement) {
+            $name = preg_replace_callback($pattern, function($matches) use ($replacement) {
+                return str_replace('$1', ucfirst($matches[1]), $replacement);
+            }, $name);
+        }
+        
+        return $name;
+    }
+    
+    /**
+     * Capitalize first letter and make the rest lowercase
+     */
+    private function capitalizeFirstLetter($word) {
+        if (empty($word)) return $word;
+        
+        $firstChar = mb_substr($word, 0, 1);
+        $restOfWord = mb_substr($word, 1);
+        
+        return mb_strtoupper($firstChar) . mb_strtolower($restOfWord);
+    }
     
     /**
      * Handle registration request - determines if it's student or faculty
@@ -86,6 +169,11 @@ class RegistrationController {
                     throw new Exception("All required fields must be filled. Missing: " . $field);
                 }
             }
+
+            $firstName = $this->validateAndFormatName($data['firstName'], 'First Name');
+            $lastName = $this->validateAndFormatName($data['lastName'], 'Last Name');
+            $middleName = $this->validateAndFormatName($data['middleName'] ?? '', 'Middle Name');
+            $extension = $this->validateAndFormatName($data['extension'] ?? '', 'Name Extension');
             
             // Validate email format and domain
             if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
@@ -118,10 +206,10 @@ class RegistrationController {
             // Prepare user data for registration
             $userData = [
                 'password' => $data['password'],
-                'first_name' => trim($data['firstName']),
-                'middle_name' => trim($data['middleName'] ?? ''),
-                'last_name' => trim($data['lastName']),
-                'extension' => trim($data['extension'] ?? ''),
+                'first_name' => $firstName,  
+                'middle_name' => $middleName,  
+                'last_name' => $lastName,  
+                'extension' => $extension,  
                 'email' => trim($data['email']),
                 'student_id' => trim($data['studentId']),
                 'user_role' => 'student',
@@ -159,6 +247,11 @@ class RegistrationController {
                     throw new Exception("All required fields must be filled. Missing: " . $field);
                 }
             }
+
+            $firstName = $this->validateAndFormatName($data['firstName'], 'First Name');
+            $lastName = $this->validateAndFormatName($data['lastName'], 'Last Name');
+            $middleName = $this->validateAndFormatName($data['middleName'] ?? '', 'Middle Name');
+            $extension = $this->validateAndFormatName($data['extension'] ?? '', 'Name Extension');
             
             // Validate email format and domain
             if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
@@ -192,10 +285,10 @@ class RegistrationController {
             // Prepare user data for registration
             $userData = [
                 'password' => $data['password'],
-                'first_name' => trim($data['firstName']),
-                'middle_name' => trim($data['middleName'] ?? ''),
-                'last_name' => trim($data['lastName']),
-                'extension' => trim($data['extension'] ?? ''),
+                'first_name' => $firstName,  
+                'middle_name' => $middleName,  
+                'last_name' => $lastName,  
+                'extension' => $extension, 
                 'email' => trim($data['email']),
                 'employee_id' => trim($data['employeeId']),
                 'user_role' => 'faculty',

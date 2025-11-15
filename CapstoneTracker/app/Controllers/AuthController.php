@@ -1021,7 +1021,67 @@ private function getRedirectUrlByRole($userRole) {
 }
 
     
+/**
+ * Validate and format name (capitalize first letter, lowercase the rest)
+ */
+private function validateAndFormatName($name, $fieldName) {
+    if (empty($name)) {
+        return $name;
+    }
+    
+    // Remove extra whitespace
+    $name = trim($name);
+    
+    // Check if name contains only letters, spaces, hyphens, and apostrophes
+    if (!preg_match('/^[a-zA-Z\s\-\'\.]+$/', $name)) {
+        throw new Exception("$fieldName can only contain letters, spaces, hyphens (-), apostrophes ('), and periods (.)");
+    }
+    
+    // Check for consecutive special characters
+    if (preg_match('/[\-\'\\.]{2,}/', $name)) {
+        throw new Exception("$fieldName cannot have consecutive special characters");
+    }
+    
+    // Capitalize first letter of each word
+    $formattedName = $this->properCaseName($name);
+    
+    return $formattedName;
+}
 
+/**
+ * Convert name to proper case (First Letter Capital, rest lowercase)
+ */
+private function properCaseName($name) {
+    $words = explode(' ', $name);
+    $properWords = [];
+    
+    foreach ($words as $word) {
+        // Handle hyphenated names (like Mary-Ann)
+        if (strpos($word, '-') !== false) {
+            $hyphenated = explode('-', $word);
+            $properHyphenated = [];
+            foreach ($hyphenated as $hWord) {
+                $properHyphenated[] = ucfirst(strtolower($hWord));
+            }
+            $properWords[] = implode('-', $properHyphenated);
+        }
+        // Handle apostrophe names (like O'Connor)
+        elseif (strpos($word, "'") !== false) {
+            $apostropheParts = explode("'", $word);
+            $properApostrophe = [];
+            foreach ($apostropheParts as $aPart) {
+                $properApostrophe[] = ucfirst(strtolower($aPart));
+            }
+            $properWords[] = implode("'", $properApostrophe);
+        }
+        // Normal case - capitalize first letter, lowercase the rest
+        else {
+            $properWords[] = ucfirst(strtolower($word));
+        }
+    }
+    
+    return implode(' ', $properWords);
+}
 
    /**
  * Auto-register a user from Google Sign-In - WITH PROPER ROLE ASSIGNMENT
@@ -1096,7 +1156,7 @@ private function autoRegisterGoogleUser($email, $name, $selectedRole) {
         $nameParts = $this->parseName($name);
         $firstName = $nameParts['first_name'];
         $lastName = $nameParts['last_name'];
-        error_log("Parsed name - First: $firstName, Last: $lastName");
+        error_log("Parsed and formatted name - First: $firstName, Last: $lastName");
         
         // ✅ FIXED: Handle role mapping properly for auto-registration
         if ($selectedRole === 'student' || $selectedRole === 'researcher') {
@@ -1375,7 +1435,10 @@ private function getWelcomeBackBody($name, $email, $role) {
      * Parse full name into first and last name
      */
     private function parseName($fullName) {
-        $nameParts = explode(' ', trim($fullName));
+        // First, format the entire name
+        $formattedFullName = $this->validateAndFormatName($fullName, 'Full Name');
+        
+        $nameParts = explode(' ', trim($formattedFullName));
         
         $firstName = $nameParts[0] ?? '';
         $lastName = end($nameParts) ?? '';
