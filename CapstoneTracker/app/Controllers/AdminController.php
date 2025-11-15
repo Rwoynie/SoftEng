@@ -33,13 +33,13 @@ class AdminController extends Controller {
      * Validate CSRF token
      */
     private function validateCsrfToken($token) {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        
-        return isset($_SESSION['csrf_token']) && 
-            hash_equals($_SESSION['csrf_token'], $token);
+    if (!isset($_SESSION['csrf_token']) || $token !== $_SESSION['csrf_token']) {
+        return false;
     }
+    // Regenerate after successful validation (one-time use)
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    return true;
+}
     
     public function login() {
         // Start session if not already started

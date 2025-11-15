@@ -142,6 +142,11 @@ class AdminDashboardController {
             case 'testAuditQuery':
                 $this->testAuditQuery();
                 break;
+                case 'getReports':
+            $this->getReports();
+            break;
+            
+            
 
           
 
@@ -553,7 +558,9 @@ private function debugLogs() {
      */
     private function createAnnouncement() {
         try {
-            $this->validateCsrfToken();
+            if (!$this->validateCsrfToken($_POST['csrf_token']??'')){
+                throw new Exception('Invalid CSRF token');
+            }
             $this->validateAnnouncementData();
             date_default_timezone_set('Asia/Manila');
 
@@ -587,7 +594,9 @@ private function debugLogs() {
  */
 private function updateAnnouncement() {
     try {
-        $this->validateCsrfToken();
+        if (!$this->validateCsrfToken($_POST['csrf_token']??'')){
+                throw new Exception('Invalid CSRF token');
+            }
         $this->validateAnnouncementData();
 
         $id = $_POST['announcement_id'] ?? '';
@@ -622,7 +631,9 @@ private function updateAnnouncement() {
      */
     private function saveAnnouncementDraft() {
         try {
-            $this->validateCsrfToken();
+           if (!$this->validateCsrfToken($_POST['csrf_token']??'')){
+                throw new Exception('Invalid CSRF token');
+            }
 
             $data = [
                 'title' => trim($_POST['title']),
@@ -782,17 +793,43 @@ private function updateAnnouncement() {
     /**
      * Validate CSRF token
      */
-    private function validateCsrfToken($token) {
+    private function validateCsrfToken($token = null) {
+        if (!isset($token)) {
+            $token = null;
+        }
+
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
-        return isset($_SESSION['csrf_token']) && $token === $_SESSION['csrf_token'];
+
+        // If no token provided, try common sources (POST/GET header)
+        if ($token === null) {
+            $token = $_POST['csrf_token'] ?? $_GET['csrf_token'] ?? null;
+            if ($token === null && isset($_SERVER['HTTP_X_CSRF_TOKEN'])) {
+                $token = $_SERVER['HTTP_X_CSRF_TOKEN'];
+            }
+        }
+
+        if (!isset($_SESSION['csrf_token']) || $token === null) {
+            return false;
+        }
+
+        // Use timing-safe comparison
+        return hash_equals((string)$_SESSION['csrf_token'], (string)$token);
     }
 
     /**
      * Send JSON response
      */
     private function jsonResponse($data, $statusCode = 200) {
+        // Ensure $statusCode is defined and an integer to avoid "undefined variable" or invalid type errors
+        $statusCode = isset($statusCode) ? (int)$statusCode : 200;
+
+        // Ensure $data is defined to prevent "Undefined variable" if function was called without arguments
+        if (!isset($data)) {
+            $data = null;
+        }
+
         http_response_code($statusCode);
         header('Content-Type: application/json');
         echo json_encode($data);
@@ -854,6 +891,8 @@ private function getAuditLogs() {
         $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
     }
 }
+
+
 
 /**
  * Direct test of audit logs query
@@ -1027,13 +1066,225 @@ private function testAuditQuery() {
     }
 
     
-    
+    /**
+     * Get reports data for charts and statistics
+     */
+    private function getReports() {
+        try {
+            $reportType = $_GET['type'] ?? 'overview';
+            $department = $_GET['department'] ?? 'all';
+            
+            switch ($reportType) {
+                case 'thesis':
+                    $data = $this->getThesisReports($department);
+                    break;
+                case 'users':
+                    $data = $this->getUserReports($department);
+                    break;
+                case 'department':
+                    $data = $this->getDepartmentReports($department);
+                    break;
+                case 'overview':
+                default:
+                    $data = $this->getOverviewReports($department);
+                    break;
+            }
+            
+            $this->jsonResponse([
+                'success' => true,
+                'data' => $data,
+                'report_type' => $reportType,
+                'department' => $department
+            ]);
+            
+        } catch (Exception $e) {
+            $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+/**
+ * Get overview reports data for charts
+ */
+private function getOverviewReports($department = 'all') {
+    $stats = $this->model->getReportsStats($department);
+    $courseDistribution = $this->model->getCourseDistribution($department);
+    $monthlyUploads = $this->model->getMonthlyThesisUploads($department);
+    $programCounts = $this->model->getProgramThesisCounts();
+
+    return [
+        'stats' => $stats,
+        'course_distribution' => $courseDistribution,
+        'monthly_uploads' => $monthlyUploads,
+        'program_counts' => $programCounts
+    ];
+}
+
+    /**
+     * Get course distribution data for pie chart
+     */
+private function getCourseDistribution($department = 'all') {
+    try {
+        return $this->model->getCourseDistribution($department);
+    } catch (Exception $e) {
+        error_log("Error getting course distribution: " . $e->getMessage());
+        return [];
+    }
+}
+
+    /**
+     * Get monthly uploads data for bar chart
+     */
+    private function getMonthlyUploads($department = 'all') {
+            try {
+                return $this->model->getMonthlyThesisUploads($department);
+            } catch (Exception $e) {
+                error_log("Error getting monthly uploads: " . $e->getMessage());
+                return $this->getEmptyMonthlyData();
+            }
+        }
+
+
+    /**
+     * Get reports statistics
+     */
+
+    private function getReportsStats($department = 'all') {
+    try {
+        return $this->model->getReportsStats($department);
+    } catch (Exception $e) {
+        error_log("Error getting reports stats: " . $e->getMessage());
+        return [
+            'total_theses' => 0,
+            'total_students' => 0,
+            'recent_theses' => 0
+        ];
+    }
+}
+
+    /**
+     * Map department values to course codes
+     */
+    private function getCourseCodesByDepartment($department) {
+        $department = $department ?? 'all';
+       
+        $departmentMap = [
+            'beced' => ['Bachelor of Early Childhood Education'],
+            'bsed' => ['Bachelor of Secondary Education'],
+            'btvted' => ['Bachelor of Technical-Vocational Teacher Education'],
+            'beed' => ['Bachelor of Elementary Education'],
+            'bsned' => ['Bachelor of Special Needs Education'],
+            'bsabe' => [
+                'Bachelor of Science in Agricultural and Biosystems Engineering', 
+                'Bachelor of Science in Agriculture and Biosystems Engineering'
+            ],
+            'bsit' => ['Bachelor of Science in Information Technology']
+        ];
+        
+        return $departmentMap[$department] ?? [];
+    }
+
+    /**
+     * Get empty monthly data structure
+     */
+    private function getEmptyMonthlyData() {
+        $months = [
+            ['month' => 'Jan', 'month_name' => 'January', 'upload_count' => 0],
+            ['month' => 'Feb', 'month_name' => 'February', 'upload_count' => 0],
+            ['month' => 'Mar', 'month_name' => 'March', 'upload_count' => 0],
+            ['month' => 'Apr', 'month_name' => 'April', 'upload_count' => 0],
+            ['month' => 'May', 'month_name' => 'May', 'upload_count' => 0],
+            ['month' => 'Jun', 'month_name' => 'June', 'upload_count' => 0],
+            ['month' => 'Jul', 'month_name' => 'July', 'upload_count' => 0],
+            ['month' => 'Aug', 'month_name' => 'August', 'upload_count' => 0],
+            ['month' => 'Sep', 'month_name' => 'September', 'upload_count' => 0],
+            ['month' => 'Oct', 'month_name' => 'October', 'upload_count' => 0],
+            ['month' => 'Nov', 'month_name' => 'November', 'upload_count' => 0],
+            ['month' => 'Dec', 'month_name' => 'December', 'upload_count' => 0]
+        ];
+        
+        return $months;
+    }
+
+    private function getThesisReports($department = 'all') {
+        $department = $department ?? 'all';
+        $theses = $department === 'all' 
+            ? $this->model->getAllTheses() 
+            : $this->model->getThesesByDepartment($department);
+        
+        $thesisStats = $this->model->getThesisStatistics($department);
+        $uploadTrends = $this->model->getThesisUploadTrends($department);
+        
+        return [
+            'theses' => $theses,
+            'stats' => $thesisStats,
+            'trends' => $uploadTrends
+        ];
+    }
+
+    private function getUserReports($department = 'all') {
+        $department = $department ?? 'all';
+        $users = $department === 'all' 
+            ? $this->model->getAllUsers() 
+            : $this->model->getUsersByDepartment($department);
+        
+        $userStats = $this->model->getUserStatistics($department);
+        $registrationTrends = $this->model->getUserRegistrationTrends($department);
+        
+        return [
+            'users' => $users,
+            'stats' => $userStats,
+            'trends' => $registrationTrends
+        ];
+    }
+
+    private function getDepartmentReports($department = 'all') {
+        $department = $department ?? 'all';
+        if ($department === 'all') {
+            return $this->model->getAllDepartmentReports();
+        }
+        
+        return $this->model->getDepartmentReport($department);
+    }
+
+
+    private function handleGetAuditLogs() {
+    $table = $_GET['table'] ?? null;
+    $limit = $_GET['limit'] ?? 50;
+    $logs = $this->model->getAuditLogs($limit, $table);
+    $this->jsonResponse(['success' => true, 'logs' => $logs]);
+}
+
+private function handleGetLoginAttempts() {
+    $limit = $_GET['limit'] ?? 50;
+    $attempts = $this->model->getLoginAttempts($limit);
+    $this->jsonResponse(['success' => true, 'attempts' => $attempts]);
+}
 
     
 
 
 
 
+}
+
+if (isset($_GET['action'])) {
+    $action = $_GET['action'];
+    $model = new AdminDashboardModel();
+
+    if ($action === 'getAuditLogs') {
+        $table = $_GET['table'] ?? null;
+        $limit = $_GET['limit'] ?? 50;
+        $logs = $model->getAuditLogs($limit, $table);
+        echo json_encode(['success' => true, 'logs' => $logs]);
+        exit;
+    }
+
+    if ($action === 'getLoginAttempts') {
+        $limit = $_GET['limit'] ?? 50;
+        $attempts = $model->getLoginAttempts($limit);
+        echo json_encode(['success' => true, 'attempts' => $attempts]);
+        exit;
+    }
 }
 
 // Handle the request if this file is called directly
