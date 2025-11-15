@@ -3,6 +3,21 @@
 require_once __DIR__ . '/../Models/AdminDashboardModel.php';
 require_once __DIR__ . '/../Models/Model.php';
 
+$vendorAutoload = __DIR__ . '/../../../vendor/autoload.php';
+if (file_exists($vendorAutoload)) {
+    require_once $vendorAutoload;
+} else {
+    $vendorAutoload = __DIR__ . '/../../vendor/autoload.php';
+    if (file_exists($vendorAutoload)) {
+        require_once $vendorAutoload;
+    } else {
+        error_log("Dompdf not found. Please install via composer: composer require dompdf/dompdf");
+    }
+}
+
+use Dompdf\Dompdf;
+use Dompdf\Options;
+
 class AdminDashboardController {
      private $model;
     private $currentUser;
@@ -142,11 +157,13 @@ class AdminDashboardController {
             case 'testAuditQuery':
                 $this->testAuditQuery();
                 break;
-                case 'getReports':
-            $this->getReports();
-            break;
+            case 'getReports':
+                $this->getReports();
+                break;
             
-            
+            case 'generateReport':
+                $this->generateReport();
+                break;
 
           
 
@@ -1261,7 +1278,512 @@ private function handleGetLoginAttempts() {
 }
 
     
+/**
+ * Generate PDF report - WORKING VERSION
+ */
+private function generateReport() {
+    try {
+        error_log("=== GENERATE REPORT METHOD CALLED ===");
+        
+        $department = $_GET['department'] ?? 'all';
+        error_log("Processing department: " . $department);
+        
+        // Get report data
+        $reportData = $this->getOverviewReports($department);
+        error_log("Report data retrieved successfully");
+        
+        // Check if dompdf is available
+        if (!class_exists('Dompdf\Dompdf')) {
+            throw new Exception('Dompdf library not found. Please install via composer: composer require dompdf/dompdf');
+        }
+        
+        // Generate HTML content
+        $html = $this->generateReportHTML($reportData, $department);
+        
+        // Configure dompdf
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+        $options->set('defaultFont', 'Arial');
+        
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+        
+        // Generate filename
+        $timestamp = date('Y-m-d');
+        $deptName = $this->getDepartmentDisplayName($department);
+        $filename = "Thesis_Report_{$deptName}_{$timestamp}.pdf";
+        
+        // Output the PDF
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="' . $filename . '"');
+        header('Content-Transfer-Encoding: binary');
+        header('Accept-Ranges: bytes');
+        
+        echo $dompdf->output();
+        exit;
+        
+    } catch (Exception $e) {
+        error_log("PDF Generation Error: " . $e->getMessage());
+        error_log("Stack trace: " . $e->getTraceAsString());
+        
+        // Return JSON error instead of dying
+        $this->jsonResponse([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'message' => 'PDF generation failed'
+        ], 500);
+    }
+}
 
+/**
+ * Generate HTML content for PDF report with charts - FIXED VERSION
+ */
+private function generateReportHTML($reportData, $department) {
+    $deptName = $this->getDepartmentDisplayName($department);
+    $currentDate = date('F j, Y');
+    
+    // Safely extract data with proper object/array access
+    $stats = $reportData['stats'] ?? [];
+    $programCounts = $reportData['program_counts'] ?? [];
+    $courseDistribution = $reportData['course_distribution'] ?? [];
+    $monthlyUploads = $reportData['monthly_uploads'] ?? [];
+    
+    // Safely access stats with both object and array syntax
+    $totalTheses = 0;
+    $totalStudents = 0;
+    $recentTheses = 0;
+    
+    if (is_object($stats)) {
+        $totalTheses = $stats->total_theses ?? 0;
+        $totalStudents = $stats->total_students ?? 0;
+        $recentTheses = $stats->recent_theses ?? 0;
+    } else if (is_array($stats)) {
+        $totalTheses = $stats['total_theses'] ?? 0;
+        $totalStudents = $stats['total_students'] ?? 0;
+        $recentTheses = $stats['recent_theses'] ?? 0;
+    }
+    
+    // Prepare chart data
+    $pieChartData = $this->preparePieChartData($courseDistribution);
+    $barChartData = $this->prepareBarChartData($monthlyUploads);
+    
+    $html = '
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Thesis Management System Report</title>
+        <style>
+            body { 
+                font-family: Arial, sans-serif; 
+                margin: 40px; 
+                color: #333;
+                line-height: 1.6;
+            }
+            .header { 
+                text-align: center; 
+                border-bottom: 3px solid #ba1e1f; 
+                padding-bottom: 20px;
+                margin-bottom: 30px;
+            }
+            .header h1 { 
+                color: #ba1e1f; 
+                margin: 0; 
+                font-size: 28px;
+            }
+            .header h2 { 
+                color: #666; 
+                margin: 10px 0; 
+                font-size: 20px;
+                font-weight: normal;
+            }
+            .stats-section { 
+                margin: 30px 0; 
+            }
+            .stats-grid {
+                display: flex;
+                justify-content: space-between;
+                margin: 20px 0;
+            }
+            .stat-card {
+                background: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 20px;
+                text-align: center;
+                flex: 1;
+                margin: 0 10px;
+            }
+            .stat-number {
+                font-size: 32px;
+                font-weight: bold;
+                color: #ba1e1f;
+                margin: 10px 0;
+            }
+            .stat-label {
+                color: #666;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            .charts-section {
+                margin: 40px 0;
+            }
+            .chart-container {
+                background: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 20px;
+                margin-bottom: 30px;
+            }
+            .chart-title {
+                color: #ba1e1f;
+                border-bottom: 2px solid #ba1e1f;
+                padding-bottom: 10px;
+                margin-bottom: 20px;
+                font-size: 18px;
+            }
+            .table-section {
+                margin: 40px 0;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 20px 0;
+            }
+            th, td {
+                border: 1px solid #ddd;
+                padding: 12px;
+                text-align: left;
+            }
+            th {
+                background-color: #ba1e1f;
+                color: white;
+                font-weight: bold;
+            }
+            tr:nth-child(even) {
+                background-color: #f8f9fa;
+            }
+            .footer {
+                margin-top: 50px;
+                text-align: center;
+                color: #666;
+                font-size: 12px;
+                border-top: 1px solid #ddd;
+                padding-top: 20px;
+            }
+            .chart-table {
+                width: 100%;
+                margin: 20px 0;
+            }
+            .chart-table th {
+                background-color: #495057;
+            }
+            .color-swatch {
+                display: inline-block;
+                width: 12px;
+                height: 12px;
+                margin-right: 8px;
+                border-radius: 2px;
+            }
+            .program-stats {
+                background: #fff;
+                border-radius: 8px;
+                padding: 15px;
+                margin: 15px 0;
+            }
+            .section-title {
+                color: #ba1e1f;
+                border-bottom: 2px solid #ba1e1f;
+                padding-bottom: 10px;
+                margin-bottom: 20px;
+                font-size: 20px;
+            }
+            .charts-row {
+                display: flex;
+                gap: 30px;
+                margin: 30px 0;
+            }
+            .chart-half {
+                flex: 1;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>Thesis Management System</h1>
+            <h2>Program Report - ' . htmlspecialchars($deptName) . '</h2>
+            <p><strong>Generated on:</strong> ' . $currentDate . '</p>
+        </div>
+        
+        <div class="stats-section">
+            <h3 class="section-title">Overview Statistics</h3>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">' . $totalTheses . '</div>
+                    <div class="stat-label">Total Theses</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">' . $totalStudents . '</div>
+                    <div class="stat-label">Total Students</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">' . $recentTheses . '</div>
+                    <div class="stat-label">Recent Theses</div>
+                </div>
+            </div>
+        </div>';
+        
+    // Add Charts Section
+    $html .= '
+        <div class="charts-section">
+            <h3 class="section-title">Data Visualizations</h3>
+            
+            <div class="charts-row">
+                <!-- Student Distribution Pie Chart -->
+                <div class="chart-half">
+                    <div class="chart-container">
+                        <h3 class="chart-title">Student Distribution by Program</h3>
+                        ' . $this->generatePieChartTable($pieChartData) . '
+                    </div>
+                </div>
+                
+                <!-- Thesis Uploads Bar Chart -->
+                <div class="chart-half">
+                    <div class="chart-container">
+                        <h3 class="chart-title">Thesis Uploads (Last 12 Months)</h3>
+                        ' . $this->generateBarChartTable($barChartData) . '
+                    </div>
+                </div>
+            </div>
+        </div>';
+        
+    // Add program counts table if available
+    if (!empty($programCounts)) {
+        $html .= '
+        <div class="table-section">
+            <h3 class="section-title">Thesis Count by Program</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Program</th>
+                        <th>Thesis Count</th>
+                    </tr>
+                </thead>
+                <tbody>';
+        
+        $totalCount = 0;
+        foreach ($programCounts as $program) {
+            // Handle both object and array access
+            if (is_object($program)) {
+                $programName = $program->program ?? 'Unknown';
+                $count = $program->thesis_count ?? 0;
+            } else {
+                $programName = $program['program'] ?? 'Unknown';
+                $count = $program['thesis_count'] ?? 0;
+            }
+            $totalCount += $count;
+            $html .= '
+                    <tr>
+                        <td>' . htmlspecialchars($programName) . '</td>
+                        <td>' . $count . '</td>
+                    </tr>';
+        }
+        
+        $html .= '
+                    <tr style="font-weight: bold; background-color: #e9ecef;">
+                        <td><strong>Total</strong></td>
+                        <td><strong>' . $totalCount . '</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>';
+    }
+    
+    $html .= '
+        <div class="footer">
+            <p><strong>Generated by Thesis Management System | University of Southeastern Philippines</strong></p>
+            <p>This is an automated report. For questions, contact system administrator.</p>
+        </div>
+    </body>
+    </html>';
+    
+    return $html;
+}
+
+
+/**
+ * Prepare pie chart data for PDF - FIXED VERSION
+ */
+private function preparePieChartData($courseDistribution) {
+    if (empty($courseDistribution)) {
+        return [
+            ['label' => 'No Data Available', 'value' => 100, 'color' => '#CCCCCC']
+        ];
+    }
+
+    $colors = [
+        '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', 
+        '#FFEAA7', '#cd84cd', '#48ffd1', '#FFA726',
+        '#AB47BC', '#26C6DA', '#D4E157', '#FF7043'
+    ];
+
+    $data = [];
+    $colorIndex = 0;
+    
+    foreach ($courseDistribution as $course) {
+        // Handle both object and array access
+        if (is_object($course)) {
+            $label = $course->course ?? 'Unknown';
+            $value = $course->student_count ?? 0;
+        } else {
+            $label = $course['course'] ?? 'Unknown';
+            $value = $course['student_count'] ?? 0;
+        }
+        
+        $data[] = [
+            'label' => $label,
+            'value' => $value,
+            'color' => $colors[$colorIndex % count($colors)]
+        ];
+        $colorIndex++;
+    }
+    
+    return $data;
+}
+
+/**
+ * Prepare bar chart data for PDF - FIXED VERSION
+ */
+private function prepareBarChartData($monthlyUploads) {
+    if (empty($monthlyUploads)) {
+        // Return empty data for all months
+        $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        $data = [];
+        foreach ($months as $month) {
+            $data[] = [
+                'month' => $month,
+                'count' => 0
+            ];
+        }
+        return $data;
+    }
+    
+    $processedData = [];
+    foreach ($monthlyUploads as $upload) {
+        // Handle both object and array access
+        if (is_object($upload)) {
+            $month = $upload->month ?? 'Unknown';
+            $count = $upload->upload_count ?? $upload->count ?? 0;
+        } else {
+            $month = $upload['month'] ?? 'Unknown';
+            $count = $upload['upload_count'] ?? $upload['count'] ?? 0;
+        }
+        
+        $processedData[] = [
+            'month' => $month,
+            'count' => $count
+        ];
+    }
+    
+    return $processedData;
+}
+
+/**
+ * Generate pie chart as a table for PDF
+ */
+private function generatePieChartTable($pieChartData) {
+    $html = '<table class="chart-table">';
+    $html .= '<thead><tr><th>Program</th><th>Students</th><th>Percentage</th></tr></thead><tbody>';
+    
+    $totalStudents = array_sum(array_column($pieChartData, 'value'));
+    
+    foreach ($pieChartData as $item) {
+        $percentage = $totalStudents > 0 ? round(($item['value'] / $totalStudents) * 100, 1) : 0;
+        $html .= '
+            <tr>
+                <td>
+                    <span class="color-swatch" style="background-color: ' . $item['color'] . '"></span>
+                    ' . htmlspecialchars($item['label']) . '
+                </td>
+                <td>' . $item['value'] . '</td>
+                <td>' . $percentage . '%</td>
+            </tr>';
+    }
+    
+    $html .= '
+        <tr style="font-weight: bold; background-color: #e9ecef;">
+            <td>Total</td>
+            <td>' . $totalStudents . '</td>
+            <td>100%</td>
+        </tr>
+    </tbody></table>';
+    
+    return $html;
+}
+
+/**
+ * Generate bar chart as a table for PDF
+ */
+private function generateBarChartTable($barChartData) {
+    $html = '<table class="chart-table">';
+    $html .= '<thead><tr><th>Month</th><th>Thesis Uploads</th></tr></thead><tbody>';
+    
+    $totalUploads = 0;
+    $maxUploads = 0;
+    $peakMonth = '';
+    
+    foreach ($barChartData as $item) {
+        $count = $item['upload_count'] ?? $item['count'] ?? 0;
+        $month = $item['month'] ?? 'Unknown';
+        $totalUploads += $count;
+        
+        if ($count > $maxUploads) {
+            $maxUploads = $count;
+            $peakMonth = $month;
+        }
+        
+        $html .= '
+            <tr>
+                <td>' . htmlspecialchars($month) . '</td>
+                <td>' . $count . '</td>
+            </tr>';
+    }
+    
+    $html .= '
+        <tr style="font-weight: bold; background-color: #e9ecef;">
+            <td>Total Year</td>
+            <td>' . $totalUploads . '</td>
+        </tr>
+        <tr style="font-weight: bold; background-color: #d1ecf1;">
+            <td>Peak Month (' . htmlspecialchars($peakMonth) . ')</td>
+            <td>' . $maxUploads . '</td>
+        </tr>
+    </tbody></table>';
+    
+    return $html;
+}
+
+/**
+ * Get department display name
+ */
+private function getDepartmentDisplayName($department) {
+    $departmentMap = [
+        'all' => 'All Programs',
+        'bsit' => 'BSIT - Information Technology',
+        'beced' => 'BECED - Early Childhood Education',
+        'bsed' => 'BSED - Secondary Education',
+        'btvted' => 'BTVTED - Technical-Vocational',
+        'beed' => 'BEED - Elementary Education',
+        'bsned' => 'BSNED - Special Needs Education',
+        'bsabe' => 'BSABE - Agricultural Engineering'
+    ];
+    
+    return $departmentMap[$department] ?? 'All Programs';
+}
 
 
 

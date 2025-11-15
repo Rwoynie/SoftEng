@@ -718,10 +718,17 @@ $displayUserData = [
                     <!-- All Logs Container -->
                     <div id="allLogs-container" class="log-content active">
                         <div class="log-filter-bar">
-                            <div class="log-search-box">
-                                <i class="fas fa-search"></i>
-                                <input type="text" placeholder="Search all logs..." id="allLogSearchInput">
+                            <div class="search-download-container">
+                                <div class="log-search-box">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" placeholder="Search all logs..." id="allLogSearchInput">
+                                </div>
+                                <button class="log-download-btn2">
+                                    <i class="fas fa-download me-2"></i>
+                                    Download System Logs
+                                </button>
                             </div>
+                            
                             <div class="log-filter-options">
                                 <button class="log-filter-btn active" data-filter="all">All Activities</button>
                                 <button class="log-filter-btn" data-filter="login">Logins</button>
@@ -1058,6 +1065,10 @@ $displayUserData = [
                 <div id="reports-container" class="content-container reports-content">
                 <header class="header" id="announcementHeader">
                         <div class="title">Report</div>
+                        <button class="log-download-btn" id="downloadReportBtn">
+                            <i class="fas fa-download me-2"></i>
+                            Download Report
+                        </button>
                 </header>
 
                 <!-- Loading State -->

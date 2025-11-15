@@ -24,14 +24,234 @@ class ReportsManager {
             });
         });
 
-        // Chart action buttons
         const chartActions = document.querySelectorAll('.chart-action-btn');
         chartActions.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const action = e.currentTarget.title.toLowerCase();
-                this.handleChartAction(action, e.currentTarget);
-            });
+            if (btn.title.toLowerCase() === 'refresh') {
+                btn.addEventListener('click', (e) => {
+                    this.handleChartAction('refresh', e.currentTarget);
+                });
+            }
         });
+
+        const downloadReportBtn = document.getElementById('downloadReportBtn');
+        if (downloadReportBtn) {
+            downloadReportBtn.addEventListener('click', () => {
+                Swal.fire({
+                    title: 'Generate Report',
+                    text: 'Would you like to preview the report before downloading?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Preview First',
+                    cancelButtonText: 'Download Directly',
+                    showDenyButton: true,
+                    denyButtonText: 'Cancel',
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#28a745'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.downloadReportAsPDF(false);
+                    } else if (result.dismiss === Swal.DismissReason.cancel) {
+                        this.downloadReportAsPDF(true);
+                    }
+                });
+            });
+        }
+
+        // Preview report button (if exists)
+        const previewReportBtn = document.getElementById('previewReportBtn');
+        if (previewReportBtn) {
+            previewReportBtn.addEventListener('click', () => {
+                this.downloadReportAsPDF(false);
+            });
+        }
+    }
+
+    async downloadReportAsPDF(downloadImmediately = false) {
+    try {
+        console.log('Download button clicked');
+        console.log('Current department:', this.currentDepartment);
+        
+        // Show loading state
+        const swalInstance = Swal.fire({
+            title: 'Generating Report',
+            text: 'Please wait while we generate your PDF report...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        console.log('Generating actual report...');
+        const reportUrl = `../../../app/Controllers/AdminDashboardController.php?action=generateReport&department=${this.currentDepartment}`;
+        console.log('Report URL:', reportUrl);
+
+        const response = await fetch(reportUrl, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/pdf',
+            }
+        });
+
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+        console.log('Content-Type:', response.headers.get('content-type'));
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Server response error:', errorText);
+            
+            // Try to parse as JSON for better error message
+            try {
+                const errorJson = JSON.parse(errorText);
+                throw new Error(`HTTP error! status: ${response.status}. ${errorJson.error || errorJson.message || errorText}`);
+            } catch (e) {
+                throw new Error(`HTTP error! status: ${response.status}. Server says: ${errorText.substring(0, 200)}`);
+            }
+        }
+
+        const contentType = response.headers.get('content-type');
+        console.log('Final Content-Type:', contentType);
+
+        let blob;
+        if (contentType && contentType.includes('application/pdf')) {
+            blob = await response.blob();
+            console.log('PDF blob size:', blob.size);
+            
+            if (blob.size === 0) {
+                throw new Error('PDF blob is empty (0 bytes)');
+            }
+        } else {
+            // If not PDF, get as text to see what's returned
+            const textResponse = await response.text();
+            console.log('Non-PDF response (first 500 chars):', textResponse.substring(0, 500));
+            
+            // Try to parse as JSON for error details
+            try {
+                const errorData = JSON.parse(textResponse);
+                throw new Error(`Server returned ${contentType} instead of PDF. Error: ${errorData.error || errorData.message || 'Unknown error'}`);
+            } catch (e) {
+                throw new Error(`Server returned ${contentType} instead of PDF. Response: ${textResponse.substring(0, 200)}`);
+            }
+        }
+        
+        // Close loading Swal
+        Swal.close();
+
+        if (downloadImmediately) {
+            this.downloadPDFFile(blob);
+        } else {
+            this.previewPDF(blob);
+        }
+
+    } catch (error) {
+        console.error('Error generating report:', error);
+        Swal.close();
+        
+        Swal.fire({
+            title: 'Generation Failed',
+            html: `
+                <p>Failed to generate PDF report.</p>
+                <p><strong>Error:</strong> ${error.message}</p>
+                <p>Check the browser console for details.</p>
+            `,
+            icon: 'error',
+            confirmButtonColor: '#d33'
+        });
+    }
+}
+
+    // Preview PDF in new tab
+    previewPDF(blob) {
+        const url = window.URL.createObjectURL(blob);
+        const previewWindow = window.open(url, '_blank');
+        
+        if (!previewWindow) {
+            // If popup blocked, show download option directly
+            Swal.fire({
+                title: 'Popup Blocked',
+                text: 'Please allow popups to preview the PDF, or download directly.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Download Now',
+                cancelButtonText: 'Try Preview Again'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    this.downloadPDFFile(blob);
+                } else {
+                    this.previewPDF(blob); // Retry preview
+                }
+            });
+            return;
+        }
+
+        // Show download confirmation after preview
+        setTimeout(() => {
+            Swal.fire({
+                title: 'Report Ready!',
+                html: `
+                    <p>Your PDF report has been generated successfully.</p>
+                    <p>The report has been opened in a new tab for preview.</p>
+                    <p>Would you like to download it now?</p>
+                `,
+                icon: 'success',
+                showCancelButton: true,
+                confirmButtonText: 'Download PDF',
+                cancelButtonText: 'Keep Preview Only',
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    this.downloadPDFFile(blob);
+                // Clean up blob URL immediately after download
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    // Clean up blob URL after some time if not downloading
+                    setTimeout(() => {
+                        window.URL.revokeObjectURL(url);
+                    }, 30000); // Clean up after 30 seconds
+                }
+            });
+        }, 2000);
+    }
+
+    // Download PDF file
+    downloadPDFFile(blob) {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        
+        // Generate filename with timestamp
+        const timestamp = new Date().toISOString().slice(0, 10);
+        const deptName = this.getDepartmentDisplayName(this.currentDepartment);
+        a.download = `Thesis_Report_${deptName}_${timestamp}.pdf`;
+        
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        // Show success message
+        Swal.fire({
+            title: 'Report Downloaded!',
+            text: 'Your PDF report has been successfully downloaded.',
+            icon: 'success',
+            confirmButtonColor: '#3085d6'
+        });
+    }
+
+    getDepartmentDisplayName(departmentValue) {
+        const departmentMap = {
+            'all': 'All_Programs',
+            'bsit': 'BSIT',
+            'beced': 'BECED',
+            'bsed': 'BSED',
+            'btvted': 'BTVTED',
+            'beed': 'BEED',
+            'bsned': 'BSNED',
+            'bsabe': 'BSABE'
+        };
+        return departmentMap[departmentValue] || 'All_Programs';
     }
 
     async loadReportsData() {
@@ -351,27 +571,10 @@ class ReportsManager {
     }
 
     handleChartAction(action, button) {
-        switch (action) {
-            case 'download':
-                this.downloadChartData(button);
-                break;
-            case 'refresh':
-                this.refreshChart(button);
-                break;
+        if (action === 'refresh') {
+            this.refreshChart(button);
         }
-    }
-
-    downloadChartData(button) {
-        const chartType = button.closest('.chart-card').querySelector('h3').textContent;
-        Swal.fire({
-            title: 'Download Chart Data',
-            text: `Download ${chartType} data as CSV?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Download CSV'
-        });
+        // Remove download case
     }
 
     async refreshChart(button) {
@@ -412,14 +615,17 @@ class ReportsManager {
     }
 }
 
-
-
-
-
 // Initialize reports when the page loads and when reports tab is clicked
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize reports manager globally
     window.reportsManager = new ReportsManager();
+
+    // Remove download buttons from charts in the HTML
+    const chartActions = document.querySelectorAll('.chart-actions');
+    chartActions.forEach(actionsContainer => {
+        const downloadButtons = actionsContainer.querySelectorAll('.chart-action-btn[title="download"]');
+        downloadButtons.forEach(btn => btn.remove());
+    });
 
     // Set up tab switching
     const reportsOption = document.querySelector('.menu-options li[data-view="reports"]');
