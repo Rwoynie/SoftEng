@@ -31,45 +31,39 @@ class PublicHomeModel {
     /**
      * Get all active announcements (lowercase table)
      */
+
     public function getActiveAnnouncements() {
-        try {
-            $this->db->query("
-                SELECT 
-                    id,
-                    title,
-                    content as description,
-                    type,
-                    start_date as date,
-                    'Announcement_pic.png' as image
-                FROM announcements 
-                WHERE status = 'published' 
-                AND (end_date IS NULL OR end_date >= NOW())
-                AND start_date <= NOW()
-                ORDER BY is_pinned DESC, start_date DESC
-                LIMIT 10
-            ");
-            
-            $results = $this->db->resultSet();
-            
-            // Format the results to match your frontend structure
-            $announcements = [];
-            foreach ($results as $result) {
-                $announcements[] = [
-                    'title' => $result->title,
-                    'description' => $result->description,
-                    'date' => $result->date,
-                    'image' => '../../../resources/images/Announcement_pic.png',
-                    'type' => $result->type
-                ];
-            }
-            
-            return $announcements;
-            
-        } catch (Exception $e) {
-            error_log("Error fetching announcements: " . $e->getMessage());
-            return $this->getFallbackAnnouncements();
-        }
+    try {
+        $this->db->query("
+            SELECT 
+                id,
+                title, 
+                content as description,  
+                type, 
+                start_date as date,
+                is_pinned,
+                status,
+                '../../../resources/images/Announcement_pic.png' as image 
+            FROM ANNOUNCEMENTS 
+            WHERE status = 'published' 
+            AND (end_date IS NULL OR end_date >= NOW())
+            ORDER BY is_pinned DESC, start_date DESC
+        ");
+        
+        $results = $this->db->resultSet();
+        
+        $announcements = array_map(function($obj) {
+            return (array) $obj;
+        }, $results ?? []);
+        
+        return $announcements;
+
+    } catch (Exception $e) {
+        error_log("Error fetching announcements: " . $e->getMessage());
+        return [];
     }
+}
+
     
     /**
      * Get all programs/departments
@@ -324,21 +318,7 @@ class PublicHomeModel {
         ];
     }
     
-    /**
-     * Fallback announcements data
-     */
-    private function getFallbackAnnouncements() {
-        return [
-            [
-                'title' => 'System Initialized',
-                'description' => 'The Thesis Compendium System is now live and accepting submissions.',
-                'date' => date('Y-m-d'),
-                'image' => '../../../resources/images/Announcement_pic.png',
-                'type' => 'info'
-            ]
-        ];
-    }
-
+   
     /**
      * Get thesis stats (lowercase table + subqueries for robustness)
      */

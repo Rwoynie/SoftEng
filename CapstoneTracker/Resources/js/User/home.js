@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeDOMElements();
     initializeCarousels();
     initializeEventListeners();
+    initializeAnnouncementModals();
     
     // Initialize search page if we're on search page
     if (document.getElementById('results-page')) {
@@ -559,6 +560,259 @@ function initializeEventListeners() {
         });
     }
 }
+
+
+function initializeAnnouncementModals() {
+    const modal = document.getElementById('announcementModal');
+    const readMoreLinks = document.querySelectorAll('.read-more[data-announcement-id]');
+    
+    // Close modal function with transition
+    function closeModal() {
+        const modalContent = modal.querySelector('.premium-modal-content');
+        const backdrop = modal.querySelector('.premium-modal-backdrop');
+        
+        // Add closing animations
+        modalContent.style.animation = 'premiumModalIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) reverse';
+        backdrop.style.animation = 'premiumBackdropIn 0.3s ease reverse';
+        
+        setTimeout(() => {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            
+            // Reset animations
+            modalContent.style.animation = '';
+            backdrop.style.animation = '';
+        }, 250);
+    }
+    
+    // Open modal function with transition
+    function openModal(announcementId) {
+        const announcementCard = document.querySelector(`[data-announcement-id="${announcementId}"]`);
+        if (!announcementCard) return;
+        
+        // Get announcement data from the card
+        const title = announcementCard.querySelector('h3').textContent;
+        const date = announcementCard.querySelector('.date').textContent;
+        const badge = announcementCard.querySelector('.card-badge').cloneNode(true);
+        const imageSrc = announcementCard.querySelector('.Anncmnt_pic').src;
+        const content = announcementCard.querySelector('.announcement-preview').textContent;
+        const isPinned = announcementCard.classList.contains('pinned');
+        
+        // Populate modal
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('modalDate').textContent = date;
+        document.getElementById('modalImage').src = imageSrc;
+        document.getElementById('modalContent').textContent = content;
+        
+        // Update badge
+        const modalBadge = document.getElementById('modalBadge');
+        modalBadge.className = 'premium-modal-badge';
+        modalBadge.textContent = badge.textContent.trim();
+        
+        // Show/hide pinned indicator
+        const pinIndicator = modal.querySelector('.premium-pin-indicator');
+        if (pinIndicator) {
+            pinIndicator.style.display = isPinned ? 'flex' : 'none';
+        }
+        
+        // Show modal with animation
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        
+        // Trigger animations
+        setTimeout(() => {
+            const modalContent = modal.querySelector('.premium-modal-content');
+            const backdrop = modal.querySelector('.premium-modal-backdrop');
+            
+            modalContent.style.animation = 'premiumModalIn 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+            backdrop.style.animation = 'premiumBackdropIn 0.4s ease';
+        }, 50);
+    }
+    
+    // Event listeners for read more links
+    readMoreLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const announcementId = this.getAttribute('data-announcement-id');
+            openModal(announcementId);
+        });
+    });
+    
+    // Event listeners for announcement cards
+    document.querySelectorAll('.announcement-card').forEach(card => {
+        card.addEventListener('click', function(e) {
+            if (!e.target.closest('.read-more') && !e.target.closest('.pin-indicator')) {
+                const announcementId = this.getAttribute('data-announcement-id');
+                openModal(announcementId);
+            }
+        });
+    });
+    
+    // Close modal events
+    const closeBtn = modal.querySelector('.premium-close-btn');
+    const backdrop = modal.querySelector('.premium-modal-backdrop');
+    
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeModal);
+    }
+    
+    if (backdrop) {
+        backdrop.addEventListener('click', closeModal);
+    }
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal.style.display === 'block') {
+            closeModal();
+        }
+    });
+}
+
+// Share announcement function
+function shareAnnouncement() {
+    const title = document.getElementById('modalTitle').textContent;
+    const text = document.getElementById('modalContent').textContent.slice(0, 100) + '...';
+    
+    if (navigator.share) {
+        navigator.share({
+            title: title,
+            text: text,
+            url: window.location.href
+        }).catch(err => {
+            console.log('Error sharing:', err);
+        });
+    } else {
+        // Fallback: copy to clipboard
+        const shareText = `${title}\n\n${text}\n\n${window.location.href}`;
+        navigator.clipboard.writeText(shareText).then(() => {
+            alert('Announcement link copied to clipboard!');
+        }).catch(err => {
+            console.log('Error copying to clipboard:', err);
+        });
+    }
+}
+
+// Enhanced open modal function for external calls
+function openAnnModal(announcementId) {
+    const modal = document.getElementById('announcementModal');
+    const card = document.querySelector(`[data-announcement-id="${announcementId}"]`);
+    
+    if (!card) return;
+
+    const title = card.querySelector('h3').textContent.trim();
+    const date = card.querySelector('.date').textContent.trim();
+    const badge = card.querySelector('.card-badge').cloneNode(true);
+    const imgSrc = card.querySelector('.Anncmnt_pic').src;
+    const content = card.querySelector('.announcement-preview').textContent.trim();
+    const isPinned = card.classList.contains('pinned');
+
+    // Populate modal
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalDate').textContent = date;
+    document.getElementById('modalImage').src = imgSrc;
+    document.getElementById('modalContent').textContent = content;
+
+    // Update badge
+    const modalBadge = document.getElementById('modalBadge');
+    modalBadge.className = 'premium-modal-badge';
+    modalBadge.textContent = badge.textContent.trim();
+
+    // Show/hide pinned indicator
+    const pinIndicator = modal.querySelector('.premium-pin-indicator');
+    if (pinIndicator) {
+        pinIndicator.style.display = isPinned ? 'flex' : 'none';
+    }
+
+    // Show modal with animation
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+
+    // Trigger animations
+    setTimeout(() => {
+        const modalContent = modal.querySelector('.premium-modal-content');
+        const backdrop = modal.querySelector('.premium-modal-backdrop');
+        
+        modalContent.style.animation = 'premiumModalIn 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+        backdrop.style.animation = 'premiumBackdropIn 0.4s ease';
+    }, 50);
+}
+
+// Enhanced close modal function
+function closeAnnModal() {
+    const modal = document.getElementById('announcementModal');
+    const modalContent = modal.querySelector('.premium-modal-content');
+    const backdrop = modal.querySelector('.premium-modal-backdrop');
+    
+    // Add closing animations
+    modalContent.style.animation = 'premiumModalIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) reverse';
+    backdrop.style.animation = 'premiumBackdropIn 0.3s ease reverse';
+    
+    setTimeout(() => {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        
+        // Reset animations
+        modalContent.style.animation = '';
+        backdrop.style.animation = '';
+    }, 250);
+}
+
+// Initialize modals when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    initializeAnnouncementModals();
+});
+
+// Initialize modals when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    initializeAnnouncementModals();
+});
+
+/* ---------- Announcement Modal ---------- */
+function openAnnModal(announcementId) {
+    const card = document.querySelector(`[data-announcement-id="${announcementId}"]`);
+    if (!card) return;
+
+    const title   = card.querySelector('h3').textContent.trim();
+    const date    = card.querySelector('.date').textContent.trim();
+    const badge   = card.querySelector('.card-badge').cloneNode(true);
+    const imgSrc  = card.querySelector('.Anncmnt_pic').src;
+    const content = card.querySelector('.announcement-preview').textContent.trim();
+
+    document.getElementById('modalTitle').textContent   = title;
+    document.getElementById('modalDate').textContent    = date;
+    document.getElementById('modalImage').src           = imgSrc;
+    document.getElementById('modalContent').textContent = content;
+
+    const badgeEl = document.getElementById('modalBadge');
+    badgeEl.className = 'annc-badge ' + badge.className.replace('card-badge', '').trim();
+    badgeEl.textContent = badge.textContent.trim();
+
+    document.getElementById('announcementModal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeAnnModal() {
+    document.getElementById('announcementModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+/* Keep the click-to-open logic (same as before) */
+document.querySelectorAll('.announcement-card').forEach(card => {
+    card.addEventListener('click', function (e) {
+        if (!e.target.closest('.read-more') && !e.target.closest('.pin-indicator')) {
+            const id = this.getAttribute('data-announcement-id');
+            openAnnModal(id);
+        }
+    });
+});
+
+/* Close with Esc */
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && document.getElementById('announcementModal').style.display === 'flex') {
+        closeAnnModal();
+    }
+});
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', () => {
