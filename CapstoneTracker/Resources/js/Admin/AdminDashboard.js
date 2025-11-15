@@ -512,6 +512,10 @@ if (reportsOption) {
         
         const fileListId = fileType === 'abstract' ? 'abstractFileList' : 'thesisFileList';
         const fileList = document.getElementById(fileListId);
+        const fileCategory = fileList.closest('.file-category');
+        if (fileCategory) {
+            fileCategory.classList.add('has-files');
+        }
         
         // FIX: Check if file already exists in the display before adding
         const existingFileItems = fileList.querySelectorAll('.file-item-card');
@@ -622,6 +626,15 @@ if (reportsOption) {
         // Remove from uploadedFiles array
         uploadedFiles[fileType] = uploadedFiles[fileType].filter(file => file.name !== fileName);
         
+        const fileListId = fileType === 'abstract' ? 'abstractFileList' : 'thesisFileList';
+        const fileList = document.getElementById(fileListId);
+        if (uploadedFiles[fileType].length === 0) {
+            const fileCategory = fileList.closest('.file-category');
+            if (fileCategory) {
+                fileCategory.classList.remove('has-files');
+            }
+        }
+
         // FIX: Clear the file input value to allow re-selection of the same file
         if (fileType === 'abstract' && abstractFileInput) {
             abstractFileInput.value = '';
@@ -4399,6 +4412,7 @@ function closeModal(modal) {
         console.error('Error closing modal:', error);
     }
 }
+
 
 
 

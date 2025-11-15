@@ -155,6 +155,22 @@
                 INDEX idx_type (type),
                 INDEX idx_read (is_read),
                 INDEX idx_created (created_at)
+            ) ENGINE=InnoDB;",
+
+            // PASSWORD RESET TOKENS
+            "CREATE TABLE IF NOT EXISTS PASSWORD_RESET_TOKENS (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT(11) UNSIGNED NOT NULL,
+                token VARCHAR(64) NOT NULL,
+                expires_at DATETIME NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_used BOOLEAN DEFAULT FALSE,
+                INDEX idx_user (user_id),
+                INDEX idx_token (token),
+                INDEX idx_expires (expires_at),
+                INDEX idx_used (is_used),
+                INDEX idx_created (created_at),
+                FOREIGN KEY (user_id) REFERENCES USER_INFORMATION(ID) ON DELETE CASCADE
             ) ENGINE=InnoDB;"
 
             
@@ -343,7 +359,9 @@
                 'ANNOUNCEMENTS' => 3,
                 'AUDIT_LOGS' => 4,
                 'LOGIN_ATTEMPTS' => 5,
-                'NOTIFICATIONS' => 6
+                'NOTIFICATIONS' => 6,
+                'PASSWORD_RESET_TOKENS' => 7,
+                'ROLES' => 8
             ];
             
             $tableA = self::extractTableName($a);
@@ -430,15 +448,26 @@
         $queries = self::getOrderedTableQueries();
         
         foreach ($queries as $query) {
+            $tableName = self::extractTableName($query);
             try {
+                error_log("Creating table: " . $tableName);
                 $this->db->query($query);
                 $this->db->execute();
+                error_log("Successfully created table: " . $tableName);
             } catch (PDOException $e) {
-                $this->error = "Table creation failed for '" . self::extractTableName($query) . "': " . $e->getMessage();
+                $errorMsg = "Table creation failed for '" . $tableName . "': " . $e->getMessage();
+                error_log($errorMsg);
+                $this->error = $errorMsg;
+                return false;
+            } catch (Exception $e) {
+                $errorMsg = "Table creation failed for '" . $tableName . "': " . $e->getMessage();
+                error_log($errorMsg);
+                $this->error = $errorMsg;
                 return false;
             }
         }
         
+        error_log("All tables created successfully");
         return true;
     }
 
