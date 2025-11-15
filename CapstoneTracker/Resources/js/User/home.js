@@ -17,7 +17,7 @@ function initializeDOMElements() {
     landingPage = document.getElementById('landing-page');
 }
 
-// === FLICKITY-LIKE CAROUSEL WITH WRAP-AROUND ===
+// === ENHANCED FLICKITY-LIKE CAROUSEL WITH WRAP-AROUND AND CENTERED DESIGN ===
 class FlickityCarousel {
     constructor(element, options = {}) {
         this.element = element;
@@ -29,8 +29,11 @@ class FlickityCarousel {
         
         this.options = {
             wrapAround: true,
-            cellAlign: 'left',
+            cellAlign: 'center',
             contain: false,
+            autoPlay: element.classList.contains('logo-carousel'), 
+            autoPlayDelay: 4000,
+            centered: element.classList.contains('logo-carousel'), 
             ...options
         };
         
@@ -39,6 +42,7 @@ class FlickityCarousel {
         this.startX = 0;
         this.scrollLeft = 0;
         this.autoPlayInterval = null;
+        this.isProgramCarousel = element.classList.contains('logo-carousel');
         
         this.init();
     }
@@ -47,13 +51,18 @@ class FlickityCarousel {
         if (!this.cards || this.cards.children.length === 0) return;
         
         this.cardCount = this.cards.children.length;
-        this.cardWidth = this.cards.children[0].offsetWidth + 24; // width + gap
+        this.cardWidth = this.cards.children[0].offsetWidth + 24; 
         
         this.setupEventListeners();
         this.updateCarousel();
         
         if (this.cardCount <= 1) {
             this.hideControls();
+        }
+        
+        // Start auto-play if enabled
+        if (this.options.autoPlay) {
+            this.startAutoPlay();
         }
     }
     
@@ -87,6 +96,12 @@ class FlickityCarousel {
             }
         });
         
+        // Pause auto-play on hover for programs carousel
+        if (this.options.autoPlay) {
+            this.container.addEventListener('mouseenter', () => this.pauseAutoPlay());
+            this.container.addEventListener('mouseleave', () => this.resumeAutoPlay());
+        }
+        
         // Resize handling
         let resizeTimeout;
         window.addEventListener('resize', () => {
@@ -105,6 +120,11 @@ class FlickityCarousel {
             this.scrollLeft = this.cards.scrollLeft;
             this.cards.style.scrollBehavior = 'auto';
             this.cards.style.cursor = 'grabbing';
+            
+            // Pause auto-play during drag
+            if (this.options.autoPlay) {
+                this.pauseAutoPlay();
+            }
         };
         
         const duringDrag = (e) => {
@@ -124,6 +144,11 @@ class FlickityCarousel {
             const scrollPos = this.cards.scrollLeft;
             this.currentIndex = Math.round(scrollPos / this.cardWidth);
             this.updateCarousel();
+            
+            // Resume auto-play after drag
+            if (this.options.autoPlay) {
+                this.resumeAutoPlay();
+            }
         };
         
         // Mouse events
@@ -148,6 +173,11 @@ class FlickityCarousel {
             this.currentIndex = Math.min(this.currentIndex + 1, this.cardCount - 1);
         }
         this.updateCarousel();
+        
+        // Reset auto-play timer
+        if (this.options.autoPlay) {
+            this.resetAutoPlay();
+        }
     }
     
     previous() {
@@ -157,11 +187,21 @@ class FlickityCarousel {
             this.currentIndex = Math.max(this.currentIndex - 1, 0);
         }
         this.updateCarousel();
+        
+        // Reset auto-play timer
+        if (this.options.autoPlay) {
+            this.resetAutoPlay();
+        }
     }
     
     select(index) {
         this.currentIndex = index;
         this.updateCarousel();
+        
+        // Reset auto-play timer
+        if (this.options.autoPlay) {
+            this.resetAutoPlay();
+        }
     }
     
     updateCarousel() {
@@ -182,10 +222,62 @@ class FlickityCarousel {
             card.setAttribute('aria-hidden', idx !== this.currentIndex);
             if (idx === this.currentIndex) {
                 card.setAttribute('tabindex', '0');
+                card.classList.add('active');
             } else {
                 card.removeAttribute('tabindex');
+                card.classList.remove('active');
             }
         });
+        
+        // Apply centered effect for programs carousel
+        if (this.isProgramCarousel && this.options.centered) {
+            this.applyCenteredEffect();
+        }
+    }
+    
+    applyCenteredEffect() {
+        const cards = this.cards.querySelectorAll('.logo-card');
+        cards.forEach((card, index) => {
+            // Reset all cards first
+            card.style.transform = 'scale(0.9)';
+            card.style.opacity = '0.7';
+            card.style.filter = 'blur(2px)';
+            card.style.zIndex = '1';
+            
+            // Apply active state to current card
+            if (index === this.currentIndex) {
+                card.style.transform = 'scale(1)';
+                card.style.opacity = '1';
+                card.style.filter = 'blur(0)';
+                card.style.zIndex = '2';
+            }
+        });
+    }
+    
+    startAutoPlay() {
+        if (this.cardCount <= 1) return;
+        
+        this.autoPlayInterval = setInterval(() => {
+            this.next();
+        }, this.options.autoPlayDelay);
+    }
+    
+    pauseAutoPlay() {
+        if (this.autoPlayInterval) {
+            clearInterval(this.autoPlayInterval);
+            this.autoPlayInterval = null;
+        }
+    }
+    
+    resumeAutoPlay() {
+        if (this.options.autoPlay && !this.autoPlayInterval) {
+            this.startAutoPlay();
+        }
+    }
+    
+    resetAutoPlay() {
+        this.pauseAutoPlay();
+        this.resumeAutoPlay();
     }
     
     hideControls() {
@@ -205,26 +297,142 @@ class FlickityCarousel {
 }
 
 function initializeCarousels() {
+    // ---------- ANNOUNCEMENTS CAROUSEL ----------
     const announcementCarousels = document.querySelectorAll('.announcements-carousel');
-    const programCarousels = document.querySelectorAll('.logo-carousel');
-    
-    // Initialize announcement carousels
     announcementCarousels.forEach(carousel => {
         const instance = new FlickityCarousel(carousel, {
             wrapAround: true,
-            cellAlign: 'center'
+            cellAlign: 'left',
+            autoPlay: false,
+            centered: false
         });
         carouselInstances.push(instance);
     });
-    
-    // Initialize program carousels
-    programCarousels.forEach(carousel => {
-        const instance = new FlickityCarousel(carousel, {
-            wrapAround: true,
-            cellAlign: 'center'
+
+    // ---------- PROGRAMS CAROUSEL (IMPROVED SEAMLESS LOOPING IN BOTH DIRECTIONS) ----------
+    // ---------- PROGRAMS CAROUSEL (SEAMLESS LOOP + NO BLUR) ----------
+const programCarousels = document.querySelectorAll('.logo-carousel');
+programCarousels.forEach(carousel => {
+    const container   = carousel.querySelector('.carousel-container');
+    const cardsWrap   = carousel.querySelector('.logo-cards');
+    const cards       = cardsWrap.querySelectorAll('.logo-card');
+    const prevBtn     = carousel.querySelector('.carousel-control.prev');
+    const nextBtn     = carousel.querySelector('.carousel-control.next');
+    const indicators  = carousel.querySelectorAll('.indicator');
+
+    if (!cards.length) return;
+
+    const CARD_GAP    = 24;
+    const cardWidth   = cards[0].offsetWidth + CARD_GAP;
+    const original    = Array.from(cards);
+    const originalCnt = original.length;
+
+    // ---- clone for infinite scroll (prepend + append) ----
+    // prepend reversed clones
+    for (let i = originalCnt - 1; i >= 0; i--) {
+        cardsWrap.insertBefore(original[i].cloneNode(true), cardsWrap.firstChild);
+    }
+    // append normal clones
+    original.forEach(c => cardsWrap.appendChild(c.cloneNode(true)));
+
+    const allCards = cardsWrap.querySelectorAll('.logo-card');   // 3×original
+    const total    = allCards.length;
+
+    // start in the *middle* block (original cards)
+    let currentIdx = originalCnt;          // points to first original
+    let autoPlayId = null;
+
+    // ---- helper: move to any index (smooth = true/false) ----
+    const goTo = (idx, smooth = true) => {
+        currentIdx = idx;
+
+        const offset = currentIdx * cardWidth -
+                      (container.offsetWidth - cardWidth) / 2;
+
+        cardsWrap.style.transition = smooth ? 'transform 0.4s ease' : 'none';
+        cardsWrap.style.transform   = `translateX(${-offset}px)`;
+
+        // ----- indicators (original index) -----
+        const origIdx = (currentIdx - originalCnt) % originalCnt;
+        indicators.forEach((ind, i) => ind.classList.toggle('active', i === origIdx));
+
+        // ----- visual active state (ALL clones that match the original index) -----
+        allCards.forEach((c, i) => {
+            const isActive = (i - originalCnt) % originalCnt === origIdx;
+            c.classList.toggle('active', isActive);
+            c.style.transform = isActive ? 'scale(1)' : 'scale(0.9)';
+            c.style.opacity   = isActive ? '1'     : '0.7';
+            c.style.filter    = isActive ? 'blur(0)' : 'blur(2px)';
+            c.style.zIndex    = isActive ? '2' : '1';
         });
-        carouselInstances.push(instance);
+    };
+
+    // ---- seamless reset after transition (no flicker) ----
+    cardsWrap.addEventListener('transitionend', () => {
+        let shifted = false;
+
+        if (currentIdx < originalCnt) {                 // went too far left
+            currentIdx += originalCnt;
+            shifted = true;
+        } else if (currentIdx >= originalCnt * 2) {     // went too far right
+            currentIdx -= originalCnt;
+            shifted = true;
+        }
+
+        if (shifted) {
+            const offset = currentIdx * cardWidth -
+                          (container.offsetWidth - cardWidth) / 2;
+            cardsWrap.style.transition = 'none';
+            cardsWrap.style.transform   = `translateX(${-offset}px)`;
+            // force reflow so the next smooth transition works
+            void cardsWrap.offsetHeight;
+        }
     });
+
+    // ---- navigation ----
+    prevBtn?.addEventListener('click', () => { goTo(currentIdx - 1); resetAuto(); });
+    nextBtn?.addEventListener('click', () => { goTo(currentIdx + 1); resetAuto(); });
+
+    indicators.forEach((ind, i) => ind.addEventListener('click', () => {
+        const targetOriginal = i;
+        const currentOriginal = (currentIdx - originalCnt) % originalCnt;
+        const diff = targetOriginal - currentOriginal;
+        goTo(currentIdx + diff);
+        resetAuto();
+    }));
+
+    // ---- auto-play ----
+    const startAuto = () => {
+        autoPlayId = setInterval(() => goTo(currentIdx + 1), 4000);
+    };
+    const stopAuto  = () => clearInterval(autoPlayId);
+    const resetAuto = () => { stopAuto(); startAuto(); };
+
+    if (originalCnt > 1) {
+        startAuto();
+        carousel.addEventListener('mouseenter', stopAuto);
+        carousel.addEventListener('mouseleave', startAuto);
+    } else {
+        prevBtn && (prevBtn.style.display = 'none');
+        nextBtn && (nextBtn.style.display = 'none');
+        indicators[0] && (indicators[0].parentElement.style.display = 'none');
+    }
+
+    // ---- init ----
+    goTo(currentIdx, false);
+
+    // ---- cleanup ----
+    carouselInstances.push({
+        destroy: () => {
+            stopAuto();
+            // remove all clones
+            while (cardsWrap.children.length > originalCnt) {
+                cardsWrap.removeChild(cardsWrap.firstChild);
+                cardsWrap.removeChild(cardsWrap.lastChild);
+            }
+        }
+    });
+});
 }
 
 // === SEARCH PAGE FUNCTIONALITY ===

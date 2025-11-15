@@ -5,7 +5,6 @@ require_once '../../Controllers/PublicHomeController.php';
 require_once '../../Models/Thesis.php';  
 require_once '../../Models/PublicHomeModel.php';  
 
-
 $model = new PublicHomeModel();
 $announcements = $model->getActiveAnnouncements();
 $programs = $model->getPrograms();
@@ -26,8 +25,6 @@ $stats = $model->getThesisStats();
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Quicksand">
-
-
 </head>
 <body>
   
@@ -79,7 +76,7 @@ $stats = $model->getThesisStats();
         </div>
       </section>
 
-      <!-- Announcements Carousel - Always show the section -->
+      <!-- Announcements Carousel -->
       <section class="announcements-section">
         <div class="section-header">
           <h2>Announcements</h2>
@@ -89,6 +86,7 @@ $stats = $model->getThesisStats();
           <button class="carousel-control prev">
             <i class="fas fa-chevron-left"></i>
           </button>
+
           <div class="carousel-container">
             <div class="announcement-cards">
               <?php if (!empty($announcements)): ?>
@@ -136,24 +134,27 @@ $stats = $model->getThesisStats();
               <?php endif; ?>
             </div>
           </div>
+          
           <button class="carousel-control next">
             <i class="fas fa-chevron-right"></i>
           </button>
+          
           <div class="carousel-indicators">
             <?php if (!empty($announcements)): ?>
               <?php for ($i = 0; $i < count($announcements); $i++): ?>
-                <div class="indicator <?php echo $i === 0 ? 'active' : ''; ?>"></div>
+                <div class="indicator <?php echo $i === 0 ? 'active' : ''; ?>" data-index="<?php echo $i; ?>"></div>
               <?php endfor; ?>
             <?php endif; ?>
           </div>
         </div>
       </section>
 
-      <!-- Programs Carousel - Rendered in PHP -->
+      <!-- Programs Carousel -->
       <section class="program-logos-section">
         <div class="section-header">
           <h2>Programs</h2>
         </div>
+        
         <div class="logo-carousel">
           <button class="carousel-control prev">
             <i class="fas fa-chevron-left"></i>
@@ -186,7 +187,7 @@ $stats = $model->getThesisStats();
           <div class="carousel-indicators">
             <?php if (!empty($programs)): ?>
               <?php for ($i = 0; $i < count($programs); $i++): ?>
-                <div class="indicator <?php echo $i === 0 ? 'active' : ''; ?>"></div>
+                <div class="indicator <?php echo $i === 0 ? 'active' : ''; ?>" data-index="<?php echo $i; ?>"></div>
               <?php endfor; ?>
             <?php endif; ?>
           </div>
