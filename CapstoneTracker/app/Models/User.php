@@ -23,7 +23,7 @@ class User extends Model {
             $salt = bin2hex(random_bytes(16));
             $hashedPassword = password_hash($data['password'] . $salt, PASSWORD_DEFAULT);
             
-            // Generate unique User_ID based on role
+            // Generate unique User_ID based on role - USING SAME LOGIC AS GOOGLE REGISTRATION
             $userRole = $data['user_role'] ?? 'student';
             $userId = $this->generateUserId($userRole, $data);
             
@@ -37,7 +37,7 @@ class User extends Model {
                 throw new Exception("Email address '{$data['email']}' is already registered");
             }
             
-            // Build the SQL query based on available data
+            // Build the SQL query based on available data - USING SAME STRUCTURE AS GOOGLE REGISTRATION
             $fields = ['pswrd', 'Salt', 'First_Name', 'Last_Name', 'Email', 'User_ID', 'User_Role', 'Acc_Status', 'Profile_Pic'];
             $values = [':password', ':salt', ':first_name', ':last_name', ':email', ':user_id', ':user_role', ':acc_status', ':profile_pic'];
             $bindings = [
@@ -46,10 +46,10 @@ class User extends Model {
                 ':first_name' => $data['first_name'] ?? '',
                 ':last_name' => $data['last_name'] ?? '',
                 ':email' => $data['email'] ?? '',
-                ':user_id' => $userId,
+                ':user_id' => $userId, // Add the auto-generated User_ID
                 ':user_role' => $userRole,
                 ':acc_status' => $data['acc_status'] ?? 'pending',
-                ':profile_pic' => $data['profile_pic']
+                ':profile_pic' => $data['profile_pic'] ?? null
             ];
             
             // Optional fields
@@ -58,7 +58,6 @@ class User extends Model {
                 'extension' => 'Extension',
                 'course' => 'Course',
                 'department' => 'Department',
-                'designation' => 'Designation',
             ];
             
             foreach ($optionalFields as $dataKey => $dbField) {
@@ -69,8 +68,8 @@ class User extends Model {
                 }
             }
             
-            // Add Student_ID or Employee_ID based on role
-            if ($userRole === 'student' && !empty($data['student_id'])) {
+            // Add Student_ID or Employee_ID based on role - USING SAME LOGIC AS GOOGLE REGISTRATION
+            if (($userRole === 'student' || $userRole === 'researcher') && !empty($data['student_id'])) {
                 $fields[] = 'Student_ID';
                 $values[] = ':student_id';
                 $bindings[':student_id'] = $data['student_id'];
@@ -170,7 +169,7 @@ class User extends Model {
             $optionalFields = [
                 'course' => 'Course',
                 'department' => 'Department',
-                'designation' => 'Designation',
+                
             ];
             
             foreach ($optionalFields as $dataKey => $dbField) {

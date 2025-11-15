@@ -221,10 +221,7 @@ if ($setupError) {
               <input type="text" id="regExtension" name="extension" class="form-control" placeholder="Jr., III, etc.">
             </div>
             
-            <div class="col-md-6">
-              <label for="regStudentId" class="form-label">Student ID number</label>
-              <input type="text" id="regStudentId" name="studentId" class="form-control" placeholder="e.g., 2025-12345" required>
-            </div>
+            
             
             <div class="col-12">
               <label for="regCourse" class="form-label">Course / Program</label>
@@ -314,10 +311,7 @@ if ($setupError) {
               <input type="text" id="facExtension" name="extension" class="form-control" placeholder="Jr., III, etc.">
             </div>
             
-            <div class="col-md-6">
-              <label for="facEmployeeId" class="form-label">Employee ID number</label>
-              <input type="text" id="facEmployeeId" name="employeeId" class="form-control" placeholder="e.g., EMP-12345" required>
-            </div>
+            
             <div class="col-md-6">
               <label for="facDepartment" class="form-label">Department / College</label>
               <select id="facDepartment" name="department" class="form-select" required>
@@ -326,10 +320,7 @@ if ($setupError) {
                 <option>COE</option>
               </select>
             </div>
-            <div class="col-12">
-              <label for="facDesignation" class="form-label">Designation / Position</label>
-              <input type="text" id="facDesignation" name="designation" class="form-control" placeholder="e.g., Instructor, Professor" required>
-            </div>
+            
             <div class="col-12">
               <label for="facEmail" class="form-label">Email Address</label>
               <div class="input-group">

@@ -80,7 +80,7 @@ class RegistrationController {
 
             $designation = 'Student';
             // Validate required fields
-            $required = ['firstName', 'lastName', 'studentId', 'course', 'email', 'password', 'confirmPassword'];
+            $required = ['firstName', 'lastName', 'course', 'email', 'password', 'confirmPassword'];
             foreach ($required as $field) {
                 if (empty($data[$field])) {
                     throw new Exception("All required fields must be filled. Missing: " . $field);
@@ -153,7 +153,7 @@ class RegistrationController {
     public function registerFaculty($data, $files = []) {
         try {
             // Validate required fields
-            $required = ['firstName', 'lastName', 'employeeId', 'department', 'designation', 'email', 'password', 'confirmPassword'];
+            $required = ['firstName', 'lastName', 'department', 'email', 'password', 'confirmPassword'];
             foreach ($required as $field) {
                 if (empty($data[$field])) {
                     throw new Exception("All required fields must be filled. Missing: " . $field);
