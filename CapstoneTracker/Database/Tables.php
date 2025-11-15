@@ -540,9 +540,9 @@
             if ($this->db->rowCount() == 0) {
                 // Build the query with all fields
                 $this->db->query("INSERT INTO USER_INFORMATION 
-                    (pswrd, Salt, First_Name, Middle_Name, Last_Name, Extension, Email, User_ID, Student_ID, Employee_ID, User_Role, Acc_Status, Department, Course , Designation, Profile_Pic) 
+                    (pswrd, Salt, First_Name, Middle_Name, Last_Name, Extension, Email, User_ID, Student_ID, Employee_ID, User_Role, Acc_Status, Department, Course ,  Profile_Pic) 
                     VALUES 
-                    (:password, :salt, :first_name, :middle_name, :last_name, :extension, :email, :user_id, :student_id, :employee_id, :user_role, :acc_status, :department, :course, :designation, :profile_pic)");
+                    (:password, :salt, :first_name, :middle_name, :last_name, :extension, :email, :user_id, :student_id, :employee_id, :user_role, :acc_status, :department, :course, :profile_pic)");
                 
                 // Bind all parameters
                 $this->db->bind(':password', $adminData['pswrd']);
@@ -559,7 +559,7 @@
                 $this->db->bind(':acc_status', $adminData['Acc_Status']);
                 $this->db->bind(':department', $adminData['Department']);
                 $this->db->bind(':course', $adminData['Course']);
-                $this->db->bind(':designation', $adminData['Designation']);
+                
                 $this->db->bind(':profile_pic', $adminData['Profile_Pic']);
                 
                 $this->db->execute();

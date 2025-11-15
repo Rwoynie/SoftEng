@@ -38,7 +38,7 @@ class AdminDashboardModel {
                     Acc_Status,
                     Department,
                     Course,
-                    Designation,
+                    
                     created_at,
                     updated_at
                 FROM USER_INFORMATION 
@@ -71,7 +71,7 @@ class AdminDashboardModel {
                     Acc_Status,
                     Department,
                     Course,
-                    Designation,
+                    
                     created_at,
                     updated_at
                 FROM USER_INFORMATION 
@@ -106,7 +106,7 @@ class AdminDashboardModel {
                     Acc_Status,
                     Department,
                     Course,
-                    Designation,
+                    
                     created_at,
                     updated_at
                 FROM USER_INFORMATION 
