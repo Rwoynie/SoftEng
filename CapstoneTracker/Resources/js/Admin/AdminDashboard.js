@@ -102,13 +102,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const reportsOption = document.querySelector('.menu-options li[data-view="reports"]');
-if (reportsOption) {
+    if (reportsOption) {
     reportsOption.addEventListener('click', function() {
         setTimeout(() => {
             window.reportsManager.initialize();
         }, 100);
     });
-}
+    }
 
 
     // Function to switch log views
@@ -135,15 +135,16 @@ if (reportsOption) {
     }
     
      function initializeSidebar() {
-        const sidebarOptions = document.querySelectorAll('.menu-options li');
-        const contentContainers = {
-            'dashboard': document.querySelector('.projects-container'),
-            'users': document.getElementById('access-container'),
-            'accounts': document.getElementById('accounts-container'),
-            'logs': document.getElementById('logs-container'),
-            'announcement': document.getElementById('announcement-container'),
-            'backup' : document.getElementById('backup-container')
-        };
+    const sidebarOptions = document.querySelectorAll('.menu-options li');
+    const contentContainers = {
+        'dashboard': document.querySelector('.projects-container'),
+        'users': document.getElementById('access-container'),
+        'accounts': document.getElementById('accounts-container'),
+        'logs': document.getElementById('logs-container'),
+        'announcement': document.getElementById('announcement-container'),
+        'reports': document.getElementById('reports-container'), 
+        'backup' : document.getElementById('backup-container')
+    };
 
     // Function to switch sidebar views
     function switchSidebarView(viewId) {
@@ -171,66 +172,11 @@ if (reportsOption) {
                 contentContainers[viewId].classList.remove('active');
             }
     
-           
-            
-            // Show the selected content container
-            if (contentContainers[viewId]) {
-                contentContainers[viewId].style.display = 'block';
-                contentContainers[viewId].classList.add('content-container-active');
-        
-                // Show app-content-header only for dashboard view
-                if (viewId === 'dashboard') {
-                    if (appContentHeader) appContentHeader.style.display = 'flex';
-                } else {
-                    if (appContentHeader) appContentHeader.style.display = 'none';
-                }
-                
-                // Special handling for logs view
-                // In the initializeSidebar function, update the logs section:
-                if (viewId === 'logs') {
-                    // Initialize system logs when logs view is shown
-                    setTimeout(() => {
-                        if (window.systemLogsManager) {
-                            window.systemLogsManager.initialize();
-                            // Set default view to 'all'
-                            window.systemLogsManager.switchLogView('all');
-                        }
-                    }, 100);
-                }
-                
-                // NEW: Reset access management state when switching to users view
-                if (viewId === 'users') {
-                    resetAccessManagementState();
-                }
-                
-                // Initialize announcement functionality when announcement view is shown
-                if (viewId === 'announcement') {
-                    setTimeout(() => {
-                        if (typeof AnnouncementManager !== 'undefined') {
-                            if (!window.announcementManager) {
-                                
-                                window.announcementManager = new AnnouncementManager();
-                            } else {
-                                
-                                // Ensure the view is properly set
-                                window.announcementManager.switchView('active');
-                            }
-                            
-                            // Ensure the container is properly displayed
-                            const announcementContainer = document.getElementById('announcement-container');
-                            if (announcementContainer) {
-                                
-                            }
-                        } else {
-                           
-                        }
-                    }, 300);
-                }
-
-                
+            if (viewId === 'dashboard') {
+                if (appContentHeader) appContentHeader.style.display = 'flex';
+            } else {
+                if (appContentHeader) appContentHeader.style.display = 'none';
             }
-
-            
             
             // Special handling for logs view
             if (viewId === 'logs') {
@@ -268,6 +214,7 @@ if (reportsOption) {
                     }
                 }, 300);
             }
+            
         } else {
             console.warn(`No container found for view: ${viewId}`); 
         }
@@ -287,16 +234,15 @@ if (reportsOption) {
         }
     }
 
-        // Add event listeners to sidebar options
-        sidebarOptions.forEach((option, index) => {
-            // Set data attributes to identify each option
-            const viewIds = ['dashboard', 'users', 'accounts', 'logs', 'announcement', 'backup'];
-            option.setAttribute('data-view', viewIds[index] || `option-${index}`);
-            
-            option.addEventListener('click', function() {
-                const viewId = this.getAttribute('data-view');
-                switchSidebarView(viewId);
-            });
+    // Add event listeners to sidebar options
+    sidebarOptions.forEach((option, index) => {
+        // Set data attributes to identify each option
+        const viewIds = ['dashboard', 'users', 'accounts', 'logs', 'announcement', 'reports', 'backup'];
+        option.setAttribute('data-view', viewIds[index] || `option-${index}`);
+        
+        option.addEventListener('click', function() {
+            const viewId = this.getAttribute('data-view');
+            switchSidebarView(viewId);
         });
     });
 
@@ -883,23 +829,19 @@ if (reportsOption) {
     const departmentFilterDropdown = document.getElementById('departmentFilterDropdown');
     const sortDropdown = document.getElementById('sortDropdown');
 
-    // Add this function to initialize both dropdowns
     function initializeFilterDropdowns() {
-        // Department Filter Dropdown
         initializeDepartmentFilter();
-        
-        // Sort Dropdown - FIXED
+
         if (sortDropdown) {
             const sortSelectedText = sortDropdown.querySelector('.selected span');
             const sortOptions = sortDropdown.querySelectorAll('.options div');
             
-            // Toggle dropdown on click
+
             sortDropdown.querySelector('.selected').addEventListener('click', function(e) {
                 e.stopPropagation();
                 sortDropdown.classList.toggle('active');
             });
-            
-            // Handle option selection
+
             sortOptions.forEach(option => {
                 option.addEventListener('click', function() {
                     const value = this.getAttribute('data-value');
@@ -2675,42 +2617,36 @@ if (reportsOption) {
     }
 
     function initializeDepartmentFilter() {
-        const departmentDropdown = document.getElementById('departmentFilterDropdown');
-        if (!departmentDropdown) return;
-    
-        const selectedElement = departmentDropdown.querySelector('.selected');
-        const options = departmentDropdown.querySelectorAll('.options > div');
-        
-        // Toggle dropdown on click
-        selectedElement.addEventListener('click', function(e) {
-            e.stopPropagation();
-            departmentDropdown.classList.toggle('active');
+    const dropdown = document.getElementById('departmentFilterDropdown');
+    if (!dropdown) return; // Exit if not found
+
+    const selected = dropdown.querySelector('.selected');
+    const options = dropdown.querySelectorAll('.options div');
+
+    selected.addEventListener('click', () => {
+        dropdown.classList.toggle('active');
+    });
+
+    options.forEach(option => {
+        option.addEventListener('click', () => {
+            const value = option.getAttribute('data-value');
+            selected.querySelector('span').textContent = option.textContent;
+            dropdown.classList.remove('active');
+            // Trigger filtering logic (e.g., filter theses by department)
+            filterThesesByDepartment(value);
         });
-        
-        // Handle option selection
-        options.forEach(option => {
-            option.addEventListener('click', function() {
-                const value = this.getAttribute('data-value');
-                const text = this.textContent.split(' (')[0]; // Remove count from display
-                
-                // Update selected display
-                selectedElement.querySelector('span').textContent = text;
-                
-                // Close dropdown
-                departmentDropdown.classList.remove('active');
-                
-                // Filter theses based on department
-                filterThesesByDepartment(value);
-            });
-        });
-        
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(e) {
-            if (!departmentDropdown.contains(e.target)) {
-                departmentDropdown.classList.remove('active');
-            }
-        });
-    }
+    });
+
+    // Close dropdown on outside click
+    document.addEventListener('click', (e) => {
+        if (!dropdown.contains(e.target)) {
+            dropdown.classList.remove('active');
+        }
+    });
+}
+
+
+initializeDepartmentFilter();
 
     function filterThesesByDepartment(departmentValue) {
         const projectItems = document.querySelectorAll('.project-item');
