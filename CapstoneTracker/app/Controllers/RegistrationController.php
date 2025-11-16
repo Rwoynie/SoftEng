@@ -44,6 +44,7 @@ class RegistrationController {
     if (!isset($_SESSION['csrf_token']) || $token !== $_SESSION['csrf_token']) {
         return false;
     }
+    }
 
     /**
      * Validate and format name (capitalize first letter, lowercase the rest)
@@ -442,6 +443,7 @@ class RegistrationController {
             'message' => $message ?: $this->error
         ];
     }
+    
 }
 
 // Handle direct access to this file for registration processing
@@ -453,5 +455,6 @@ if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
     $registrationController = new RegistrationController();
     $registrationController->processRegistration();
 }
+
 
 ?>
