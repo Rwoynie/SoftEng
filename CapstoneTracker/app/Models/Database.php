@@ -139,8 +139,4 @@ class Database {
         }
         return $this->dbh->rollBack();
     }
-
-    public function getConnection() {
-        return $this->dbh; // or whatever your PDO connection property is called
-    }
 }
