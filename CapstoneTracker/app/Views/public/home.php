@@ -1,16 +1,36 @@
+
+
 <?php
-require_once '../../../Database/config.php';
-require_once '../../Controllers/Controller.php';  
-require_once '../../Controllers/PublicHomeController.php';  
-require_once '../../Models/Thesis.php';  
-require_once '../../Models/PublicHomeModel.php';  
 
-$model = new PublicHomeModel();
-$announcements = $model->getActiveAnnouncements();
-$programs = $model->getPrograms();
-$stats = $model->getThesisStats();
-
+$announcements = $data['announcements'] ?? [];
+$programs = $data['programs'] ?? [];
+$stats = $data['stats'] ?? [];
 ?>
+
+<!-- Update the search form -->
+<form id="search-form" method="POST" action="/search">
+    <div class="searchbox">
+        <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
+        <input type="text" id="search-input" name="query" placeholder="Enter keywords, title, author, or adviser...">
+        <button type="submit" class="search-btn" id="search-btn">Search</button>
+    </div>
+</form>
+
+<!-- Update stats section -->
+<div class="stats">
+    <div class="stat-item">
+        <span class="stat-number"><?php echo $stats['total_papers'] ?? '200+'; ?></span>
+        <span class="stat-label">Thesis Papers</span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-number"><?php echo $stats['total_authors'] ?? '150+'; ?></span>
+        <span class="stat-label">Active Researchers</span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-number"><?php echo $stats['total_departments'] ?? '1'; ?></span>
+        <span class="stat-label">Department</span>
+    </div>
+</div>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -27,7 +47,6 @@ $stats = $model->getThesisStats();
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Quicksand">
 </head>
 <body>
-  
   <div class="dashboard-container">
     <!-- Header -->
     <header class="main-header">
@@ -36,10 +55,12 @@ $stats = $model->getThesisStats();
         <div>
           <h1>Thesis Compendium System</h1>
           <h3>University of Southeastern Philippines</h3>
+
         </div>
+        
       </div>
       <nav class="tabs">
-        <a href="../User/indexLogin.php" class="btn-login">Login</a>
+        <a href="../../../app/Views/User/indexLogin.php" class="btn-login">Login</a>
       </nav>
     </header>
 
@@ -51,26 +72,24 @@ $stats = $model->getThesisStats();
           <h2>Discover Academic Excellence</h2>
           <p>Access hundreds of thesis papers from different departments</p>
           <div class="search-container">
-            <form id="search-form" method="POST" action="search.php">
-              <div class="searchbox">
-                <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
-                <input type="text" id="search-input" name="query" placeholder="Enter keywords, title, author, or adviser...">
-                <button type="submit" class="search-btn" id="search-btn">Search</button>
-              </div>
-            </form>
+            <div class="searchbox">
+              <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
+              <input type="text" id="search-input" placeholder="Enter keywords, title, author, or adviser...">
+              <button class="search-btn" id="search-btn">Search</button>
+            </div>
           </div>
           <div class="stats">
             <div class="stat-item">
-              <span class="stat-number"><?php echo $stats['total_papers'] ?? '0'; ?></span>
+              <span class="stat-number">200+</span>
               <span class="stat-label">Thesis Papers</span>
             </div>
             <div class="stat-item">
-              <span class="stat-number"><?php echo $stats['total_authors'] ?? '0'; ?></span>
+              <span class="stat-number">150+</span>
               <span class="stat-label">Active Researchers</span>
             </div>
             <div class="stat-item">
-              <span class="stat-number"><?php echo $stats['total_departments'] ?? '0'; ?></span>
-              <span class="stat-label">Departments</span>
+              <span class="stat-number">1</span>
+              <span class="stat-label">Department</span>
             </div>
           </div>
         </div>
@@ -86,158 +105,19 @@ $stats = $model->getThesisStats();
           <button class="carousel-control prev">
             <i class="fas fa-chevron-left"></i>
           </button>
-
           <div class="carousel-container">
             <div class="announcement-cards">
-              <?php if (!empty($announcements)): ?>
-                <?php 
-                // Sort announcements: pinned first, then by date (newest first)
-                usort($announcements, function($a, $b) {
-                  $aPinned = isset($a['is_pinned']) ? $a['is_pinned'] : 0;
-                  $bPinned = isset($b['is_pinned']) ? $b['is_pinned'] : 0;
-                  
-                  // Pinned announcements first
-                  if ($aPinned && !$bPinned) return -1;
-                  if (!$aPinned && $bPinned) return 1;
-                  
-                  // Then sort by date (newest first)
-                  $aDate = strtotime($a['date']);
-                  $bDate = strtotime($b['date']);
-                  return $bDate - $aDate;
-                });
-                ?>
-                <?php foreach ($announcements as $index => $announcement): ?>
-                  <?php 
-                  $isPinned = isset($announcement['is_pinned']) ? $announcement['is_pinned'] : 0;
-                  $announcementId = isset($announcement['id']) ? $announcement['id'] : $index;
-                  ?>
-                  <div class="announcement-card <?php echo $isPinned ? 'pinned' : ''; ?>" 
-                      data-announcement-id="<?php echo $announcementId; ?>">
-                    <?php if ($isPinned): ?>
-                      <div class="pin-indicator" title="Pinned Announcement">
-                        <i class="fas fa-thumbtack"></i>
-                      </div>
-                    <?php endif; ?>
-                    <div class="card-badge <?php echo $announcement['type']; ?>">
-                      <?php 
-                        $badgeTexts = [
-                          'important' => 'Important',
-                          'deadline' => 'Deadline',
-                          'info' => 'Information',
-                          'event' => 'Event',
-                          'information' => 'Information'
-                        ];
-                        echo $badgeTexts[$announcement['type']] ?? 'Announcement';
-                      ?>
-                    </div>
-                    <div class="card-image">
-                      <img src="<?php echo htmlspecialchars($announcement['image']); ?>" 
-                        alt="<?php echo htmlspecialchars($announcement['title']); ?>" 
-                        class="Anncmnt_pic">
-                    </div>
-                    <div class="card-content">
-                      <div class="card-header">
-                        <h3><?php echo htmlspecialchars($announcement['title']); ?></h3>
-                        <div class="date">
-                          <?php 
-                            $date = new DateTime($announcement['date']);
-                            echo $date->format('F j, Y');
-                          ?>
-                        </div>
-                      </div>
-                      <p class="announcement-preview"><?php echo htmlspecialchars($announcement['description']); ?></p>
-                      <a href="#" class="read-more" data-announcement-id="<?php echo $announcementId; ?>">
-                        Read More <i class="fas fa-arrow-right"></i>
-                      </a>
-                    </div>
-                  </div>
-                <?php endforeach; ?>
-              <?php else: ?>
-                <div class="announcement-card empty-state">
-                  <div class="card-content">
-                    <div class="card-header">
-                      <h3>No Current Announcements</h3>
-                    </div>
-                    <p>Check back later for updates and important information.</p>
-                  </div>
-                </div>
-              <?php endif; ?>
+              
             </div>
           </div>
-          
           <button class="carousel-control next">
             <i class="fas fa-chevron-right"></i>
           </button>
-          
-          <div class="carousel-indicators">
-            <?php if (!empty($announcements)): ?>
-              <?php for ($i = 0; $i < count($announcements); $i++): ?>
-                <div class="indicator <?php echo $i === 0 ? 'active' : ''; ?>" data-index="<?php echo $i; ?>"></div>
-              <?php endfor; ?>
-            <?php endif; ?>
-          </div>
+          <div class="carousel-indicators"></div>
         </div>
       </section>
 
-     
-        <div id="announcementModal" class="premium-modal">
-            <div class="premium-modal-backdrop"></div>
-            <div class="premium-modal-container">
-                <div class="premium-modal-content">
-
-                    <div class="premium-modal-header">
-                        <div class="premium-modal-badge-container">
-                            <span id="modalBadge" class="premium-modal-badge"></span>
-                            <?php if ($isPinned): ?>
-                            <div class="premium-pin-indicator" title="Pinned Announcement">
-                                <i class="fas fa-thumbtack"></i>
-                            </div>
-                            <?php endif; ?>
-                        </div>
-                        <button type="button" class="premium-close-btn" onclick="closeAnnModal()">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-
-                    <div class="premium-modal-body">
-                        <div class="premium-modal-image-container">
-                            <img id="modalImage" src="" alt="Announcement image" class="premium-modal-image">
-                            <div class="premium-modal-image-overlay"></div>
-                        </div>
-                        
-                        <div class="premium-modal-text-content">
-                            <div class="premium-modal-meta">
-                                <h2 id="modalTitle" class="premium-modal-title"></h2>
-                                <div class="premium-modal-date-container">
-                                    <i class="fas fa-calendar-alt"></i>
-                                    <span id="modalDate" class="premium-modal-date"></span>
-                                </div>
-                            </div>
-                            
-                            <div class="premium-modal-text">
-                                <p id="modalContent"></p>
-                            </div>
-                        </div>
-                    </div>
-
-                    
-                    <div class="premium-modal-footer">
-                        <div class="premium-modal-actions">
-                            <button type="button" class="premium-btn secondary" onclick="closeAnnModal()">
-                                <i class="fas fa-times"></i>
-                                Close
-                            </button>
-                            <button type="button" class="premium-btn primary" onclick="shareAnnouncement()">
-                                <i class="fas fa-share-alt"></i>
-                                Share
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-      <!-- Programs Carousel -->
+      <!-- Programs Logo Carousel -->
       <section class="program-logos-section">
         <div class="section-header">
           <h2>Programs</h2>
@@ -249,49 +129,28 @@ $stats = $model->getThesisStats();
           </button>
           <div class="carousel-container">
             <div class="logo-cards">
-              <?php if (!empty($programs)): ?>
-                <?php foreach ($programs as $program): ?>
-                  <div class="logo-card">
-                    <img src="<?php echo htmlspecialchars($program['image']); ?>" alt="<?php echo htmlspecialchars($program['name']); ?>">
-                    <div class="card-content">
-                      <h3><?php echo htmlspecialchars($program['name']); ?></h3>
-                      <p><?php echo htmlspecialchars($program['meaning']); ?></p>
-                    </div>
-                  </div>
-                <?php endforeach; ?>
-              <?php else: ?>
-                <div class="logo-card empty-state">
-                  <div class="card-content">
-                    <h3>No Programs Available</h3>
-                    <p>Check back later.</p>
-                  </div>
-                </div>
-              <?php endif; ?>
+              
             </div>
           </div>
           <button class="carousel-control next">
             <i class="fas fa-chevron-right"></i>
           </button>
-          <div class="carousel-indicators">
-            <?php if (!empty($programs)): ?>
-              <?php for ($i = 0; $i < count($programs); $i++): ?>
-                <div class="indicator <?php echo $i === 0 ? 'active' : ''; ?>" data-index="<?php echo $i; ?>"></div>
-              <?php endfor; ?>
-            <?php endif; ?>
-          </div>
+          <div class="carousel-indicators"></div>
         </div>
       </section>
 
-      <!-- Call to Action -->
-      <section class="call-to-action-section">
+      <!-- Quick Actions -->
+      <section class="quick-actions">
+        <div class="section-header">
+          <h2>Quick Access</h2>
+        </div>
         <div class="action-cards">
           <div class="action-card">
             <div class="action-icon">
               <i class="fas fa-book-open"></i>
             </div>
-            <h3>Browse Thesis</h3>
+            <h3>Browse Catalog</h3>
             <p>Explore all available thesis papers</p>
-            <a href="search.php" class="read-more">Browse Now <i class="fas fa-arrow-right"></i></a>
           </div>
           <div class="action-card">
             <div class="action-icon">
@@ -299,7 +158,6 @@ $stats = $model->getThesisStats();
             </div>
             <h3>For Researchers</h3>
             <p>Resources and guidelines for your research</p>
-            <a href="#" class="read-more">View Resources <i class="fas fa-arrow-right"></i></a>
           </div>
           <div class="action-card">
             <div class="action-icon">
@@ -307,8 +165,79 @@ $stats = $model->getThesisStats();
             </div>
             <h3>Help Center</h3>
             <p>Get assistance with the system</p>
-            <a href="#" class="read-more">Get Help <i class="fas fa-arrow-right"></i></a>
           </div>
+        </div>
+      </section>
+    </section>
+
+    <!-- ================= Search Results Page ================= -->
+    <section id="results-page" class="hidden">
+      <header class="results-header">
+        <section class="search-filter">
+          <div class="searchbox">
+            <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
+            <input type="text" id="results-search-input" placeholder="Search thesis...">
+            <button class="search-btn" id="results-search-btn"><i class="fa fa-search" aria-hidden="true"></i></button>
+          </div>
+          
+          <div class="filter-controls">
+            <div class="select" id="filterDropdown">
+              <div class="selected">
+                <span>All Departments</span>
+                <i class="fa fa-chevron-down" aria-hidden="true"></i>
+              </div>
+              <div class="options">
+                <div data-value="all">All Departments (200)</div>
+                <div data-value="cs">BECED | AECES (25)</div>
+                <div data-value="it">BSED English | AFSET (30)</div>
+                <div data-value="ce">BSED Filipino | AFSET (28)</div>
+                <div data-value="ee">BSED Math | AFSET (32)</div>
+                <div data-value="me">BTVTED | FTVETS (35)</div>
+                <div data-value="ee">BEED | OFEE (20)</div>
+                <div data-value="me">BSNED | OFSET (15)</div>
+                <div data-value="ce">BSABE | SABES (25)</div>
+                <div data-value="it">BSIT | SITS (40)</div>
+              </div>
+            </div>
+            
+            <div class="select" id="sortDropdown">
+              <div class="selected">
+                <span>Sort by: Recent</span>
+                <i class="fa fa-chevron-down" aria-hidden="true"></i>
+              </div>
+              <div class="options">
+                <div data-value="recent">Most Recent</div>
+                <div data-value="popular">Most Viewed</div>
+                <div data-value="title">Title (A-Z)</div>
+                <div data-value="department">Department</div>
+              </div>
+            </div>
+            
+            <div class="display-group">
+              <div class="icon" id="listViewIcon"> <i class="fa fa-bars" aria-hidden="true"></i> </div>
+              <div class="icon selected" id="gridViewIcon"> <i class="fa fa-th" aria-hidden="true"></i> </div>
+            </div>
+          </div>
+        </section>
+        <div class="results-title">
+          <p class="results-count">Showing <span id="results-number">0</span> results...</p>
+        </div>
+      </header>
+
+      <section class="results-container">
+        <div class="results grid" id="thesis-results">
+          <!-- Results will be populated by JavaScript -->
+        </div>
+        <div class="pagination">
+          <button class="pagination-btn prev" disabled><i class="fas fa-chevron-left"></i> Previous</button>
+          <div class="page-numbers">
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">3</button>
+            <span>...</span>
+            <button class="page-btn">10</button>
+          </div>
+          <button class="pagination-btn next">Next <i class="fas fa-chevron-right"></i></button>
         </div>
       </section>
     </section>
@@ -319,6 +248,7 @@ $stats = $model->getThesisStats();
         <div class="footer-section">
           <div>
             <img class="logo" src="../../../resources/images/ThesisCompLogo.png" alt="Logo" />
+           
             <img class="logo" src="../../../resources/images/CTET_LOGO.png" alt="Logo" />
             <h3>Thesis Compendium System</h3>
           </div>
@@ -335,9 +265,9 @@ $stats = $model->getThesisStats();
           <h4>Quick Links</h4>
           <ul>
             <li><a href="javascript:window.location.reload(true)">Home</a></li>
-            <li><a href="/browse">Browse</a></li>
+            <li><a href="#">Browse</a></li>
             <li><a href="#">Guidelines</a></li>
-            <li><a href="../../../app/Views/User/indexLogin.php">Login</a></li>
+            <li><a href="#">Login</a></li>
           </ul>
         </div>
         
@@ -372,7 +302,7 @@ $stats = $model->getThesisStats();
       </div>
     </footer>
   </div>
-  
+
   <script src="../../../resources/js/User/home.js"></script>
 </body>
 </html>

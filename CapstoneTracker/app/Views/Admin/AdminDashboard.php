@@ -256,8 +256,6 @@ $displayUserData = [
 
 ];
 
-
-
 ?>
 
 
@@ -277,15 +275,12 @@ $displayUserData = [
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Quicksand">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
     <link rel="stylesheet" href="../../../resources/css/Admin/AdminDashboard.css">
-    <script type="text/javascript" src="../../../resources/js/Admin/AdminDashboardReport.js"></script>
     <script type="text/javascript" src="../../../resources/js/Admin/ThesisFunctions.js"></script>
-      <script type="text/javascript" src="../../../resources/js/Admin/AdminDashboardAnnouncement.js"></script>
     <script type="text/javascript" src="../../../resources/js/Admin/AdminDashboard.js"></script>
     <script type="text/javascript" src="../../../resources/js/Admin/RoleAccess.js"></script>
-  
+    <script type="text/javascript" src="../../../resources/js/Admin/AdminDashboardAnnouncement.js"></script>
     <script type="text/javascript" src="../../../resources/js/Admin/AccountPagination.js"></script>
     <script type="text/javascript" src="../../../resources/js/Admin/Backup.js"></script>
     <script>
@@ -721,17 +716,10 @@ $displayUserData = [
                     <!-- All Logs Container -->
                     <div id="allLogs-container" class="log-content active">
                         <div class="log-filter-bar">
-                            <div class="search-download-container">
-                                <div class="log-search-box">
-                                    <i class="fas fa-search"></i>
-                                    <input type="text" placeholder="Search all logs..." id="allLogSearchInput">
-                                </div>
-                                <button class="log-download-btn2">
-                                    <i class="fas fa-download me-2"></i>
-                                    Download System Logs
-                                </button>
+                            <div class="log-search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" placeholder="Search all logs..." id="allLogSearchInput">
                             </div>
-                            
                             <div class="log-filter-options">
                                 <button class="log-filter-btn active" data-filter="all">All Activities</button>
                                 <button class="log-filter-btn" data-filter="login">Logins</button>
@@ -815,8 +803,7 @@ $displayUserData = [
                                     </tr>
                                 </thead>
                                 <tbody id="adminLogsTableBody">
-                                    
-                                
+                                    <!-- Admin logs will be populated here -->
                                 </tbody>
                             </table>
                         </div>

@@ -36,14 +36,27 @@ class AdminController extends Controller {
     /**
      * Validate CSRF token
      */
-    private function validateCsrfToken($token) {
-    if (!isset($_SESSION['csrf_token']) || $token !== $_SESSION['csrf_token']) {
+    private function validateCsrfToken($token, $maxRetries = 3) {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        $retryCount = 0;
+        while ($retryCount < $maxRetries) {
+            if (isset($_SESSION['csrf_token']) && 
+                hash_equals($_SESSION['csrf_token'], $token)) {
+                return true;
+            }
+            
+            // Wait a bit and retry (session might not be ready)
+            usleep(50000); // 50ms
+            session_write_close();
+            session_start();
+            $retryCount++;
+        }
+        
         return false;
     }
-    // Regenerate after successful validation (one-time use)
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    return true;
-}
     
     public function login() {
         // Start session if not already started - use consistent approach
