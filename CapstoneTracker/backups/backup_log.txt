@@ -1,1 +1,9 @@
 [2025-11-16 09:51:20] User: Super Admin (ID: 1) - Action: create - File: backup_2025-11-16_09-51-19.sql.gz
+[2025-11-16 10:16:21] User: Pauleene Tirador (ID: 3) - Action: create - File: backup_2025-11-16_10-16-20.sql.gz
+[2025-11-16 10:17:43] User: Pauleene Tirador (ID: 3) - Action: create - File: backup_2025-11-16_10-17-43.sql.gz
+[2025-11-16 10:21:49] User: Pauleene Tirador (ID: 3) - Action: delete - File: backup_2025-11-16_10-16-20.sql.gz
+[2025-11-16 10:21:51] User: Pauleene Tirador (ID: 3) - Action: delete - File: backup_2025-11-16_09-51-19.sql.gz
+[2025-11-16 10:21:59] User: Pauleene Tirador (ID: 3) - Action: create - File: backup_2025-11-16_10-21-58.sql.gz
+[2025-11-16 10:22:04] User: Pauleene Tirador (ID: 3) - Action: delete - File: backup_2025-11-16_10-17-43.sql.gz
+[2025-11-16 10:39:00] User: Pauleene Tirador (ID: 3) - Action: create - File: backup_2025-11-16_10-39-00.sql.gz
+[2025-11-16 10:39:15] User: Pauleene Tirador (ID: 3) - Action: restore - File: backup_2025-11-16_10-39-00.sql.gz

@@ -743,6 +743,38 @@ public function getThesisViewInfo($thesisId) {
         ]);
         exit;
     }
+
+    public function debugThesisFile() {
+        header('Content-Type: application/json');
+        
+        try {
+            $thesisId = $_GET['id'] ?? null;
+            
+            if (!$thesisId) {
+                echo json_encode(['success' => false, 'error' => 'Thesis ID required']);
+                return;
+            }
+            
+            // Get thesis file data
+            $thesisData = $this->thesisModel->getThesisFile($thesisId);
+            
+            echo json_encode([
+                'success' => true,
+                'thesis_id' => $thesisId,
+                'file_exists' => !empty($thesisData),
+                'file_size' => $thesisData ? strlen($thesisData->Thesis_File) : 0,
+                'has_thesis_file' => $thesisData && !empty($thesisData->Thesis_File),
+                'title' => $thesisData ? $thesisData->Title : 'Not found'
+            ]);
+            
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]);
+        }
+        exit;
+    }
     
     /**
      * Log upload activity (placeholder for future implementation)
@@ -801,6 +833,9 @@ public function getThesisViewInfo($thesisId) {
             case 'viewThesis':
                 $this->viewThesis();
                 break;       
+                case 'debugThesisFile':
+                    $this->debugThesisFile();
+                    break;
             default:
                 http_response_code(404);
                 echo json_encode(['success' => false, 'error' => 'Action not found']);

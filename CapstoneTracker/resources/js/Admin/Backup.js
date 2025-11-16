@@ -9,31 +9,112 @@ class BackupManager {
 
     initEventListeners() {
         // Create Backup Button
-        document.getElementById('createBackupBtn').addEventListener('click', () => {
-            this.createBackup();
-        });
+        const createBackupBtn = document.getElementById('createBackupBtn');
+        if (createBackupBtn) {
+            createBackupBtn.addEventListener('click', () => {
+                this.createBackup();
+            });
+        }
 
         // Restore Backup Button
-        document.getElementById('restoreBackupBtn').addEventListener('click', () => {
-            this.showRestoreDialog();
-        });
+        const restoreBackupBtn = document.getElementById('restoreBackupBtn');
+        if (restoreBackupBtn) {
+            restoreBackupBtn.addEventListener('click', () => {
+                this.showRestoreDialog();
+            });
+        }
 
         // View Backup History Button
-        document.getElementById('viewBackupHistoryBtn').addEventListener('click', () => {
-            this.loadBackupHistory();
-        });
-
-        // Close History Button
-        const closeHistoryBtn = document.getElementById('closeHistoryBtn');
-        if (closeHistoryBtn) {
-            closeHistoryBtn.addEventListener('click', () => {
-                document.getElementById('backupHistorySection').style.display = 'none';
+        const viewHistoryBtn = document.getElementById('viewBackupHistoryBtn');
+        if (viewHistoryBtn) {
+            viewHistoryBtn.addEventListener('click', () => {
+                this.toggleBackupHistory();
             });
         }
     }
 
+    // Add this new method to toggle history visibility
+    toggleBackupHistory() {
+        const historySection = document.getElementById('backupHistorySection');
+        if (historySection) {
+            if (historySection.style.display === 'none' || !historySection.style.display) {
+                historySection.style.display = 'block';
+                this.loadBackupHistory();
+            } else {
+                historySection.style.display = 'none';
+            }
+        }
+    }
+
+    // Update the renderBackupHistory method to use proper event delegation
+    renderBackupHistory(backups) {
+        const tbody = document.getElementById('backupHistoryTableBody');
+
+        if (backups.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="no-backups-message">
+                        <i class="fas fa-inbox"></i>
+                        <h4>No Backup History</h4>
+                        <p>No backups have been created yet.</p>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = backups.map(backup => `
+            <tr>
+                <td>${this.formatDate(backup.created_at)}</td>
+                <td>${backup.file_name}</td>
+                <td>${backup.size_formatted}</td>
+                <td>Manual Backup</td>
+                <td class="text-center">
+                    <button class="backup-action download-btn" data-filename="${backup.file_name}" data-action="download" title="Download Backup">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button class="backup-action restore-btn" data-filename="${backup.file_name}" data-action="restore" title="Restore Backup">
+                        <i class="fas fa-upload"></i>
+                    </button>
+                    <button class="backup-action delete-btn" data-filename="${backup.file_name}" data-action="delete" title="Delete Backup">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+
+        // Add event listeners to the new buttons
+        this.initTableEventListeners();
+    }
+
+    // Add event delegation for table buttons
+    initTableEventListeners() {
+        const tbody = document.getElementById('backupHistoryTableBody');
+        if (tbody) {
+            tbody.addEventListener('click', (e) => {
+                const button = e.target.closest('button');
+                if (button) {
+                    const filename = button.getAttribute('data-filename');
+                    const action = button.getAttribute('data-action');
+                    
+                    switch (action) {
+                        case 'download':
+                            this.downloadBackup(filename);
+                            break;
+                        case 'restore':
+                            this.confirmRestore(filename);
+                            break;
+                        case 'delete':
+                            this.confirmDelete(filename);
+                            break;
+                    }
+                }
+            });
+        }
+    }
+
+    // Update other methods to remove onclick attributes from the HTML
     async createBackup() {
-        // First, show confirmation dialog
         const result = await Swal.fire({
             title: 'Create System Backup?',
             text: 'This will create a complete backup of the database. This may take a few moments.',
@@ -43,32 +124,30 @@ class BackupManager {
             cancelButtonColor: '#6c757d',
             confirmButtonText: 'Yes, Create Backup!',
             cancelButtonText: 'Cancel',
-            
         });
-    
-        // If user cancels, do nothing
+
         if (!result.isConfirmed) {
             return;
         }
-    
+
         const createBtn = document.getElementById('createBackupBtn');
         const originalText = createBtn.innerHTML;
         
         try {
-            // Show loading state
             createBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Backup...';
             createBtn.disabled = true;
+
             const formData = new FormData();
             formData.append('action', 'create_backup');
-            formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
-    
+            formData.append('csrf_token', this.getCsrfToken());
+
             const response = await fetch('../../../app/Controllers/BackupController.php', {
                 method: 'POST',
                 body: formData
             });
-    
+
             const result = await response.json();
-    
+
             if (result.success) {
                 this.showNotification('Backup created successfully!', 'success');
                 this.loadBackupInfo();
@@ -76,16 +155,22 @@ class BackupManager {
             } else {
                 throw new Error(result.error || 'Failed to create backup');
             }
-    
+
         } catch (error) {
             console.error('Backup creation error:', error);
             this.showNotification('Error creating backup: ' + error.message, 'error');
         } finally {
-            // Restore button state
             createBtn.innerHTML = originalText;
             createBtn.disabled = false;
         }
     }
+
+    // Add helper method to get CSRF token
+    getCsrfToken() {
+        const metaTag = document.querySelector('meta[name="csrf-token"]');
+        return metaTag ? metaTag.getAttribute('content') : '';
+    }
+
     showRestoreDialog() {
         // Create file input for backup selection
         const fileInput = document.createElement('input');
@@ -131,7 +216,7 @@ class BackupManager {
             cancelButtonColor: '#3085d6',
             confirmButtonText: 'Yes, restore!',
             cancelButtonText: 'Cancel',
-            reverseButtons: true
+            
         }).then((result) => {
             if (result.isConfirmed) {
                 this.restoreBackup(backupFileName);
@@ -162,7 +247,17 @@ class BackupManager {
             const formData = new FormData();
             formData.append('action', 'restore_backup');
             formData.append('backup_file', backupFileName);
-            formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+            formData.append('csrf_token', this.getCsrfToken());
+    
+            // Show loading state
+            Swal.fire({
+                title: 'Restoring Backup...',
+                text: 'This may take a few moments. Do not close this window.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
     
             const response = await fetch('../../../app/Controllers/BackupController.php', {
                 method: 'POST',
@@ -172,19 +267,40 @@ class BackupManager {
             const result = await response.json();
     
             if (result.success) {
-                this.showNotification('Backup restored successfully! The page will reload.', 'success');
-                
-                // Reload page after successful restore
-                setTimeout(() => {
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'Backup restored successfully! The page will reload.',
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                }).then(() => {
                     window.location.reload();
-                }, 2000);
+                });
             } else {
                 throw new Error(result.error || 'Failed to restore backup');
             }
     
         } catch (error) {
             console.error('Backup restore error:', error);
-            this.showNotification('Error restoring backup: ' + error.message, 'error');
+            
+            // Show detailed error message
+            let errorMessage = error.message;
+            if (errorMessage.includes('mysqldump') || errorMessage.includes('mysql')) {
+                errorMessage += '\n\nPlease check that MySQL is running and the paths are correct.';
+            }
+            
+            Swal.fire({
+                title: 'Restore Failed',
+                html: `<div style="text-align: left;">
+                        <p>${errorMessage}</p>
+                        <details style="margin-top: 10px;">
+                            <summary>Technical Details</summary>
+                            <pre style="background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto; font-size: 12px; margin-top: 10px;">${error.stack}</pre>
+                        </details>
+                       </div>`,
+                icon: 'error',
+                confirmButtonText: 'OK',
+                width: '600px'
+            });
         }
     }
 

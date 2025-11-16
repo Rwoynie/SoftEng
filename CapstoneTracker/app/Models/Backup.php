@@ -96,18 +96,36 @@ class Backup {
     }
 
     private function decompressBackup($filePath) {
-        $decompressedPath = str_replace('.gz', '', $filePath);
-        
-        // Read compressed data
-        $compressed = file_get_contents($filePath);
-        
-        // Decompress the data
-        $data = gzdecode($compressed);
-        
-        // Write decompressed data
-        file_put_contents($decompressedPath, $data);
-        
-        return $decompressedPath;
+        try {
+            $decompressedPath = str_replace('.gz', '', $filePath);
+            
+            // Read compressed data
+            $compressed = file_get_contents($filePath);
+            
+            if ($compressed === false) {
+                throw new Exception("Failed to read compressed backup file");
+            }
+            
+            // Decompress the data
+            $data = gzdecode($compressed);
+            
+            if ($data === false) {
+                throw new Exception("Failed to decompress backup file");
+            }
+            
+            // Write decompressed data
+            $result = file_put_contents($decompressedPath, $data);
+            
+            if ($result === false) {
+                throw new Exception("Failed to write decompressed SQL file");
+            }
+            
+            return $decompressedPath;
+            
+        } catch (Exception $e) {
+            error_log("Decompression error: " . $e->getMessage());
+            throw new Exception("Failed to decompress backup: " . $e->getMessage());
+        }
     }
 
     public function restoreBackup($backupFileName) {
@@ -121,20 +139,44 @@ class Backup {
             // Decompress the backup
             $sqlFilePath = $this->decompressBackup($backupFilePath);
             
+            if (!file_exists($sqlFilePath)) {
+                throw new Exception("Decompressed SQL file not found");
+            }
+            
             // Get database configuration
             $host = DB_HOST;
             $user = DB_USER;
             $pass = DB_PASS;
             $name = DB_NAME;
-            // Restore MySQL dump
-            $command = "mysql --host={$host} --user={$user} --password={$pass} {$name} < {$sqlFilePath} 2>&1";
+            
+            // Create MySQL restore command
+            // For XAMPP on Windows, use the full path to mysql.exe
+            $mysqlPath = '"C:\\xampp\\mysql\\bin\\mysql.exe"';
+            
+            // Build the command - make sure to use the correct path separators
+            $command = "{$mysqlPath} --host={$host} --user={$user} --password={$pass} {$name} < \"{$sqlFilePath}\" 2>&1";
+            
+            error_log("Restore command: " . str_replace($pass, '***', $command));
+            
+            // Execute command and capture output
+            $output = [];
+            $returnVar = 0;
             exec($command, $output, $returnVar);
             
+            error_log("Restore output: " . implode("\n", $output));
+            error_log("Restore return code: " . $returnVar);
+            
             // Delete the decompressed SQL file
-            unlink($sqlFilePath);
+            if (file_exists($sqlFilePath)) {
+                unlink($sqlFilePath);
+            }
             
             if ($returnVar !== 0) {
-                throw new Exception("Restore failed: " . implode("\n", $output));
+                $errorMsg = "Restore failed with code {$returnVar}";
+                if (!empty($output)) {
+                    $errorMsg .= ": " . implode("\n", $output);
+                }
+                throw new Exception($errorMsg);
             }
             
             // Log restore action
@@ -147,6 +189,12 @@ class Backup {
             
         } catch (Exception $e) {
             error_log("Backup restore error: " . $e->getMessage());
+            
+            // Clean up decompressed file if it exists
+            if (isset($sqlFilePath) && file_exists($sqlFilePath)) {
+                unlink($sqlFilePath);
+            }
+            
             return [
                 'success' => false,
                 'error' => $e->getMessage()
