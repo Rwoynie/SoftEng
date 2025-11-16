@@ -41,12 +41,8 @@ class RegistrationController {
      * Validate CSRF token
      */
     private function validateCsrfToken($token) {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        
-        return isset($_SESSION['csrf_token']) && 
-            hash_equals($_SESSION['csrf_token'], $token);
+    if (!isset($_SESSION['csrf_token']) || $token !== $_SESSION['csrf_token']) {
+        return false;
     }
 
     /**
