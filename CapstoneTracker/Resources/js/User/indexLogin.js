@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             // Default to login modal for general errors
             setTimeout(() => {
-                openLogin('Researcher');
+                openLogin('Researcher'); // This should now work
             }, 1000);
         }
     }
@@ -75,6 +75,38 @@ document.addEventListener('DOMContentLoaded', function() {
     setupAdminForm();
 
 });
+
+
+function openLogin(role) {
+    const modalTitle = document.getElementById("modalTitle");
+    const roleField = document.getElementById("roleField");
+    
+    if (modalTitle) modalTitle.innerText = role + " Login";
+    if (roleField) roleField.value = role;
+    
+    const modalEl = document.getElementById('loginModal');
+    if (!modalEl) return;
+    
+    const loginModal = new bootstrap.Modal(modalEl);
+    loginModal.show();
+    
+    // Update current user role
+    currentUserRole = role.toLowerCase();
+    console.log('Role set to:', currentUserRole);
+    
+    setTimeout(() => {
+        const googleModalBtn = document.getElementById('googleModalBtn');
+        if (googleModalBtn) {
+            googleModalBtn.onclick = function() {
+                const googleButton = document.querySelector('#googleButton .abcRioButton');
+                if (googleButton) {
+                    googleButton.click();
+                } 
+            };
+        }
+    }, 300);
+}
+
 
 //Sequence Error Notif
 function showSequenceErrorNotification() {
@@ -1610,25 +1642,7 @@ function initializePage() {
     let shiftPressed = false;
     const requiredSequence = ['a', 'd', 'm', 'i', 'n', '!', '@','#'];
 
-    function openLogin(role){
-        if (modalTitle) modalTitle.innerText = role + " Login";
-        if (roleField) roleField.value = role;
-        const modalEl = document.getElementById('loginModal');
-        if (!modalEl) return;
-        const loginModal = new bootstrap.Modal(modalEl);
-        loginModal.show();
-        
-        setTimeout(() => {
-            if (googleModalBtn) {
-                googleModalBtn.onclick = function() {
-                    const googleButton = document.querySelector('#googleButton .abcRioButton');
-                    if (googleButton) {
-                        googleButton.click();
-                    } 
-                };
-            }
-        }, 300);
-    }
+    // REMOVED THE DUPLICATE openLogin FUNCTION FROM HERE
 
     function setupRoleTracking() {
         const researcherBtn = document.getElementById("researcherBtn");
@@ -1648,20 +1662,7 @@ function initializePage() {
             });
         }
         
-        // Also set role when opening login modal directly
-        function openLogin(role){
-            if (modalTitle) modalTitle.innerText = role + " Login";
-            if (roleField) roleField.value = role;
-            
-            // Set the global role variable
-            currentUserRole = role.toLowerCase();
-            console.log('Role set to:', currentUserRole);
-            
-            const modalEl = document.getElementById('loginModal');
-            if (!modalEl) return;
-            const loginModal = new bootstrap.Modal(modalEl);
-            loginModal.show();
-        }
+        
     }
 
     // ADD NULL CHECKS FOR EVENT LISTENERS
@@ -1747,8 +1748,8 @@ function initializePage() {
             
             // Validate required fields
             const requiredFields = [
-                'facFirstName', 'facLastName', 'facEmployeeId', 
-                'facDepartment', 'facDesignation'
+                'facFirstName', 'facLastName',  
+                'facDepartment', 
             ];
             
             for (const fieldId of requiredFields) {
@@ -1863,6 +1864,7 @@ function initializePage() {
     
     
 };
+
 
 //Open Admin Modal
 let adminModalOpen = false;

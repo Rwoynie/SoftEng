@@ -89,17 +89,29 @@ class EmailSender {
         }
     }
     
-    public function sendWelcomeEmail($toEmail, $toName, $password, $role) {
+    public function sendWelcomeEmail($toEmail, $toName, $password, $role, $userIdentifier) {
         try {
-            error_log("Sending welcome email to: " . $toEmail);
+            error_log("Sending welcome email to: " . $toEmail . " with User ID: " . $userIdentifier);
+            
+            // Validate all required parameters
+            if (empty($toEmail) || empty($toName) || empty($password) || empty($role) || empty($userIdentifier)) {
+                error_log("Missing parameters for welcome email:");
+                error_log("Email: " . $toEmail);
+                error_log("Name: " . $toName);
+                error_log("Password: " . (!empty($password) ? "SET" : "MISSING"));
+                error_log("Role: " . $role);
+                error_log("User Identifier: " . $userIdentifier);
+                return false;
+            }
             
             $subject = EmailConfig::WELCOME_SUBJECT;
-            $body = EmailConfig::getWelcomeBody($toName, $toEmail, $password, $role);
+            $body = EmailConfig::getWelcomeBody($toName, $toEmail, $password, $role, $userIdentifier);
             
+            error_log("Calling sendEmailPHPMailer for welcome email to: " . $toEmail);
             return $this->sendEmailPHPMailer($toEmail, $toName, $subject, $body);
             
         } catch (\Exception $e) {
-            error_log("Email sending error: " . $e->getMessage());
+            error_log("Email sending error in sendWelcomeEmail: " . $e->getMessage());
             return false;
         }
     }

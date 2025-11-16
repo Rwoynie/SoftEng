@@ -142,7 +142,7 @@ if (reportsOption) {
             'accounts': document.getElementById('accounts-container'),
             'logs': document.getElementById('logs-container'),
             'announcement': document.getElementById('announcement-container'),
-            'reports': document.getElementById('reports-container') 
+            'backup' : document.getElementById('backup-container')
         };
 
     // Function to switch sidebar views
@@ -173,10 +173,61 @@ if (reportsOption) {
     
            
             
-        if (viewId === 'dashboard') {
-                if (appContentHeader) appContentHeader.style.display = 'flex';
-            } else {
-                if (appContentHeader) appContentHeader.style.display = 'none';
+            // Show the selected content container
+            if (contentContainers[viewId]) {
+                contentContainers[viewId].style.display = 'block';
+                contentContainers[viewId].classList.add('content-container-active');
+        
+                // Show app-content-header only for dashboard view
+                if (viewId === 'dashboard') {
+                    if (appContentHeader) appContentHeader.style.display = 'flex';
+                } else {
+                    if (appContentHeader) appContentHeader.style.display = 'none';
+                }
+                
+                // Special handling for logs view
+                // In the initializeSidebar function, update the logs section:
+                if (viewId === 'logs') {
+                    // Initialize system logs when logs view is shown
+                    setTimeout(() => {
+                        if (window.systemLogsManager) {
+                            window.systemLogsManager.initialize();
+                            // Set default view to 'all'
+                            window.systemLogsManager.switchLogView('all');
+                        }
+                    }, 100);
+                }
+                
+                // NEW: Reset access management state when switching to users view
+                if (viewId === 'users') {
+                    resetAccessManagementState();
+                }
+                
+                // Initialize announcement functionality when announcement view is shown
+                if (viewId === 'announcement') {
+                    setTimeout(() => {
+                        if (typeof AnnouncementManager !== 'undefined') {
+                            if (!window.announcementManager) {
+                                
+                                window.announcementManager = new AnnouncementManager();
+                            } else {
+                                
+                                // Ensure the view is properly set
+                                window.announcementManager.switchView('active');
+                            }
+                            
+                            // Ensure the container is properly displayed
+                            const announcementContainer = document.getElementById('announcement-container');
+                            if (announcementContainer) {
+                                
+                            }
+                        } else {
+                           
+                        }
+                    }, 300);
+                }
+
+                
             }
 
             
@@ -236,15 +287,16 @@ if (reportsOption) {
         }
     }
 
-    // Initialize sidebar options with correct data-view attributes
-    sidebarOptions.forEach((option, index) => {
-        const viewIds = ['dashboard', 'users', 'accounts', 'logs', 'announcement', 'reports'];
-        const currentView = option.getAttribute('data-view') || viewIds[index] || `option-${index}`;
-        option.setAttribute('data-view', currentView);
-        
-        option.addEventListener('click', function() {
-            const viewId = this.getAttribute('data-view');
-            switchSidebarView(viewId);
+        // Add event listeners to sidebar options
+        sidebarOptions.forEach((option, index) => {
+            // Set data attributes to identify each option
+            const viewIds = ['dashboard', 'users', 'accounts', 'logs', 'announcement', 'backup'];
+            option.setAttribute('data-view', viewIds[index] || `option-${index}`);
+            
+            option.addEventListener('click', function() {
+                const viewId = this.getAttribute('data-view');
+                switchSidebarView(viewId);
+            });
         });
     });
 
@@ -3726,7 +3778,7 @@ testDebugMethod();
 
     initializeAllFilter();
 
-    
+    initializeBackupHandlers();
 });
 
 
@@ -4507,6 +4559,87 @@ async function getAllUsersWithCompleteRoles() {
         return [];
     }
 }
+
+
+//--------------------------------------------------------------- Backup functionality
+function initializeBackupHandlers() {
+    // Create Backup Button
+    const createBackupBtn = document.getElementById('createBackupBtn');
+    if (createBackupBtn) {
+        createBackupBtn.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Create System Backup?',
+                text: 'This will create a complete backup of the database and system files. This process may take a few minutes.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, create backup!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading
+                    Swal.fire({
+                        title: 'Creating Backup...',
+                        html: 'Please wait while we create your system backup.<br><br><i class="fas fa-spinner fa-spin fa-2x"></i>',
+                        allowOutsideClick: false,
+                        showConfirmButton: false
+                    });
+                    
+                    // Simulate backup process (replace with actual API call)
+                    setTimeout(() => {
+                        Swal.fire({
+                            title: 'Backup Created Successfully!',
+                            text: 'Your system backup has been created and saved.',
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        });
+                    }, 3000);
+                }
+            });
+        });
+    }
+
+    // Restore Backup Button
+    const restoreBackupBtn = document.getElementById('restoreBackupBtn');
+    if (restoreBackupBtn) {
+        restoreBackupBtn.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Restore from Backup',
+                text: 'Please select a backup file to restore from.',
+                input: 'file',
+                inputAttributes: {
+                    accept: '.sql,.zip,.backup',
+                    'aria-label': 'Upload your backup file'
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Restore',
+                cancelButtonText: 'Cancel',
+                preConfirm: () => {
+                    // Handle file upload and restoration here
+                    return new Promise((resolve) => {
+                        setTimeout(() => {
+                            resolve();
+                        }, 2000);
+                    });
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Restore Started!',
+                        text: 'Your system restoration has begun. This may take several minutes.',
+                        icon: 'info',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            });
+        });
+    }
+
+   
+}
+
+
 
 
 

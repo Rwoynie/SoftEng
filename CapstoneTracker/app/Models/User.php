@@ -23,7 +23,7 @@ class User extends Model {
             $salt = bin2hex(random_bytes(16));
             $hashedPassword = password_hash($data['password'] . $salt, PASSWORD_DEFAULT);
             
-            // Generate unique User_ID based on role
+            // Generate unique User_ID based on role - USING SAME LOGIC AS GOOGLE REGISTRATION
             $userRole = $data['user_role'] ?? 'student';
             $userId = $this->generateUserId($userRole, $data);
             
@@ -37,7 +37,7 @@ class User extends Model {
                 throw new Exception("Email address '{$data['email']}' is already registered");
             }
             
-            // Build the SQL query based on available data
+            // Build the SQL query based on available data - USING SAME STRUCTURE AS GOOGLE REGISTRATION
             $fields = ['pswrd', 'Salt', 'First_Name', 'Last_Name', 'Email', 'User_ID', 'User_Role', 'Acc_Status', 'Profile_Pic'];
             $values = [':password', ':salt', ':first_name', ':last_name', ':email', ':user_id', ':user_role', ':acc_status', ':profile_pic'];
             $bindings = [
@@ -46,10 +46,10 @@ class User extends Model {
                 ':first_name' => $data['first_name'] ?? '',
                 ':last_name' => $data['last_name'] ?? '',
                 ':email' => $data['email'] ?? '',
-                ':user_id' => $userId,
+                ':user_id' => $userId, // Add the auto-generated User_ID
                 ':user_role' => $userRole,
                 ':acc_status' => $data['acc_status'] ?? 'pending',
-                ':profile_pic' => $data['profile_pic']
+                ':profile_pic' => $data['profile_pic'] ?? null
             ];
             
             // Optional fields
@@ -58,7 +58,6 @@ class User extends Model {
                 'extension' => 'Extension',
                 'course' => 'Course',
                 'department' => 'Department',
-                'designation' => 'Designation',
             ];
             
             foreach ($optionalFields as $dataKey => $dbField) {
@@ -69,8 +68,8 @@ class User extends Model {
                 }
             }
             
-            // Add Student_ID or Employee_ID based on role
-            if ($userRole === 'student' && !empty($data['student_id'])) {
+            // Add Student_ID or Employee_ID based on role - USING SAME LOGIC AS GOOGLE REGISTRATION
+            if (($userRole === 'student' || $userRole === 'researcher') && !empty($data['student_id'])) {
                 $fields[] = 'Student_ID';
                 $values[] = ':student_id';
                 $bindings[':student_id'] = $data['student_id'];
@@ -170,7 +169,7 @@ class User extends Model {
             $optionalFields = [
                 'course' => 'Course',
                 'department' => 'Department',
-                'designation' => 'Designation',
+                
             ];
             
             foreach ($optionalFields as $dataKey => $dbField) {
@@ -279,42 +278,37 @@ private function generateUserId($role, $data) {
     
     // Handle student/researcher roles
     if ($role === 'student' || $role === 'researcher') {
-        // For students/researchers: S + Student_ID (e.g., S2025-12345)
         $studentId = $data['student_id'] ?? '';
         error_log("Student ID from data: " . $studentId);
         
         if (empty($studentId)) {
             // Generate a fallback student ID if not provided
-            $studentId = 'STU-' . random_int(10000, 99999);
+            $studentId = 'STU' . date('Y') . '-' . random_int(1000, 9999);
             error_log("Generated fallback Student ID: " . $studentId);
         }
-        return '' . $studentId;
+        return $studentId; // Just return the student_id without prefix
         
     } elseif ($role === 'faculty') {
-        // For faculty: F + Employee_ID (e.g., FAC-12345)
         $employeeId = $data['employee_id'] ?? '';
         error_log("Employee ID from data: " . $employeeId);
         
         if (empty($employeeId)) {
             // Generate a fallback employee ID if not provided
-            $employeeId = 'FAC-' . random_int(10000, 99999);
+            $employeeId = 'FAC' . date('Y') . '-' . random_int(1000, 9999);
             error_log("Generated fallback Employee ID: " . $employeeId);
         }
-        return '' . $employeeId;
+        return $employeeId; // Just return the employee_id without prefix
         
     } elseif ($role === 'admin' || $role === 'superadmin' || $role === 'subadmin') {
-        // For admin roles: A + Employee_ID or generated ID
         $employeeId = $data['employee_id'] ?? '';
         if (!empty($employeeId)) {
-            return 'A' . $employeeId;
+            return $employeeId;
         } else {
-            // Generate admin-specific ID
-            return 'ADM-' . random_int(10000, 99999);
+            return 'ADM' . date('Y') . '-' . random_int(1000, 9999);
         }
     } else {
-        // For other unknown roles, use role-specific prefix
-        $prefix = strtoupper(substr($role, 0, 3));
-        $userId = $data['user_id'] ?? $prefix . '-' . random_int(10000, 99999);
+        // For other unknown roles
+        $userId = $data['user_id'] ?? 'USR' . date('Y') . '-' . random_int(1000, 9999);
         error_log("Other role User ID: " . $userId);
         return $userId;
     }
@@ -325,19 +319,34 @@ private function generateUserId($role, $data) {
      */
     public function login($identifier, $password) {
         try {
+            error_log("=== LOGIN ATTEMPT ===");
+            error_log("Identifier: " . $identifier);
+            
             // Allow login by email, user_id, student_id, or employee_id
             $this->db->query('SELECT * FROM USER_INFORMATION WHERE (Email = :identifier OR User_ID = :identifier OR Student_ID = :identifier OR Employee_ID = :identifier) AND Acc_Status = "approved"');
             $this->db->bind(':identifier', $identifier);
             $result = $this->db->single();
             
             if ($result) {
-                // Verify password
+                error_log("User found: " . $result->Email);
+                error_log("User Role: " . $result->User_Role);
+                
+                // Use EXACTLY the same logic as registration
                 $hashedPassword = $result->pswrd;
                 $salt = $result->Salt;
                 
-                if (password_verify($password . $salt, $hashedPassword)) {
+                // This matches how passwords are hashed in register() method
+                $passwordWithSalt = $password . $salt;
+                
+                if (password_verify($passwordWithSalt, $hashedPassword)) {
+                    error_log("✅ Login SUCCESSFUL - password+salt verification");
                     return $result;
+                } else {
+                    error_log("❌ Password verification FAILED");
+                    error_log("Using password+salt method (same as registration)");
                 }
+            } else {
+                error_log("❌ No approved user found with identifier: " . $identifier);
             }
             
             return false;
@@ -346,7 +355,7 @@ private function generateUserId($role, $data) {
             error_log("User login error: " . $e->getMessage());
             return false;
         }
-    }
+    }   
     
     /**
      * Check if email already exists
@@ -571,28 +580,30 @@ private function generateUserId($role, $data) {
         error_log("=== USER MODEL loginByEmail ===");
         error_log("Email: " . $email);
         
-        $this->db->query('SELECT * FROM USER_INFORMATION WHERE Email = :email');
+        $this->db->query('SELECT * FROM USER_INFORMATION WHERE Email = :email AND Acc_Status = "approved"');
         $this->db->bind(':email', $email);
         
         $row = $this->db->single();
         
         if ($row) {
-            error_log("User found in database");
+            error_log("User found in database: " . $row->Email);
             
-            // FIXED: Using correct column name 'pswrd'
-            $hashed_password = is_object($row) ? $row->pswrd : $row['pswrd'];
+            // Use EXACTLY the same logic as registration
+            $hashedPassword = $row->pswrd;
+            $salt = $row->Salt;
             
-            error_log("Stored password hash: " . $hashed_password);
-            error_log("Provided password: ***");
+            // This matches how passwords are hashed in register() method
+            $passwordWithSalt = $password . $salt;
             
-            if (password_verify($password, $hashed_password)) {
-                error_log("✅ Password verification SUCCESS");
+            if (password_verify($passwordWithSalt, $hashedPassword)) {
+                error_log("✅ Password verification SUCCESS - password+salt method");
                 return $row;
             } else {
                 error_log("❌ Password verification FAILED");
+                error_log("Using password+salt method (same as registration)");
             }
         } else {
-            error_log("❌ No user found with email: " . $email);
+            error_log("❌ No approved user found with email: " . $email);
         }
         
         return false;

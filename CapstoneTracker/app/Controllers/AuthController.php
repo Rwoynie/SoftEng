@@ -874,6 +874,19 @@ public function googleLogin() {
             // ✅ ROLE VALIDATION: Check if user role matches selected role
             $normalizedUserRole = strtolower($userRole);
             $normalizedSelectedRole = strtolower($selectedRole);
+
+            // Map role names for compatibility - FIXED for student/researcher
+            if ($normalizedSelectedRole === 'researcher') {
+                $normalizedSelectedRole = 'student'; // Treat researcher as student
+            }
+
+            error_log("Normalized User Role: " . $normalizedUserRole);
+            error_log("Normalized Selected Role: " . $normalizedSelectedRole);
+
+            if ($normalizedUserRole !== $normalizedSelectedRole) {
+                error_log("❌ ROLE MISMATCH: User role ($normalizedUserRole) does not match selected role ($normalizedSelectedRole)");
+                throw new Exception("This account is registered as a " . ucfirst($normalizedUserRole) . ". Please use the " . ucfirst($normalizedUserRole) . " login option.");
+            }
             
             // Map role names for compatibility
             $roleMapping = [
@@ -1008,7 +1021,67 @@ private function getRedirectUrlByRole($userRole) {
 }
 
     
+/**
+ * Validate and format name (capitalize first letter, lowercase the rest)
+ */
+private function validateAndFormatName($name, $fieldName) {
+    if (empty($name)) {
+        return $name;
+    }
+    
+    // Remove extra whitespace
+    $name = trim($name);
+    
+    // Check if name contains only letters, spaces, hyphens, and apostrophes
+    if (!preg_match('/^[a-zA-Z\s\-\'\.]+$/', $name)) {
+        throw new Exception("$fieldName can only contain letters, spaces, hyphens (-), apostrophes ('), and periods (.)");
+    }
+    
+    // Check for consecutive special characters
+    if (preg_match('/[\-\'\\.]{2,}/', $name)) {
+        throw new Exception("$fieldName cannot have consecutive special characters");
+    }
+    
+    // Capitalize first letter of each word
+    $formattedName = $this->properCaseName($name);
+    
+    return $formattedName;
+}
 
+/**
+ * Convert name to proper case (First Letter Capital, rest lowercase)
+ */
+private function properCaseName($name) {
+    $words = explode(' ', $name);
+    $properWords = [];
+    
+    foreach ($words as $word) {
+        // Handle hyphenated names (like Mary-Ann)
+        if (strpos($word, '-') !== false) {
+            $hyphenated = explode('-', $word);
+            $properHyphenated = [];
+            foreach ($hyphenated as $hWord) {
+                $properHyphenated[] = ucfirst(strtolower($hWord));
+            }
+            $properWords[] = implode('-', $properHyphenated);
+        }
+        // Handle apostrophe names (like O'Connor)
+        elseif (strpos($word, "'") !== false) {
+            $apostropheParts = explode("'", $word);
+            $properApostrophe = [];
+            foreach ($apostropheParts as $aPart) {
+                $properApostrophe[] = ucfirst(strtolower($aPart));
+            }
+            $properWords[] = implode("'", $properApostrophe);
+        }
+        // Normal case - capitalize first letter, lowercase the rest
+        else {
+            $properWords[] = ucfirst(strtolower($word));
+        }
+    }
+    
+    return implode(' ', $properWords);
+}
 
    /**
  * Auto-register a user from Google Sign-In - WITH PROPER ROLE ASSIGNMENT
@@ -1083,43 +1156,42 @@ private function autoRegisterGoogleUser($email, $name, $selectedRole) {
         $nameParts = $this->parseName($name);
         $firstName = $nameParts['first_name'];
         $lastName = $nameParts['last_name'];
-        error_log("Parsed name - First: $firstName, Last: $lastName");
+        error_log("Parsed and formatted name - First: $firstName, Last: $lastName");
         
         // ✅ FIXED: Handle role mapping properly for auto-registration
-        $userRole = $selectedRole; // This will be 'student' for students
+        if ($selectedRole === 'student' || $selectedRole === 'researcher') {
+            $userRole = 'student'; // Force to 'student' for both student and researcher selections
+        } else {
+            $userRole = $selectedRole; // Keep faculty as is
+        }
+        
         
         error_log("Final user role for registration: $userRole");
         
         // Generate student/employee ID based on role
-        $userIdNumber = $this->generateUserIdNumber($userRole);
-        error_log("Generated user ID: $userIdNumber");
-        
-        // Parse name into first and last name
         $nameParts = $this->parseName($name);
         $firstName = $nameParts['first_name'];
         $lastName = $nameParts['last_name'];
-        
+
         // Prepare user data for Google registration
         $userData = [
             'password' => $autoPassword,
             'first_name' => $firstName,
             'last_name' => $lastName,
             'email' => $email,
-            'user_role' => $userRole, // This will be 'student' for students
+            'user_role' => $userRole, // This will now be 'student' for students
             'acc_status' => 'approved',
             'profile_pic' => base64_decode('R0lGODlhAQABAIAAAAAA/P///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')
         ];
         
         // Add role-specific fields
         if ($userRole === 'student') {
-            $userData['student_id'] = $userIdNumber;
             $userData['course'] = 'Not Specified';
-            $userData['designation'] = 'Student';
+            
             error_log("Setting student-specific fields");
         } else if ($userRole === 'faculty') {
-            $userData['employee_id'] = $userIdNumber;
             $userData['department'] = 'Not Specified';
-            $userData['designation'] = 'Faculty';
+            
             error_log("Setting faculty-specific fields");
         }
         
@@ -1143,13 +1215,15 @@ private function autoRegisterGoogleUser($email, $name, $selectedRole) {
             
             if ($newUser) {
                 $userId = $newUser['ID'] ?? $newUser->ID ?? null;
+                $userIdentifier = $newUser['User_ID'] ?? $newUser->User_ID ?? null; // This is what you want!
                 $actualRole = $newUser['User_Role'] ?? $newUser->User_Role ?? 'unknown';
                 
                 error_log("New user found with ID: " . $userId);
+                error_log("User Identifier (User_ID): " . $userIdentifier);
                 error_log("Actual role in database: " . $actualRole);
                 
-                // Send welcome email
-                $emailSent = $this->sendWelcomeEmail($email, $name, $autoPassword, $userRole);
+                // ✅ FIXED: Pass the User_ID column value, not the primary key ID
+                $emailSent = $this->sendWelcomeEmail($email, $name, $autoPassword, $userRole, $userIdentifier);
                 
                 error_log("=== AUTO REGISTRATION DEBUG END - SUCCESS ===");
                 return [
@@ -1233,7 +1307,7 @@ private function restoreDeletedUser($email) {
     /**
      * Send welcome email to new Google Sign-In users
      */
-    private function sendWelcomeEmail($email, $name, $password, $role) {
+    private function sendWelcomeEmail($email, $name, $password, $role, $userIdentifier) {
         try {
             // Use __DIR__ to get the current directory path
             $emailSenderPath = __DIR__ . '/EmailSender.php';
@@ -1257,7 +1331,11 @@ private function restoreDeletedUser($email) {
             require_once $emailSenderPath;
             
             $emailSender = new EmailSender();
-            return $emailSender->sendWelcomeEmail($email, $name, $password, $role);
+            
+            // Log what we're sending
+            error_log("Sending welcome email with User Identifier: " . $userIdentifier);
+            
+            return $emailSender->sendWelcomeEmail($email, $name, $password, $role, $userIdentifier);
             
         } catch (Exception $e) {
             error_log("Welcome email sending failed: " . $e->getMessage());
@@ -1357,7 +1435,10 @@ private function getWelcomeBackBody($name, $email, $role) {
      * Parse full name into first and last name
      */
     private function parseName($fullName) {
-        $nameParts = explode(' ', trim($fullName));
+        // First, format the entire name
+        $formattedFullName = $this->validateAndFormatName($fullName, 'Full Name');
+        
+        $nameParts = explode(' ', trim($formattedFullName));
         
         $firstName = $nameParts[0] ?? '';
         $lastName = end($nameParts) ?? '';
@@ -1377,23 +1458,7 @@ private function getWelcomeBackBody($name, $email, $role) {
     /**
      * Generate user ID number based on role
      */
-    private function generateUserIdNumber($role) {
-        error_log("=== GENERATE USER ID NUMBER DEBUG ===");
-        error_log("Role received: " . $role);
-        
-        // Determine prefix based on role
-        if ($role === 'faculty' || $role === 'Faculty') {
-            $userIdNumber = 'FAC-' . random_int(10000, 99999);
-        } else {
-            // For student/researcher roles
-            $userIdNumber = 'STU-' . random_int(10000, 99999);
-        }
-        
-        error_log("Generated User ID Number: " . $userIdNumber);
-        error_log("=== GENERATE USER ID NUMBER DEBUG END ===");
-        
-        return $userIdNumber;
-    }
+    
 
 
 	/**

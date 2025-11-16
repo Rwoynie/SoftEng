@@ -305,7 +305,7 @@ $displayUserData = [
                     <li id="" data-view="accounts"><i class="fa-solid fa-users" aria-hidden="true"></i></li>
                     <li id="" data-view="logs"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></li>
                     <li id="" data-view="announcement"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i></li>
-                    <li id="" data-view="reports"><i class="fa-solid fa-chart-bar" aria-hidden="true"></i></li>
+                    <li id="" data-view="backup"><i class="fa-solid fa-database" aria-hidden="true"></i></li>
                 </ul>
             </nav>
 
@@ -318,6 +318,7 @@ $displayUserData = [
             <div id="user-info-display" style="display: none;">
                 <span id="user-full-name"><?php echo htmlspecialchars($displayUserData['user_name']); ?></span>
                 <span id="user-role"><?php echo htmlspecialchars($displayUserData['user_role']); ?></span>
+  
             </div>
 
         </section>
@@ -1058,165 +1059,117 @@ $displayUserData = [
                     </div>
                 </div>
 
-
-
-
-                <!-- Reports Section -->
-                <div id="reports-container" class="content-container reports-content">
-                <header class="header" id="announcementHeader">
-                        <div class="title">Report</div>
-                        <button class="log-download-btn" id="downloadReportBtn">
-                            <i class="fas fa-download me-2"></i>
-                            Download Report
-                        </button>
-                </header>
-
-                <!-- Loading State -->
-                <div class="loading-state" id="reportsLoading" style="display: none;">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    <p>Loading reports...</p>
-                </div>
-
-                <!-- Error State -->
-                <div class="error-state" id="reportsError" style="display: none;">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <h3>Failed to Load Reports</h3>
-                    <p id="errorMessage"></p>
-                    <button class="btn-retry" onclick="window.reportsManager?.loadReportsData()">Retry</button>
-                </div>
-
-                <!-- Main Reports Content -->
-                <div id="reportsMainContent">
-                    <!-- Stats Cards -->
-                    <div class="stats-cards">
-                        <div class="stat-card">
-                            <div class="stat-icon"><i class="fas fa-book"></i></div>
-                            <div class="stat-info">
-                                <h3 id="totalTheses">0</h3>
-                                <p>Total Theses</p>
-                            </div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-icon"><i class="fas fa-users"></i></div>
-                            <div class="stat-info">
-                                <h3 id="totalStudents">0</h3>
-                                <p>Total Students</p>
-                            </div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-icon"><i class="fas fa-calendar"></i></div>
-                            <div class="stat-info">
-                                <h3 id="recentTheses">0</h3>
-                                <p>This Month</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Department Reports -->
-                    <div class="reports-card" id="reports-card">
-                        <div class="content-header">
-                            <h3>Program Reports</h3>
-                            <p>Click a Program to view detailed statistics</p>
-                        </div>
-                        <div class="access-list">
-                            <div class="access-item accessCard active" id="allReportsBtn">
-                                <div class="access-info">
-                                    <h4>All Programs</h4>
-                                    <p>Total thesis count across all programs</p>
+                <div id="backup-container" class="content-container" style="display: none;">
+                    <header class="header" id="backupHeader">
+                        <div class="title">Backup & Restore</div>
+                    </header>
+                    
+                    <div class="backup-content">
+                        <div class="backup-actions">
+                            <div class="backup-card">
+                                <div class="backup-icon">
+                                    <i class="fas fa-download"></i>
                                 </div>
-                                <div class="access-count" id="allCount">0</div>
-                            </div>
-                            <div class="access-item accessCard" id="bsitReports">
-                                <div class="access-info">
-                                    <h4>BSIT | SITS</h4>
-                                    <p>Information Technology</p>
-                                </div>
-                                <div class="access-count">0</div>
-                            </div>
-                            <div class="access-item accessCard" id="becedReports">
-                                <div class="access-info">
-                                    <h4>BECED | AECES</h4>
-                                    <p>Early Childhood Education</p>
-                                </div>
-                                <div class="access-count">0</div>
-                            </div>
-                            <div class="access-item accessCard" id="bsedReports">
-                                <div class="access-info">
-                                    <h4>BSED | AFSET</h4>
-                                    <p>Secondary Education</p>
-                                </div>
-                                <div class="access-count">0</div>
-                            </div>
-                            <div class="access-item accessCard" id="btvtedReports">
-                                <div class="access-info">
-                                    <h4>BTVTED | FTVETS</h4>
-                                    <p>Technical-Vocational</p>
-                                </div>
-                                <div class="access-count">0</div>
-                            </div>
-                            <div class="access-item accessCard" id="beedReports">
-                                <div class="access-info">
-                                    <h4>BEED | OFEE</h4>
-                                    <p>Elementary Education</p>
-                                </div>
-                                <div class="access-count">0</div>
-                            </div>
-                            <div class="access-item accessCard" id="bsnedReports">
-                                <div class="access-info">
-                                    <h4>BSNED | OFSET</h4>
-                                    <p>Special Needs Education</p>
-                                </div>
-                                <div class="access-count">0</div>
-                            </div>
-                            <div class="access-item accessCard" id="bsabeReports">
-                                <div class="access-info">
-                                    <h4>BSABE | SABES</h4>
-                                    <p>Agricultural Engineering</p>
-                                </div>
-                                <div class="access-count">0</div>
-                            </div>
-                        </div>
-                    </div>
-
-
-                    <!-- Charts Section -->
-                    <div class="charts-section">
-                        <div class="chart-card">
-                            <div class="chart-header">
-                                <h3>Student Distribution by Program</h3>
-                                <div class="chart-actions">
-                                    <button class="chart-action-btn" title="refresh"><i class="fas fa-sync"></i></button>
-                                    <button class="chart-action-btn" title="download"><i class="fas fa-download"></i></button>
-                                </div>
-                            </div>
-                            <div class="chart-container">
-                                <canvas id="studentPieChart"></canvas>
+                                <h3>Create Backup</h3>
+                                <p>Create a complete backup of the system database and files</p>
+                                <button class="btn btn-primary backup-action-btn" id="createBackupBtn">
+                                    <i class="fas fa-database"></i> Create System Backup
+                                </button>
                             </div>
                             
+                            <div class="backup-card">
+                                <div class="backup-icon">
+                                    <i class="fas fa-upload"></i>
+                                </div>
+                                <h3>Restore Backup</h3>
+                                <p>Restore the system from a previous backup file</p>
+                                <button class="btn btn-secondary backup-action-btn" id="restoreBackupBtn">
+                                    <i class="fas fa-file-import"></i> Restore from Backup
+                                </button>
+                            </div>
+                            
+                            <div class="backup-card">
+                                <div class="backup-icon">
+                                    <i class="fas fa-history"></i>
+                                </div>
+                                <h3>Backup History</h3>
+                                <p>View and manage previous system backups</p>
+                                <button class="btn btn-tertiary backup-action-btn" id="viewBackupHistoryBtn">
+                                    <i class="fas fa-list-alt"></i> View Backup History
+                                </button>
+                            </div>
                         </div>
-
-                        <div class="chart-card">
-                            <div class="chart-header">
-                                <h3>Thesis Uploads (Last 12 Months)</h3>
-                                <div class="chart-actions">
-                                    <button class="chart-action-btn" title="refresh"><i class="fas fa-sync"></i></button>
-                                    <button class="chart-action-btn" title="download"><i class="fas fa-download"></i></button>
+                        
+                        <!-- Backup Information Section -->
+                        <div class="backup-info">
+                            <h3 class="backup-info-title">
+                                <i class="fas fa-info-circle"></i> System Backup Information
+                            </h3>
+                            
+                            <div class="backup-info-grid">
+                                <div class="info-item">
+                                    <strong>Last Backup:</strong> 
+                                    <span id="lastBackupDate">Never</span>
+                                </div>
+                                
+                                <div class="info-item">
+                                    <strong>Last Backup Size:</strong> 
+                                    <span id="backupSize">0 MB</span>
+                                </div>
+                                
+                                <div class="info-item">
+                                    <strong>Auto Backup:</strong> 
+                                    <span id="autoBackupStatus" class="status-disabled">Disabled</span>
+                                </div>
+                                
+                                <div class="info-item">
+                                    <strong>Next Auto Backup:</strong> 
+                                    <span id="nextBackupDate">Not scheduled</span>
                                 </div>
                             </div>
-                            <div class="chart-container">
-                                <canvas id="thesisBarChart"></canvas>
-                            </div>
-                            <div class="chart-footer">
-                                <div class="chart-stats"></div>
+                            
+                            <div class="backup-location">
+                                <h4>Backup Location</h4>
+                                <p class="backup-path">
+                                    /var/backups/capstone-tracker/
+                                </p>
                             </div>
                         </div>
 
-                
+                        <!-- Backup History Table (initially hidden) -->
+                        <div id="backupHistorySection" class="backup-history-section">
+                            <div class="backup-history-header">
+                                <h3>
+                                    <i class="fas fa-history"></i> Backup History
+                                </h3>
+                                
+                            </div>
+                            
+                            <div class="backup-table-container">
+                                <table class="backup-history-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Backup Date</th>
+                                            <th>File Name</th>
+                                            <th>Size</th>
+                                            <th>Type</th>
+                                            <th class="text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="backupHistoryTableBody">
+                                        <tr>
+                                            <td colspan="5" class="no-backups-message">
+                                                <i class="fas fa-inbox"></i>
+                                                <h4>No Backup History</h4>
+                                                <p>No backups have been created yet.</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-
 
 
 
