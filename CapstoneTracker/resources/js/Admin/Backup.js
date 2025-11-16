@@ -425,6 +425,7 @@ class BackupManager {
     
 }
 
+/*
 async function debugBackupRequest() {
     try {
         const formData = new FormData();
@@ -452,7 +453,7 @@ async function debugBackupRequest() {
     } catch (error) {
         console.error('Debug request failed:', error);
     }
-}
+} */
 
 // Initialize Backup Manager when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {

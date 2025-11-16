@@ -1084,8 +1084,8 @@ $displayUserData = [
                                 <h3>Backup History</h3>
                                 <p>View and manage previous system backups</p>
                                 <button class="btn btn-tertiary backup-action-btn" id="viewBackupHistoryBtn">
-    <i class="fas fa-list-alt"></i> View Backup History
-</button>
+                                    <i class="fas fa-list-alt"></i> View Backup History
+                                </button>
                             </div>
                         </div>
                         
