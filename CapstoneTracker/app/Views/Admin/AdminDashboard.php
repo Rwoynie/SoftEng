@@ -8,6 +8,7 @@ require_once '../../../Database/config.php';
 require_once '../../../app/Controllers/AdminDashboardController.php';
 require_once '../../../app/Models/Thesis.php';
 require_once '../../../app/Controllers/RolesController.php';
+require_once '../../../app/Controllers/BackupController.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -255,8 +256,6 @@ $displayUserData = [
 
 ];
 
-
-
 ?>
 
 
@@ -276,16 +275,14 @@ $displayUserData = [
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Quicksand">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
     <link rel="stylesheet" href="../../../resources/css/Admin/AdminDashboard.css">
-    <script type="text/javascript" src="../../../resources/js/Admin/AdminDashboardReport.js"></script>
     <script type="text/javascript" src="../../../resources/js/Admin/ThesisFunctions.js"></script>
-      <script type="text/javascript" src="../../../resources/js/Admin/AdminDashboardAnnouncement.js"></script>
     <script type="text/javascript" src="../../../resources/js/Admin/AdminDashboard.js"></script>
     <script type="text/javascript" src="../../../resources/js/Admin/RoleAccess.js"></script>
-  
+    <script type="text/javascript" src="../../../resources/js/Admin/AdminDashboardAnnouncement.js"></script>
     <script type="text/javascript" src="../../../resources/js/Admin/AccountPagination.js"></script>
+    <script type="text/javascript" src="../../../resources/js/Admin/Backup.js"></script>
     <script>
         const userDisplayData = <?php echo json_encode($displayUserData); ?>;
     </script>
@@ -720,17 +717,10 @@ $displayUserData = [
                     <!-- All Logs Container -->
                     <div id="allLogs-container" class="log-content active">
                         <div class="log-filter-bar">
-                            <div class="search-download-container">
-                                <div class="log-search-box">
-                                    <i class="fas fa-search"></i>
-                                    <input type="text" placeholder="Search all logs..." id="allLogSearchInput">
-                                </div>
-                                <button class="log-download-btn2">
-                                    <i class="fas fa-download me-2"></i>
-                                    Download System Logs
-                                </button>
+                            <div class="log-search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" placeholder="Search all logs..." id="allLogSearchInput">
                             </div>
-                            
                             <div class="log-filter-options">
                                 <button class="log-filter-btn active" data-filter="all">All Activities</button>
                                 <button class="log-filter-btn" data-filter="login">Logins</button>
@@ -814,8 +804,7 @@ $displayUserData = [
                                     </tr>
                                 </thead>
                                 <tbody id="adminLogsTableBody">
-                                    
-                                
+                                    <!-- Admin logs will be populated here -->
                                 </tbody>
                             </table>
                         </div>
@@ -1235,8 +1224,8 @@ $displayUserData = [
                                 <h3>Create Backup</h3>
                                 <p>Create a complete backup of the system database and files</p>
                                 <button class="btn btn-primary backup-action-btn" id="createBackupBtn">
-                                    <i class="fas fa-database"></i> Create System Backup
-                                </button>
+    <i class="fas fa-database"></i> Create System Backup
+</button>
                             </div>
                             
                             <div class="backup-card">
@@ -1246,8 +1235,8 @@ $displayUserData = [
                                 <h3>Restore Backup</h3>
                                 <p>Restore the system from a previous backup file</p>
                                 <button class="btn btn-secondary backup-action-btn" id="restoreBackupBtn">
-                                    <i class="fas fa-file-import"></i> Restore from Backup
-                                </button>
+    <i class="fas fa-file-import"></i> Restore from Backup
+</button>
                             </div>
                             
                             <div class="backup-card">
