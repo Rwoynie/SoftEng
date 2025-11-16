@@ -403,6 +403,13 @@ body {
     margin: 0 10px 0 5px;
 }
 
+.search-download-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex: 1;
+}
+
 .searchbox input.search-text {
     border: none;
     background: inherit;
@@ -566,7 +573,7 @@ body {
 }
 
 /* Download button styling */
-.log-download-btn {
+#downloadReportBtn {
     position: absolute;
     bottom: 20px;
     right: 20px;
@@ -584,7 +591,7 @@ body {
     box-shadow: 0 4px 15px rgba(186, 30, 31, 0.3);
 }
 
-.log-download-btn:hover {
+#downloadReportBtn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(186, 30, 31, 0.4);
 }

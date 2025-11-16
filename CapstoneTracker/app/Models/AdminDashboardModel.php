@@ -812,26 +812,719 @@ public function getLoginAttempts($limit) {
             return [];
         }
     }
-}
 
-if (isset($_GET['action'])) {
-    $action = $_GET['action'];
-    $model = new AdminDashboardModel();
-
-    if ($action === 'getAuditLogs') {
-        $table = $_GET['table'] ?? null;
-        $limit = $_GET['limit'] ?? 50;
-        $logs = $model->getAuditLogs($limit, $table);
-        echo json_encode(['success' => true, 'logs' => $logs]);
-        exit;
+    /**
+     * Get department statistics
+     */
+    public function getDepartmentStatistics() {
+        try {
+            $this->db->query("
+                SELECT 
+                    u.Department,
+                    COUNT(DISTINCT u.ID) as user_count,
+                    COUNT(DISTINCT t.ID) as thesis_count,
+                    AVG(tr.rating) as avg_rating
+                FROM USER_INFORMATION u
+                LEFT JOIN THESIS t ON u.ID = t.User_ID
+                LEFT JOIN THESIS_REVIEWS tr ON t.ID = tr.thesis_id
+                WHERE u.Acc_Status = 'approved'
+                GROUP BY u.Department
+                ORDER BY thesis_count DESC
+            ");
+            return $this->db->resultSet();
+        } catch (Exception $e) {
+            error_log("Error getting department statistics: " . $e->getMessage());
+            return [];
+        }
     }
 
-    if ($action === 'getLoginAttempts') {
-        $limit = $_GET['limit'] ?? 50;
-        $attempts = $model->getLoginAttempts($limit);
-        echo json_encode(['success' => true, 'attempts' => $attempts]);
-        exit;
+    /**
+     * Get user distribution by department
+     */
+    public function getUserDistributionByDepartment() {
+        try {
+            $this->db->query("
+                SELECT 
+                    Course,
+                    User_Role,
+                    COUNT(*) as user_count
+                FROM USER_INFORMATION
+                WHERE Acc_Status = 'approved'
+                GROUP BY Course, User_Role
+                ORDER BY Course, User_Role
+            ");
+            return $this->db->resultSet();
+        } catch (Exception $e) {
+            error_log("Error getting user distribution: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get thesis statistics
+     */
+    public function getThesisStatistics($department = 'all') {
+    try {
+        $sql = "
+            SELECT 
+                COUNT(*) as total_theses,
+                AVG(LENGTH(File_Size)) as avg_file_size,
+                COUNT(DISTINCT Author) as unique_authors,
+                MAX(uploaded_at) as latest_upload,
+                MIN(uploaded_at) as earliest_upload
+            FROM THESIS t
+        ";
+        
+        if ($department !== 'all') {
+            $sql .= " JOIN USER_INFORMATION u ON t.User_ID = u.ID WHERE u.Department = :department";
+        }
+        
+        $this->db->query($sql);
+        
+        if ($department !== 'all') {
+            $this->db->bind(':department', $department);
+        }
+        
+        return $this->db->single();
+    } catch (Exception $e) {
+        error_log("Error getting thesis statistics: " . $e->getMessage());
+        return null;
     }
 }
+
+    /**
+     * Get thesis upload trends
+     */
+    public function getThesisUploadTrends($department = 'all') {
+        try {
+            $sql = "
+                SELECT 
+                    DATE_FORMAT(uploaded_at, '%Y-%m') as month,
+                    COUNT(*) as upload_count
+                FROM THESIS t
+            ";
+            
+            if ($department !== 'all') {
+                $sql .= " JOIN USER_INFORMATION u ON t.User_ID = u.ID WHERE u.Course = :course";
+            }
+            
+            $sql .= " GROUP BY DATE_FORMAT(uploaded_at, '%Y-%m') ORDER BY month DESC LIMIT 12";
+            
+            $this->db->query($sql);
+            
+            if ($department !== 'all') {
+                $this->db->bind(':course', $department);
+            }
+            
+            return $this->db->resultSet();
+        } catch (Exception $e) {
+            error_log("Error getting thesis upload trends: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get user statistics
+     */
+    public function getUserStatistics($department = 'all') {
+        try {
+            $sql = "
+                SELECT 
+                    COUNT(*) as total_users,
+                    SUM(CASE WHEN Acc_Status = 'approved' THEN 1 ELSE 0 END) as approved_users,
+                    SUM(CASE WHEN Acc_Status = 'pending' THEN 1 ELSE 0 END) as pending_users,
+                    SUM(CASE WHEN User_Role = 'student' THEN 1 ELSE 0 END) as student_users,
+                    SUM(CASE WHEN User_Role = 'faculty' THEN 1 ELSE 0 END) as faculty_users,
+                    SUM(CASE WHEN User_Role = 'admin' THEN 1 ELSE 0 END) as admin_users
+                FROM USER_INFORMATION
+            ";
+            
+            if ($department !== 'all') {
+                $sql .= " WHERE Course = :course";
+            }
+            
+            $this->db->query($sql);
+            
+            if ($department !== 'all') {
+                $this->db->bind(':course', $department);
+            }
+            
+            return $this->db->single();
+        } catch (Exception $e) {
+            error_log("Error getting user statistics: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Get user registration trends
+     */
+    public function getUserRegistrationTrends($department = 'all') {
+        try {
+            $sql = "
+                SELECT 
+                    DATE_FORMAT(created_at, '%Y-%m') as month,
+                    COUNT(*) as registration_count
+                FROM USER_INFORMATION
+            ";
+            
+            if ($department !== 'all') {
+                $sql .= " WHERE Course = :course";
+            }
+            
+            $sql .= " GROUP BY DATE_FORMAT(created_at, '%Y-%m') ORDER BY month DESC LIMIT 12";
+            
+            $this->db->query($sql);
+            
+            if ($department !== 'all') {
+                $this->db->bind(':course', $department);
+            }
+            
+            return $this->db->resultSet();
+        } catch (Exception $e) {
+            error_log("Error getting user registration trends: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get users by department
+     */
+    public function getUsersByDepartment($department) {
+    try {
+        $this->db->query("
+            SELECT 
+                ID,
+                First_Name,
+                Middle_Name,
+                Last_Name,
+                Extension,
+                Email,
+                User_Role,
+                Acc_Status,
+                Department,
+                Course,
+                created_at
+            FROM USER_INFORMATION 
+            WHERE Department = :department
+            ORDER BY created_at DESC
+        ");
+        $this->db->bind(':department', $department);
+        return $this->db->resultSet();
+    } catch (Exception $e) {
+        error_log("Error getting users by department: " . $e->getMessage());
+        return [];
+    }
+}
+
+    /**
+     * Get all department reports
+     */
+    public function getAllDepartmentReports() {
+        try {
+            $departments = $this->getDepartmentStatistics();
+            $reports = [];
+            
+            foreach ($departments as $dept) {
+                $reports[$dept->Department] = [
+                    'course' => $dept,
+                    'theses' => $this->getThesesByDepartment($dept->Department),
+                    'users' => $this->getUsersByDepartment($dept->Department)
+                ];
+            }
+            
+            return $reports;
+        } catch (Exception $e) {
+            error_log("Error getting all department reports: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get specific department report
+     */
+    public function getDepartmentReport($department) {
+        try {
+            return [
+                'department' => $department,
+                'stats' => $this->getDepartmentStatisticsForDept($department),
+                'theses' => $this->getThesesByDepartment($department),
+                'users' => $this->getUsersByDepartment($department),
+                'upload_trends' => $this->getThesisUploadTrends($department),
+                'user_trends' => $this->getUserRegistrationTrends($department)
+            ];
+        } catch (Exception $e) {
+            error_log("Error getting department report: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Get department statistics for specific department
+     */
+    public function getDepartmentStatisticsForDept($department) {
+        try {
+            $this->db->query("
+                SELECT 
+                    u.Department,
+                    COUNT(DISTINCT u.ID) as user_count,
+                    COUNT(DISTINCT t.ID) as thesis_count,
+                    AVG(tr.rating) as avg_rating,
+                    COUNT(DISTINCT CASE WHEN u.User_Role = 'student' THEN u.ID END) as student_count,
+                    COUNT(DISTINCT CASE WHEN u.User_Role = 'faculty' THEN u.ID END) as faculty_count
+                FROM USER_INFORMATION u
+                LEFT JOIN THESIS t ON u.ID = t.User_ID
+                LEFT JOIN THESIS_REVIEWS tr ON t.ID = tr.thesis_id
+                WHERE u.Department = :department AND u.Acc_Status = 'approved'
+                GROUP BY u.Department
+            ");
+            $this->db->bind(':department', $department);
+            return $this->db->single();
+        } catch (Exception $e) {
+            error_log("Error getting department statistics: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Get course distribution for reports (counts by course instead of department)
+     */
+    public function getCourseDistribution($department = 'all') {
+    try {
+        $sql = "
+            SELECT 
+                u.Course as course,
+                COUNT(DISTINCT u.ID) as student_count,
+                COUNT(DISTINCT t.ID) as thesis_count
+            FROM USER_INFORMATION u
+            LEFT JOIN THESIS t ON u.ID = t.User_ID
+            WHERE u.Acc_Status = 'approved' 
+            AND u.User_Role = 'student'
+            AND u.Course IS NOT NULL
+            AND u.Course != ''
+        ";
+        
+        $params = [];
+        
+        if ($department !== 'all') {
+            $courseCodes = $this->getCourseCodesByDepartment($department);
+            if (!empty($courseCodes)) {
+                $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
+                $sql .= " AND u.Course IN ($placeholders)";
+                $params = array_merge($params, $courseCodes);
+            }
+        }
+        
+        $sql .= " GROUP BY u.Course ORDER BY student_count DESC";
+        
+        $this->db->query($sql);
+        foreach ($params as $index => $value) {
+            $this->db->bind($index + 1, $value);
+        }
+        
+        return $this->db->resultSet();
+        
+    } catch (Exception $e) {
+        error_log("Error getting course distribution: " . $e->getMessage());
+        return [];
+    }
+}
+
+    /**
+     * Get monthly thesis uploads for reports
+     */
+    public function getMonthlyThesisUploads($department = 'all') {
+    try {
+        $sql = "
+            SELECT 
+                DATE_FORMAT(uploaded_at, '%b') as month,
+                DATE_FORMAT(uploaded_at, '%M') as month_name,
+                COUNT(*) as upload_count
+            FROM THESIS t
+            WHERE YEAR(uploaded_at) = YEAR(CURDATE())
+        ";
+        
+        $params = [];
+        
+        if ($department !== 'all') {
+            $courseCodes = $this->getCourseCodesByDepartment($department);
+            if (!empty($courseCodes)) {
+                $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
+                $sql .= " AND t.Thesis_Course IN ($placeholders)";
+                $params = array_merge($params, $courseCodes);
+            }
+        }
+        
+        $sql .= " GROUP BY DATE_FORMAT(uploaded_at, '%Y-%m'), month, month_name
+                  ORDER BY DATE_FORMAT(uploaded_at, '%Y-%m')";
+        
+        $this->db->query($sql);
+        foreach ($params as $index => $value) {
+            $this->db->bind($index + 1, $value);
+        }
+        
+        $results = $this->db->resultSet();
+        
+        // Ensure all 12 months are represented
+        $months = [
+            'Jan' => 'January', 'Feb' => 'February', 'Mar' => 'March', 
+            'Apr' => 'April', 'May' => 'May', 'Jun' => 'June',
+            'Jul' => 'July', 'Aug' => 'August', 'Sep' => 'September',
+            'Oct' => 'October', 'Nov' => 'November', 'Dec' => 'December'
+        ];
+        
+        $monthly = [];
+        foreach ($months as $short => $full) {
+            $found = false;
+            foreach ($results as $row) {
+                if ($row->month === $short) {
+                    $monthly[] = [
+                        'month' => $short,
+                        'month_name' => $full,
+                        'upload_count' => (int)$row->upload_count
+                    ];
+                    $found = true;
+                    break;
+                }
+            }
+            if (!$found) {
+                $monthly[] = [
+                    'month' => $short,
+                    'month_name' => $full,
+                    'upload_count' => 0
+                ];
+            }
+        }
+        return $monthly;
+        
+    } catch (Exception $e) {
+        error_log("Error getting monthly uploads: " . $e->getMessage());
+        return $this->getEmptyMonthlyData();
+    }
+}
+
+
+/**
+ * Get empty monthly data structure
+ */
+private function getEmptyMonthlyData() {
+    $months = [
+        ['month' => 'Jan', 'month_name' => 'January', 'upload_count' => 0],
+        ['month' => 'Feb', 'month_name' => 'February', 'upload_count' => 0],
+        ['month' => 'Mar', 'month_name' => 'March', 'upload_count' => 0],
+        ['month' => 'Apr', 'month_name' => 'April', 'upload_count' => 0],
+        ['month' => 'May', 'month_name' => 'May', 'upload_count' => 0],
+        ['month' => 'Jun', 'month_name' => 'June', 'upload_count' => 0],
+        ['month' => 'Jul', 'month_name' => 'July', 'upload_count' => 0],
+        ['month' => 'Aug', 'month_name' => 'August', 'upload_count' => 0],
+        ['month' => 'Sep', 'month_name' => 'September', 'upload_count' => 0],
+        ['month' => 'Oct', 'month_name' => 'October', 'upload_count' => 0],
+        ['month' => 'Nov', 'month_name' => 'November', 'upload_count' => 0],
+        ['month' => 'Dec', 'month_name' => 'December', 'upload_count' => 0]
+    ];
+    
+    return $months;
+}
+
+
+/**
+ * Get program counts for department cards 
+ */
+public function getProgramThesisCounts() {
+    try {
+        $sql = "
+            SELECT 
+                Thesis_Course as program,
+                COUNT(*) as thesis_count
+            FROM THESIS 
+            WHERE Thesis_Course IS NOT NULL 
+            AND Thesis_Course != ''
+            GROUP BY Thesis_Course
+            ORDER BY thesis_count DESC
+        ";
+        
+        $this->db->query($sql);
+        return $this->db->resultSet();
+        
+    } catch (Exception $e) {
+        error_log("Error getting program thesis counts: " . $e->getMessage());
+        return [];
+    }
+}
+
+    /**
+     * Get reports statistics for cards
+     */
+    public function getReportsStats($department = 'all') {
+    try {
+        $stats = [];
+        
+        $courseCodes = $this->getCourseCodesByDepartment($department);
+        $useCourses = !empty($courseCodes) && $department !== 'all';
+        
+        $sqlTheses = "SELECT COUNT(*) as total FROM THESIS WHERE 1=1";
+        if ($useCourses) {
+            $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
+            $sqlTheses .= " AND Thesis_Course IN ($placeholders)";
+        }
+        
+        $this->db->query($sqlTheses);
+        if ($useCourses) {
+            foreach ($courseCodes as $index => $code) {
+                $this->db->bind($index + 1, $code);
+            }
+        }
+        $stats['total_theses'] = $this->db->single()->total;
+        
+        $sqlStudents = "SELECT COUNT(*) as total FROM USER_INFORMATION WHERE Acc_Status = 'approved' AND User_Role = 'student'";
+        if ($useCourses) {
+            $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
+            $sqlStudents .= " AND Course IN ($placeholders)";
+        }
+        
+        $this->db->query($sqlStudents);
+        if ($useCourses) {
+            foreach ($courseCodes as $index => $code) {
+                $this->db->bind($index + 1, $code);
+            }
+        }
+        $stats['total_students'] = $this->db->single()->total;
+        
+
+        $sqlRecent = "SELECT COUNT(*) as total FROM THESIS WHERE uploaded_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+        if ($useCourses) {
+            $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
+            $sqlRecent .= " AND Thesis_Course IN ($placeholders)";
+        }
+        
+        $this->db->query($sqlRecent);
+        if ($useCourses) {
+            foreach ($courseCodes as $index => $code) {
+                $this->db->bind($index + 1, $code);
+            }
+        }
+        $stats['recent_theses'] = $this->db->single()->total;
+        
+        return $stats;
+        
+    } catch (Exception $e) {
+        error_log("Error getting reports stats: " . $e->getMessage());
+        return [
+            'total_theses' => 0,
+            'total_students' => 0,
+            'recent_theses' => 0
+        ];
+    }
+}
+
+
+    /**
+     * Get course statistics for reports
+     */
+    public function getCourseStatisticsForReports($department = 'all') {
+        try {
+            $courseCodes = $this->getCourseCodesByDepartment($department);
+            $useCourses = !empty($courseCodes) && $department !== 'all';
+            $placeholders = $useCourses ? str_repeat('?,', count($courseCodes) - 1) . '?' : '';
+            
+            $sql = "
+                SELECT 
+                    u.Course,
+                    COUNT(DISTINCT u.ID) as total_users,
+                    COUNT(DISTINCT CASE WHEN u.User_Role = 'student' THEN u.ID END) as student_count,
+                    COUNT(DISTINCT CASE WHEN u.User_Role = 'faculty' THEN u.ID END) as faculty_count,
+                    COUNT(DISTINCT CASE WHEN u.User_Role IN ('admin', 'superAdmin') THEN u.ID END) as admin_count,
+                    COUNT(DISTINCT t.ID) as thesis_count
+                FROM USER_INFORMATION u
+                LEFT JOIN THESIS t ON u.ID = t.User_ID
+                WHERE u.Acc_Status = 'approved'
+                AND u.Course IS NOT NULL
+                AND u.Course != ''
+            ";
+            
+            if ($useCourses) {
+                $sql .= " AND u.Course IN ($placeholders)";
+            }
+            
+            $sql .= " GROUP BY u.Course ORDER BY thesis_count DESC";
+            
+            $this->db->query($sql);
+            
+            if ($useCourses) {
+                foreach ($courseCodes as $index => $code) {
+                    $this->db->bind($index + 1, $code);
+                }
+            }
+            
+            return $this->db->resultSet();
+            
+        } catch (Exception $e) {
+            error_log("Error getting course stats for reports: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get department course mapping for reports
+     */
+    public function getDepartmentCourseMapping() {
+        try {
+            $this->db->query("
+                SELECT DISTINCT 
+                    Department,
+                    Course
+                FROM USER_INFORMATION 
+                WHERE Department IS NOT NULL AND Course IS NOT NULL
+                ORDER BY Department, Course
+            ");
+            return $this->db->resultSet();
+        } catch (Exception $e) {
+            error_log("Error getting department course mapping: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get theses by course (for course-based filtering)
+     */
+    public function getThesesByCourse($course) {
+        try {
+            $this->db->query("
+                SELECT 
+                    t.ID,
+                    t.Title,
+                    t.Author,
+                    t.File_Path,
+                    t.File_Size,
+                    t.File_Type,
+                    t.uploaded_at,
+                    t.updated_at,
+                    u.First_Name,
+                    u.Middle_Name,
+                    u.Last_Name,
+                    u.Department,
+                    u.Course
+                FROM THESIS t
+                JOIN USER_INFORMATION u ON t.User_ID = u.ID
+                WHERE u.Course = :course
+                ORDER BY t.uploaded_at DESC
+            ");
+            $this->db->bind(':course', $course);
+            return $this->db->resultSet();
+        } catch (Exception $e) {
+            error_log("Error getting theses by course: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get course-based user distribution for pie chart
+     */
+    public function getUserDistributionByCourse($department = 'all') {
+    try {
+        $sql = "
+            SELECT 
+                Course,
+                COUNT(*) as user_count
+            FROM USER_INFORMATION
+            WHERE Acc_Status = 'approved'
+            AND Course IS NOT NULL
+            AND Course != ''
+        ";
+        
+        if ($department !== 'all') {
+            $sql .= " AND Department = :department";
+        }
+        
+        $sql .= " GROUP BY Course ORDER BY user_count DESC";
+        
+        $this->db->query($sql);
+        
+        if ($department !== 'all') {
+            $this->db->bind(':department', $department);
+        }
+        
+        return $this->db->resultSet();
+    } catch (Exception $e) {
+        error_log("Error getting user distribution by course: " . $e->getMessage());
+        return [];
+    }
+}
+
+    private function getCourseCodesByDepartment($department) {
+        $departmentMap = [
+            'beced' => ['Bachelor of Early Childhood Education'],
+            'bsed' => ['Bachelor of Secondary Education'],
+            'btvted' => ['Bachelor of Technical-Vocational Teacher Education'],
+            'beed' => ['Bachelor of Elementary Education'],
+            'bsned' => ['Bachelor of Special Needs Education'],
+            'bsabe' => [
+                'Bachelor of Science in Agricultural and Biosystems Engineering',
+                'Bachelor of Science in Agriculture and Biosystems Engineering'
+            ],
+            'bsit' => ['Bachelor of Science in Information Technology']
+        ];
+        
+        return $departmentMap[$department] ?? [];
+    }
+
+
+
+    ## Add to AdminDashboardModel.php (at the end, before closing }):
+public function getDepartmentThesisCounts() {
+    try {
+        $departmentMap = [
+            'beced' => ['Bachelor of Early Childhood Education'],
+            'bsed' => ['Bachelor of Secondary Education'],
+            'btvted' => ['Bachelor of Technical-Vocational Teacher Education'],
+            'beed' => ['Bachelor of Elementary Education'],
+            'bsned' => ['Bachelor of Special Needs Education'],
+            'bsabe' => [
+                'Bachelor of Science in Agricultural and Biosystems Engineering',
+                'Bachelor of Science in Agriculture and Biosystems Engineering'
+            ],
+            'bsit' => ['Bachelor of Science in Information Technology']
+        ];
+        
+        $counts = [];
+        
+        // All
+        $this->db->query("SELECT COUNT(*) as count FROM thesis");
+        $counts['all'] = $this->db->single()->count ?? 0;
+        
+        // Per department
+        foreach ($departmentMap as $dept => $courses) {
+            if (empty($courses)) {
+                $counts[$dept] = 0;
+                continue;
+            }
+            
+            $placeholders = str_repeat('?,', count($courses) - 1) . '?';
+            $sql = "SELECT COUNT(*) as count FROM thesis WHERE Thesis_Course IN ($placeholders)";
+            
+            $this->db->query($sql);
+            foreach ($courses as $index => $course) {
+                $this->db->bind($index + 1, $course);
+            }
+            
+            $counts[$dept] = $this->db->single()->count ?? 0;
+        }
+        
+        return $counts;
+        
+    } catch (Exception $e) {
+        error_log("Error getting department thesis counts: " . $e->getMessage());
+        return [];
+    }
+}
+
+
+
+
+}
+
+
+
+
 
 ?>

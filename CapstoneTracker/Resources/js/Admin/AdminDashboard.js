@@ -75,6 +75,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Changed to select buttons instead of li elements
     const menuButtons = document.querySelectorAll('.header .menu button');
 
+    const ctx = document.getElementById('thesisUploadsChart');
+
     // for log buttons
     window.accountPagination = new AccountPagination();
     
@@ -98,6 +100,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 100);
     }
+
+    const reportsOption = document.querySelector('.menu-options li[data-view="reports"]');
+if (reportsOption) {
+    reportsOption.addEventListener('click', function() {
+        setTimeout(() => {
+            window.reportsManager.initialize();
+        }, 100);
+    });
+}
 
 
     // Function to switch log views
@@ -134,19 +145,33 @@ document.addEventListener('DOMContentLoaded', function() {
             'backup' : document.getElementById('backup-container')
         };
 
-        // Function to switch sidebar views
-        function switchSidebarView(viewId) {
-            const header = document.querySelector('.header');
-            const appContentHeader = document.querySelector('.app-content-header');
-            const mainContent = document.querySelector('.main-content');
-            
-            // Hide all content containers
-            Object.values(contentContainers).forEach(container => {
-                if (container) {
-                    container.style.display = 'none';
-                    container.classList.remove('content-container-active');
-                }
-            });
+    // Function to switch sidebar views
+    function switchSidebarView(viewId) {
+        const header = document.querySelector('.header');
+        const appContentHeader = document.querySelector('.app-content-header');
+        const mainContent = document.querySelector('.main-content');
+        
+        // Hide all content containers and clear active states
+        Object.values(contentContainers).forEach(container => {
+            if (container) {
+                container.style.display = 'none';
+                container.classList.remove('content-container-active');
+                // Also remove report-specific active class if present
+                container.classList.remove('active');
+            }
+        });
+
+        // Show the selected container
+        if (contentContainers[viewId]) {
+            contentContainers[viewId].style.display = (viewId === 'reports') ? 'flex' : 'block';
+            contentContainers[viewId].classList.add('content-container-active');
+            if (viewId === 'reports') {
+                contentContainers[viewId].classList.add('active');
+            } else {
+                contentContainers[viewId].classList.remove('active');
+            }
+    
+           
             
             // Show the selected content container
             if (contentContainers[viewId]) {
@@ -204,21 +229,63 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 
             }
+
             
-            // Update active states in sidebar
-            sidebarOptions.forEach(option => {
-                option.classList.remove('selected');
-            });
             
-            // Find and select the clicked option
-            const clickedOption = Array.from(sidebarOptions).find(option => {
-                return option.getAttribute('data-view') === viewId;
-            });
-            
-            if (clickedOption) {
-                clickedOption.classList.add('selected');
+            // Special handling for logs view
+            if (viewId === 'logs') {
+                setTimeout(() => {
+                    if (window.systemLogsManager) {
+                        window.systemLogsManager.initialize();
+                        window.systemLogsManager.switchLogView('all');
+                    }
+                }, 100);
             }
+            
+            // Reset access management for users view
+            if (viewId === 'users') {
+                resetAccessManagementState();
+            }
+            
+            // Initialize announcements
+            if (viewId === 'announcement') {
+                setTimeout(() => {
+                    if (typeof AnnouncementManager !== 'undefined') {
+                        if (!window.announcementManager) {
+                            window.announcementManager = new AnnouncementManager();
+                        } else {
+                            window.announcementManager.switchView('active');
+                        }
+                    }
+                }, 300);
+            }
+   
+            // Initialize reports
+            if (viewId === 'reports') {
+                setTimeout(() => {
+                    if (window.reportsManager) {
+                        window.reportsManager.initialize();
+                    }
+                }, 300);
+            }
+        } else {
+            console.warn(`No container found for view: ${viewId}`); 
         }
+        
+        // Update active states in sidebar
+        sidebarOptions.forEach(option => {
+            option.classList.remove('selected');
+        });
+        
+        // Find and select the clicked option
+        const clickedOption = Array.from(sidebarOptions).find(option => {
+            return option.getAttribute('data-view') === viewId;
+        });
+        
+        if (clickedOption) {
+            clickedOption.classList.add('selected');
+        }
+    }
 
         // Add event listeners to sidebar options
         sidebarOptions.forEach((option, index) => {
@@ -231,10 +298,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 switchSidebarView(viewId);
             });
         });
+    });
 
-        // Initialize with dashboard view
-        switchSidebarView('dashboard');
-    }
+    // Initialize with dashboard view
+    switchSidebarView('dashboard');
+}
 
     // Initialize sidebar
     initializeSidebar();
@@ -3465,7 +3533,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Announcement Management Functionality - SIMPLIFIED INITIALIZATION
     function initializeAnnouncementTab() {
-        console.log('Initializing announcement tab...');
+        
         
         // Initialize announcement functionality when announcement tab is shown
         const announcementOption = document.querySelector('.menu-options li[data-view="announcement"]');
@@ -4443,7 +4511,7 @@ async function getAllRolesData() {
             },
             body: JSON.stringify({
                 action: 'get_all_roles_data',
-                csrf_token: 'your_csrf_token_here' // You'll need to implement CSRF token handling
+                csrf_token: 'your_csrf_token_here' 
             })
         });
         
@@ -5128,7 +5196,7 @@ class SystemLogsManager {
     }
 
 
-setTimeout(testAuditQuery, 500);
+
 
 
 
