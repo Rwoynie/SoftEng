@@ -512,6 +512,11 @@ class ThesisController {
      */
     public function viewThesis() {
         try {
+            // Clear any output buffers first
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            
             // Get thesis ID from request
             $thesisId = $_GET['id'] ?? null;
             
@@ -519,18 +524,16 @@ class ThesisController {
                 throw new Exception('Thesis ID is required');
             }
     
-            $thesisModel = new Thesis();
-            
             // Get thesis file data
-            $thesisData = $thesisModel->getThesisFile($thesisId);
+            $thesisData = $this->thesisModel->getThesisFile($thesisId);
             
             if (!$thesisData || empty($thesisData->Thesis_File)) {
-                throw new Exception('Thesis file not found');
+                throw new Exception('Thesis file not found for ID: ' . $thesisId);
             }
     
             // Set headers for PDF viewing only (no download)
             header('Content-Type: application/pdf');
-            header('Content-Disposition: inline; filename="view_only.pdf"'); // Generic filename
+            header('Content-Disposition: inline; filename="thesis_' . $thesisId . '_view_only.pdf"');
             header('Content-Length: ' . strlen($thesisData->Thesis_File));
             header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
             header('Pragma: no-cache');
@@ -540,16 +543,22 @@ class ThesisController {
             header('X-Content-Type-Options: nosniff');
             header('X-Frame-Options: SAMEORIGIN');
             
-            // For extra security, you can add these headers
-            header('Content-Security-Policy: default-src \'self\'');
-            
             // Output the file content
             echo $thesisData->Thesis_File;
+            exit;
             
         } catch (Exception $e) {
             error_log("Error in viewThesis: " . $e->getMessage());
+            
+            // Clear any output
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            
             http_response_code(404);
+            header('Content-Type: text/plain');
             echo "Thesis file not available for viewing: " . $e->getMessage();
+            exit;
         }
     }
 
