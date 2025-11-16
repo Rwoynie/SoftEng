@@ -75,6 +75,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Changed to select buttons instead of li elements
     const menuButtons = document.querySelectorAll('.header .menu button');
 
+    const ctx = document.getElementById('thesisUploadsChart');
+
     // for log buttons
     window.accountPagination = new AccountPagination();
     
@@ -174,94 +176,63 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (appContentHeader) appContentHeader.style.display = 'flex';
             } else {
                 if (appContentHeader) appContentHeader.style.display = 'none';
-        // Function to switch sidebar views
-        function switchSidebarView(viewId) {
-            const header = document.querySelector('.header');
-            const appContentHeader = document.querySelector('.app-content-header');
-            const mainContent = document.querySelector('.main-content');
-            
-            // Hide all content containers
-            Object.values(contentContainers).forEach(container => {
-                if (container) {
-                    container.style.display = 'none';
-                    container.classList.remove('content-container-active');
-                }
-            });
-            
-            // Show the selected content container
-            if (contentContainers[viewId]) {
-                contentContainers[viewId].style.display = 'block';
-                contentContainers[viewId].classList.add('content-container-active');
-        
-                // Show app-content-header only for dashboard view
-                if (viewId === 'dashboard') {
-                    if (appContentHeader) appContentHeader.style.display = 'flex';
-                } else {
-                    if (appContentHeader) appContentHeader.style.display = 'none';
-                }
-                
-                // Special handling for logs view
-                // In the initializeSidebar function, update the logs section:
-                if (viewId === 'logs') {
-                    // Initialize system logs when logs view is shown
-                    setTimeout(() => {
-                        if (window.systemLogsManager) {
-                            window.systemLogsManager.initialize();
-                            // Set default view to 'all'
-                            window.systemLogsManager.switchLogView('all');
-                        }
-                    }, 100);
-                }
-                
-                // NEW: Reset access management state when switching to users view
-                if (viewId === 'users') {
-                    resetAccessManagementState();
-                }
-                
-                // Initialize announcement functionality when announcement view is shown
-                if (viewId === 'announcement') {
-                    setTimeout(() => {
-                        if (typeof AnnouncementManager !== 'undefined') {
-                            if (!window.announcementManager) {
-                                
-                                window.announcementManager = new AnnouncementManager();
-                            } else {
-                                
-                                // Ensure the view is properly set
-                                window.announcementManager.switchView('active');
-                            }
-                            
-                            // Ensure the container is properly displayed
-                            const announcementContainer = document.getElementById('announcement-container');
-                            if (announcementContainer) {
-                                
-                            }
-                        } else {
-                           
-                        }
-                    }, 300);
-                }
-
-                
             }
             
-            // Update active states in sidebar
-            sidebarOptions.forEach(option => {
-                option.classList.remove('selected');
-            });
+            // Special handling for logs view
+            if (viewId === 'logs') {
+                setTimeout(() => {
+                    if (window.systemLogsManager) {
+                        window.systemLogsManager.initialize();
+                        window.systemLogsManager.switchLogView('all');
+                    }
+                }, 100);
+            }
             
-            // Find and select the clicked option
-            const clickedOption = Array.from(sidebarOptions).find(option => {
-                return option.getAttribute('data-view') === viewId;
-            });
+            // Reset access management for users view
+            if (viewId === 'users') {
+                resetAccessManagementState();
+            }
             
-            if (clickedOption) {
-                clickedOption.classList.add('selected');
+            // Initialize announcements
+            if (viewId === 'announcement') {
+                setTimeout(() => {
+                    if (typeof AnnouncementManager !== 'undefined') {
+                        if (!window.announcementManager) {
+                            window.announcementManager = new AnnouncementManager();
+                        } else {
+                            window.announcementManager.switchView('active');
+                        }
+                    }
+                }, 300);
+            }
+   
+            // Initialize reports
+            if (viewId === 'reports') {
+                setTimeout(() => {
+                    if (window.reportsManager) {
+                        window.reportsManager.initialize();
+                    }
+                }, 300);
             }
             
         } else {
             console.warn(`No container found for view: ${viewId}`); 
         }
+        
+        // Update active states in sidebar
+        sidebarOptions.forEach(option => {
+            option.classList.remove('selected');
+        });
+        
+        // Find and select the clicked option
+        const clickedOption = Array.from(sidebarOptions).find(option => {
+            return option.getAttribute('data-view') === viewId;
+        });
+        
+        if (clickedOption) {
+            clickedOption.classList.add('selected');
+        }
+    }
 
     // Add event listeners to sidebar options
     sidebarOptions.forEach((option, index) => {
@@ -273,10 +244,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const viewId = this.getAttribute('data-view');
             switchSidebarView(viewId);
         });
+    });
 
-        // Initialize with dashboard view
-        switchSidebarView('dashboard');
-    }
+    // Initialize with dashboard view
+    switchSidebarView('dashboard');
+}
 
     // Initialize sidebar
     initializeSidebar();
@@ -3497,7 +3469,7 @@ initializeDepartmentFilter();
 
     // Announcement Management Functionality - SIMPLIFIED INITIALIZATION
     function initializeAnnouncementTab() {
-        console.log('Initializing announcement tab...');
+        
         
         // Initialize announcement functionality when announcement tab is shown
         const announcementOption = document.querySelector('.menu-options li[data-view="announcement"]');
@@ -4475,7 +4447,7 @@ async function getAllRolesData() {
             },
             body: JSON.stringify({
                 action: 'get_all_roles_data',
-                csrf_token: 'your_csrf_token_here' // You'll need to implement CSRF token handling
+                csrf_token: 'your_csrf_token_here' 
             })
         });
         
@@ -5160,7 +5132,7 @@ class SystemLogsManager {
     }
 
 
-setTimeout(testAuditQuery, 500);
+
 
 
 
