@@ -5247,8 +5247,8 @@ input:checked + .toggle-slider:before {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     flex-direction: column;
-    height: 20vw; /* Make all cards equal height */
-    /* Set a minimum height */
+    height: 100%; /* Make all cards equal height */
+    min-height: 20vw;/* Set a minimum height */
 }
 
 .backup-card-content {

@@ -1,0 +1,15 @@
+[2025-11-16 08:01:27] User: ANDREA JANDOG (ID: 4) - Action: create - File: backup_2025-11-16_08-01-27.sql.gz
+[2025-11-16 08:03:05] User: ANDREA JANDOG (ID: 4) - Action: create - File: backup_2025-11-16_08-03-04.sql.gz
+[2025-11-16 08:03:30] User: ANDREA JANDOG (ID: 4) - Action: create - File: backup_2025-11-16_08-03-30.sql.gz
+[2025-11-16 08:03:42] User: ANDREA JANDOG (ID: 4) - Action: delete - File: backup_2025-11-16_08-03-04.sql.gz
+[2025-11-16 08:04:01] User: ANDREA JANDOG (ID: 4) - Action: create - File: backup_2025-11-16_08-04-00.sql.gz
+[2025-11-16 08:06:20] User: ANDREA JANDOG (ID: 4) - Action: create - File: backup_2025-11-16_08-06-19.sql.gz
+[2025-11-16 08:06:45] User: ANDREA JANDOG (ID: 4) - Action: delete - File: backup_2025-11-16_08-06-19.sql.gz
+[2025-11-16 08:06:46] User: ANDREA JANDOG (ID: 4) - Action: delete - File: backup_2025-11-16_08-04-00.sql.gz
+[2025-11-16 08:06:48] User: ANDREA JANDOG (ID: 4) - Action: delete - File: backup_2025-11-16_08-03-30.sql.gz
+[2025-11-16 08:06:50] User: ANDREA JANDOG (ID: 4) - Action: delete - File: backup_2025-11-16_08-01-27.sql.gz
+[2025-11-16 08:11:39] User: ANDREA JANDOG (ID: 4) - Action: create - File: backup_2025-11-16_08-11-39.sql.gz
+[2025-11-16 08:11:44] User: ANDREA JANDOG (ID: 4) - Action: delete - File: backup_2025-11-16_08-11-39.sql.gz
+[2025-11-16 08:11:48] User: ANDREA JANDOG (ID: 4) - Action: create - File: backup_2025-11-16_08-11-48.sql.gz
+[2025-11-16 08:11:51] User: ANDREA JANDOG (ID: 4) - Action: delete - File: backup_2025-11-16_08-11-48.sql.gz
+[2025-11-16 08:14:05] User: ANDREA JANDOG (ID: 4) - Action: create - File: backup_2025-11-16_08-14-04.sql.gz

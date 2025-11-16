@@ -8,6 +8,7 @@ require_once '../../../Database/config.php';
 require_once '../../../app/Controllers/AdminDashboardController.php';
 require_once '../../../app/Models/Thesis.php';
 require_once '../../../app/Controllers/RolesController.php';
+require_once '../../../app/Controllers/BackupController.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -281,6 +282,7 @@ $displayUserData = [
     <script type="text/javascript" src="../../../resources/js/Admin/RoleAccess.js"></script>
     <script type="text/javascript" src="../../../resources/js/Admin/AdminDashboardAnnouncement.js"></script>
     <script type="text/javascript" src="../../../resources/js/Admin/AccountPagination.js"></script>
+    <script type="text/javascript" src="../../../resources/js/Admin/Backup.js"></script>
     <script>
         const userDisplayData = <?php echo json_encode($displayUserData); ?>;
     </script>
@@ -1060,8 +1062,8 @@ $displayUserData = [
                                 <h3>Create Backup</h3>
                                 <p>Create a complete backup of the system database and files</p>
                                 <button class="btn btn-primary backup-action-btn" id="createBackupBtn">
-                                    <i class="fas fa-database"></i> Create System Backup
-                                </button>
+    <i class="fas fa-database"></i> Create System Backup
+</button>
                             </div>
                             
                             <div class="backup-card">
@@ -1071,8 +1073,8 @@ $displayUserData = [
                                 <h3>Restore Backup</h3>
                                 <p>Restore the system from a previous backup file</p>
                                 <button class="btn btn-secondary backup-action-btn" id="restoreBackupBtn">
-                                    <i class="fas fa-file-import"></i> Restore from Backup
-                                </button>
+    <i class="fas fa-file-import"></i> Restore from Backup
+</button>
                             </div>
                             
                             <div class="backup-card">
@@ -1082,8 +1084,8 @@ $displayUserData = [
                                 <h3>Backup History</h3>
                                 <p>View and manage previous system backups</p>
                                 <button class="btn btn-tertiary backup-action-btn" id="viewBackupHistoryBtn">
-                                    <i class="fas fa-list-alt"></i> View Backup History
-                                </button>
+    <i class="fas fa-list-alt"></i> View Backup History
+</button>
                             </div>
                         </div>
                         
