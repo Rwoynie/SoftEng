@@ -8,6 +8,7 @@ require_once '../../../Database/config.php';
 require_once '../../../app/Controllers/AdminDashboardController.php';
 require_once '../../../app/Models/Thesis.php';
 require_once '../../../app/Controllers/RolesController.php';
+require_once '../../../app/Controllers/BackupController.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -284,8 +285,9 @@ $displayUserData = [
       <script type="text/javascript" src="../../../resources/js/Admin/AdminDashboardAnnouncement.js"></script>
     <script type="text/javascript" src="../../../resources/js/Admin/AdminDashboard.js"></script>
     <script type="text/javascript" src="../../../resources/js/Admin/RoleAccess.js"></script>
-  
+    
     <script type="text/javascript" src="../../../resources/js/Admin/AccountPagination.js"></script>
+    <script type="text/javascript" src="../../../resources/js/Admin/Backup.js"></script>
     <script>
         const userDisplayData = <?php echo json_encode($displayUserData); ?>;
     </script>

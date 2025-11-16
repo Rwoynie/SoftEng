@@ -20,7 +20,6 @@ class Backup {
             $timestamp = date('Y-m-d_H-i-s');
             $backupFileName = "backup_{$timestamp}.sql";
             $backupFilePath = $this->backupPath . $backupFileName;
-            
             // Get database configuration
             $host = DB_HOST;
             $user = DB_USER;
@@ -61,7 +60,6 @@ class Backup {
             
             // Delete the original SQL file
             unlink($backupFilePath);
-            
             // Log backup creation
             $this->logBackupAction('create', $compressedPath);
             
@@ -82,7 +80,6 @@ class Backup {
             ];
         }
     }
-
     private function compressBackup($filePath) {
         $compressedPath = $filePath . '.gz';
         
@@ -129,7 +126,6 @@ class Backup {
             $user = DB_USER;
             $pass = DB_PASS;
             $name = DB_NAME;
-            
             // Restore MySQL dump
             $command = "mysql --host={$host} --user={$user} --password={$pass} {$name} < {$sqlFilePath} 2>&1";
             exec($command, $output, $returnVar);
@@ -194,7 +190,6 @@ class Backup {
     public function deleteBackup($backupFileName) {
         try {
             $backupFilePath = $this->backupPath . $backupFileName;
-            
             if (!file_exists($backupFilePath)) {
                 throw new Exception("Backup file not found: " . $backupFileName);
             }
@@ -238,7 +233,6 @@ class Backup {
             $fileName = basename($filePath);
             
             $logMessage = "[{$timestamp}] User: {$user_name} (ID: {$user_id}) - Action: {$action} - File: {$fileName}";
-            
             $logFile = $this->backupPath . 'backup_log.txt';
             file_put_contents($logFile, $logMessage . PHP_EOL, FILE_APPEND | LOCK_EX);
             
@@ -266,3 +260,4 @@ class Backup {
     }
 }
 ?>
+

@@ -5797,7 +5797,8 @@ background: #f8f9fa;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     flex-direction: column;
-    height: 20vw; /* Make all cards equal height */
+    height: 100%;
+    min-height: 20vw; /* Make all cards equal height */
     /* Set a minimum height */
 }
 

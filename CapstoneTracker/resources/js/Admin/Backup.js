@@ -58,7 +58,6 @@ class BackupManager {
             // Show loading state
             createBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Backup...';
             createBtn.disabled = true;
-    
             const formData = new FormData();
             formData.append('action', 'create_backup');
             formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
@@ -87,7 +86,6 @@ class BackupManager {
             createBtn.disabled = false;
         }
     }
-
     showRestoreDialog() {
         // Create file input for backup selection
         const fileInput = document.createElement('input');
@@ -215,21 +213,32 @@ class BackupManager {
                 method: 'POST',
                 body: formData
             });
-    
+
             // Check if response is OK
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-    
+
             const responseText = await response.text();
-            console.log('Raw response:', responseText); // Debug log
+            
+            // Check if response contains HTML error
+            if (responseText.trim().startsWith('<') || responseText.includes('<br />') || responseText.includes('<b>')) {
+                console.error('HTML error detected in response:', responseText);
+                
+                // Try to extract error message from HTML
+                const errorMatch = responseText.match(/<b>([^<]+)<\/b>/);
+                const errorMessage = errorMatch ? errorMatch[1] : 'Server returned HTML error instead of JSON';
+                
+                throw new Error(`Server Error: ${errorMessage}`);
+            }
     
             let result;
             try {
                 result = JSON.parse(responseText);
             } catch (parseError) {
                 console.error('JSON parse error:', parseError);
-                throw new Error('Invalid JSON response from server');
+                console.error('Raw response that failed to parse:', responseText);
+                throw new Error('Invalid JSON response from server. The server may be experiencing issues.');
             }
     
             if (result.success) {
@@ -243,6 +252,7 @@ class BackupManager {
             this.renderBackupHistoryError(error.message);
         }
     }
+    
     renderBackupHistory(backups) {
         const tbody = document.getElementById('backupHistoryTableBody');
 
@@ -357,7 +367,6 @@ class BackupManager {
             formData.append('action', 'delete_backup');
             formData.append('backup_file', backupFileName);
             formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
-
             const response = await fetch('../../../app/Controllers/BackupController.php', {
                 method: 'POST',
                 body: formData
@@ -425,7 +434,6 @@ class BackupManager {
     
 }
 
-/*
 async function debugBackupRequest() {
     try {
         const formData = new FormData();
@@ -453,9 +461,10 @@ async function debugBackupRequest() {
     } catch (error) {
         console.error('Debug request failed:', error);
     }
-} */
+}
 
 // Initialize Backup Manager when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     window.backupManager = new BackupManager();
 });
+

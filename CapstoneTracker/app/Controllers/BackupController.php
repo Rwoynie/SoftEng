@@ -14,21 +14,27 @@ class BackupController {
             ob_end_clean();
         }
         
-        // Calculate the correct base path
- //       $basePath = dirname(__FILE__) . '/../../'; // Goes up 2 levels from app/Controllers to CapstoneTracker
+        // Prevent any output
+        ob_start();
         
         require_once '../Models/Database.php';
         require_once '../Models/Backup.php';
         
         $db = new Database();
         $this->backupModel = new Backup($db);
+        
+        // Clean any potential output
+        ob_clean();
     }
 
     public function handleRequest() {
-        // Clear any output buffers
+        // Clear any output buffers completely
         while (ob_get_level()) {
             ob_end_clean();
         }
+        
+        // Start fresh output buffer
+        ob_start();
         
         // Set JSON header
         header('Content-Type: application/json');
@@ -39,15 +45,13 @@ class BackupController {
 
         // Check if user is admin
         if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in'] || !isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
-            echo json_encode(['success' => false, 'error' => 'Access denied']);
-            exit;
+            $this->sendJsonResponse(['success' => false, 'error' => 'Access denied']);
         }
 
         // Verify CSRF token for POST requests
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-                echo json_encode(['success' => false, 'error' => 'Invalid CSRF token']);
-                exit;
+                $this->sendJsonResponse(['success' => false, 'error' => 'Invalid CSRF token']);
             }
         }
 
@@ -74,37 +78,46 @@ class BackupController {
                     $this->getBackupInfo();
                     break;
                 default:
-                    echo json_encode(['success' => false, 'error' => 'Invalid action']);
-                    exit;
+                    $this->sendJsonResponse(['success' => false, 'error' => 'Invalid action']);
             }
         } catch (Exception $e) {
-            echo json_encode(['success' => false, 'error' => 'Server error: ' . $e->getMessage()]);
-            exit;
+            $this->sendJsonResponse(['success' => false, 'error' => 'Server error: ' . $e->getMessage()]);
         }
+    }
+
+    private function sendJsonResponse($data) {
+        // Clean any output
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        echo json_encode($data);
+        exit;
     }
 
     private function downloadBackup() {
         try {
             $backupFileName = $_GET['file'] ?? '';
-            
             if (empty($backupFileName)) {
-                echo json_encode(['success' => false, 'error' => 'Backup file name is required']);
-                exit;
+                $this->sendJsonResponse(['success' => false, 'error' => 'Backup file name is required']);
             }
     
             // Verify CSRF token for GET requests too
             if (!isset($_GET['csrf_token']) || $_GET['csrf_token'] !== $_SESSION['csrf_token']) {
-                echo json_encode(['success' => false, 'error' => 'Invalid CSRF token']);
-                exit;
+                $this->sendJsonResponse(['success' => false, 'error' => 'Invalid CSRF token']);
             }
     
             $backupFilePath = $this->backupModel->getBackupPath() . $backupFileName;
             
             if (!file_exists($backupFilePath)) {
-                echo json_encode(['success' => false, 'error' => 'Backup file not found']);
-                exit;
+                $this->sendJsonResponse(['success' => false, 'error' => 'Backup file not found']);
             }
     
+            // Clean output for file download
+            while (ob_get_level()) {
+                ob_end_clean();
+            }
+            
             // Set headers for file download
             header('Content-Type: application/octet-stream');
             header('Content-Disposition: attachment; filename="' . $backupFileName . '"');
@@ -116,8 +129,7 @@ class BackupController {
             exit;
             
         } catch (Exception $e) {
-            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
-            exit;
+            $this->sendJsonResponse(['success' => false, 'error' => $e->getMessage()]);
         }
     }
 
@@ -125,7 +137,7 @@ class BackupController {
         $result = $this->backupModel->createBackup();
         
         if ($result['success']) {
-            echo json_encode([
+            $this->sendJsonResponse([
                 'success' => true,
                 'message' => 'Backup created successfully',
                 'backup_file' => $result['file_name'],
@@ -133,72 +145,65 @@ class BackupController {
                 'timestamp' => $result['timestamp']
             ]);
         } else {
-            echo json_encode(['success' => false, 'error' => $result['error']]);
+            $this->sendJsonResponse(['success' => false, 'error' => $result['error']]);
         }
-        exit;
     }
 
     private function restoreBackup() {
         $backupFileName = $_POST['backup_file'] ?? '';
         
         if (empty($backupFileName)) {
-            echo json_encode(['success' => false, 'error' => 'Backup file name is required']);
-            exit;
+            $this->sendJsonResponse(['success' => false, 'error' => 'Backup file name is required']);
         }
 
         $result = $this->backupModel->restoreBackup($backupFileName);
-        
         if ($result['success']) {
-            echo json_encode([
+            $this->sendJsonResponse([
                 'success' => true,
                 'message' => $result['message']
             ]);
         } else {
-            echo json_encode(['success' => false, 'error' => $result['error']]);
+            $this->sendJsonResponse(['success' => false, 'error' => $result['error']]);
         }
-        exit;
     }
 
     private function getBackupHistory() {
         $backups = $this->backupModel->getBackupHistory();
-        echo json_encode(['success' => true, 'backups' => $backups]);
-        exit;
+        $this->sendJsonResponse(['success' => true, 'backups' => $backups]);
     }
 
     private function deleteBackup() {
         $backupFileName = $_POST['backup_file'] ?? '';
         
         if (empty($backupFileName)) {
-            echo json_encode(['success' => false, 'error' => 'Backup file name is required']);
-            exit;
+            $this->sendJsonResponse(['success' => false, 'error' => 'Backup file name is required']);
         }
 
         $result = $this->backupModel->deleteBackup($backupFileName);
         
         if ($result['success']) {
-            echo json_encode([
+            $this->sendJsonResponse([
                 'success' => true,
                 'message' => $result['message']
             ]);
         } else {
-            echo json_encode(['success' => false, 'error' => $result['error']]);
+            $this->sendJsonResponse(['success' => false, 'error' => $result['error']]);
         }
-        exit;
     }
 
     private function getBackupInfo() {
         $info = $this->backupModel->getBackupInfo();
-        echo json_encode(['success' => true, 'info' => $info]);
-        exit;
+        $this->sendJsonResponse(['success' => true, 'info' => $info]);
     }
 }
 
 // Only run if this is a direct request to the controller
 if (isset($_POST['action']) || (isset($_GET['action']) && $_GET['action'] !== '')) {
     // Clear any previous output
-    if (ob_get_length()) {
-        ob_clean();
+    while (ob_get_level()) {
+        ob_end_clean();
     }
+    
     $backupController = new BackupController();
     $backupController->handleRequest();
 }
