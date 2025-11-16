@@ -130,7 +130,8 @@ document.addEventListener('DOMContentLoaded', function() {
             'users': document.getElementById('access-container'),
             'accounts': document.getElementById('accounts-container'),
             'logs': document.getElementById('logs-container'),
-            'announcement': document.getElementById('announcement-container')
+            'announcement': document.getElementById('announcement-container'),
+            'backup' : document.getElementById('backup-container')
         };
 
         // Function to switch sidebar views
@@ -200,6 +201,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }, 300);
                 }
+
+                
             }
             
             // Update active states in sidebar
@@ -220,7 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add event listeners to sidebar options
         sidebarOptions.forEach((option, index) => {
             // Set data attributes to identify each option
-            const viewIds = ['dashboard', 'users', 'accounts', 'logs', 'announcement'];
+            const viewIds = ['dashboard', 'users', 'accounts', 'logs', 'announcement', 'backup'];
             option.setAttribute('data-view', viewIds[index] || `option-${index}`);
             
             option.addEventListener('click', function() {
@@ -3707,7 +3710,7 @@ testDebugMethod();
 
     initializeAllFilter();
 
-    
+    initializeBackupHandlers();
 });
 
 
@@ -4488,6 +4491,87 @@ async function getAllUsersWithCompleteRoles() {
         return [];
     }
 }
+
+
+//--------------------------------------------------------------- Backup functionality
+function initializeBackupHandlers() {
+    // Create Backup Button
+    const createBackupBtn = document.getElementById('createBackupBtn');
+    if (createBackupBtn) {
+        createBackupBtn.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Create System Backup?',
+                text: 'This will create a complete backup of the database and system files. This process may take a few minutes.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, create backup!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading
+                    Swal.fire({
+                        title: 'Creating Backup...',
+                        html: 'Please wait while we create your system backup.<br><br><i class="fas fa-spinner fa-spin fa-2x"></i>',
+                        allowOutsideClick: false,
+                        showConfirmButton: false
+                    });
+                    
+                    // Simulate backup process (replace with actual API call)
+                    setTimeout(() => {
+                        Swal.fire({
+                            title: 'Backup Created Successfully!',
+                            text: 'Your system backup has been created and saved.',
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        });
+                    }, 3000);
+                }
+            });
+        });
+    }
+
+    // Restore Backup Button
+    const restoreBackupBtn = document.getElementById('restoreBackupBtn');
+    if (restoreBackupBtn) {
+        restoreBackupBtn.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Restore from Backup',
+                text: 'Please select a backup file to restore from.',
+                input: 'file',
+                inputAttributes: {
+                    accept: '.sql,.zip,.backup',
+                    'aria-label': 'Upload your backup file'
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Restore',
+                cancelButtonText: 'Cancel',
+                preConfirm: () => {
+                    // Handle file upload and restoration here
+                    return new Promise((resolve) => {
+                        setTimeout(() => {
+                            resolve();
+                        }, 2000);
+                    });
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Restore Started!',
+                        text: 'Your system restoration has begun. This may take several minutes.',
+                        icon: 'info',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            });
+        });
+    }
+
+   
+}
+
+
 
 
 

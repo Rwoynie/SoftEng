@@ -5218,3 +5218,328 @@ input:checked + .toggle-slider:before {
 [data-theme="dark"]  .logs-table tr[data-log-type="user"] td:first-child {
     border-left: 4px solid #DC2626;
 }
+
+/* BACKUP BACKUP*/
+/* Backup & Restore Styles */
+
+#backup-container {
+    overflow-y: scroll;
+}
+.backup-content {
+    padding: 10px;
+    
+}
+
+.backup-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 15px;
+}
+
+.backup-card {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    border: 1px solid #e0e0e0;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    height: 20vw; /* Make all cards equal height */
+    /* Set a minimum height */
+}
+
+.backup-card-content {
+    flex: 1; /* This pushes the button to the bottom */
+    display: flex;
+    flex-direction: column;
+}
+
+.backup-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.backup-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+}
+
+.backup-card:nth-child(1) .backup-icon {
+    color: var(--primary-color);
+}
+
+.backup-card:nth-child(2) .backup-icon {
+    color: var(--secondary-color);
+}
+
+.backup-card:nth-child(3) .backup-icon {
+    color: #17a2b8;
+}
+
+.backup-card h3 {
+    margin-bottom: 10px;
+    color: #333;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.backup-card p {
+    color: #666;
+    margin-bottom: 20px;
+    line-height: 1.5;
+    font-size: 0.9rem;
+    flex: 1; /* This makes the paragraph take available space */
+}
+.backup-action-btn {
+    width: 100%;
+    padding: 12px 20px;
+    font-size: 0.95rem;
+    margin-top: auto; /* This pushes the button to the bottom */
+}
+
+/* Backup Information */
+.backup-info {
+    background: white;
+    padding: 15px;
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: 50px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e0e0e0;
+    margin-bottom: 30px;
+}
+
+.backup-info-title {
+    margin-bottom: 10px;
+    color: #333;
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 10px;
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.backup-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 10px;
+}
+
+.info-item {
+    padding: 10px 0;
+}
+
+.info-item strong {
+    color: #333;
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.info-item span {
+    color: #666;
+}
+
+.status-disabled {
+    color: #dc3545 !important;
+}
+
+/* Backup Location */
+.backup-location {
+    margin-top: 5px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.backup-location h4 {
+    margin-bottom: 10px;
+    color: #333;
+    font-size: 1.1rem;
+}
+
+.backup-path {
+    color: #666;
+    margin: 0;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    word-break: break-all;
+}
+
+/* Backup History */
+.backup-history-section {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    width: 100%;
+    height: 400px; /* Fixed height for scrolling */
+    display: flex;
+    flex-direction: column;
+}
+
+.backup-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    flex-shrink: 0; /* Prevent header from shrinking */
+}
+
+.backup-history-header h3 {
+    color: #333;
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.backup-history-header h3 i {
+    color: var(--primary-color);
+}
+
+.backup-table-container {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+}
+
+.backup-history-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.backup-history-table th {
+    background: #f8f9fa;
+    color: #333;
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.9rem;
+    position: sticky;
+    top: 0;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.backup-history-table th.text-center {
+    text-align: center;
+}
+
+.backup-history-table td {
+    padding: 15px;
+    border-bottom: 1px solid #f0f0f0;
+    color: #666;
+}
+
+.backup-history-table tr:last-child td {
+    border-bottom: none;
+}
+
+.backup-history-table tr:hover {
+    background-color: #f8f9fa;
+}
+
+.no-backups-message {
+    padding: 60px 20px;
+    text-align: center;
+    color: #666;
+}
+
+.no-backups-message i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    display: block;
+    color: #ddd;
+}
+
+.no-backups-message h4 {
+    margin-bottom: 10px;
+    color: #666;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.no-backups-message p {
+    margin: 0;
+    color: #999;
+    font-size: 0.9rem;
+}
+
+/* Action buttons in backup table */
+.backup-action {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    font-size: 0.85rem;
+}
+
+.backup-action:hover {
+    background-color: rgba(186, 30, 31, 0.1);
+}
+
+.backup-action.delete {
+    color: #dc3545;
+}
+
+.backup-action.delete:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .backup-actions {
+        grid-template-columns: 1fr;
+    }
+    
+    .backup-info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .backup-history-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+    
+    .backup-history-table {
+        font-size: 0.85rem;
+    }
+    
+    .backup-history-table th,
+    .backup-history-table td {
+        padding: 10px 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .backup-content {
+        padding: 15px;
+    }
+    
+    .backup-card {
+        padding: 20px 15px;
+    }
+    
+    .backup-info {
+        padding: 20px 15px;
+    }
+    
+    .backup-icon {
+        font-size: 36px;
+    }
+}

@@ -300,6 +300,7 @@ $displayUserData = [
                     <li id="" data-view="accounts"><i class="fa-solid fa-users" aria-hidden="true"></i></li>
                     <li id="" data-view="logs"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></li>
                     <li id="" data-view="announcement"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i></li>
+                    <li id="" data-view="backup"><i class="fa-solid fa-database" aria-hidden="true"></i></li>
                 </ul>
             </nav>
 
@@ -312,9 +313,7 @@ $displayUserData = [
             <div id="user-info-display" style="display: none;">
                 <span id="user-full-name"><?php echo htmlspecialchars($displayUserData['user_name']); ?></span>
                 <span id="user-role"><?php echo htmlspecialchars($displayUserData['user_role']); ?></span>
-<!--    <form action="backup.php" method="post">
-                    <button type="submit">Download Database Backup</button>
-                </form> --> 
+  
             </div>
 
         </section>
@@ -1045,7 +1044,119 @@ $displayUserData = [
                             </form>
                         </div>
                     </div>
+                </div>
 
+                <div id="backup-container" class="content-container" style="display: none;">
+                    <header class="header" id="backupHeader">
+                        <div class="title">Backup & Restore</div>
+                    </header>
+                    
+                    <div class="backup-content">
+                        <div class="backup-actions">
+                            <div class="backup-card">
+                                <div class="backup-icon">
+                                    <i class="fas fa-download"></i>
+                                </div>
+                                <h3>Create Backup</h3>
+                                <p>Create a complete backup of the system database and files</p>
+                                <button class="btn btn-primary backup-action-btn" id="createBackupBtn">
+                                    <i class="fas fa-database"></i> Create System Backup
+                                </button>
+                            </div>
+                            
+                            <div class="backup-card">
+                                <div class="backup-icon">
+                                    <i class="fas fa-upload"></i>
+                                </div>
+                                <h3>Restore Backup</h3>
+                                <p>Restore the system from a previous backup file</p>
+                                <button class="btn btn-secondary backup-action-btn" id="restoreBackupBtn">
+                                    <i class="fas fa-file-import"></i> Restore from Backup
+                                </button>
+                            </div>
+                            
+                            <div class="backup-card">
+                                <div class="backup-icon">
+                                    <i class="fas fa-history"></i>
+                                </div>
+                                <h3>Backup History</h3>
+                                <p>View and manage previous system backups</p>
+                                <button class="btn btn-tertiary backup-action-btn" id="viewBackupHistoryBtn">
+                                    <i class="fas fa-list-alt"></i> View Backup History
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Backup Information Section -->
+                        <div class="backup-info">
+                            <h3 class="backup-info-title">
+                                <i class="fas fa-info-circle"></i> System Backup Information
+                            </h3>
+                            
+                            <div class="backup-info-grid">
+                                <div class="info-item">
+                                    <strong>Last Backup:</strong> 
+                                    <span id="lastBackupDate">Never</span>
+                                </div>
+                                
+                                <div class="info-item">
+                                    <strong>Last Backup Size:</strong> 
+                                    <span id="backupSize">0 MB</span>
+                                </div>
+                                
+                                <div class="info-item">
+                                    <strong>Auto Backup:</strong> 
+                                    <span id="autoBackupStatus" class="status-disabled">Disabled</span>
+                                </div>
+                                
+                                <div class="info-item">
+                                    <strong>Next Auto Backup:</strong> 
+                                    <span id="nextBackupDate">Not scheduled</span>
+                                </div>
+                            </div>
+                            
+                            <div class="backup-location">
+                                <h4>Backup Location</h4>
+                                <p class="backup-path">
+                                    /var/backups/capstone-tracker/
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Backup History Table (initially hidden) -->
+                        <div id="backupHistorySection" class="backup-history-section">
+                            <div class="backup-history-header">
+                                <h3>
+                                    <i class="fas fa-history"></i> Backup History
+                                </h3>
+                                
+                            </div>
+                            
+                            <div class="backup-table-container">
+                                <table class="backup-history-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Backup Date</th>
+                                            <th>File Name</th>
+                                            <th>Size</th>
+                                            <th>Type</th>
+                                            <th class="text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="backupHistoryTableBody">
+                                        <tr>
+                                            <td colspan="5" class="no-backups-message">
+                                                <i class="fas fa-inbox"></i>
+                                                <h4>No Backup History</h4>
+                                                <p>No backups have been created yet.</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
 
 
