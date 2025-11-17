@@ -70,10 +70,22 @@ class AuthController extends Controller {
         // Get form data
         error_log("Login attempt - Username: " . ($_POST['email'] ?? 'empty'));
         error_log("Login attempt - Role: " . ($_POST['role'] ?? 'empty'));
-    
+
+        // Detect AJAX login from indexLogin.php (FormData appends 'ajax' => '1')
+        $isAjax = isset($_POST['ajax']) && $_POST['ajax'] === '1';
+
         // Validate CSRF token first
         $csrfToken = $_POST['csrf_token'] ?? '';
         if (!$this->validateCsrfToken($csrfToken)) {
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Invalid security token. Please try again.'
+                ]);
+                exit();
+            }
+
             $this->redirectWithError('Invalid security token. Please try again.');
             return;
         }
@@ -84,6 +96,15 @@ class AuthController extends Controller {
         
         // Validate input
         if (empty($username) || empty($password)) {
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'All fields are required.'
+                ]);
+                exit();
+            }
+
             $this->redirectWithError('All fields are required.');
             return;
         }
@@ -94,24 +115,40 @@ class AuthController extends Controller {
         }
         
         // Authenticate user
-        $user = $this->authenticateUser($username, $password, $role);
+        $result = $this->authenticateUser($username, $password, $role, $isAjax);
         
-        if ($user) {
-            // Create session and redirect
+        if ($result['success']) {
+            $user = $result['user'];
+            // Create session
             $this->createUserSession($user);
-            $this->redirect('../../app/Views/User/userViewPage.php');
-        } else {
-            // Debug: Log the error message that was set
-            $errorMsg = $_SESSION['error_message'] ?? 'No error message set';
-            error_log("Authentication failed with message: " . $errorMsg);
-            
-            // Ensure we have an error message
-            if (!isset($_SESSION['error_message']) || empty($_SESSION['error_message'])) {
-                $_SESSION['error_message'] = 'Invalid credentials. Please try again.';
+
+            if ($isAjax) {
+                // Return JSON success for frontend fetch handler.
+                // This URL is resolved relative to indexLogin.php, so use an absolute path.
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => true,
+                    'redirect' => '/CapstoneTracker/app/Views/User/userViewPage.php'
+                ]);
+                exit();
             }
-            
-            header('Location: ../../app/Views/User/indexLogin.php');
-            exit();
+
+            // Non-AJAX: redirect as before (path is relative to app/Controllers)
+            $this->redirect('../Views/User/userViewPage.php');
+        } else {
+            $error = $result['error'];
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => false,
+                    'error' => $error
+                ]);
+                exit();
+            } else {
+                $_SESSION['error_message'] = $error;
+                header('Location: ../Views/User/indexLogin.php');
+                exit();
+            }
         }
     }
 
@@ -128,7 +165,7 @@ class AuthController extends Controller {
         }
     }
 
-    private function authenticateUser($username, $password, $role) {
+    private function authenticateUser($username, $password, $role, $isAjax = false) {
         // Use your User model for authentication
         require_once ROOT_DIR . '\app\Models\User.php';
         
@@ -154,40 +191,34 @@ class AuthController extends Controller {
                 if ($userRole === $mappedRole) {
                     // Check account status before allowing login
                     if ($user->Acc_Status === 'pending') {
-                        $_SESSION['error_message'] = "Your account is pending approval. Please wait for administrator approval before logging in.";
-                        return false;
+                        return ['success' => false, 'error' => "Your account is pending approval. Please wait for administrator approval before logging in."];
                     } else if ($user->Acc_Status === 'rejected') {
-                        $_SESSION['error_message'] = "Your account registration was rejected. Please contact the administrator for more information.";
-                        return false;
+                        return ['success' => false, 'error' => "Your account registration was rejected. Please contact the administrator for more information."];
                     } else if ($user->Acc_Status === 'approved') {
                         // Account is approved - allow login
-                        return [
+                        return ['success' => true, 'user' => [
                             'id' => $user->ID,
                             'username' => $user->Email,
                             'email' => $user->Email,
                             'name' => $user->First_Name . ' ' . $user->Last_Name,
                             'role' => $user->User_Role
-                        ];
+                        ]];
                     } else {
                         // Unknown status
-                        $_SESSION['error_message'] = 'Your account status is invalid. Please contact administrator.';
-                        return false;
+                        return ['success' => false, 'error' => 'Your account status is invalid. Please contact administrator.'];
                     }
                 } else {
                     error_log("Role mismatch: User role is $userRole, but selected role is $selectedRole");
-                    $_SESSION['error_message'] = 'Invalid credentials for the selected role.';
-                    return false;
+                    return ['success' => false, 'error' => 'Invalid credentials for the selected role.'];
                 }
             } else {
                 // No user found or password incorrect
-                $_SESSION['error_message'] = 'Invalid credentials. Please try again.';
-                return false;
+                return ['success' => false, 'error' => 'Invalid credentials. Please try again.'];
             }
             
         } catch (Exception $e) {
             error_log("Authentication error: " . $e->getMessage());
-            $_SESSION['error_message'] = 'Authentication error: ' . $e->getMessage();
-            return false;
+            return ['success' => false, 'error' => 'Authentication error: ' . $e->getMessage()];
         }
     }
 
@@ -210,12 +241,12 @@ class AuthController extends Controller {
         session_destroy();
         
         // Redirect to login page
-        $this->redirect('../../app/Views/User/indexLogin.php');
+        $this->redirect('../Views/User/indexLogin.php');
     }
 
     private function redirectWithError($message) {
         $_SESSION['error_message'] = $message;
-        header('Location: ../../app/Views/User/indexLogin.php');
+        header('Location: ../Views/User/indexLogin.php');
         exit();
     }
 

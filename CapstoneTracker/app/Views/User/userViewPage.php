@@ -7,7 +7,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 if (!isset($_SESSION['user_id'])) {
     // Redirect to login page or show error
-    header('Location: indexlogin.php');
+    header('Location: indexLogin.php');
     exit();
 }
 
@@ -173,8 +173,10 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <link rel="stylesheet" href="../../../Resources/css/User/userViewPage.css">
+    
     <script type="text/javascript" src="../../../resources/js/User/userViewPage.js"></script>
     <script type="text/javascript" src="../../../resources/js/User/Profile.js"></script>
+    <meta name="csrf-token" content="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
     
 </head>
 <body>
@@ -190,6 +192,22 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
                 <li id="profileSidebarIcon"> <i class="fa fa-user-o icon" aria-hidden="true"></i> </li>
             </ul>
         </nav>
+        <div class="more-options">
+            <i class="fa fa-ellipsis-h icon" aria-hidden="true"></i>
+        </div>
+
+        <!-- User quick menu popover -->
+        <div class="user-menu-popover" id="userMenuPopover" style="display:none;">
+            <div class="user-menu-header">
+                <div class="user-menu-email" id="userMenuEmail">Loading...</div>
+                <div class="user-menu-id" id="userMenuId"></div>
+            </div>
+            <hr class="user-menu-divider">
+            <button type="button" class="btn btn-primary user-menu-logout" id="sidebarLogoutBtn">
+                <i class="fa fa-sign-out" aria-hidden="true"></i>
+                Logout
+            </button>
+        </div>
     </section>
 
     <section class="main-content">
@@ -202,6 +220,7 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
         </header>
 
         <section class="app-content">
+
            <!-- Profile Container (initially hidden) -->
         <div class="profile-container" id="profileContainer" style="display: none;">
         <header class="header" id="header">
@@ -210,7 +229,7 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
             <div class="profile-card">
                 <div class="profile-header">
                     <div class="profile-avatar">
-                        <img src="../../../resources/Images/profile.png" alt="Profile" class="profile-image">
+                        <img id="profilePicture" src="../../../resources/Images/profile.png" alt="Profile" class="profile-image" data-default-src="../../../resources/Images/profile.png">
                         <div class="online-status"></div>
                     </div>
                     <div class="profile-info">
@@ -252,11 +271,11 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
                         <div class="info-grid">
                             <div class="info-item">
                                 <span class="info-label">Member Since:</span>
-                                <span data-value="member" class="info-value"></span>
+                                <span data-value="member_since" class="info-value"></span>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">Last Login:</span>
-                                <span data-value="lastlogin" class="info-value"></span>
+                                <span data-value="last_login" class="info-value"></span>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">Status:</span>
@@ -414,84 +433,5 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
 
 </body>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-</html>
-
-<?php
-// Helper function to display thesis item
-function displayThesisItem($theses) {
-    // Debug: Check if ID exists
-    if (!isset($theses->ID) || empty($theses->ID)) {
-        error_log("Thesis ID missing for thesis: " . ($theses->Title ?? 'Unknown Title'));
-        // Use a fallback or skip this item
-        return; // Skip items without ID
-    }
-    
-    // Set default values for missing properties
-    $thesisId = $theses->ID ?? 'unknown';
-    $Author = htmlspecialchars($theses->Author ?? 'Unknown Author');
-    $Adviser = htmlspecialchars($theses->Adviser ?? 'Not specified');
-    $Title = htmlspecialchars($theses->Title ?? 'Untitled Thesis');
-    $hardboundValue = htmlspecialchars($theses->HardBound_Available ?? 'No');
-    $Department = htmlspecialchars($theses->Thesis_Department ?? 'Unknown Department');
-    $depWeight = '900';
-    $depSize = '1vw';
-    $margin = '1vw';
-    $Course = htmlspecialchars($theses->Thesis_Course ?? 'Unknown Course');
-
-    $formattedDate = isset($theses->uploaded_at) ? date('M j, Y', strtotime($theses->uploaded_at)) : 'Unknown date';
-    $daysAgo = $theses->days_ago ?? 0;
-    
-    $affirmativeValues = ['Yes', 'true', '1', 'available', 'y'];
-    $isHardboundAvailable = in_array(strtolower($hardboundValue), array_map('strtolower', $affirmativeValues));
-
-    $iconColor = $isHardboundAvailable ? '#55dcb3' : '#ff6b6b';
-    $statusText = $isHardboundAvailable ? 'Hardbound Available' : 'Hardbound Unavailable';
-    $iconClass = $isHardboundAvailable ? 'fa-circle-check' : 'fa-circle-xmark';
-
-    // Determine days ago text
-    $daysAgoText = '';
-    if ($daysAgo == 0) {
-        $daysAgoText = 'Today';
-    } elseif ($daysAgo == 1) {
-        $daysAgoText = 'Yesterday';
-    } else {
-        $daysAgoText = $daysAgo . ' days ago';
-    }
-    
-    echo '<li class="project-item" data-tags="" data-thesis-id="' . $thesisId . '" data-upload-date="' . ($theses->uploaded_at ?? '') . '" data-days-ago="' . $daysAgo . '" data-is-recent="' . ($theses->is_recent ? 'true' : 'false') . '">';
-    echo '<div class="logo-row">';
-    echo '<img src="/CapstoneTracker/resources/Images/usep-logo-small.png" alt="Logo" />';
-    
-    echo '<div class="moreOptions" style="display: none;">';
-    echo '<button><i class="fa-solid fa-pen"></i>Edit</button>';
-    echo '<button><i class="fa-solid fa-trash-can"></i>Delete</button>';
-    echo '</div>';
-    echo '</div>';
-    echo '<div class="title-row">';
-    echo '<h3>' . $Title . '</h3>';
-    
-    echo '<div class="links">';
-    echo '<p style="font-weight: ' . $depWeight . '; font-size: ' . $depSize . '; ">' . $Department . '</p>';
-    echo '<p style="margin-bottom:'. $margin .'">' . $Course . '</p>';
-    echo '<p href="#">' . $formattedDate . '</p>';
-    
-    echo '</div>';
-    echo '</div>';
-    echo '<div class="desc-row">';
-    echo '<p class="author"><strong>Author:</strong> ' . $Author . '</p>';
-    echo '<p class="adviser"><strong>Adviser:</strong> ' . $Adviser . '</p>';
-    echo '</div>';
-    echo '<div class="users">';
-    echo '<p class="available" style="color: ' . $iconColor . ' !important;">';
-    echo '<i class="fa-solid ' . $iconClass . '" style="color: ' . $iconColor . ' !important;"></i>';
-    echo '&nbsp;&nbsp;' . $statusText;
-    echo '</p>';
-    echo '</div>';
-    echo '<div class="footer-row">';
-    echo '<div class="days warning">';
-    echo '<i class="fa fa-clock-o icon" aria-hidden="true"></i> ' . $daysAgoText;
-    echo '</div>';
-    echo '</div>';
-    echo '</li>';
-}
-?>
+<script>
+ 

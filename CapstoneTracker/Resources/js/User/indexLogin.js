@@ -1,22 +1,6 @@
 
 // Show error message as SweetAlert and reopen modal if there is an error
 document.addEventListener('DOMContentLoaded', function() {
-    // Check if we should show the modal based on error message
-    if (event.ShiftKey && event.key === 'h') {
-        event.preventDefault();
-        
-        const adminModal = document.getElementById('adminLoginModal');
-        if (adminModal) {
-            const adminModalInstance = new bootstrap.Modal(adminModal);
-            adminModalInstance.show();
-            
-            // Show access notification
-            showAdminAccessNotification();
-            
-            console.log('Admin login panel opened via Shift+H');
-        }
-    }
-
     if (typeof errorMessage !== 'undefined' && errorMessage && errorMessage !== '') {
         // Determine if it's a login error or registration error
         if (window.location.href.includes('AuthController') || 
@@ -279,8 +263,6 @@ function openFacultyRegistration() {
     const facultyModal = new bootstrap.Modal(document.getElementById('facultyRegisterModal'));
     facultyModal.show();
 }
-
-
 
 // Prevent form submission from closing modal on error
 function setupFormHandlers() {
@@ -616,18 +598,7 @@ function initializePage() {
         facultyBtn.addEventListener("click", () => openLogin("Faculty"));
     }
 
-    if (togglePasswordBtn && passwordInput) {
-        togglePasswordBtn.addEventListener('click', function() {
-            const isHidden = passwordInput.type === 'password';
-            passwordInput.type = isHidden ? 'text' : 'password';
-            const icon = this.querySelector('i');
-            if (icon) {
-                icon.classList.toggle('fa-eye');
-                icon.classList.toggle('fa-eye-slash');
-            }
-            this.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
-        });
-    }
+    // Login password toggle is handled inline in indexLogin.php to avoid duplication
 
     if (registerForm) {
       registerForm.addEventListener('submit', function (e) {

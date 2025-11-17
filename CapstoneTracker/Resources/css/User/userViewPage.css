@@ -135,6 +135,63 @@ body {
     font-size: var(--size-xlarge);
 }
 
+.more-options {
+    position: relative;
+}
+
+/* User sidebar popover menu */
+.user-menu-popover {
+    position: fixed;
+    left: 95px; /* just to the right of the sidebar */
+    bottom: 40px;
+    width: 220px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    padding: 16px 18px 18px;
+    z-index: 150;
+    font-family: "Quicksand", sans-serif;
+}
+
+.user-menu-popover::before {
+    content: "";
+    position: absolute;
+    left: -8px;
+    bottom: 32px;
+    width: 12px;
+    height: 12px;
+    background: #ffffff;
+    transform: rotate(45deg);
+    box-shadow: -2px 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.user-menu-header {
+    margin-bottom: 6px;
+}
+
+.user-menu-email {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--color-black);
+}
+
+.user-menu-id {
+    font-size: 12px;
+    color: var(--color-lite-grey);
+    margin-top: 2px;
+}
+
+.user-menu-divider {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 10px 0 14px;
+}
+
+.user-menu-logout {
+    width: 100%;
+    justify-content: center;
+}
+
 /* Main Content Styles */
 .main-content {
     flex: 1;
@@ -772,16 +829,22 @@ body {
 
 .profile-avatar {
     position: relative;
-    margin-right: 25px;
+    
+    width: 110px; /* ensure stable container for the circle */
+    height: 110px;
+    display: grid;
+    place-items: center;
 }
 
 .profile-image {
     width: 100px;
     height: 100px;
     border-radius: 50%;
-    object-fit: cover;
+    object-fit: cover; /* fill the circle without distortion */
+    object-position: center center; /* center the subject */
     border: 4px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    display: block;
 }
 
 .online-status {
@@ -915,12 +978,16 @@ body {
 }
 
 .btn {
-    padding: 8px 16px;
+    padding: 9px 20px;
     border: none;
-    border-radius: 4px;
+    border-radius: 999px;
     cursor: pointer;
     font-size: 14px;
-    transition: all 0.1s;
+    font-weight: 600;
+    transition: background-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .btn i {
@@ -934,20 +1001,39 @@ body {
 
 .btn-primary:hover {
     background: var(--primary-dark);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(186, 30, 31, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(186, 30, 31, 0.25);
 }
 
 .btn-secondary {
     background: #f8f9fa;
     color: var(--color-dark-grey);
-    border: 1px solid #e9ecef;
+    border: 1px solid #e0e0e0;
 }
 
 .btn-secondary:hover {
     background: #e9ecef;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+/* Logout button as subtle danger outline */
+#logoutHeaderIcon {
+    background: #fff;
+    color: #c62828;
+    border: 1px solid rgba(198, 40, 40, 0.4);
+}
+
+#logoutHeaderIcon:hover {
+    background: #c62828;
+    color: #fff;
+    box-shadow: 0 6px 14px rgba(198, 40, 40, 0.25);
+}
+
+#logoutHeaderIcon:focus,
+.btn-primary:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(186, 30, 31, 0.35);
 }
 
 /* Responsive Design for Profile */
@@ -987,8 +1073,13 @@ body {
     
     .action-buttons {
         flex-direction: column;
+        justify-content: flex-start;
+        align-items: stretch;
     }
-    
+
+    .action-buttons .btn {
+        width: 100%;
+    }
     .info-item {
         flex-direction: column;
         gap: 5px;
@@ -1109,6 +1200,12 @@ body {
             margin: 0;
         }
 
+        .modal-subtitle {
+            font-size: 0.9rem;
+            color: var(--color-lite-grey);
+            margin-top: 4px;
+        }
+
         .modal-close {
             background: none;
             border: none;
@@ -1126,6 +1223,145 @@ body {
             padding: 25px;
             overflow-y: auto;
             flex: 1;
+        }
+
+        /* Edit Profile specific */
+        .edit-profile-modal .modal-body {
+            background: #fff;
+        }
+
+        .edit-profile-grid {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .avatar-uploader {
+            text-align: center;
+        }
+
+        .avatar-uploader .avatar-ring {
+            width: 140px;
+            height: 140px;
+            margin: 0 auto 10px auto;
+            border-radius: 50%;
+            border: 4px solid rgba(0,0,0,.08);
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+            background: rgba(0,0,0,.02);
+        }
+
+        .avatar-uploader .avatar-ring img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: 50% 50%;
+            display: block;
+        }
+
+        .avatar-uploader .hint {
+            display: block;
+            margin-top: 6px;
+            color: var(--color-lite-grey);
+            font-size: 12px;
+        }
+
+        .form-fields {
+            width: 100%;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .form-row.two-col {
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-row.three-col {
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+
+        .profile-form .form-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--color-dark-grey);
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .profile-form .form-group input[type="text"],
+        .profile-form .form-group input[type="email"],
+        .profile-form .form-group select.select-input,
+        .input-with-icon input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #e1e1e1;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color .2s;
+            background: #fff;
+        }
+
+        .profile-form .form-group input:focus,
+        .profile-form .form-group select.select-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(186,30,31,0.08);
+        }
+
+        /* Input with icon (show/hide password) */
+        .input-with-icon { position: relative; }
+        .input-with-icon input {
+            
+            padding-right: 42px;
+            height: 40px;
+            line-height: 40px;
+
+        }
+        .toggle-visibility {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            color: #8a8f98;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: background-color .15s, color .15s;
+        }
+        .toggle-visibility:hover { background: #f1f3f5; color: #555; }
+        .toggle-visibility:focus { outline: none; box-shadow: 0 0 0 2px rgba(186,30,31,0.15); }
+
+        /* Helper hint text */
+        .profile-form .hint { display: block; margin-top: 6px; color: var(--color-lite-grey); font-size: 12px; }
+
+        .footer-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn.small { padding: 6px 10px; font-size: 12px; }
+
+        @media (max-width: 900px) {
+            .edit-profile-grid { grid-template-columns: 1fr; }
+            .avatar-uploader { margin-bottom: 10px; }
+            .form-row.two-col { grid-template-columns: 1fr; }
         }
 
         .modal-footer {
