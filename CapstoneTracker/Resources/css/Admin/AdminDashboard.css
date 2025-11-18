@@ -5512,7 +5512,7 @@ background: #f8f9fa;
     border: 2px solid var(--primary-color);
     background: linear-gradient(135deg, rgba(186, 30, 31, 0.05), rgba(186, 30, 31, 0.02));
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(186, 30, 31, 0.15);
+    
 }
 
 .accessCard.active .access-count {
