@@ -6,21 +6,6 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-
-$session_expired = false;
-if (isset($_SESSION['session_expired']) && $_SESSION['session_expired']) {
-    $session_expired = true;
-    session_unset();
-    session_destroy();
-    session_start(); 
-}
-
-if (isset($_GET['session_expired']) && $_GET['session_expired'] == 1) {
-    $session_expired = true;
-    session_unset();
-    session_destroy();
-    session_start();
-}
 if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));  
 }
@@ -77,10 +62,7 @@ if (isset($_SESSION['admin_error_message'])) {
   unset($_SESSION['admin_error_message']);
 }
 
-// Generate CSRF token if it doesn't exist
-if (!isset($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
+
 
 if ($setupError) {
   echo '<div class="alert alert-danger position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999;">';
@@ -133,8 +115,6 @@ if ($setupError) {
             <img class="sysLogo" src="../../../resources/Images/ThesisCompLogo.png" alt="Compendium System Logo">
             <h1>Compendium System</h1>
             <p class="tagline">A digital library for USeP student research.</p>
-            <br>
-            <br>
             <div class="d-flex justify-content-center gap-2" style="margin-top: 30px;">
                 <button id="researcherBtn" class="btn btn-primary btn-lg">
                     <i class="fas fa-user-graduate me-2"></i>
@@ -164,7 +144,7 @@ if ($setupError) {
         <button type="button" class="btn btn-link text-muted position-absolute" style="top:8px; right:10px; font-size:24px; text-decoration:none;" data-bs-dismiss="modal" aria-label="Close">&times;</button>
       </div>
       <div class="modal-body">
-        <form id="loginForm" method="POST" action="../../Controllers/AuthController.php" enctype="multipart/form-data">
+        <form method="POST" action="../../Controllers/AuthController.php" enctype="multipart/form-data">
           <input type="hidden" name="action" value="login">
           <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
           <input type="hidden" id="roleField" name="role">
@@ -181,13 +161,10 @@ if ($setupError) {
               </button>
             </div>
 
-            <div id="passwordError" class="text-danger text-center mt-2" style="display: none;"></div>
-
             <div class="text-center mt-5">
             <a href="#" id="forgotPasswordLink" class="text-decoration-none">Forgot password?</a>
           </div>
           </div>
-          
           <button type="submit" class="btn btn-success w-100 mb-2">Login</button>
           
 
@@ -204,11 +181,8 @@ if ($setupError) {
           
           
           <div class="text-center">
-  <a>Not yet registered?</a>
-  <a href="#" id="createAccountLink" class="btn btn-link"> Create an account</a>
-</div>
-
-
+            <p class="accountCreate">Not yet registered?<a href="#" id="openRegisterLink" class="btn btn-link">Create an account</a></p>
+          </div>
         </form>
       </div>
     </div>
@@ -217,6 +191,179 @@ if ($setupError) {
   <div class="fab-icon save-fab" id="saveAdminChangesBtn" title="Save Changes">
         <i class="fas fa-save"></i>
     </div>
+</div>
+
+<!-- STUDENT REGISTRATION MODAL -->
+<div class="modal fade" id="studentRegisterModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content p-4">
+      <div class="modal-header border-0 text-center w-100 d-block position-relative">
+        <img src="../../../resources/Images/ThesisCompLogo.png" class="sysLogo mb-2" alt="Logo" style="width:80px;">
+        <h5 class="modal-title">Student Registration</h5>
+        <button type="button" class="btn btn-link text-muted position-absolute" style="top:8px; right:10px; font-size:24px; text-decoration:none;" data-bs-dismiss="modal" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+      <form id="studentRegisterForm" method="POST" action="../../Controllers/RegistrationController.php" enctype="multipart/form-data">
+        <input type="hidden" name="action" value="student_register">
+        <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label for="regFirstName" class="form-label">First Name</label>
+              <input type="text" id="regFirstName" name="firstName" class="form-control" placeholder="Juan" required>
+            </div>
+            <div class="col-md-4">
+              <label for="regMiddleName" class="form-label">Middle Name</label>
+              <input type="text" id="regMiddleName" name="middleName" class="form-control" placeholder="Santos">
+            </div>
+            <div class="col-md-4">
+              <label for="regLastName" class="form-label">Last Name</label>
+              <input type="text" id="regLastName" name="lastName" class="form-control" placeholder="Dela Cruz" required>
+            </div>
+            <div class="col-12">
+              <label for="regExtension" class="form-label">Name Extension (Optional)</label>
+              <input type="text" id="regExtension" name="extension" class="form-control" placeholder="Jr., III, etc.">
+            </div>
+            
+            
+            
+            <div class="col-12">
+              <label for="regCourse" class="form-label">Course / Program</label>
+              <select id="regCourse" name="course" class="form-select" required>
+                <option value="" selected disabled>Select your program</option>
+                <option>Bachelor of Technical-Vocational Teacher Education</option>
+                <option>Bachelor of Special Needs Education</option>
+                <option>Bachelor of Early Childhood Education</option>
+                <option>Bachelor of Secondary Education</option>
+                <option>Bachelor of Science in Information Technology</option>
+                <option>Bachelor of Elementary Education</option>
+                <option>Bachelor of Science in Agricultural and Biosystems Engineering</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label for="regEmail" class="form-label">Email Address</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                <input type="email" id="regEmail" name="email" class="form-control" placeholder="your.name@usep.edu.ph" required>
+              </div>
+              <small class="text-muted">Use your university email (@usep.edu.ph)</small>
+            </div>
+            <div class="col-md-6">
+              <label for="regPassword" class="form-label">Password</label>
+              <div class="input-group">
+                <input type="password" id="regPassword" name="password" class="form-control" required>
+                <button class="btn btn-outline-secondary" type="button" id="regTogglePassword" aria-label="Show password">
+                  <i class="far fa-eye"></i>
+                </button>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label for="regConfirmPassword" class="form-label">Confirm Password</label>
+              <div class="input-group">
+                <input type="password" id="regConfirmPassword" name="confirmPassword" class="form-control" required>
+                <button class="btn btn-outline-secondary" type="button" id="regToggleConfirm" aria-label="Show password">
+                  <i class="far fa-eye"></i>
+                </button>
+              </div>
+            </div>
+            <div class="col-12">
+              <label for="regProfilePic" class="form-label">Profile picture</label>
+              <input type="file" id="regProfilePic" name="profilePic" class="form-control" accept="image/*">
+              <small class="text-muted">Max 5MB. JPG/PNG preferred.</small>
+            </div>
+            <div class="col-12 d-grid gap-2">
+              <button type="submit" class="btn btn-primary">Create account</button>
+              <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="modal">Back to login</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FACULTY REGISTRATION MODAL -->
+<div class="modal fade" id="facultyRegisterModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content p-4">
+      <div class="modal-header border-0 text-center w-100 d-block position-relative">
+        <img src="../../../resources/Images/ThesisCompLogo.png" class="sysLogo mb-2" alt="Logo" style="width:80px;">
+        <h5 class="modal-title">Faculty Registration</h5>
+        <button type="button" class="btn btn-link text-muted position-absolute" style="top:8px; right:10px; font-size:24px; text-decoration:none;" data-bs-dismiss="modal" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+      <form id="facultyRegisterForm" method="POST" action="../../Controllers/RegistrationController.php" enctype="multipart/form-data">
+         
+          <input type="hidden" name="action" value="faculty_register">
+          <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
+          <div class="row g-3">
+            <!-- Separate Name Fields -->
+            <div class="col-md-4">
+              <label for="facFirstName" class="form-label">First Name</label>
+              <input type="text" id="facFirstName" name="firstName" class="form-control" placeholder="Maria" required>
+            </div>
+            <div class="col-md-4">
+              <label for="facMiddleName" class="form-label">Middle Name</label>
+              <input type="text" id="facMiddleName" name="middleName" class="form-control" placeholder="Santos">
+            </div>
+            <div class="col-md-4">
+              <label for="facLastName" class="form-label">Last Name</label>
+              <input type="text" id="facLastName" name="lastName" class="form-control" placeholder="Reyes" required>
+            </div>
+            <div class="col-12">
+              <label for="facExtension" class="form-label">Name Extension (Optional)</label>
+              <input type="text" id="facExtension" name="extension" class="form-control" placeholder="Jr., III, etc.">
+            </div>
+            
+            
+            <div class="col-md-6">
+              <label for="facDepartment" class="form-label">Department / College</label>
+              <select id="facDepartment" name="department" class="form-select" required>
+                <option value="" selected disabled>Select department</option>
+                <option>CTET</option>
+                <option>COE</option>
+              </select>
+            </div>
+            
+            <div class="col-12">
+              <label for="facEmail" class="form-label">Email Address</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                <input type="email" id="facEmail" name="email" class="form-control" placeholder="your.name@usep.edu.ph" required>
+              </div>
+              <small class="text-muted">Use your university email (@usep.edu.ph)</small>
+            </div>
+            <div class="col-md-6">
+              <label for="facPassword" class="form-label">Password</label>
+              <div class="input-group">
+                <input type="password" id="facPassword" name="password" class="form-control" required>
+                <button class="btn btn-outline-secondary" type="button" id="facTogglePassword" aria-label="Show password">
+                  <i class="far fa-eye"></i>
+                </button>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label for="facConfirmPassword" class="form-label">Confirm Password</label>
+              <div class="input-group">
+                <input type="password" id="facConfirmPassword" name="confirmPassword" class="form-control" required>
+                <button class="btn btn-outline-secondary" type="button" id="facToggleConfirm" aria-label="Show password">
+                  <i class="far fa-eye"></i>
+                </button>
+              </div>
+            </div>
+            <div class="col-12">
+              <label for="facProfilePic" class="form-label">Profile picture (Optional)</label>
+              <input type="file" id="facProfilePic" name="profilePic" class="form-control" accept="image/*">
+              <small class="text-muted">Max 5MB. JPG/PNG preferred.</small>
+            </div>
+            <div class="col-12 d-grid gap-2">
+              <button type="submit" class="btn btn-primary">Create account</button>
+              <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="modal">Back to login</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </div>
 
     <footer class="login-footer">
@@ -289,254 +436,133 @@ if ($setupError) {
       </div>
     </div>
     
-    <script>
-  // Element references
-  const studentBtn = document.getElementById('researcherBtn'); // your Student button
-  const facultyBtn = document.getElementById('facultyBtn');    // your Faculty button
-  const loginModal = document.getElementById('loginModal');
-  const roleField = document.getElementById('roleField');
-  const modalTitle = document.getElementById('modalTitle');
-  const createLink = document.getElementById('createAccountLink');
+<!-- FORGOT PASSWORD MODAL -->
+<div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content p-4">
+      <div class="modal-header border-0 text-center w-100 d-block position-relative">
+        <img src="../../../resources/Images/ThesisCompLogo.png" class="sysLogo mb-2" alt="Logo" style="width:80px;">
+        <h5 class="modal-title">Reset Password</h5>
+        <button type="button" class="btn btn-link text-muted position-absolute" style="top:8px; right:10px; font-size:24px; text-decoration:none;" data-bs-dismiss="modal" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted mb-4">Enter your email address and we'll send you a verification code to reset your password.</p>
+        <form id="forgotPasswordForm">
+          <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
+          <div class="mb-3">
+            <label for="forgotEmail" class="form-label">Email Address</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+              <input type="email" id="forgotEmail" name="email" class="form-control" placeholder="your.email@usep.edu.ph" required>
+            </div>
+            <small class="text-muted">Use your registered USeP email address</small>
+          </div>
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary" id="sendCodeBtn">
+              <i class="fas fa-paper-plane me-2"></i>Send Verification Code
+            </button>
+            <button type="button" class="btn btn-link" data-bs-dismiss="modal">Back to Login</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 
-  // Registration pages
-  const studentRegisterPage = '../../../app/Views/User/student_register.php';
-  const facultyRegisterPage = '../../../app/Views/User/faculty_register.php';
-  
+    <!-- PASSWORD RESET VERIFICATION MODAL -->
+<!-- PASSWORD RESET VERIFICATION MODAL -->
+<div class="modal fade" id="passwordResetModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content p-4">
+      <div class="modal-header border-0 text-center w-100 d-block position-relative">
+        <img src="../../../resources/Images/ThesisCompLogo.png" class="sysLogo mb-2" alt="Logo" style="width:80px;">
+        <h5 class="modal-title">Set New Password</h5>
+        <button type="button" class="btn btn-link text-muted position-absolute" style="top:8px; right:10px; font-size:24px; text-decoration:none;" data-bs-dismiss="modal" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="verificationStep1">
+          <p class="text-muted mb-4">We've sent a 6-digit verification code to your email. Enter it below and set your new password.</p>
+          <form id="verificationForm">
+            <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
+            <input type="hidden" id="resetEmail" name="email">
+            
+            <div class="mb-3">
+              <label for="verificationCode" class="form-label">Verification Code</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-shield-alt"></i></span>
+                <input type="text" id="verificationCode" name="verification_code" class="form-control text-center" 
+                       placeholder="000000" maxlength="6" required pattern="[0-9]{6}">
+              </div>
+              <small class="text-muted">Enter the 6-digit code sent to your email</small>
+            </div>
 
-  // Function to open modal and set correct role
-  function openLoginModal(role) {
-    if (!roleField) return;
+            <div class="mb-3">
+              <label for="newPassword" class="form-label">New Password</label>
+              <div class="input-group">
+                <input type="password" id="newPassword" name="new_password" class="form-control" 
+                       placeholder="Enter your new password" required minlength="8">
+                <button class="btn btn-outline-secondary" type="button" id="toggleNewPassword">
+                  <i class="far fa-eye"></i>
+                </button>
+              </div>
+              <div class="password-strength mt-2" id="passwordStrength"></div>
+              <div class="form-text">
+                Password must be at least 8 characters long
+              </div>
+            </div>
 
-    // Set role in hidden input for AuthController
-    roleField.value = role;
-
-    // Change modal title visually
-    modalTitle.textContent = role === 'faculty' ? 'Faculty Login' : 'Student Login';
-
-    // Set correct registration link
-    createLink.href = role === 'faculty' ? facultyRegisterPage : studentRegisterPage;
-
-    // Clear any previous error state
-    const passwordField = document.getElementById('password');
-    const passwordError = document.getElementById('passwordError');
-    if (passwordField) {
-      passwordField.classList.remove('is-invalid');
-      passwordField.value = '';
-    }
-    if (passwordError) {
-      passwordError.style.display = 'none';
-      passwordError.textContent = '';
-    }
-
-    // Open the login modal
-    const modal = new bootstrap.Modal(loginModal);
-    modal.show();
-  }
-
-  // Student button opens modal as "Student"
-  studentBtn?.addEventListener('click', function (e) {
-    e.preventDefault();
-    openLoginModal('student');
-  });
-
-  // Faculty button opens modal as "Faculty"
-  facultyBtn?.addEventListener('click', function (e) {
-    e.preventDefault();
-    openLoginModal('faculty');
-  });
-
-
-  // Back to Login Link Handler
-  const backToLoginLink = document.getElementById('backToLoginLink');
-  if (backToLoginLink) {
-    backToLoginLink.addEventListener('click', function(e) {
-      e.preventDefault();
-      const forgotModalInstance = bootstrap.Modal.getInstance(forgotPasswordModal);
-      if (forgotModalInstance) forgotModalInstance.hide();
-      
-      const loginModalInstance = new bootstrap.Modal(loginModal);
-      loginModalInstance.show();
-    });
-  }
-
-
-
-  // Clear error when user starts typing in password field
-  const passwordField = document.getElementById('password');
-  if (passwordField) {
-    passwordField.addEventListener('input', function() {
-      this.classList.remove('is-invalid');
-      const passwordError = document.getElementById('passwordError');
-      if (passwordError) {
-        passwordError.style.display = 'none';
-        passwordError.textContent = '';
-      }
-    });
-  }
-
-  // Handle login form submission with AJAX
-  const loginForm = document.getElementById('loginForm');
-  if (loginForm) {
-    loginForm.addEventListener('submit', async function(e) {
-      e.preventDefault();
-      
-      const passwordField = document.getElementById('password');
-      const passwordError = document.getElementById('passwordError');
-      const emailField = document.getElementById('username');
-      
-      // Remove any previous error styling
-      passwordField.classList.remove('is-invalid');
-      passwordError.style.display = 'none';
-      passwordError.textContent = '';
-      
-      // Get form data
-      const formData = new FormData(this);
-      // Add ajax flag to form data (more reliable than headers with FormData)
-      formData.append('ajax', '1');
-      
-      try {
-        const response = await fetch('../../Controllers/AuthController.php', {
-          method: 'POST',
-          headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Accept': 'application/json'
-          },
-          body: formData
-        });
+            <div class="mb-4">
+              <label for="confirmPassword" class="form-label">Confirm New Password</label>
+              <div class="input-group">
+                <input type="password" id="confirmPassword" name="confirm_password" class="form-control" 
+                       placeholder="Confirm your new password" required minlength="8">
+                <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword">
+                  <i class="far fa-eye"></i>
+                </button>
+              </div>
+              <div class="form-text" id="passwordMatch"></div>
+            </div>
+            
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-primary" id="verifyCodeBtn">
+                <i class="fas fa-check-circle me-2"></i>Set New Password
+              </button>
+              <button type="button" class="btn btn-link" id="resendCodeBtn">
+                <i class="fas fa-redo me-2"></i>Resend Code
+              </button>
+            </div>
+          </form>
+        </div>
         
-        // Check if response is OK
-        if (!response.ok) {
-          console.error('Response not OK:', response.status, response.statusText);
-          Swal.fire({
-            title: 'Login Failed',
-            text: 'An error occurred. Please try again.',
-            icon: 'error',
-            confirmButtonText: 'OK'
-          });
-          return;
-        }
-        
-       
-        
-        const result = await response.json();
-        console.log('Login response:', result);
-        
-        if (result.success) {
-          // Success - redirect to user page
-          // If redirect is relative, use it as-is; otherwise use same directory
-          const redirectUrl = result.redirect || 'userViewPage.php';
-          console.log('Redirecting to:', redirectUrl);
-          window.location.href = redirectUrl;
-        } else {
-          // Check if it's a password error (wrong password)
-          const errorLower = result.error ? result.error.toLowerCase() : '';
-          console.log('Error message:', result.error);
-          console.log('Error lower:', errorLower);
-          console.log('Checking includes:', errorLower.includes('invalid credentials'));
-          
-          if (result.error && (
-            errorLower.includes('invalid credentials') || 
-            errorLower.includes('wrong password') ||
-            errorLower.includes('incorrect password') ||
-            errorLower.includes('invalid password')
-          )) {
-            console.log('✅ MATCHED: Showing red border for password error');
-            // Show red border for wrong password/email instead of SweetAlert
-            passwordField.classList.add('is-invalid');
-            passwordField.value = ''; // Clear password field
-            passwordField.focus();
-          } else {
-            console.log('❌ NO MATCH: Showing SweetAlert for other error');
-            // For other errors (pending approval, etc.), show alert but keep modal open
-            if (result.error && (errorLower.includes('pending') || errorLower.includes('approval'))) {
-              Swal.fire({
-                title: 'Account Pending',
-                text: result.error,
-                icon: 'info',
-                confirmButtonText: 'OK'
-              });
-            } else {
-              Swal.fire({
-                title: 'Login Failed',
-                text: result.error,
-                icon: 'error',
-                confirmButtonText: 'OK'
-              });
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Login error:', error);
-        Swal.fire({
-          title: 'Error',
-          text: 'An error occurred. Please try again.',
-          icon: 'error',
-          confirmButtonText: 'OK'
-        });
-      }
-    });
-  }
-  // Reload page when the modal close (X) is clicked for login/admin modals
-  (function () {
-    const modalIds = ['#loginModal', '#adminLoginModal']; // add any other modal IDs as needed
-
-    modalIds.forEach(id => {
-      const modal = document.querySelector(id);
-      if (!modal) return;
-
-      // Listen for clicks on elements that close the modal (Bootstrap: data-bs-dismiss="modal" or .btn-close)
-      modal.querySelectorAll('[data-bs-dismiss="modal"], .btn-close').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-          // Prevent default Bootstrap modal close behavior
-          e.preventDefault();
-          e.stopPropagation();
-          
-          // Close any open SweetAlerts immediately
-          Swal.close();
-          
-          // Manually close the modal
-          const modal = btn.closest('.modal');
-          if (modal) {
-            const modalInstance = bootstrap.Modal.getInstance(modal);
-            if (modalInstance) {
-              modalInstance.hide();
-            }
-          }
-          
-          // Set flag to prevent modal reopening on reload
-          sessionStorage.setItem('modalJustClosed', 'true');
-          
-          // Wait a bit for everything to settle, then reload
-          await new Promise(resolve => setTimeout(resolve, 300));
-          window.location.reload();
-        });
-      });
-    });
-  })();
-
-  // Toggle password for user login modal
-  (function () {
-    const toggleBtn = document.getElementById('togglePasswordBtn');
-    const pwdInput = document.getElementById('password');
-    if (toggleBtn && pwdInput) {
-      const icon = toggleBtn.querySelector('i');
-      toggleBtn.addEventListener('click', function () {
-        if (pwdInput.type === 'password') {
-          pwdInput.type = 'text';
-          if (icon) { icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash'); }
-        } else {
-          pwdInput.type = 'password';
-          if (icon) { icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
-        }
-        // keep focus on input after toggle
-        pwdInput.focus();
-      });
-    }
-
-  })();
-</script>
-
-
-
+        <div id="verificationStep2" style="display: none;">
+          <div class="text-center">
+            <i class="fas fa-check-circle text-success mb-3" style="font-size: 3rem;"></i>
+            <h5 class="text-success">Password Reset Successful!</h5>
+            <p class="text-muted">Your password has been reset successfully. You can now login with your new password.</p>
+            
+            <div class="alert alert-success mt-3">
+              <i class="fas fa-info-circle me-2"></i>
+              <strong>Success!</strong> You can now use your new password to login.
+            </div>
+            
+            <button type="button" class="btn btn-primary mt-3" data-bs-dismiss="modal">
+              <i class="fas fa-sign-in-alt me-2"></i>Return to Login
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
 </body>
+
+    <script>
+        
+
+        // Debug output
+    console.log('PHP errorMessage:', errorMessage);
+    
+    </script>
+
 </html>

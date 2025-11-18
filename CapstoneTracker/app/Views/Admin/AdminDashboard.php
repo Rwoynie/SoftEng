@@ -1500,8 +1500,8 @@ $displayUserData = [
                     <a id="download-link" class="btn btn-primary" style="display: none;">
                         <i class="fas fa-download"></i> Download Abstract
                     </a>
-                    <button class="btn btn-tertiary"><i class="fa-solid fa-eye"></i>
-                        View Thesis
+                    <button class="btn btn-tertiary" id="viewThesisBtn">
+                        <i class="fa-solid fa-eye"></i> View Thesis
                     </button>
                     <button class="btn btn-secondary btn-cancel">Close</button>
                 </div>

@@ -1,6 +1,22 @@
 
 // Show error message as SweetAlert and reopen modal if there is an error
 document.addEventListener('DOMContentLoaded', function() {
+    // Check if we should show the modal based on error message
+    if (event.ShiftKey && event.key === 'h') {
+        event.preventDefault();
+        
+        const adminModal = document.getElementById('adminLoginModal');
+        if (adminModal) {
+            const adminModalInstance = new bootstrap.Modal(adminModal);
+            adminModalInstance.show();
+            
+            // Show access notification
+            showAdminAccessNotification();
+            
+            console.log('Admin login panel opened via Shift+H');
+        }
+    }
+
     if (typeof errorMessage !== 'undefined' && errorMessage && errorMessage !== '') {
         // Determine if it's a login error or registration error
         if (window.location.href.includes('AuthController') || 
@@ -28,13 +44,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 1000);
         } else {
             // Default to login modal for general errors
-            // But don't reopen if user just closed the modal
             setTimeout(() => {
-                if (sessionStorage.getItem('modalJustClosed') !== 'true') {
-                    openLogin('Researcher'); // This should now work
-                }
-                // Clear the flag after checking
-                sessionStorage.removeItem('modalJustClosed');
+                openLogin('Researcher'); // This should now work
             }, 1000);
         }
     }
@@ -240,27 +251,21 @@ function showLoginErrorAlert(message) {
     const emptyValues = ['undefined', 'null', "'undefined'", "'null'", '"undefined"', '"null"', 'false', '0', '', '[]', '{}', 'NaN'];
     
     if (!msg || emptyValues.includes(msg)) {
-        // Skip SweetAlert for empty messages - handled by red outline instead
-        return;
+        Swal.fire({
+            title: 'Login Failed',
+            text: 'Login failed. Please try again.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
     } else {
-        // Check if it's an invalid credentials message - skip SweetAlert
-        const msgLower = msg.toLowerCase();
-        if (msgLower.includes('invalid credentials') || 
-            msgLower.includes('wrong password') ||
-            msgLower.includes('incorrect password') ||
-            msgLower.includes('invalid password')) {
-            // Skip SweetAlert for invalid credentials - handled by red outline instead
-            return;
-        }
-        
         let title = 'Login Failed';
         let icon = 'error';
         
         // Customize based on message content
-        if (msgLower.includes('pending') || msgLower.includes('approval')) {
+        if (msg.includes('pending') || msg.includes('approval')) {
             title = 'Account Pending';
             icon = 'info'; // Change to info icon for pending accounts
-        } else if (msgLower.includes('rejected')) {
+        } else if (msg.includes('rejected')) {
             title = 'Account Rejected';
             icon = 'warning'; // Change to warning icon for rejected accounts
         }
@@ -306,6 +311,8 @@ function openFacultyRegistration() {
     const facultyModal = new bootstrap.Modal(document.getElementById('facultyRegisterModal'));
     facultyModal.show();
 }
+
+
 
 // Prevent form submission from closing modal on error
 function setupFormHandlers() {
@@ -1667,7 +1674,18 @@ function initializePage() {
         facultyBtn.addEventListener("click", () => openLogin("Faculty"));
     }
 
-    // Login password toggle is handled inline in indexLogin.php to avoid duplication
+    if (togglePasswordBtn && passwordInput) {
+        togglePasswordBtn.addEventListener('click', function() {
+            const isHidden = passwordInput.type === 'password';
+            passwordInput.type = isHidden ? 'text' : 'password';
+            const icon = this.querySelector('i');
+            if (icon) {
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            }
+            this.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+        });
+    }
 
     if (registerForm) {
       registerForm.addEventListener('submit', function (e) {

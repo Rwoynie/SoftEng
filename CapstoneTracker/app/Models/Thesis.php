@@ -724,7 +724,7 @@ class Thesis extends Model {
      * Get thesis file by ID
      */
     public function getThesisFile($thesisId) {
-        $query = "SELECT Thesis_File FROM THESIS WHERE ID = :id";
+        $query = "SELECT Thesis_File, Title, Author FROM THESIS WHERE ID = :id";
         
         $this->db->query($query);
         $this->db->bind(':id', $thesisId);
@@ -743,6 +743,7 @@ class Thesis extends Model {
         
         return $this->db->single();
     }
+
 
     /**
      * Get both abstract and thesis files by ID

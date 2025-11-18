@@ -46,17 +46,12 @@ class AuthController extends Controller {
             $this->generateCsrfToken();
         }
         
-        error_log("=== HANDLE REQUEST DEBUG ===");
-        error_log("REQUEST_METHOD: " . $_SERVER['REQUEST_METHOD']);
-        error_log("POST data: " . print_r($_POST, true));
-        
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $action = $_POST['action'] ?? ($_GET['action'] ?? '');
             
             error_log("AuthController - Action received: " . $action);
             
             if ($action === 'login') {
-                error_log("Routing to processLogin");
                 $this->processLogin();
             } elseif ($action === 'googleLogin') {
                 $this->googleLogin();
@@ -96,22 +91,10 @@ class AuthController extends Controller {
         error_log("Login attempt - Email: " . ($_POST['email'] ?? 'empty'));
         error_log("Login attempt - Password: " . (($_POST['password'] ?? 'empty') ? '***' : 'empty'));
         error_log("Login attempt - Role: " . ($_POST['role'] ?? 'empty'));
-
-        // Detect AJAX login from indexLogin.php (FormData appends 'ajax' => '1')
-        $isAjax = isset($_POST['ajax']) && $_POST['ajax'] === '1';
-
+    
         // Validate CSRF token first
         $csrfToken = $_POST['csrf_token'] ?? '';
         if (!$this->validateCsrfToken($csrfToken)) {
-            if ($isAjax) {
-                header('Content-Type: application/json');
-                echo json_encode([
-                    'success' => false,
-                    'error' => 'Invalid security token. Please try again.'
-                ]);
-                exit();
-            }
-
             $this->redirectWithError('Invalid security token. Please try again.');
             return;
         }
@@ -122,15 +105,6 @@ class AuthController extends Controller {
         
         // Validate input
         if (empty($username) || empty($password)) {
-            if ($isAjax) {
-                header('Content-Type: application/json');
-                echo json_encode([
-                    'success' => false,
-                    'error' => 'All fields are required.'
-                ]);
-                exit();
-            }
-
             $this->redirectWithError('All fields are required.');
             return;
         }
@@ -143,26 +117,13 @@ class AuthController extends Controller {
         error_log("Attempting to authenticate user: " . $username);
         
         // Authenticate user
-        $result = $this->authenticateUser($username, $password, $role, $isAjax);
+        $user = $this->authenticateUser($username, $password, $role);
         
-        if ($result) {
+        if ($user) {
             error_log("✅ Login SUCCESS for: " . $username);
             // Create session and redirect
-            $this->createUserSession($result);
-            
-            if ($isAjax) {
-                // Return JSON response for AJAX requests
-                header('Content-Type: application/json');
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'Login successful',
-                    'redirect_url' => '../../app/Views/User/userViewPage.php'
-                ]);
-                exit();
-            } else {
-                // Regular redirect for non-AJAX requests
-                $this->redirect('../../app/Views/User/userViewPage.php');
-            }
+            $this->createUserSession($user);
+            $this->redirect('../../app/Views/User/userViewPage.php');
         } else {
             // Debug: Log the error message that was set
             $errorMsg = $_SESSION['error_message'] ?? 'No error message set';
@@ -174,19 +135,8 @@ class AuthController extends Controller {
                 $_SESSION['error_message'] = 'Invalid credentials. Please try again.';
             }
             
-            if ($isAjax) {
-                // Return JSON error response for AJAX requests
-                header('Content-Type: application/json');
-                echo json_encode([
-                    'success' => false,
-                    'error' => $_SESSION['error_message']
-                ]);
-                exit();
-            } else {
-                // Regular redirect for non-AJAX requests
-                header('Location: ../../app/Views/User/indexLogin.php');
-                exit();
-            }
+            header('Location: ../../app/Views/User/indexLogin.php');
+            exit();
         }
     }
 
@@ -1553,7 +1503,7 @@ private function getWelcomeBackBody($name, $email, $role) {
         return in_array($email, $authorizedAdmins);
     }
 
-    private function authenticateUser($username, $password, $role, $isAjax = false) {
+    private function authenticateUser($username, $password, $role) {
         // Use your User model for authentication
         require_once ROOT_DIR . '\app\Models\User.php';
         
@@ -1665,12 +1615,12 @@ private function getWelcomeBackBody($name, $email, $role) {
         session_destroy();
         
         // Redirect to login page
-        $this->redirect('../Views/User/indexLogin.php');
+        $this->redirect('../../app/Views/User/indexLogin.php');
     }
 
     private function redirectWithError($message) {
         $_SESSION['error_message'] = $message;
-        header('Location: ../Views/User/indexLogin.php');
+        header('Location: ../../app/Views/User/indexLogin.php');
         exit();
     }
 
