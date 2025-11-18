@@ -171,6 +171,20 @@
                 INDEX idx_used (is_used),
                 INDEX idx_created (created_at),
                 FOREIGN KEY (user_id) REFERENCES USER_INFORMATION(ID) ON DELETE CASCADE
+            ) ENGINE=InnoDB;",
+
+            "CREATE TABLE IF NOT EXISTS password_change_pins (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT(11) UNSIGNED NOT NULL,
+                pin_code VARCHAR(6) NOT NULL,
+                expiry_date DATETIME NOT NULL,
+                used TINYINT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES USER_INFORMATION(ID) ON DELETE CASCADE,
+                INDEX idx_user_id (user_id),
+                INDEX idx_pin_code (pin_code),
+                INDEX idx_expiry_date (expiry_date),
+                INDEX idx_used (used)
             ) ENGINE=InnoDB;"
 
             
@@ -339,7 +353,9 @@
                     VALUES (NEW.ID, 'user_approval', 'Account Approved', 
                            'Your account has been approved. You can now access all features.', NEW.ID);
                 END IF;
-            END;"
+            END;",
+
+            
 
         ];
     }
