@@ -162,6 +162,7 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?php echo $_SESSION['csrf_token']; ?>">
     <title>Compendium Dashboard</title>
     <link rel="icon" href="/CapstoneTracker/resources/Images/ThesisCompLogo.png" type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
@@ -228,15 +229,18 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
                         </h3>
                         <div class="info-grid">
                             <div class="info-item">
-                                <span class="info-label">Full Name:</span>
-                                <span data-value="FullName" class="info-value"></span>
+                                <span class="info-label">User ID:</span>
+                                <span data-value="userID" class="info-value"></span>
                             </div>
+                            
                             <div class="info-item">
                                 <span class="info-label">Email:</span>
                                 <span data-value="email" class="info-value"></span>
                             </div>
-                            
-                            
+                            <div class="info-item">
+                                <span class="info-label">Department:</span>
+                                <span data-value="department" class="info-value"></span>
+                            </div>
                             <div class="info-item">
                                 <span class="info-label">Course:</span>
                                 <span data-value="course" class="info-value"></span>
@@ -264,7 +268,7 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
                             </div>
                             <div class="info-item">
                                 <span class="info-label">Role:</span>
-                                <span data-value="role" class="info-value">Student</span>
+                                <span data-value="role" class="info-value"></span>
                             </div>
                         </div>
                         
