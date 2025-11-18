@@ -46,12 +46,17 @@ class AuthController extends Controller {
             $this->generateCsrfToken();
         }
         
+        error_log("=== HANDLE REQUEST DEBUG ===");
+        error_log("REQUEST_METHOD: " . $_SERVER['REQUEST_METHOD']);
+        error_log("POST data: " . print_r($_POST, true));
+        
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $action = $_POST['action'] ?? ($_GET['action'] ?? '');
             
             error_log("AuthController - Action received: " . $action);
             
             if ($action === 'login') {
+                error_log("Routing to processLogin");
                 $this->processLogin();
             } elseif ($action === 'googleLogin') {
                 $this->googleLogin();
@@ -140,11 +145,24 @@ class AuthController extends Controller {
         // Authenticate user
         $result = $this->authenticateUser($username, $password, $role, $isAjax);
         
-        if ($user) {
+        if ($result) {
             error_log("✅ Login SUCCESS for: " . $username);
             // Create session and redirect
-            $this->createUserSession($user);
-            $this->redirect('../../app/Views/User/userViewPage.php');
+            $this->createUserSession($result);
+            
+            if ($isAjax) {
+                // Return JSON response for AJAX requests
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Login successful',
+                    'redirect_url' => '../../app/Views/User/userViewPage.php'
+                ]);
+                exit();
+            } else {
+                // Regular redirect for non-AJAX requests
+                $this->redirect('../../app/Views/User/userViewPage.php');
+            }
         } else {
             // Debug: Log the error message that was set
             $errorMsg = $_SESSION['error_message'] ?? 'No error message set';
@@ -156,8 +174,19 @@ class AuthController extends Controller {
                 $_SESSION['error_message'] = 'Invalid credentials. Please try again.';
             }
             
-            header('Location: ../../app/Views/User/indexLogin.php');
-            exit();
+            if ($isAjax) {
+                // Return JSON error response for AJAX requests
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => false,
+                    'error' => $_SESSION['error_message']
+                ]);
+                exit();
+            } else {
+                // Regular redirect for non-AJAX requests
+                header('Location: ../../app/Views/User/indexLogin.php');
+                exit();
+            }
         }
     }
 
@@ -1576,7 +1605,7 @@ private function getWelcomeBackBody($name, $email, $role) {
                             'email' => $user->Email,
                             'name' => $user->First_Name . ' ' . $user->Last_Name,
                             'role' => $user->User_Role
-                        ]];
+                        ];
                     } else {
                         // Unknown status
                         error_log("❌ Unknown account status: " . ($user->Acc_Status ?? 'unknown'));

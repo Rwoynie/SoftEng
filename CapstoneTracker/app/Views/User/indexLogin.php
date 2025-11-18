@@ -181,6 +181,8 @@ if ($setupError) {
               </button>
             </div>
 
+            <div id="passwordError" class="text-danger text-center mt-2" style="display: none;"></div>
+
             <div class="text-center mt-5">
             <a href="#" id="forgotPasswordLink" class="text-decoration-none">Forgot password?</a>
           </div>
@@ -318,7 +320,7 @@ if ($setupError) {
     const passwordField = document.getElementById('password');
     const passwordError = document.getElementById('passwordError');
     if (passwordField) {
-      passwordField.classList.remove('password-error');
+      passwordField.classList.remove('is-invalid');
       passwordField.value = '';
     }
     if (passwordError) {
@@ -363,7 +365,7 @@ if ($setupError) {
   const passwordField = document.getElementById('password');
   if (passwordField) {
     passwordField.addEventListener('input', function() {
-      this.classList.remove('password-error');
+      this.classList.remove('is-invalid');
       const passwordError = document.getElementById('passwordError');
       if (passwordError) {
         passwordError.style.display = 'none';
@@ -383,7 +385,7 @@ if ($setupError) {
       const emailField = document.getElementById('username');
       
       // Remove any previous error styling
-      passwordField.classList.remove('password-error');
+      passwordField.classList.remove('is-invalid');
       passwordError.style.display = 'none';
       passwordError.textContent = '';
       
@@ -414,23 +416,7 @@ if ($setupError) {
           return;
         }
         
-        // Check if response is JSON
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          // Not a JSON response, might be a redirect or HTML error page
-          console.warn('Response is not JSON, content-type:', contentType);
-          // Clone response to read text without consuming it
-          const clonedResponse = response.clone();
-          const text = await clonedResponse.text();
-          console.log('Response text:', text.substring(0, 200)); // First 200 chars
-          Swal.fire({
-            title: 'Login Failed',
-            text: 'Invalid credentials. Please try again.',
-            icon: 'error',
-            confirmButtonText: 'OK'
-          });
-          return;
-        }
+       
         
         const result = await response.json();
         console.log('Login response:', result);
@@ -444,19 +430,23 @@ if ($setupError) {
         } else {
           // Check if it's a password error (wrong password)
           const errorLower = result.error ? result.error.toLowerCase() : '';
+          console.log('Error message:', result.error);
+          console.log('Error lower:', errorLower);
+          console.log('Checking includes:', errorLower.includes('invalid credentials'));
+          
           if (result.error && (
             errorLower.includes('invalid credentials') || 
             errorLower.includes('wrong password') ||
             errorLower.includes('incorrect password') ||
             errorLower.includes('invalid password')
           )) {
-            // Show inline error for wrong password
-            passwordField.classList.add('password-error');
+            console.log('✅ MATCHED: Showing red border for password error');
+            // Show red border for wrong password/email instead of SweetAlert
+            passwordField.classList.add('is-invalid');
             passwordField.value = ''; // Clear password field
-            passwordError.textContent = 'Wrong password';
-            passwordError.style.display = 'block';
             passwordField.focus();
           } else {
+            console.log('❌ NO MATCH: Showing SweetAlert for other error');
             // For other errors (pending approval, etc.), show alert but keep modal open
             if (result.error && (errorLower.includes('pending') || errorLower.includes('approval'))) {
               Swal.fire({
@@ -486,9 +476,6 @@ if ($setupError) {
       }
     });
   }
-
-
-  
   // Reload page when the modal close (X) is clicked for login/admin modals
   (function () {
     const modalIds = ['#loginModal', '#adminLoginModal']; // add any other modal IDs as needed
@@ -499,11 +486,29 @@ if ($setupError) {
 
       // Listen for clicks on elements that close the modal (Bootstrap: data-bs-dismiss="modal" or .btn-close)
       modal.querySelectorAll('[data-bs-dismiss="modal"], .btn-close').forEach(btn => {
-        btn.addEventListener('click', () => {
-          // small delay to allow Bootstrap animation to start/finish
-          setTimeout(() => {
-            window.location.reload();
-          }, 120);
+        btn.addEventListener('click', async (e) => {
+          // Prevent default Bootstrap modal close behavior
+          e.preventDefault();
+          e.stopPropagation();
+          
+          // Close any open SweetAlerts immediately
+          Swal.close();
+          
+          // Manually close the modal
+          const modal = btn.closest('.modal');
+          if (modal) {
+            const modalInstance = bootstrap.Modal.getInstance(modal);
+            if (modalInstance) {
+              modalInstance.hide();
+            }
+          }
+          
+          // Set flag to prevent modal reopening on reload
+          sessionStorage.setItem('modalJustClosed', 'true');
+          
+          // Wait a bit for everything to settle, then reload
+          await new Promise(resolve => setTimeout(resolve, 300));
+          window.location.reload();
         });
       });
     });

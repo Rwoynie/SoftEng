@@ -14,7 +14,7 @@ if ($projectRoot === false) {
 }
 
 // Composer autoload - check in project root/vendor/autoload.php
-$vendorAutoload = $projectRoot . '/../vendor/autoload.php';
+$vendorAutoload = $projectRoot . '/vendor/autoload.php';
 if (file_exists($vendorAutoload)) {
     require_once $vendorAutoload;
 } else {
