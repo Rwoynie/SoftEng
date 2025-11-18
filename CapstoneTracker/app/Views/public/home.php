@@ -10,6 +10,14 @@ $announcements = $model->getActiveAnnouncements();
 $programs = $model->getPrograms();
 $stats = $model->getThesisStats();
 
+$pinnedAnnouncements = array_filter($announcements, function($ann) {
+    return isset($ann['pinned']) && $ann['pinned'] == true;  
+});
+
+$nonPinnedAnnouncements = array_filter($announcements, function($ann) {
+    return !isset($ann['pinned']) || $ann['pinned'] != true;
+});
+
 ?>
 
 <!DOCTYPE html>
@@ -76,166 +84,233 @@ $stats = $model->getThesisStats();
         </div>
       </section>
 
-      <!-- Announcements Carousel -->
+      <!-- Announcements Section -->
       <section class="announcements-section">
-        <div class="section-header">
-          <h2>Announcements</h2>
-        </div>
-        
-        <div class="announcements-carousel">
-          <button class="carousel-control prev">
-            <i class="fas fa-chevron-left"></i>
-          </button>
+          <div class="section-header">
+              <h2>Announcements</h2>
+          </div>
 
-          <div class="carousel-container">
-            <div class="announcement-cards">
-              <?php if (!empty($announcements)): ?>
-                <?php 
-                // Sort announcements: pinned first, then by date (newest first)
-                usort($announcements, function($a, $b) {
-                  $aPinned = isset($a['is_pinned']) ? $a['is_pinned'] : 0;
-                  $bPinned = isset($b['is_pinned']) ? $b['is_pinned'] : 0;
+          <?php
+          $pinnedAnnouncements = [];
+          $nonPinnedAnnouncements = [];
+
+          if (!empty($announcements)) {
+              foreach ($announcements as $ann) {
+                  $isPinned = false;
                   
-                  // Pinned announcements first
-                  if ($aPinned && !$bPinned) return -1;
-                  if (!$aPinned && $bPinned) return 1;
+                  if (isset($ann['pinned']) && $ann['pinned'] == true) {
+                      $isPinned = true;
+                  } elseif (isset($ann['is_pinned']) && $ann['is_pinned'] == true) {
+                      $isPinned = true;
+                  } elseif (isset($ann['pinned']) && $ann['pinned'] == 1) {
+                      $isPinned = true;
+                  } elseif (isset($ann['is_pinned']) && $ann['is_pinned'] == 1) {
+                      $isPinned = true;
+                  }
                   
-                  // Then sort by date (newest first)
-                  $aDate = strtotime($a['date']);
-                  $bDate = strtotime($b['date']);
-                  return $bDate - $aDate;
-                });
-                ?>
-                <?php foreach ($announcements as $index => $announcement): ?>
-                  <?php 
-                  $isPinned = isset($announcement['is_pinned']) ? $announcement['is_pinned'] : 0;
-                  $announcementId = isset($announcement['id']) ? $announcement['id'] : $index;
-                  ?>
-                  <div class="announcement-card <?php echo $isPinned ? 'pinned' : ''; ?>" 
-                      data-announcement-id="<?php echo $announcementId; ?>">
-                    <?php if ($isPinned): ?>
-                      <div class="pin-indicator" title="Pinned Announcement">
-                        <i class="fas fa-thumbtack"></i>
+                  if ($isPinned) {
+                      $pinnedAnnouncements[] = $ann;
+                  } else {
+                      $nonPinnedAnnouncements[] = $ann;
+                  }
+              }
+          }
+          
+          // Debug: Uncomment the lines below to see what's being fetched
+          // echo "<!-- Total announcements: " . count($announcements) . " -->";
+          // echo "<!-- Pinned: " . count($pinnedAnnouncements) . " -->";
+          // echo "<!-- Non-pinned: " . count($nonPinnedAnnouncements) . " -->";
+          ?>
+
+          <!-- Pinned Announcements -->
+          <?php if (!empty($pinnedAnnouncements)): ?>
+          <div class="pinned-section">
+              <h3 style="text-align: center; margin-bottom: 1.5rem; color: var(--primary-color);">
+                  Pinned Announcements
+              </h3>
+              <div class="pinned-announcements-carousel">
+                  <button class="carousel-control prev"><i class="fas fa-chevron-left"></i></button>
+
+                  <div class="carousel-container">
+                      <div class="announcement-cards">
+                          <?php foreach ($pinnedAnnouncements as $index => $announcement): ?>
+                              <?php 
+                              // Use actual ID or create a unique identifier
+                              $announcementId = $announcement['id'] ?? 'pinned_' . $index;
+                              ?>
+                              <div class="announcement-card pinned" 
+                                  data-announcement-id="<?php echo $announcementId; ?>">
+                                  <div class="pin-indicator" title="Pinned Announcement">
+                                      <i class="fas fa-thumbtack"></i>
+                                  </div>
+                                  <div class="card-badge <?php echo htmlspecialchars($announcement['type'] ?? 'info'); ?>">
+                                      <?php 
+                                      $badgeTexts = [
+                                          'important' => 'Important',
+                                          'deadline' => 'Deadline',
+                                          'info' => 'Information',
+                                          'event' => 'Event',
+                                          'information' => 'Information'
+                                      ];
+                                      echo $badgeTexts[$announcement['type'] ?? 'info'] ?? 'Announcement';
+                                      ?>
+                                  </div>
+                                  <div class="card-image">
+                                      <img src="<?php echo htmlspecialchars($announcement['image'] ?? '../../../resources/images/default-announcement.jpg'); ?>" 
+                                          alt="<?php echo htmlspecialchars($announcement['title']); ?>" 
+                                          class="Anncmnt_pic">
+                                  </div>
+                                  <div class="card-content">
+                                      <div class="card-header">
+                                          <h3><?php echo htmlspecialchars($announcement['title']); ?></h3>
+                                          <div class="date">
+                                              <?php echo date('F j, Y', strtotime($announcement['date'] ?? $announcement['created_at'] ?? 'now')); ?>
+                                          </div>
+                                      </div>
+                                      <p class="announcement-preview"><?php echo htmlspecialchars($announcement['description'] ?? $announcement['content'] ?? ''); ?></p>
+                                      <a href="#" class="read-more" data-announcement-id="<?php echo $announcementId; ?>">
+                                          Read More <i class="fas fa-arrow-right"></i>
+                                      </a>
+                                  </div>
+                              </div>
+                          <?php endforeach; ?>
                       </div>
-                    <?php endif; ?>
-                    <div class="card-badge <?php echo $announcement['type']; ?>">
-                      <?php 
-                        $badgeTexts = [
-                          'important' => 'Important',
-                          'deadline' => 'Deadline',
-                          'info' => 'Information',
-                          'event' => 'Event',
-                          'information' => 'Information'
-                        ];
-                        echo $badgeTexts[$announcement['type']] ?? 'Announcement';
-                      ?>
-                    </div>
-                    <div class="card-image">
-                      <img src="<?php echo htmlspecialchars($announcement['image']); ?>" 
-                        alt="<?php echo htmlspecialchars($announcement['title']); ?>" 
-                        class="Anncmnt_pic">
-                    </div>
-                    <div class="card-content">
-                      <div class="card-header">
-                        <h3><?php echo htmlspecialchars($announcement['title']); ?></h3>
-                        <div class="date">
-                          <?php 
-                            $date = new DateTime($announcement['date']);
-                            echo $date->format('F j, Y');
-                          ?>
-                        </div>
-                      </div>
-                      <p class="announcement-preview"><?php echo htmlspecialchars($announcement['description']); ?></p>
-                      <a href="#" class="read-more" data-announcement-id="<?php echo $announcementId; ?>">
-                        Read More <i class="fas fa-arrow-right"></i>
-                      </a>
-                    </div>
                   </div>
-                <?php endforeach; ?>
-              <?php else: ?>
-                <div class="announcement-card empty-state">
-                  <div class="card-content">
-                    <div class="card-header">
-                      <h3>No Current Announcements</h3>
-                    </div>
-                    <p>Check back later for updates and important information.</p>
+
+                  <button class="carousel-control next"><i class="fas fa-chevron-right"></i></button>
+
+                  <?php if (count($pinnedAnnouncements) > 1): ?>
+                  <div class="carousel-indicators">
+                      <?php for ($i = 0; $i < count($pinnedAnnouncements); $i++): ?>
+                          <div class="indicator <?php echo $i === 0 ? 'active' : ''; ?>"></div>
+                      <?php endfor; ?>
                   </div>
-                </div>
+                  <?php endif; ?>
+              </div>
+          </div>
+          <?php endif; ?>
+
+          <!-- Non-Pinned Announcements -->
+          <?php if (!empty($nonPinnedAnnouncements)): ?>
+              <?php if (!empty($pinnedAnnouncements)): ?>
+              <div style="margin-top: 4rem;">
+                  <h3 style="text-align: center; margin-bottom: 1.5rem; color: var(--color-dark-grey);">
+                      Recent Announcements
+                  </h3>
+              </div>
               <?php endif; ?>
-            </div>
+
+              <div class="non-pinned-announcements-carousel">
+                  <button class="carousel-control prev"><i class="fas fa-chevron-left"></i></button>
+
+                  <div class="carousel-container">
+                      <div class="announcement-cards">
+                          <?php foreach ($nonPinnedAnnouncements as $index => $announcement): ?>
+                              <?php 
+                              $announcementId = $announcement['id'] ?? 'nonpinned_' . $index;
+                              ?>
+                              <div class="announcement-card" 
+                                  data-announcement-id="<?php echo $announcementId; ?>">
+                                  <div class="card-badge <?php echo htmlspecialchars($announcement['type'] ?? 'info'); ?>">
+                                      <?php echo $badgeTexts[$announcement['type'] ?? 'info'] ?? 'Announcement'; ?>
+                                  </div>
+                                  <div class="card-image">
+                                      <img src="<?php echo htmlspecialchars($announcement['image'] ?? '../../../resources/images/default-announcement.jpg'); ?>" 
+                                          alt="<?php echo htmlspecialchars($announcement['title']); ?>" 
+                                          class="Anncmnt_pic">
+                                  </div>
+                                  <div class="card-content">
+                                      <div class="card-header">
+                                          <h3><?php echo htmlspecialchars($announcement['title']); ?></h3>
+                                          <div class="date">
+                                              <?php echo date('F j, Y', strtotime($announcement['date'] ?? $announcement['created_at'] ?? 'now')); ?>
+                                          </div>
+                                      </div>
+                                      <p class="announcement-preview"><?php echo htmlspecialchars($announcement['description'] ?? $announcement['content'] ?? ''); ?></p>
+                                      <a href="#" class="read-more" data-announcement-id="<?php echo $announcementId; ?>">
+                                          Read More <i class="fas fa-arrow-right"></i>
+                                      </a>
+                                  </div>
+                              </div>
+                          <?php endforeach; ?>
+                      </div>
+                  </div>
+
+                  <button class="carousel-control next"><i class="fas fa-chevron-right"></i></button>
+
+                  <?php if (count($nonPinnedAnnouncements) > 1): ?>
+                  <div class="carousel-indicators">
+                      <?php for ($i = 0; $i < count($nonPinnedAnnouncements); $i++): ?>
+                          <div class="indicator <?php echo $i === 0 ? 'active' : ''; ?>"></div>
+                      <?php endfor; ?>
+                  </div>
+                  <?php endif; ?>
+              </div>
+          <?php endif; ?>
+
+          <!-- No Announcements at all -->
+          <?php if (empty($pinnedAnnouncements) && empty($nonPinnedAnnouncements)): ?>
+          <div class="announcement-card empty-state">
+              <div class="card-content">
+                  <div class="card-header">
+                      <h3>No Current Announcements</h3>
+                  </div>
+                  <p>Check back later for updates and important information.</p>
+              </div>
           </div>
-          
-          <button class="carousel-control next">
-            <i class="fas fa-chevron-right"></i>
-          </button>
-          
-          <div class="carousel-indicators">
-            <?php if (!empty($announcements)): ?>
-              <?php for ($i = 0; $i < count($announcements); $i++): ?>
-                <div class="indicator <?php echo $i === 0 ? 'active' : ''; ?>" data-index="<?php echo $i; ?>"></div>
-              <?php endfor; ?>
-            <?php endif; ?>
-          </div>
-        </div>
+          <?php endif; ?>
       </section>
 
-     
-        <div id="announcementModal" class="premium-modal">
-            <div class="premium-modal-backdrop"></div>
-            <div class="premium-modal-container">
-                <div class="premium-modal-content">
-
-                    <div class="premium-modal-header">
-                        <div class="premium-modal-badge-container">
-                            <span id="modalBadge" class="premium-modal-badge"></span>
-                            <?php if ($isPinned): ?>
-                            <div class="premium-pin-indicator" title="Pinned Announcement">
-                                <i class="fas fa-thumbtack"></i>
-                            </div>
-                            <?php endif; ?>
-                        </div>
-                        <button type="button" class="premium-close-btn" onclick="closeAnnModal()">
-                            <i class="fas fa-times"></i>
-                        </button>
+<!-- MODAL (Fixed $isPinned error) -->
+<div id="announcementModal" class="premium-modal">
+    <div class="premium-modal-backdrop"></div>
+    <div class="premium-modal-container">
+        <div class="premium-modal-content">
+            <div class="premium-modal-header">
+                <div class="premium-modal-badge-container">
+                    <span id="modalBadge" class="premium-modal-badge"></span>
+                    <div class="premium-pin-indicator" style="display: none;">
+                        Pin
                     </div>
+                </div>
+                <button type="button" class="premium-close-btn" onclick="closeAnnModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
 
-                    <div class="premium-modal-body">
-                        <div class="premium-modal-image-container">
-                            <img id="modalImage" src="" alt="Announcement image" class="premium-modal-image">
-                            <div class="premium-modal-image-overlay"></div>
-                        </div>
-                        
-                        <div class="premium-modal-text-content">
-                            <div class="premium-modal-meta">
-                                <h2 id="modalTitle" class="premium-modal-title"></h2>
-                                <div class="premium-modal-date-container">
-                                    <i class="fas fa-calendar-alt"></i>
-                                    <span id="modalDate" class="premium-modal-date"></span>
-                                </div>
-                            </div>
-                            
-                            <div class="premium-modal-text">
-                                <p id="modalContent"></p>
-                            </div>
+            <div class="premium-modal-body">
+                <div class="premium-modal-image-container">
+                    <img id="modalImage" src="" alt="Announcement image" class="premium-modal-image">
+                    <div class="premium-modal-image-overlay"></div>
+                </div>
+                
+                <div class="premium-modal-text-content">
+                    <div class="premium-modal-meta">
+                        <h2 id="modalTitle" class="premium-modal-title"></h2>
+                        <div class="premium-modal-date-container">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span id="modalDate" class="premium-modal-date"></span>
                         </div>
                     </div>
-
-                    
-                    <div class="premium-modal-footer">
-                        <div class="premium-modal-actions">
-                            <button type="button" class="premium-btn secondary" onclick="closeAnnModal()">
-                                <i class="fas fa-times"></i>
-                                Close
-                            </button>
-                            <button type="button" class="premium-btn primary" onclick="shareAnnouncement()">
-                                <i class="fas fa-share-alt"></i>
-                                Share
-                            </button>
-                        </div>
+                    <div class="premium-modal-text">
+                        <p id="modalContent"></p>
                     </div>
                 </div>
             </div>
+
+            <div class="premium-modal-footer">
+                <div class="premium-modal-actions">
+                    <button type="button" class="premium-btn secondary" onclick="closeAnnModal()">
+                        Close
+                    </button>
+                    <button type="button" class="premium-btn primary" onclick="shareAnnouncement()">
+                        Share
+                    </button>
+                </div>
+            </div>
         </div>
+    </div>
+</div>
 
       <!-- Programs Carousel -->
       <section class="program-logos-section">

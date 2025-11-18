@@ -328,7 +328,7 @@ class PublicHomeModel {
             SELECT 
                 (SELECT COUNT(*) FROM thesis) as total_papers,
                 (SELECT COUNT(DISTINCT Author) FROM thesis WHERE Author IS NOT NULL AND Author != '') as total_authors,
-                (SELECT COUNT(DISTINCT Thesis_Department) FROM thesis WHERE Thesis_Department IS NOT NULL AND Thesis_Department != '') as total_departments
+                (SELECT COUNT(DISTINCT Thesis_Course) FROM thesis WHERE Thesis_Course IS NOT NULL AND Thesis_Course != '') as total_departments
         ");
 
         $result = $this->db->single();

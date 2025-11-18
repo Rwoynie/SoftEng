@@ -7,7 +7,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 if (!isset($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));  // Secure random token
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));  
 }
 
 
@@ -207,7 +207,6 @@ if ($setupError) {
         <input type="hidden" name="action" value="student_register">
         <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
           <div class="row g-3">
-            <!-- Separate Name Fields -->
             <div class="col-md-4">
               <label for="regFirstName" class="form-label">First Name</label>
               <input type="text" id="regFirstName" name="firstName" class="form-control" placeholder="Juan" required>
