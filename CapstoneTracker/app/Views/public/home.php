@@ -33,6 +33,11 @@ $nonPinnedAnnouncements = array_filter($announcements, function($ann) {
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Quicksand">
+
+  <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+  
+
+  
 </head>
 <body>
   
@@ -55,6 +60,8 @@ $nonPinnedAnnouncements = array_filter($announcements, function($ann) {
     <section id="landing-page">
       <!-- Search Banner -->
       <section class="search-banner">
+        <div id="particles-js" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;"></div>
+  <div class="gradient-overlay"></div>
         <div class="banner-content">
           <h2>Discover Academic Excellence</h2>
           <p>Access hundreds of thesis papers from different departments</p>
@@ -449,5 +456,32 @@ $nonPinnedAnnouncements = array_filter($announcements, function($ann) {
   </div>
   
   <script src="../../../resources/js/User/home.js"></script>
+  <script>
+// Initialize particles.js
+particlesJS('particles-js', {
+  particles: {
+    number: { value: 80, density: { enable: true, value_area: 800 } },
+    color: { value: "#ffffff" },
+    shape: { type: "circle" },
+    opacity: { value: 0.5, random: true },
+    size: { value: 3, random: true },
+    line_linked: {
+      enable: true,
+      distance: 150,
+      color: "#ffffff",
+      opacity: 0.2,
+      width: 1
+    },
+    move: { enable: true, speed: 2, direction: "none", random: true }
+  },
+  interactivity: {
+    detect_on: "canvas",
+    events: {
+      onhover: { enable: true, mode: "repulse" },
+      onclick: { enable: true, mode: "push" }
+    }
+  }
+});
+</script>
 </body>
 </html>
