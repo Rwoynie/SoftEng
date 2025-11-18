@@ -2140,3 +2140,89 @@ header{
     filter: none;
     z-index: 2;
 }
+
+
+.logo-card[data-program-code] {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.logo-card[data-program-code]:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+    border-color: var(--primary-color);
+}
+
+.logo-card[data-program-code]::after {
+    content: 'Click to browse theses';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white;
+    padding: 0.5rem;
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.logo-card[data-program-code]:hover::after {
+    opacity: 1;
+}
+
+
+.logo-carousel .logo-card[data-program-code] {
+    position: relative;
+    z-index: 1;
+}
+
+.logo-carousel .logo-card[data-program-code].active {
+    z-index: 2;
+}
+
+
+.logo-card[data-program-code] {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.logo-card[data-program-code]:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+    border-color: var(--primary-color);
+}
+
+.logo-card[data-program-code]::after {
+    content: 'Click to browse theses';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white;
+    padding: 0.5rem;
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.logo-card[data-program-code]:hover::after {
+    opacity: 1;
+}
+
+
+.logo-carousel .logo-card[data-program-code] {
+    position: relative;
+    z-index: 1;
+}
+
+.logo-carousel .logo-card[data-program-code].active {
+    z-index: 2;
+}

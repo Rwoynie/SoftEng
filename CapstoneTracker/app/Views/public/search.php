@@ -35,7 +35,7 @@ $offset = ($page - 1) * $limit;
 
 $departmentFilter = ($department !== 'all') ? $department : 'all';
 
-if (!empty($query)) {
+if (!empty($query) || $department !== 'all') {
     $results = $model->searchThesis($query, $departmentFilter, $sort, $limit, $offset);
     $total = $model->getSearchCount($query, $departmentFilter);
     $totalPapers = $total;
@@ -103,7 +103,7 @@ $totalAllcourse = array_sum($courseCounts);
           <div class="searchbox">
             <form id="search-form" method="POST" action="search.php">
               <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
-              <input type="text" id="results-search-input" name="query" placeholder="Search thesis..." value="<?php echo htmlspecialchars($query); ?>">
+              <input type="text" id="results-search-input" name="query" placeholder="Search thesis keywords, title, author, or adviser..." value="<?php echo htmlspecialchars($query); ?>">
               <input type="hidden" name="department" id="hidden-department" value="<?php echo htmlspecialchars($department); ?>">
               <input type="hidden" name="sort" id="hidden-sort" value="<?php echo htmlspecialchars($sort); ?>">
               <input type="hidden" name="page" value="1">
