@@ -488,13 +488,14 @@ document.addEventListener('DOMContentLoaded', function() {
 function addWatermarkToCanvas(canvas, ctx, watermarkText) {
     const width = canvas.width;
     const height = canvas.height;
+   
     
     // Save current context state
     ctx.save();
     
     // Set watermark style
     ctx.globalAlpha = 0.3; // Semi-transparent
-    ctx.fillStyle = '#ff0000'; // Red color
+    ctx.fillStyle = '#d5d5d5'; // Red color
     ctx.font = 'bold 48px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
