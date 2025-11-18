@@ -91,10 +91,22 @@ class AuthController extends Controller {
         error_log("Login attempt - Email: " . ($_POST['email'] ?? 'empty'));
         error_log("Login attempt - Password: " . (($_POST['password'] ?? 'empty') ? '***' : 'empty'));
         error_log("Login attempt - Role: " . ($_POST['role'] ?? 'empty'));
-    
+
+        // Detect AJAX login from indexLogin.php (FormData appends 'ajax' => '1')
+        $isAjax = isset($_POST['ajax']) && $_POST['ajax'] === '1';
+
         // Validate CSRF token first
         $csrfToken = $_POST['csrf_token'] ?? '';
         if (!$this->validateCsrfToken($csrfToken)) {
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Invalid security token. Please try again.'
+                ]);
+                exit();
+            }
+
             $this->redirectWithError('Invalid security token. Please try again.');
             return;
         }
@@ -105,6 +117,15 @@ class AuthController extends Controller {
         
         // Validate input
         if (empty($username) || empty($password)) {
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'All fields are required.'
+                ]);
+                exit();
+            }
+
             $this->redirectWithError('All fields are required.');
             return;
         }
@@ -117,7 +138,7 @@ class AuthController extends Controller {
         error_log("Attempting to authenticate user: " . $username);
         
         // Authenticate user
-        $user = $this->authenticateUser($username, $password, $role);
+        $result = $this->authenticateUser($username, $password, $role, $isAjax);
         
         if ($user) {
             error_log("✅ Login SUCCESS for: " . $username);
@@ -1503,7 +1524,7 @@ private function getWelcomeBackBody($name, $email, $role) {
         return in_array($email, $authorizedAdmins);
     }
 
-    private function authenticateUser($username, $password, $role) {
+    private function authenticateUser($username, $password, $role, $isAjax = false) {
         // Use your User model for authentication
         require_once ROOT_DIR . '\app\Models\User.php';
         
@@ -1555,7 +1576,7 @@ private function getWelcomeBackBody($name, $email, $role) {
                             'email' => $user->Email,
                             'name' => $user->First_Name . ' ' . $user->Last_Name,
                             'role' => $user->User_Role
-                        ];
+                        ]];
                     } else {
                         // Unknown status
                         error_log("❌ Unknown account status: " . ($user->Acc_Status ?? 'unknown'));
@@ -1615,12 +1636,12 @@ private function getWelcomeBackBody($name, $email, $role) {
         session_destroy();
         
         // Redirect to login page
-        $this->redirect('../../app/Views/User/indexLogin.php');
+        $this->redirect('../Views/User/indexLogin.php');
     }
 
     private function redirectWithError($message) {
         $_SESSION['error_message'] = $message;
-        header('Location: ../../app/Views/User/indexLogin.php');
+        header('Location: ../Views/User/indexLogin.php');
         exit();
     }
 

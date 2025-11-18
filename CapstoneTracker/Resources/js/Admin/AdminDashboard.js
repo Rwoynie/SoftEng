@@ -2929,8 +2929,6 @@ initializeDepartmentFilter();
         }
     }
 
-
-
     // Populate form with existing thesis data
     function populateEditForm(thesis) {
         console.log('Thesis data received:', thesis);
@@ -3273,7 +3271,13 @@ initializeDepartmentFilter();
         }
     }
 
-    
+    function downloadExistingFile(thesisId, fileType) {
+        const url = fileType === 'abstract' 
+            ? `../../../app/Controllers/ThesisController.php?action=downloadAbstract&id=${thesisId}`
+            : `../../../app/Controllers/ThesisController.php?action=download&id=${thesisId}`;
+        
+        window.open(url, '_blank');
+    }
 
     // Delete thesis function
     async function handleDeleteThesis(thesisId, thesisTitle) {
@@ -3430,39 +3434,6 @@ initializeDepartmentFilter();
         uploadModal.addEventListener('click', function(e) {
             if (e.target === uploadModal || e.target.classList.contains('modal-close') || e.target.classList.contains('btn-cancel')) {
                 initializeUploadFormValidation();
-            }
-        });
-    }
-
-    const viewThesisBtn = document.querySelector('.btn-tertiary');
-    if (viewThesisBtn) {
-        viewThesisBtn.addEventListener('click', function() {
-            // Get the active project item (the one currently being viewed)
-            const activeProjectItem = document.querySelector('.project-item.active-preview');
-            
-            if (activeProjectItem) {
-                const thesisId = activeProjectItem.getAttribute('data-thesis-id');
-                const title = activeProjectItem.querySelector('h3')?.textContent || 'Thesis';
-                
-                console.log('Thesis ID from data attribute:', thesisId); // Debug
-                
-                if (thesisId && !isNaN(thesisId)) {
-                    fetchThesisFileForView(thesisId, title);
-                } else {
-                    Swal.fire({
-                        title: 'Error',
-                        text: 'Invalid thesis ID',
-                        icon: 'error',
-                        confirmButtonText: 'OK'
-                    });
-                }
-            } else {
-                Swal.fire({
-                    title: 'Error',
-                    text: 'No thesis selected',
-                    icon: 'error',
-                    confirmButtonText: 'OK'
-                });
             }
         });
     }
@@ -3765,12 +3736,6 @@ function initializeUserData() {
 //Thesis view abstract
 function handleProjectItemClick(projectItem) {
     if (!projectItem) return;
-
-    document.querySelectorAll('.project-item').forEach(item => {
-        item.classList.remove('active-preview');
-    });
-
-    projectItem.classList.add('active-preview');
     
     const title = projectItem.querySelector('h3')?.textContent || 'No title';
     const uploadedDate = projectItem.querySelector('.links p')?.textContent || 'Unknown date';
@@ -3944,7 +3909,6 @@ async function fetchThesisFile(thesisId, title) {
         }
     }
 }
-
 
 document.querySelectorAll('.modal-close, .btn-cancel').forEach(btn => {
     btn.addEventListener('click', function() {
@@ -4158,7 +4122,6 @@ function previewPdf(url) {
     
     // Clear previous content and show loading
     pdfViewer.innerHTML = '<div class="loading-preview"><i class="fas fa-spinner fa-spin"></i><p>Loading PDF...</p></div>';
-    pdfViewer.style.display = 'block';
     
     // Check if PDF.js is available
     if (typeof pdfjsLib === 'undefined') {
