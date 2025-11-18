@@ -457,7 +457,7 @@ $nonPinnedAnnouncements = array_filter($announcements, function($ann) {
   
   <script src="../../../resources/js/User/home.js"></script>
   <script>
-// Initialize particles.js
+
 particlesJS('particles-js', {
   particles: {
     number: { value: 80, density: { enable: true, value_area: 800 } },
@@ -467,9 +467,9 @@ particlesJS('particles-js', {
     size: { value: 3, random: true },
     line_linked: {
       enable: true,
-      distance: 150,
+      distance: 200,
       color: "#ffffff",
-      opacity: 0.2,
+      opacity: 0.3,
       width: 1
     },
     move: { enable: true, speed: 2, direction: "none", random: true }
