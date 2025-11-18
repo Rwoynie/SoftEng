@@ -279,75 +279,61 @@ document.addEventListener('DOMContentLoaded', function() {
         const department = cardElement.querySelector('.department-badge').textContent;
         const date = cardElement.querySelector('.upload-date span').textContent;
         
-        // Get the full abstract from the database via AJAX
-        fetchFullAbstract(thesisId).then(fullAbstract => {
-            // Populate modal
-            document.getElementById('modalThesisTitle').textContent = title;
-            document.getElementById('modalThesisAuthors').textContent = authors;
-            document.getElementById('modalThesisAdviser').textContent = adviser;
-            document.getElementById('modalThesisDepartment').textContent = department;
-            document.getElementById('modalThesisDate').textContent = date;
-            document.getElementById('modalThesisAbstract').textContent = fullAbstract;
-            
-            // Store thesis ID for the view full button
-            if (viewFullThesisBtn) {
-                viewFullThesisBtn.setAttribute('data-thesis-id', thesisId);
-            }
-            
-            // Show modal
-            modal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
-        }).catch(error => {
-            console.error('Error fetching abstract:', error);
-            // Fallback to preview text
-            const abstractPreview = cardElement.querySelector('.abstract-preview').textContent;
-            document.getElementById('modalThesisTitle').textContent = title;
-            document.getElementById('modalThesisAuthors').textContent = authors;
-            document.getElementById('modalThesisAdviser').textContent = adviser;
-            document.getElementById('modalThesisDepartment').textContent = department;
-            document.getElementById('modalThesisDate').textContent = date;
-            document.getElementById('modalThesisAbstract').textContent = abstractPreview;
-            
-            if (viewFullThesisBtn) {
-                viewFullThesisBtn.setAttribute('data-thesis-id', thesisId);
-            }
-            
-            modal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
-        });
+        // Populate basic modal info first
+        document.getElementById('modalThesisTitle').textContent = title;
+        document.getElementById('modalThesisAuthors').textContent = authors;
+        document.getElementById('modalThesisAdviser').textContent = adviser;
+        document.getElementById('modalThesisDepartment').textContent = department;
+        document.getElementById('modalThesisDate').textContent = date;
+        
+        // Store thesis ID for the view full button
+        const viewFullThesisBtn = document.getElementById('viewFullThesis');
+        if (viewFullThesisBtn) {
+            viewFullThesisBtn.setAttribute('data-thesis-id', thesisId);
+        }
+        
+        // Show modal immediately with loading state
+        const modal = document.getElementById('thesisModal');
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        
+        // Clean up previous PDF URL if exists
+        if (window.currentModalPdfUrl) {
+            URL.revokeObjectURL(window.currentModalPdfUrl);
+            window.currentModalPdfUrl = null;
+        }
+        
+        // Show PDF abstract in modal
+        showAbstractPdfInModal(thesisId, title)
+            .catch(error => {
+                console.error('Error fetching abstract PDF:', error);
+                // Fallback to preview text
+                const abstractPreview = cardElement.querySelector('.abstract-preview').textContent;
+                document.getElementById('modalThesisAbstract').innerHTML = 
+                    `<div class="abstract-error">
+                        <p><strong>Note:</strong> Could not load abstract PDF. Showing preview instead.</p>
+                        <div class="abstract-text">${abstractPreview}</div>
+                    </div>`;
+            });
+    }
+
+    
+    function closeModal() {
+        const modal = document.getElementById('thesisModal');
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        
+        // Re-enable text selection
+        modal.style.userSelect = 'auto';
+        modal.style.webkitUserSelect = 'auto';
+        modal.style.mozUserSelect = 'auto';
+        modal.style.msUserSelect = 'auto';
+        
+        // Remove event listeners
+        const newModal = modal.cloneNode(true);
+        modal.parentNode.replaceChild(newModal, modal);
     }
     
-    function fetchFullAbstract(thesisId) {
-        return new Promise((resolve, reject) => {
-            // Create a simple AJAX request to fetch the full abstract
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', 'get_abstract.php', true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            
-            xhr.onload = function() {
-                if (xhr.status === 200) {
-                    try {
-                        const response = JSON.parse(xhr.responseText);
-                        if (response.success) {
-                            resolve(response.abstract);
-                        } else {
-                            reject(new Error(response.error || 'Failed to fetch abstract'));
-                        }
-                    } catch (e) {
-                        reject(new Error('Invalid response format'));
-                    }
-                } else {
-                    reject(new Error('Request failed'));
-                }
-            };
-            
-            xhr.onerror = function() {
-                reject(new Error('Network error'));
-            };
-            
-            xhr.send(`thesis_id=${encodeURIComponent(thesisId)}`);
-        });
-    }
     
     // Optional: Add smooth scrolling for abstract content
     const abstractContent = document.getElementById('modalThesisAbstract');
@@ -356,4 +342,304 @@ document.addEventListener('DOMContentLoaded', function() {
             this.style.overflowY = 'auto';
         });
     }
+
+    // PROTECTION PDF FUNCTIONS
+    function loadPdfJs() {
+        return new Promise((resolve, reject) => {
+            if (typeof pdfjsLib !== 'undefined') {
+                resolve();
+                return;
+            }
+            
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
+            script.onload = () => {
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+                resolve();
+            };
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+
+    async function showProtectedAbstractPdf(thesisId, title) {
+        try {
+            // Show loading state
+            document.getElementById('modalThesisAbstract').innerHTML = 
+                '<div class="loading-preview"><i class="fas fa-spinner fa-spin"></i><p>Loading protected abstract...</p></div>';
+            
+            // Load PDF.js if needed
+            await loadPdfJs();
+            
+            // Fetch the abstract file
+            const response = await fetch(`../../../app/Controllers/ThesisController.php?action=downloadAbstract&id=${thesisId}`);
+            
+            if (!response.ok) {
+                throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+            }
+            
+            const blob = await response.blob();
+            
+            if (blob.size === 0) {
+                throw new Error('Abstract file is empty');
+            }
+            
+            // Convert blob to array buffer for PDF.js
+            const arrayBuffer = await blob.arrayBuffer();
+            
+            // Render PDF as images with watermark
+            await renderPdfAsImages(arrayBuffer, title);
+            
+        } catch (error) {
+            console.error('Error fetching abstract:', error);
+            throw new Error(`Failed to load abstract: ${error.message}`);
+        }
+    }
+
+    async function renderPdfAsImages(arrayBuffer, title) {
+        const abstractContainer = document.getElementById('modalThesisAbstract');
+        
+        // Check if container exists before proceeding
+        if (!abstractContainer) {
+            throw new Error('Abstract container not found in DOM');
+        }
+        
+        try {
+            // Load PDF document
+            const pdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
+            const totalPages = pdfDoc.numPages;
+            
+            // Clear container
+            abstractContainer.innerHTML = '';
+            
+            // Create container for all pages
+            const pagesContainer = document.createElement('div');
+            pagesContainer.className = 'pdf-pages-container';
+            
+            // Render each page as image
+            for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+                const page = await pdfDoc.getPage(pageNum);
+                
+                // Create page container
+                const pageContainer = document.createElement('div');
+                pageContainer.className = 'pdf-page-container';
+                
+                // Create canvas for rendering
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Set canvas size based on PDF page
+                const viewport = page.getViewport({ scale: 1.5 });
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                
+                // Render page to canvas
+                await page.render({
+                    canvasContext: ctx,
+                    viewport: viewport
+                }).promise;
+                
+                // Add watermark to the canvas
+                addWatermarkToCanvas(canvas, ctx, `Confidential - ${title}`);
+                
+                // Convert canvas to image (makes text copying harder)
+                const imageDataUrl = canvas.toDataURL('image/png');
+                
+                // Create image element
+                const img = document.createElement('img');
+                img.src = imageDataUrl;
+                img.className = 'pdf-page-image';
+                img.alt = `Abstract page ${pageNum}`;
+                img.style.maxWidth = '100%';
+                img.style.height = 'auto';
+                img.style.border = '1px solid #ddd';
+                img.style.borderRadius = '4px';
+                img.style.marginBottom = '1rem';
+                
+                // Add copy protection to image
+                addImageProtection(img);
+                
+                pageContainer.appendChild(img);
+                pagesContainer.appendChild(pageContainer);
+            }
+            
+            abstractContainer.appendChild(pagesContainer);
+            
+            // Add download restrictions notice
+            const notice = document.createElement('div');
+            notice.className = 'protection-notice';
+            notice.innerHTML = `
+                <p><i class="fas fa-shield-alt"></i> <strong>Protected Content:</strong> This abstract is displayed as images to prevent text copying. Downloading is disabled.</p>
+            `;
+            abstractContainer.appendChild(notice);
+            
+        } catch (error) {
+            // Clear container and show error
+            if (abstractContainer) {
+                abstractContainer.innerHTML = `<div class="abstract-error">
+                    <p><strong>Error:</strong> Failed to render PDF: ${error.message}</p>
+                </div>`;
+            }
+            throw new Error(`Failed to render PDF: ${error.message}`);
+        }
+    }
+
+    // Add watermark to canvas
+function addWatermarkToCanvas(canvas, ctx, watermarkText) {
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // Save current context state
+    ctx.save();
+    
+    // Set watermark style
+    ctx.globalAlpha = 0.3; // Semi-transparent
+    ctx.fillStyle = '#ff0000'; // Red color
+    ctx.font = 'bold 48px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    // Rotate watermark
+    ctx.translate(width / 2, height / 2);
+    ctx.rotate(-45 * Math.PI / 180);
+    
+    // Add multiple watermarks across the page
+    for (let y = -height; y < height * 2; y += 200) {
+        for (let x = -width; x < width * 2; x += 400) {
+            ctx.fillText(watermarkText, x, y);
+        }
+    }
+    
+    // Restore context
+    ctx.restore();
+}
+
+// Add protection to images
+function addImageProtection(img) {
+    if (!img || !img.parentNode) return;
+    
+    // Disable right-click
+    img.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        showProtectionWarning('Right-click is disabled to protect content.');
+    });
+    
+    // Disable drag
+    img.addEventListener('dragstart', (e) => {
+        e.preventDefault();
+    });
+    
+    // Add overlay to prevent easy screenshot cropping
+    img.style.position = 'relative';
+    
+    // Create transparent overlay
+    const overlay = document.createElement('div');
+    overlay.style.position = 'absolute';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.pointerEvents = 'none';
+    overlay.style.background = 'transparent';
+    overlay.style.zIndex = '1';
+    
+    img.parentNode.style.position = 'relative';
+    img.parentNode.appendChild(overlay);
+}
+
+// Show protection warning
+function showProtectionWarning(message) {
+    // Create temporary warning message
+    const warning = document.createElement('div');
+    warning.className = 'protection-warning';
+    warning.textContent = message;
+    warning.style.position = 'fixed';
+    warning.style.top = '20px';
+    warning.style.left = '50%';
+    warning.style.transform = 'translateX(-50%)';
+    warning.style.background = '#e74c3c';
+    warning.style.color = 'white';
+    warning.style.padding = '10px 20px';
+    warning.style.borderRadius = '4px';
+    warning.style.zIndex = '10000';
+    warning.style.boxShadow = '0 2px 10px rgba(0,0,0,0.3)';
+    
+    document.body.appendChild(warning);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        document.body.removeChild(warning);
+    }, 3000);
+}
+
+// Updated openThesisModal function
+function openThesisModal(cardElement, thesisId) {
+    // Get data from the card
+    const title = cardElement.querySelector('h3').textContent;
+    const authors = cardElement.querySelector('.authors span').textContent;
+    const adviser = cardElement.querySelector('.adviser span').textContent;
+    const department = cardElement.querySelector('.department-badge').textContent;
+    const date = cardElement.querySelector('.upload-date span').textContent;
+    
+    // Populate basic modal info first
+    document.getElementById('modalThesisTitle').textContent = title;
+    document.getElementById('modalThesisAuthors').textContent = authors;
+    document.getElementById('modalThesisAdviser').textContent = adviser;
+    document.getElementById('modalThesisDepartment').textContent = department;
+    document.getElementById('modalThesisDate').textContent = date;
+    
+    // Store thesis ID for the view full button
+    const viewFullThesisBtn = document.getElementById('viewFullThesis');
+    if (viewFullThesisBtn) {
+        viewFullThesisBtn.setAttribute('data-thesis-id', thesisId);
+    }
+    
+    // Show modal immediately with loading state
+    const modal = document.getElementById('thesisModal');
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    
+    // Add copy protection to entire modal
+    addModalProtection();
+    
+    // Show protected PDF abstract in modal
+    showProtectedAbstractPdf(thesisId, title)
+    .catch(error => {
+        console.error('Error fetching abstract PDF:', error);
+        const abstractContainer = document.getElementById('modalThesisAbstract');
+        if (abstractContainer) {
+            const abstractPreview = cardElement.querySelector('.abstract-preview')?.textContent || 'Abstract preview not available.';
+            abstractContainer.innerHTML = 
+                `<div class="abstract-error">
+                    <p><strong>Note:</strong> Could not load protected abstract. Showing preview instead.</p>
+                    <div class="abstract-text">${abstractPreview}</div>
+                </div>`;
+        }
+    });
+}
+
+// Add protection to entire modal
+function addModalProtection() {
+    const modal = document.getElementById('thesisModal');
+    
+    // Disable text selection in modal
+    modal.style.userSelect = 'none';
+    modal.style.webkitUserSelect = 'none';
+    modal.style.mozUserSelect = 'none';
+    modal.style.msUserSelect = 'none';
+    
+    // Disable copy in modal
+    modal.addEventListener('copy', (e) => {
+        e.preventDefault();
+        showProtectionWarning('Copying content is disabled.');
+    });
+    
+    // Disable print screen (limited effectiveness)
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'PrintScreen') {
+            e.preventDefault();
+            showProtectionWarning('Screenshots are discouraged for protected content.');
+        }
+    });
+}
 });

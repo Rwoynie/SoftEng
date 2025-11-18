@@ -683,6 +683,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // VIEW ABSTRACT
     function showProjectPreview(thesisId, title, uploadedDate, authors, adviser) {
         const modalTitle = document.querySelector('.preview-modal .modal-title');
         if (modalTitle) {
@@ -755,6 +756,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // FOR ABSTRACT
     async function fetchThesisFile(thesisId, title) {
         try {
             // Show loading state

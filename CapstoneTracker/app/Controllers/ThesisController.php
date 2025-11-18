@@ -775,6 +775,8 @@ public function getThesisViewInfo($thesisId) {
         }
         exit;
     }
+
+    
     
     /**
      * Log upload activity (placeholder for future implementation)

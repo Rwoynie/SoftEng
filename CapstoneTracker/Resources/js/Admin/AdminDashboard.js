@@ -3870,6 +3870,7 @@ function showProjectPreview(thesisId, title, uploadedDate, authors, adviser, fal
     document.body.style.overflow = 'hidden';
 }
 
+// SHOW ABSTRACT
 async function fetchThesisFile(thesisId, title) {
     try {
         // Show loading state

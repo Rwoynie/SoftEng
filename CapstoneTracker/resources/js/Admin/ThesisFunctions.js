@@ -1,3 +1,5 @@
+
+// FOR FULL VIEW THESIS
 function handleViewThesis(thesisId, title) {
     if (!thesisId) {
         Swal.fire({
@@ -24,7 +26,7 @@ function handleViewThesis(thesisId, title) {
 }
 
 
-
+// FOR FULL VIEW THESIS
 // Function to fetch the full thesis file (not just abstract)
 async function fetchThesisFileForView(thesisId, title) {
     try {
