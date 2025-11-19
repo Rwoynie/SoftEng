@@ -6,7 +6,7 @@
 
 .homeImage {
     animation-name: pulse;
-    animation-duration: 1s; /* Changed from 5000ms to 1s for faster */
+    animation-duration: 0.5s; /* Changed from 5000ms to 1s for faster */
     animation-iteration-count: infinite; /* Makes it repeat forever */
     animation-timing-function: ease-in-out; /* Optional: smoother timing */
 }

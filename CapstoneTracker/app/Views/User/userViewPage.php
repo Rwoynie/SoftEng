@@ -30,17 +30,24 @@ try {
     $thesisModel = new Thesis($db);
     $thesis = $thesisModel->getAllTheses();
 
-    // Get user role
+    // Get user role information
     $userId = $_SESSION['user_id'];
     $rolesController = new RolesController($db);
-    $userRole = $rolesController->getUserRole($userId);
+    
+    // ACTUALLY CALL THE METHOD TO GET THE DATA
+    $userRoleData = $rolesController->getUserRole($userId);
+    
+    // Extract the actual role string
+    $userRole = $userRoleData['User_Role'] ?? 'student'; // Default to student if not found
     
     // Determine if user is student
-    $isStudent = ($userRole === 'student'); // Adjust based on your role names
+    $isStudent = ($userRole === 'student');
     
-    
-    // Debug: Check if we got any data
+    // Debug information
     echo "<!-- Debug: Found " . count($thesis) . " theses -->";
+    echo "<!-- Debug: User role data: " . print_r($userRoleData, true) . " -->";
+    echo "<!-- Debug: User role: " . $userRole . " -->";
+    echo "<!-- Debug: Is student: " . ($isStudent ? 'true' : 'false') . " -->";
     
     foreach ($thesis as $theses) {
         $uploadDate = new DateTime($theses->uploaded_at);
@@ -54,6 +61,8 @@ try {
     error_log("Error loading theses: " . $e->getMessage());
     echo "<!-- Error: " . $e->getMessage() . " -->";
     $thesis = [];
+    $userRole = 'student'; // Default fallback
+    $isStudent = true;
 }
 
 class DepartmentManager {
@@ -163,7 +172,7 @@ $departmentManager->addDepartment('bsabe', 'BSABE | SABES', [
 $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science in Information Technology']);
 // Start session
 
-$isStudent = true;
+
 
 
 ?>
@@ -248,12 +257,12 @@ $isStudent = true;
                                 <span class="info-label">Email:</span>
                                 <span data-value="email" class="info-value"></span>
                             </div>
-                            <?php if ($isStudent == 'student'):?>
+                            <?php if (!$isStudent): // Show department for non-students (faculty, admin, etc.) ?>
                             <div class="info-item">
                                 <span class="info-label">Department:</span>
                                 <span data-value="department" class="info-value"></span>
                             </div>
-                            <?php else:?>
+                            <?php else: // Show course for students ?>
                             <div class="info-item">
                                 <span class="info-label">Course:</span>
                                 <span data-value="course" class="info-value"></span>
