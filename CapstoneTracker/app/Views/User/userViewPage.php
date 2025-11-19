@@ -231,7 +231,10 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
             <div class="profile-card">
                 <div class="profile-header">
                     <div class="profile-avatar">
+                    <label for="profileImage" style="cursor: pointer;">
+                        <input type="file" id="profileImage" name="profileImage" accept="image/*" hidden>
                         <img src="../../../resources/Images/profile.png" alt="Profile" class="profile-image">
+                    </label>
                         <div class="online-status"></div>
                     </div>
                     <div class="profile-info">
@@ -269,6 +272,11 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
                             </div>
                             <?php endif; ?>
                         </div>
+                        <div>
+                        <button class="btn btn-secondary" id="saveProfileImageButton">
+                            <i class="fa fa-camera" aria-hidden="true"></i> Change Profile Image
+                        </button>
+                        </div>
                     </div>
 
                     <div class="profile-section">
@@ -296,14 +304,14 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
                         </div>
                         
                         <div class="action-buttons">
-                            <button class="btn btn-primary">
-                                <i class="fa fa-pencil" aria-hidden="true"></i>
-                                Edit Profile
-                            </button>
-                            <button class="btn btn-secondary" id="logoutHeaderIcon">
-                                <i class="fa fa-sign-out" aria-hidden="true"></i>
-                                Logout
-                            </button>
+                        <button class="btn btn-primary">
+                            <i class="fa fa-key" aria-hidden="true"></i>
+                            Change Password
+                        </button>
+                        <button class="btn btn-secondary" id="logoutHeaderIcon">
+                            <i class="fa fa-sign-out" aria-hidden="true"></i>
+                            Logout
+                        </button>
                         </div>
                     </div>
                 </div>

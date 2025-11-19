@@ -776,6 +776,7 @@ body {
 }
 
 .profile-image {
+    cursor: pointer;
     width: 100px;
     height: 100px;
     border-radius: 50%;
@@ -2476,4 +2477,49 @@ body {
 
 .btn-change-password:hover {
     background-color: #1e7e34;
+}
+
+/*   */
+.profile-avatar {
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.profile-avatar:hover {
+    transform: scale(1.05);
+}
+
+.profile-avatar:hover::after {
+    content: 'Change Image';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 5px;
+    font-size: 12px;
+    border-radius: 0 0 50% 50%;
+}
+
+.saveButton {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.saveButton:hover {
+    background: linear-gradient(135deg, #2980b9, #2573a7);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
 }

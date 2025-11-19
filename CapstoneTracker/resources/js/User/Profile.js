@@ -64,7 +64,7 @@ class ProfileManager {
             this.showError('Error loading profile data: ' + error.message);
         }
     }
-
+    
     /**
      * Populate profile data in the UI
      */

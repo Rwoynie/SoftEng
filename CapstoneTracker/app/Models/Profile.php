@@ -30,6 +30,7 @@ class Profile {
                     ui.Acc_Status,
                     ui.Department,
                     ui.Course,
+                    ui.Profile_Pic,
                     ui.created_at,
                     ui.updated_at,
                     COALESCE(la.last_login, ui.created_at) as last_login,
@@ -61,6 +62,9 @@ class Profile {
                 // Format status for display
                 $result['status_display'] = ucfirst($result['Acc_Status']);
                 
+                // ALWAYS use default profile image - remove BLOB handling
+                $result['Profile_Pic'] = 'resources/Images/profile.png';
+                
                 return $result;
             }
             
@@ -71,41 +75,53 @@ class Profile {
             return null;
         }
     }
-    
+
     /**
-     * Update user profile information
+     * Update user profile image
      */
-    public function updateProfile($userId, $data) {
+    public function updateProfileImage($userId, $imagePath) {
         try {
-            $allowedFields = ['First_Name', 'Middle_Name', 'Last_Name', 'Extension', 'Email'];
-            $updates = [];
-            $bindings = [':user_id' => $userId];
+            error_log("Updating profile image for user $userId from: $imagePath");
             
-            foreach ($allowedFields as $field) {
-                if (isset($data[$field])) {
-                    $updates[] = "$field = :$field";
-                    $bindings[":$field"] = $data[$field];
-                }
-            }
-            
-            if (empty($updates)) {
+            // Read the image file and convert to binary
+            $imageData = file_get_contents($imagePath);
+            if ($imageData === false) {
+                error_log("Failed to read image file: $imagePath");
                 return false;
             }
             
-            $query = "UPDATE USER_INFORMATION SET " . implode(', ', $updates) . " WHERE ID = :user_id";
-            $this->db->query($query);
+            $this->db->query("UPDATE USER_INFORMATION SET Profile_Pic = :image_data, updated_at = NOW() WHERE ID = :user_id");
+            $this->db->bind(':image_data', $imageData);
+            $this->db->bind(':user_id', $userId);
             
-            foreach ($bindings as $key => $value) {
-                $this->db->bind($key, $value);
-            }
+            $result = $this->db->execute();
+            error_log("Profile image update result: " . ($result ? "SUCCESS" : "FAILED"));
             
-            return $this->db->execute();
+            return $result;
             
         } catch (Exception $e) {
-            error_log("Profile Update Error: " . $e->getMessage());
+            error_log("Profile Image Update Error: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
             return false;
         }
     }
+
+    /**
+     * Get current profile image path
+     */
+    public function getProfileImage($userId) {
+        try {
+            // Always return default image path
+            return 'resources/Images/profile.png';
+            
+        } catch (Exception $e) {
+            error_log("Profile Image Fetch Error: " . $e->getMessage());
+            return 'resources/Images/profile.png';
+        }
+    }
+    
+    
+ 
     
     /**
      * Change user password
