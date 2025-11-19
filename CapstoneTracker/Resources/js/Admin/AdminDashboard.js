@@ -830,7 +830,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const sortDropdown = document.getElementById('sortDropdown');
 
     function initializeFilterDropdowns() {
-        initializeDepartmentFilter();
+        
 
         if (sortDropdown) {
             const sortSelectedText = sortDropdown.querySelector('.selected span');
@@ -860,6 +860,19 @@ document.addEventListener('DOMContentLoaded', function() {
             if (departmentFilterDropdown && !departmentFilterDropdown.contains(e.target)) {
                 departmentFilterDropdown.classList.remove('active');
             }
+            
+             // Thesis department filter
+            if (thesisDepartmentFilterDropdown && !thesisDepartmentFilterDropdown.contains(e.target)) {
+                thesisDepartmentFilterDropdown.classList.remove('active');
+            }
+            
+            // Account management filter  
+            const accountFilterDropdown = document.getElementById('accountManagementFilterDropdown');
+            if (accountFilterDropdown && !accountFilterDropdown.contains(e.target)) {
+                accountFilterDropdown.classList.remove('active');
+            }
+            
+            // Sort dropdown
             if (sortDropdown && !sortDropdown.contains(e.target)) {
                 sortDropdown.classList.remove('active');
             }
@@ -2617,92 +2630,187 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function initializeDepartmentFilter() {
-    const dropdown = document.getElementById('departmentFilterDropdown');
-    if (!dropdown) return; // Exit if not found
-
-    const selected = dropdown.querySelector('.selected');
-    const options = dropdown.querySelectorAll('.options div');
-
-    selected.addEventListener('click', () => {
-        dropdown.classList.toggle('active');
-    });
-
-    options.forEach(option => {
-        option.addEventListener('click', () => {
-            const value = option.getAttribute('data-value');
-            selected.querySelector('span').textContent = option.textContent;
-            dropdown.classList.remove('active');
-            // Trigger filtering logic (e.g., filter theses by department)
-            filterThesesByDepartment(value);
+        const dropdown = document.getElementById('thesisDepartmentFilterDropdown'); // Changed ID
+        if (!dropdown) return;
+    
+        const selected = dropdown.querySelector('.selected');
+        const options = dropdown.querySelectorAll('.options div');
+    
+        selected.addEventListener('click', () => {
+            dropdown.classList.toggle('active');
         });
-    });
+    
+        options.forEach(option => {
+            option.addEventListener('click', () => {
+                const value = option.getAttribute('data-value');
+                selected.querySelector('span').textContent = option.textContent;
+                dropdown.classList.remove('active');
+                filterThesesByDepartment(value);
+            });
+        });
+    
+        // Close dropdown on outside click
+        document.addEventListener('click', (e) => {
+            if (!dropdown.contains(e.target)) {
+                dropdown.classList.remove('active');
+            }
+        });
+    }
 
-    // Close dropdown on outside click
-    document.addEventListener('click', (e) => {
-        if (!dropdown.contains(e.target)) {
-            dropdown.classList.remove('active');
+    function initializeAccountManagementFilter() {
+        const dropdown = document.getElementById('accountManagementFilterDropdown');
+        if (!dropdown) {
+            console.error('Account management filter dropdown not found');
+            return;
         }
-    });
-}
+    
+        const selected = dropdown.querySelector('.selected');
+        const options = dropdown.querySelectorAll('.options div');
+    
+        console.log('Initializing account management filter with', options.length, 'options');
+    
+        selected.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle('active');
+        });
+    
+        options.forEach(option => {
+            option.addEventListener('click', () => {
+                const value = option.getAttribute('data-value');
+                const displayText = option.textContent;
+                
+                console.log('Account filter selected:', value, displayText);
+                
+                selected.querySelector('span').textContent = displayText;
+                dropdown.classList.remove('active');
+                filterAccountsByRole(value);
+            });
+        });
+    
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!dropdown.contains(e.target)) {
+                dropdown.classList.remove('active');
+            }
+        });
+    }
 
-
-initializeDepartmentFilter();
-
-    function filterThesesByDepartment(departmentValue) {
-        const projectItems = document.querySelectorAll('.project-item');
-        const notFound = document.getElementById('notFound');
+    // Add this function to handle account filtering by role
+    function filterAccountsByRole(roleValue) {
+        const accountRows = document.querySelectorAll('.accounts-table tbody tr');
+        const notFound = document.getElementById('notFound'); // You might want to add a specific one for accounts
         let foundResults = false;
         
-        console.log('Filtering by department:', departmentValue);
+        console.log('Filtering accounts by role:', roleValue);
         
-        projectItems.forEach(item => {
-            // Get the course from the project item - FIXED SELECTOR
-            const courseElement = item.querySelector('.links p:nth-child(2)'); // Second paragraph in links div
-            const course = courseElement ? courseElement.textContent.trim() : '';
+        accountRows.forEach(row => {
+            const roleBadge = row.querySelector('.role-badge');
+            const role = roleBadge ? roleBadge.textContent.toLowerCase().trim() : '';
             
-            console.log('Project course:', course, 'for item:', item.querySelector('h3').textContent);
+            console.log('Account role:', role, 'for row:', row.querySelector('td:first-child').textContent);
             
             let shouldShow = false;
             
-            if (departmentValue === 'all') {
+            if (roleValue === 'recent') {
+                // Show all for "Recently Joined" (you might want to implement actual recent sorting)
+                shouldShow = true;
+            } else if (roleValue === 'all') {
                 shouldShow = true;
             } else {
-                // Get course codes for the selected department
-                const courseCodes = getCourseCodesForDepartment(departmentValue);
-                console.log('Course codes for department:', courseCodes);
+                // Map filter values to actual role text
+                const roleMap = {
+                    'admin': 'admin',
+                    'faculty': 'faculty', 
+                    'student': 'student'
+                };
                 
-                // Check if this project's course matches any course in the department
-                shouldShow = courseCodes.some(courseCode => {
-                    // More flexible matching - check if course contains courseCode or vice versa
-                    const match = course.toLowerCase().includes(courseCode.toLowerCase()) || 
-                           courseCode.toLowerCase().includes(course.toLowerCase());
-                    console.log(`Comparing "${course}" with "${courseCode}": ${match}`);
-                    return match;
-                });
+                const targetRole = roleMap[roleValue];
+                shouldShow = role === targetRole;
             }
             
             if (shouldShow) {
-                item.style.display = 'flex';
+                row.style.display = '';
                 foundResults = true;
-                console.log('SHOWING item:', item.querySelector('h3').textContent);
             } else {
-                item.style.display = 'none';
-                console.log('HIDING item:', item.querySelector('h3').textContent);
+                row.style.display = 'none';
             }
         });
         
         // Show/hide "No Results Found" message
-        if (foundResults || departmentValue === 'all') {
+        // You might want to add a specific one for accounts
+        if (foundResults || roleValue === 'recent' || roleValue === 'all') {
             if (notFound) notFound.style.display = 'none';
         } else {
             if (notFound) notFound.style.display = 'flex';
         }
         
-        console.log('Filter complete. Found results:', foundResults);
-        
-        // Re-run animations after filtering
-        animateOnScroll();
+        console.log('Account filter complete. Found results:', foundResults);
     }
+
+
+
+
+function filterThesesByDepartment(departmentValue) {
+    const projectItems = document.querySelectorAll('.project-item');
+    const notFound = document.getElementById('notFound');
+    let foundResults = false;
+    
+    console.log('Filtering by department:', departmentValue);
+    
+    projectItems.forEach(item => {
+        // Get the course from the project item - FIXED SELECTOR
+        const courseElement = item.querySelector('.links p:nth-child(2)'); // Second paragraph in links div
+        const course = courseElement ? courseElement.textContent.trim() : '';
+        
+        console.log('Project course:', course, 'for item:', item.querySelector('h3').textContent);
+        
+        let shouldShow = false;
+        
+        if (departmentValue === 'all') {
+            shouldShow = true;
+        } else {
+            // Get course codes for the selected department
+            const courseCodes = getCourseCodesForDepartment(departmentValue);
+            console.log('Course codes for department:', courseCodes);
+            
+            // IMPROVED MATCHING: Check if this project's course matches any course in the department
+            shouldShow = courseCodes.some(courseCode => {
+                // Normalize both strings for comparison
+                const normalizedCourse = course.toLowerCase().trim();
+                const normalizedCourseCode = courseCode.toLowerCase().trim();
+                
+                // More flexible matching - check if either contains the other
+                const match = normalizedCourse.includes(normalizedCourseCode) || 
+                       normalizedCourseCode.includes(normalizedCourse) ||
+                       normalizedCourse === normalizedCourseCode;
+                
+                console.log(`Comparing "${normalizedCourse}" with "${normalizedCourseCode}": ${match}`);
+                return match;
+            });
+        }
+        
+        if (shouldShow) {
+            item.style.display = 'flex';
+            foundResults = true;
+            console.log('SHOWING item:', item.querySelector('h3').textContent);
+        } else {
+            item.style.display = 'none';
+            console.log('HIDING item:', item.querySelector('h3').textContent);
+        }
+    });
+    
+    // Show/hide "No Results Found" message
+    if (foundResults || departmentValue === 'all') {
+        if (notFound) notFound.style.display = 'none';
+    } else {
+        if (notFound) notFound.style.display = 'flex';
+    }
+    
+    console.log('Filter complete. Found results:', foundResults);
+    
+    // Re-run animations after filtering
+    animateOnScroll();
+}
 
     function getCourseCodesForDepartment(departmentValue) {
         // Updated to match the actual course names from your PHP
@@ -3698,7 +3806,7 @@ testDebugMethod();
     // Initialize role change handling
     initializeRoleChangeHandling();
     
-    // Hide save button initially
+    
 
     // Initialize upload form submission
     initializeUploadFormSubmission();
@@ -3706,6 +3814,10 @@ testDebugMethod();
     // Initialize upload form validation
     initializeUploadFormValidation();
     
+    initializeDepartmentFilter();
+
+    initializeAccountManagementFilter();
+
     initializeDepartmentCourseLogic();
     
     initializeMoreOptions();
