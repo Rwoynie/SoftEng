@@ -510,13 +510,13 @@ class ProfileManager {
      */
     showSuccessMessage(message) {
         Swal.fire({
-            title: '<div style="color: #27ae60; margin-bottom: 1rem;"><i class="fa fa-check-circle" style="font-size: 48px;"></i></div>',
-            html: `<div style="color: #2c3e50; font-size: 16px; font-weight: 600;">${message}</div>`,
+            
+            html: `<div style="color: #2c3e50; font-size: 16px; font-weight: 600;">Password Change Success!</div>`,
             icon: 'success',
-            confirmButtonColor: '#27ae60',
+            
             
             timer: 3000,
-            showConfirmButton: true
+            showConfirmButton: false
         });
     }
 
