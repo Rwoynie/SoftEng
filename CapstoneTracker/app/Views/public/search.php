@@ -70,6 +70,7 @@ $totalAllcourse = array_sum($courseCounts);
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Quicksand">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
   
 </head>
 <body>
@@ -78,7 +79,7 @@ $totalAllcourse = array_sum($courseCounts);
     <!-- Header -->
     <header class="main-header">
       <div class="logo">
-        <a href="home.php"><img src="../../../resources/images/ThesisCompLogo.png" alt="Logo" /></a>
+        <a class="homeImage" href="home.php"><img src="../../../resources/images/ThesisCompLogo.png" alt="Logo" /></a>
         <a href="home.php" style="text-decoration: none">
           <h1>Thesis Compendium System</h1>
           <h3>University of Southeastern Philippines</h3>
