@@ -169,46 +169,192 @@ class ProfileManager {
     }
 
     /**
-     * Show change password modal
+     * Show change password modal with enhanced UI and eye icons
      */
     showChangePasswordModal() {
-        // Create modal HTML
-        const modalHtml = `
-            <div class="modal-overlay active" id="changePasswordModal">
-                <div class="modal" style="max-width: 450px;">
-                    <div class="modal-header">
-                        <h2 class="modal-title">Change Password</h2>
-                        <button class="modal-close">&times;</button>
+        Swal.fire({
+            title: '<h3 style="color: #2c3e50; margin: 0;">Change Password</h3>',
+            html: `
+                <div style="text-align: left;">
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #2c3e50;">Current Password</label>
+                        <div style="position: relative;">
+                            <input 
+                                type="password" 
+                                id="currentPassword" 
+                                placeholder="Enter your current password" 
+                                style="width: 100%; padding: 12px 45px 12px 12px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 14px; transition: all 0.3s;"
+                                onfocus="this.style.borderColor='#3498db'"
+                                onblur="this.style.borderColor='#e9ecef'"
+                            >
+                            <button 
+                                type="button" 
+                                class="toggle-password" 
+                                data-target="currentPassword"
+                                style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #6c757d; cursor: pointer; padding: 4px;"
+                            >
+                                <i class="far fa-eye"></i>
+                            </button>
+                        </div>
                     </div>
-                    <div class="modal-body">
-                        <form id="changePasswordForm">
-                            <div class="form-group">
-                                <label for="currentPassword">Current Password *</label>
-                                <input type="password" id="currentPassword" name="current_password" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="newPassword">New Password *</label>
-                                <input type="password" id="newPassword" name="new_password" required minlength="8">
-                                <small>Password must be at least 8 characters long</small>
-                            </div>
-                            <div class="form-group">
-                                <label for="confirmPassword">Re-enter New Password *</label>
-                                <input type="password" id="confirmPassword" name="confirm_password" required minlength="8">
-                            </div>
-                            <input type="hidden" name="csrf_token" value="${this.csrfToken}">
-                        </form>
+                    
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #2c3e50;">New Password</label>
+                        <div style="position: relative;">
+                            <input 
+                                type="password" 
+                                id="newPassword" 
+                                placeholder="Enter new password (min. 8 characters)" 
+                                style="width: 100%; padding: 12px 45px 12px 12px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 14px; transition: all 0.3s;"
+                                onfocus="this.style.borderColor='#3498db'"
+                                onblur="this.style.borderColor='#e9ecef'"
+                            >
+                            <button 
+                                type="button" 
+                                class="toggle-password" 
+                                data-target="newPassword"
+                                style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #6c757d; cursor: pointer; padding: 4px;"
+                            >
+                                <i class="far fa-eye"></i>
+                            </button>
+                        </div>
+                        <small style="color: #6c757d; font-size: 12px; margin-top: 0.25rem; display: block;">
+                            Password must be at least 8 characters long
+                        </small>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" id="cancelChangePassword">Cancel</button>
-                        <button type="button" class="btn btn-primary" id="requestPin">Request PIN</button>
+                    
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #2c3e50;">Confirm New Password</label>
+                        <div style="position: relative;">
+                            <input 
+                                type="password" 
+                                id="confirmPassword" 
+                                placeholder="Re-enter your new password" 
+                                style="width: 100%; padding: 12px 45px 12px 12px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 14px; transition: all 0.3s;"
+                                onfocus="this.style.borderColor='#3498db'"
+                                onblur="this.style.borderColor='#e9ecef'"
+                            >
+                            <button 
+                                type="button" 
+                                class="toggle-password" 
+                                data-target="confirmPassword"
+                                style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #6c757d; cursor: pointer; padding: 4px;"
+                            >
+                                <i class="far fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin-top: 1rem;">
+                        <p style="margin: 0; font-size: 12px; color: #6c757d;">
+                            <i class="fa fa-info-circle" style="color: #3498db; margin-right: 5px;"></i>
+                            After clicking "Request PIN", you'll receive a verification code via email.
+                        </p>
                     </div>
                 </div>
-            </div>
-        `;
+            `,
+            showCancelButton: true,
+            confirmButtonText: '<i class="fa fa-paper-plane" style="margin-right: 5px;"></i> Request PIN',
+            cancelButtonText: '<i class="fa fa-times" style="margin-right: 5px;"></i> Cancel',
+            confirmButtonColor: '#3498db',
+            cancelButtonColor: '#6c757d',
+            showLoaderOnConfirm: true,
+            preConfirm: () => {
+                const currentPassword = document.getElementById('currentPassword').value;
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
 
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        this.attachChangePasswordModalEvents();
+                // Validation
+                if (!currentPassword || !newPassword || !confirmPassword) {
+                    Swal.showValidationMessage('Please fill in all password fields');
+                    return false;
+                }
+
+                if (newPassword.length < 8) {
+                    Swal.showValidationMessage('Password must be at least 8 characters long');
+                    return false;
+                }
+
+                if (newPassword !== confirmPassword) {
+                    Swal.showValidationMessage('New passwords do not match');
+                    return false;
+                }
+
+                // Store data for later use
+                this.resetData = {
+                    current_password: currentPassword,
+                    new_password: newPassword,
+                    confirm_password: confirmPassword
+                };
+
+                return this.requestPin(currentPassword);
+            },
+            didOpen: () => {
+                // Add event listeners for eye icons
+                this.initializePasswordToggles();
+            },
+            customClass: {
+                popup: 'custom-swal-popup',
+                title: 'custom-swal-title',
+                confirmButton: 'custom-swal-confirm-btn',
+                cancelButton: 'custom-swal-cancel-btn'
+            },
+            width: '500px',
+            padding: '2rem'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                if (result.value.success) {
+                    this.showPinVerificationModal();
+                } else {
+                    this.showError(result.value.message || 'Failed to request PIN');
+                }
+            }
+        });
     }
+
+    /**
+     * Initialize password visibility toggles
+     */
+    initializePasswordToggles() {
+        const toggleButtons = document.querySelectorAll('.toggle-password');
+        
+        toggleButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = button.getAttribute('data-target');
+                const passwordInput = document.getElementById(targetId);
+                const icon = button.querySelector('i');
+                
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    icon.className = 'far fa-eye-slash';
+                    button.style.color = '#3498db';
+                } else {
+                    passwordInput.type = 'password';
+                    icon.className = 'far fa-eye';
+                    button.style.color = '#6c757d';
+                }
+                
+                // Add focus back to input for better UX
+                passwordInput.focus();
+            });
+            
+            // Add hover effects
+            button.addEventListener('mouseenter', () => {
+                button.style.color = '#3498db';
+            });
+            
+            button.addEventListener('mouseleave', () => {
+                const targetId = button.getAttribute('data-target');
+                const passwordInput = document.getElementById(targetId);
+                if (passwordInput.type === 'password') {
+                    button.style.color = '#6c757d';
+                }
+            });
+        });
+    }
+
+
 
     /**
      * Attach events to change password modal
@@ -234,37 +380,7 @@ class ProfileManager {
     /**
      * Request PIN for password change
      */
-    async requestPin() {
-        const form = document.getElementById('changePasswordForm');
-        const formData = new FormData(form);
-        
-        const currentPassword = formData.get('current_password');
-        const newPassword = formData.get('new_password');
-        const confirmPassword = formData.get('confirm_password');
-
-        // Validation
-        if (!currentPassword || !newPassword || !confirmPassword) {
-            this.showError('Please fill in all password fields');
-            return;
-        }
-
-        if (newPassword !== confirmPassword) {
-            this.showError('New passwords do not match');
-            return;
-        }
-
-        if (newPassword.length < 8) {
-            this.showError('Password must be at least 8 characters long');
-            return;
-        }
-
-        // Store the password data for later use
-        this.resetData = {
-            current_password: currentPassword,
-            new_password: newPassword,
-            confirm_password: confirmPassword
-        };
-
+    async requestPin(currentPassword) {
         try {
             const response = await fetch('../../../app/Controllers/ProfileController.php?action=request_pin', {
                 method: 'POST',
@@ -273,7 +389,7 @@ class ProfileManager {
                     current_password: currentPassword
                 })
             });
-
+    
             const responseText = await response.text();
             let data;
             
@@ -283,15 +399,11 @@ class ProfileManager {
                 console.error('JSON parse error:', parseError);
                 throw new Error('Server returned invalid response');
             }
-
-            if (data.success) {
-                this.showPinVerificationModal();
-            } else {
-                this.showError(data.message || 'Failed to request PIN');
-            }
+    
+            return data;
         } catch (error) {
             console.error('Error requesting PIN:', error);
-            this.showError('Failed to request PIN: ' + error.message);
+            throw new Error('Failed to request PIN: ' + error.message);
         }
     }
 
@@ -299,49 +411,126 @@ class ProfileManager {
      * Show PIN verification modal
      */
     showPinVerificationModal() {
-        // Remove the current modal
-        const currentModal = document.getElementById('changePasswordModal');
-        if (currentModal) currentModal.remove();
-
-        // Create PIN verification modal
-        const modalHtml = `
-            <div class="modal-overlay active" id="pinVerificationModal">
-                <div class="modal" style="max-width: 400px;">
-                    <div class="modal-header">
-                        <h2 class="modal-title">Verify PIN</h2>
-                        <button class="modal-close">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div style="text-align: center; margin-bottom: 20px;">
-                            <i class="fa fa-envelope" style="font-size: 48px; color: #007bff; margin-bottom: 15px;"></i>
-                            <p>We've sent a 6-digit PIN to your email address.</p>
-                            <p>Please check your inbox and enter the PIN below:</p>
-                        </div>
-                        <form id="pinVerificationForm">
-                            <div class="form-group">
-                                <label for="pinCode">6-Digit PIN *</label>
-                                <input type="text" id="pinCode" name="pin_code" maxlength="6" pattern="[0-9]{6}" required 
-                                       placeholder="Enter 6-digit PIN" style="text-align: center; font-size: 18px; letter-spacing: 3px;">
-                                <small>Enter the 6-digit PIN sent to your email</small>
-                            </div>
-                            <input type="hidden" name="csrf_token" value="${this.csrfToken}">
-                        </form>
-                        <div style="text-align: center; margin-top: 15px;">
-                            <button type="button" id="resendPin" class="btn btn-link" style="color: #007bff; text-decoration: none;">
-                                <i class="fa fa-refresh"></i> Resend PIN
-                            </button>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" id="cancelPinVerification">Cancel</button>
-                        <button type="button" class="btn btn-primary" id="verifyPin">Verify PIN</button>
-                    </div>
+    Swal.fire({
+        title: '<h3 style="color: #2c3e50; margin: 0; margin-bottom: 1rem;">Verify PIN</h3>',
+        html: `
+            <div style="text-align: center;">
+                <div style="background: #e3f2fd; border-radius: 50%; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                    <i class="fa fa-envelope" style="font-size: 36px; color: #1976d2;"></i>
+                </div>
+                
+                <p style="color: #555; margin-bottom: 1.5rem; line-height: 1.5;">
+                    We've sent a 6-digit verification PIN to your email address.<br>
+                    Please check your inbox and enter the PIN below:
+                </p>
+                
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #2c3e50;">6-Digit PIN</label>
+                    <input 
+                        type="text" 
+                        id="pinCode" 
+                        maxlength="6" 
+                        pattern="[0-9]{6}" 
+                        placeholder="******" 
+                        style="width: 200px; padding: 15px; border: 2px solid #e9ecef; border-radius: 10px; font-size: 24px; text-align: center; letter-spacing: 8px; font-weight: bold; transition: all 0.3s;"
+                        onfocus="this.style.borderColor='#3498db'; this.style.boxShadow='0 0 0 3px rgba(52, 152, 219, 0.1)'"
+                        onblur="this.style.borderColor='#e9ecef'; this.style.boxShadow='none'"
+                    >
+                    <small style="color: #6c757d; font-size: 12px; margin-top: 0.5rem; display: block;">
+                        Enter the 6-digit PIN sent to your email
+                    </small>
+                </div>
+                
+                <div style="margin-top: 1rem;">
+                    <button 
+                        type="button" 
+                        id="resendPinBtn" 
+                        style="background: none; border: none; color: #3498db; cursor: pointer; font-size: 14px; text-decoration: underline; padding: 5px 10px; border-radius: 4px; transition: all 0.3s;"
+                        onmouseover="this.style.color='#2980b9'; this.style.backgroundColor='#f8f9fa'" 
+                        onmouseout="this.style.color='#3498db'; this.style.backgroundColor='transparent'"
+                    >
+                        <i class="fa fa-refresh" style="margin-right: 5px;"></i>
+                        Resend PIN
+                    </button>
                 </div>
             </div>
-        `;
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fa fa-check" style="margin-right: 5px;"></i> Verify PIN',
+        cancelButtonText: '<i class="fa fa-times" style="margin-right: 5px;"></i> Cancel',
+        confirmButtonColor: '#27ae60',
+        cancelButtonColor: '#6c757d',
+        showLoaderOnConfirm: true,
+        preConfirm: () => {
+            const pinCode = document.getElementById('pinCode').value;
 
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        this.attachPinVerificationModalEvents();
+            if (!pinCode || pinCode.length !== 6) {
+                Swal.showValidationMessage('Please enter a valid 6-digit PIN');
+                return false;
+            }
+
+            return this.verifyPin(pinCode);
+        },
+        didOpen: () => {
+            const pinInput = document.getElementById('pinCode');
+            const resendBtn = document.getElementById('resendPinBtn');
+
+            // Auto-format PIN input
+            pinInput.addEventListener('input', (e) => {
+                e.target.value = e.target.value.replace(/[^0-9]/g, '');
+            });
+
+            // Resend PIN functionality
+            resendBtn.addEventListener('click', () => {
+                this.resendPin();
+            });
+        },
+        customClass: {
+            popup: 'custom-swal-popup',
+            title: 'custom-swal-title',
+            confirmButton: 'custom-swal-confirm-btn',
+            cancelButton: 'custom-swal-cancel-btn'
+        },
+        width: '480px',
+        padding: '2rem'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                if (result.value.success) {
+                    this.showSuccessMessage(result.value.message || 'Password changed successfully!');
+                    this.resetData = {};
+                } else {
+                    this.showError(result.value.message || 'Failed to change password');
+                }
+            }
+        });
+    }
+
+    /**
+     * Show success message with enhanced UI
+     */
+    showSuccessMessage(message) {
+        Swal.fire({
+            title: '<div style="color: #27ae60; margin-bottom: 1rem;"><i class="fa fa-check-circle" style="font-size: 48px;"></i></div>',
+            html: `<div style="color: #2c3e50; font-size: 16px; font-weight: 600;">${message}</div>`,
+            icon: 'success',
+            confirmButtonColor: '#27ae60',
+            
+            timer: 3000,
+            showConfirmButton: true
+        });
+    }
+
+    /**
+     * Show error message with enhanced UI
+     */
+    showError(message) {
+        Swal.fire({
+            title: '<div style="color: #e74c3c; margin-bottom: 1rem;"><i class="fa fa-exclamation-circle" style="font-size: 48px;"></i></div>',
+            html: `<div style="color: #2c3e50; font-size: 16px;">${message}</div>`,
+            icon: 'error',
+            confirmButtonColor: '#e74c3c',
+            confirmButtonText: '<i class="fa fa-times" style="margin-right: 5px;"></i> OK'
+        });
     }
 
     /**
@@ -378,6 +567,13 @@ class ProfileManager {
      * Resend PIN
      */
     async resendPin() {
+        const resendBtn = document.getElementById('resendPinBtn');
+        const originalHtml = resendBtn.innerHTML;
+        
+        // Show loading state
+        resendBtn.innerHTML = '<i class="fa fa-spinner fa-spin" style="margin-right: 5px;"></i> Sending...';
+        resendBtn.disabled = true;
+    
         try {
             const response = await fetch('../../../app/Controllers/ProfileController.php?action=request_pin', {
                 method: 'POST',
@@ -386,7 +582,7 @@ class ProfileManager {
                     current_password: this.resetData.current_password
                 })
             });
-
+    
             const responseText = await response.text();
             let data;
             
@@ -396,13 +592,15 @@ class ProfileManager {
                 console.error('JSON parse error:', parseError);
                 throw new Error('Server returned invalid response');
             }
-
+    
             if (data.success) {
                 Swal.fire({
                     title: 'PIN Resent!',
                     text: 'A new PIN has been sent to your email.',
                     icon: 'success',
-                    confirmButtonText: 'OK'
+                    confirmButtonColor: '#3498db',
+                    timer: 2000,
+                    showConfirmButton: false
                 });
             } else {
                 this.showError(data.message || 'Failed to resend PIN');
@@ -410,20 +608,18 @@ class ProfileManager {
         } catch (error) {
             console.error('Error resending PIN:', error);
             this.showError('Failed to resend PIN: ' + error.message);
+        } finally {
+            // Restore button state
+            resendBtn.innerHTML = originalHtml;
+            resendBtn.disabled = false;
         }
     }
+    
 
     /**
      * Verify PIN and change password
      */
-    async verifyPin() {
-        const pinCode = document.getElementById('pinCode').value;
-
-        if (!pinCode || pinCode.length !== 6) {
-            this.showError('Please enter a valid 6-digit PIN');
-            return;
-        }
-
+    async verifyPin(pinCode) {
         try {
             const formData = new FormData();
             formData.append('csrf_token', this.csrfToken);
@@ -431,12 +627,12 @@ class ProfileManager {
             formData.append('current_password', this.resetData.current_password);
             formData.append('new_password', this.resetData.new_password);
             formData.append('confirm_password', this.resetData.confirm_password);
-
+    
             const response = await fetch('../../../app/Controllers/ProfileController.php?action=verify_pin_change_password', {
                 method: 'POST',
                 body: formData
             });
-
+    
             const responseText = await response.text();
             let data;
             
@@ -446,27 +642,14 @@ class ProfileManager {
                 console.error('JSON parse error:', parseError);
                 throw new Error('Server returned invalid response');
             }
-
-            if (data.success) {
-                Swal.fire({
-                    title: 'Success!',
-                    text: data.message || 'Password changed successfully',
-                    icon: 'success',
-                    confirmButtonText: 'OK'
-                }).then(() => {
-                    const modal = document.getElementById('pinVerificationModal');
-                    if (modal) modal.remove();
-                    // Clear stored data
-                    this.resetData = {};
-                });
-            } else {
-                this.showError(data.message || 'Failed to change password');
-            }
+    
+            return data;
         } catch (error) {
             console.error('Error verifying PIN:', error);
-            this.showError('Failed to verify PIN: ' + error.message);
+            throw new Error('Failed to verify PIN: ' + error.message);
         }
     }
+    
 
     /**
      * Handle logout
@@ -483,7 +666,7 @@ class ProfileManager {
             cancelButtonText: 'Cancel'
         }).then((result) => {
             if (result.isConfirmed) {
-                window.location.href = '../../../app/Controllers/LogoutController.php';
+                window.location.href = '../../../app/Controllers/AuthController.php?action=logout';
             }
         });
     }

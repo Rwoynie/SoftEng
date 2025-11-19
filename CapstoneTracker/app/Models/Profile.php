@@ -1,4 +1,5 @@
 <?php
+date_default_timezone_set('Asia/Manila');
 // Correct path for Database.php
 require_once __DIR__ . '/../../Database/config.php';
 
@@ -213,7 +214,19 @@ class Profile {
      */
     public function storePasswordChangePin($userId, $pin, $expiry) {
         try {
-            // First, clear any existing PIN for this user
+            error_log("=== PIN STORAGE DEBUG ===");
+            error_log("User ID: " . $userId);
+            error_log("PIN to store: '" . $pin . "'");
+            error_log("Original expiry: " . $expiry);
+            
+            // Get current database time and calculate expiry relative to it
+            $this->db->query("SELECT DATE_ADD(NOW(), INTERVAL 10 MINUTE) as db_expiry");
+            $dbExpiry = $this->db->singleAssoc();
+            $expiry = $dbExpiry['db_expiry'];
+            
+            error_log("Database-based expiry: " . $expiry);
+            
+            // First, clear any existing PINs for this user
             $this->clearPasswordChangePin($userId);
             
             $this->db->query("
@@ -223,7 +236,11 @@ class Profile {
             $this->db->bind(':user_id', $userId);
             $this->db->bind(':pin', $pin);
             $this->db->bind(':expiry', $expiry);
-            return $this->db->execute();
+            
+            $result = $this->db->execute();
+            error_log("Storage result: " . ($result ? "SUCCESS" : "FAILED"));
+            
+            return $result;
         } catch (Exception $e) {
             error_log("Error storing password change PIN: " . $e->getMessage());
             return false;
@@ -235,28 +252,80 @@ class Profile {
      */
     public function verifyPasswordChangePin($userId, $pin) {
         try {
+            error_log("=== PIN VERIFICATION DEBUG ===");
+            error_log("User ID: " . $userId);
+            error_log("Input PIN: '" . $pin . "'");
+            error_log("PIN length: " . strlen($pin));
+            
+            // First, clear any expired PINs
+            $this->clearExpiredPins();
+            
+            // Debug: Check what's actually in the database
+            error_log("--- Checking database for PINs ---");
+            $this->db->query("SELECT * FROM password_change_pins WHERE user_id = :user_id ORDER BY created_at DESC");
+            $this->db->bind(':user_id', $userId);
+            $allPins = $this->db->resultSetAssoc();
+            
+            if (empty($allPins)) {
+                error_log("No PINs found in database for user " . $userId);
+                return false;
+            }
+            
+            foreach ($allPins as $pinRecord) {
+                error_log("DB PIN: '" . $pinRecord['pin_code'] . "' | Expiry: " . $pinRecord['expiry_date'] . " | Used: " . $pinRecord['used']);
+                error_log("PIN comparison: '" . $pin . "' vs '" . $pinRecord['pin_code'] . "'");
+                error_log("Match: " . ($pin === $pinRecord['pin_code'] ? 'YES' : 'NO'));
+                error_log("Not expired: " . (strtotime($pinRecord['expiry_date']) > time() ? 'YES' : 'NO'));
+                error_log("Not used: " . ($pinRecord['used'] == 0 ? 'YES' : 'NO'));
+            }
+            
+            // Now try the actual verification query
+            error_log("--- Running verification query ---");
             $this->db->query("
-                SELECT id FROM password_change_pins 
+                SELECT id, user_id, pin_code, expiry_date, used 
+                FROM password_change_pins 
                 WHERE user_id = :user_id 
                 AND pin_code = :pin 
-                AND expiry_date > NOW()
                 AND used = 0
+                ORDER BY created_at DESC 
+                LIMIT 1
             ");
             $this->db->bind(':user_id', $userId);
             $this->db->bind(':pin', $pin);
             $result = $this->db->singleAssoc();
             
+            error_log("Query result: " . ($result ? "FOUND" : "NOT FOUND"));
+            
             if ($result) {
+                error_log("Valid PIN found! Marking as used...");
                 // Mark PIN as used
                 $this->db->query("UPDATE password_change_pins SET used = 1 WHERE id = :id");
                 $this->db->bind(':id', $result['id']);
-                $this->db->execute();
+                $updateResult = $this->db->execute();
+                error_log("PIN marked as used: " . ($updateResult ? "SUCCESS" : "FAILED"));
                 return true;
+            } else {
+                error_log("No valid PIN found matching all criteria");
+                return false;
             }
-            return false;
         } catch (Exception $e) {
             error_log("Error verifying password change PIN: " . $e->getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Clear expired PINs
+     */
+    private function clearExpiredPins() {
+        try {
+            $this->db->query("DELETE FROM password_change_pins WHERE expiry_date <= NOW()");
+            $deleted = $this->db->execute();
+            if ($deleted) {
+                error_log("Cleared expired PINs");
+            }
+        } catch (Exception $e) {
+            error_log("Error clearing expired PINs: " . $e->getMessage());
         }
     }
 

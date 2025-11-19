@@ -1,5 +1,7 @@
 
 <?php
+
+date_default_timezone_set('Asia/Manila');
 // Start session at the very beginning
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -27,7 +29,7 @@ try {
     // Correct file paths for your structure
     $configPath = __DIR__ . '/../../Database/config.php';
     $profileModelPath = __DIR__ . '/../Models/Profile.php';
-    $emailSenderPath = __DIR__ . '/EmailSender.php';
+    $emailSenderPath = __DIR__ . '/../Utils/EmailSender.php';
     
     // Check if files exist before requiring them
     if (!file_exists($configPath)) {
@@ -277,14 +279,31 @@ try {
                 return false;
             }
             
+            if (!$this->emailSender->mailerAvailable) {
+                error_log("Email sender reports SMTP not available");
+                return false;
+            }
+            
             $subject = "Password Change Verification PIN - Compendium System";
             $body = $this->getPinEmailBody($name, $pin);
             
             error_log("Attempting to send PIN email to: " . $email);
-            $result = $this->emailSender->sendHtmlEmail($email, $name, $subject, $body);
-            error_log("Email send result: " . ($result ? 'SUCCESS' : 'FAILED'));
+            error_log("PIN: " . $pin);
+            error_log("Subject: " . $subject);
             
-            return $result;
+            try {
+                $result = $this->emailSender->sendHtmlEmail($email, $name, $subject, $body);
+                error_log("Email send result: " . ($result ? 'SUCCESS' : 'FAILED'));
+                
+                if (!$result) {
+                    error_log("Email sending failed for: " . $email);
+                }
+                
+                return $result;
+            } catch (Exception $e) {
+                error_log("Exception in sendPinEmail: " . $e->getMessage());
+                return false;
+            }
         }
         
         /**

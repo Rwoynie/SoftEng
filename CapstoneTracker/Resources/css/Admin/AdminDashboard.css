@@ -6095,3 +6095,113 @@ background: #f8f9fa;
         font-size: 36px;
     }
 }
+
+/* SweetAlert Custom Styles */
+.custom-swal-popup {
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e1e8ed;
+}
+
+.custom-swal-title {
+    font-size: 1.5rem !important;
+    font-weight: 600 !important;
+}
+
+.custom-swal-confirm-btn {
+    border-radius: 8px !important;
+    padding: 12px 24px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+}
+
+.custom-swal-confirm-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.custom-swal-cancel-btn {
+    border-radius: 8px !important;
+    padding: 12px 24px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+}
+
+.custom-swal-cancel-btn:hover {
+    background-color: #f8f9fa !important;
+    transform: translateY(-1px);
+}
+
+/* Form input animations */
+.swal2-input:focus {
+    border-color: #3498db !important;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1) !important;
+}
+
+/* Loading animation */
+.swal2-loader {
+    border-color: #3498db transparent #3498db transparent !important;
+}
+
+/* Success icon animation */
+.swal2-success-circular-line {
+    animation: success-anim 0.5s ease-in-out;
+}
+
+@keyframes success-anim {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Password Toggle Styles */
+.toggle-password {
+    transition: all 0.3s ease !important;
+    border-radius: 4px !important;
+}
+
+.toggle-password:hover {
+    background-color: #f8f9fa !important;
+    transform: scale(1.1);
+}
+
+.toggle-password:active {
+    transform: scale(0.95);
+}
+
+/* Password input with toggle */
+.password-input-container {
+    position: relative;
+}
+
+.password-input-container input {
+    padding-right: 45px !important;
+}
+
+/* SweetAlert input focus with toggle */
+.swal2-input:focus {
+    border-color: #3498db !important;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1) !important;
+}
+
+/* Animation for eye icon */
+.fa-eye, .fa-eye-slash {
+    transition: transform 0.3s ease;
+}
+
+.toggle-password:hover .fa-eye,
+.toggle-password:hover .fa-eye-slash {
+    transform: scale(1.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+    .password-input-container input {
+        padding-right: 40px !important;
+    }
+    
+    .toggle-password {
+        right: 8px !important;
+        padding: 2px !important;
+    }
+}
