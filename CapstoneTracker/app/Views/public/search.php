@@ -33,20 +33,13 @@ $page = max(1, intval($_POST['page'] ?? 1));
 $limit = 8;
 $offset = ($page - 1) * $limit;
 
-$departmentFilter = ($department !== 'all') ? $department : 'all';
 
-if (!empty($query) || $department !== 'all') {
-    $results = $model->searchThesis($query, $departmentFilter, $sort, $limit, $offset);
-    $total = $model->getSearchCount($query, $departmentFilter);
-    $totalPapers = $total;
-    $totalPages = ceil($total / $limit);
-    $currentPage = $page;
-} else {
-    $results = [];
-    $totalPapers = 0;
-    $totalPages = 1;
-    $currentPage = 1;
-}
+
+$results = $model->searchThesis($query, $department, $sort, $limit, $offset);
+$total = $model->getSearchCount($query, $department);
+$totalPapers = $total;
+$totalPages = ceil($total / $limit);
+$currentPage = $page;
 
 $data = [
     'query' => $query,
