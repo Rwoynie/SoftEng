@@ -3634,74 +3634,112 @@ function filterThesesByDepartment(departmentValue) {
     }
 }
 
-    let inactivityTime = function() {
-        let time;
-        
-        const resetTimer = function() {
-            clearTimeout(time);
-            time = setTimeout(() => {
-                Swal.fire({
-                    title: 'Session Expired',
-                    text: 'Your session has expired due to inactivity. You will be redirected to the login page.',
-                    icon: 'warning',
-                    confirmButtonText: 'OK',
-                    allowOutsideClick: false,
-                    allowEscapeKey: false
-                }).then(() => {
-                    window.location.href = '../User/indexLogin.php';
-                });
-            }, 600000);
-        };
-        
-        window.onload = resetTimer;
-        document.onmousemove = resetTimer;
-        document.onkeypress = resetTimer;
-        document.onclick = resetTimer;
-        document.onscroll = resetTimer;
-        document.onmousedown = resetTimer;
-        document.ontouchstart = resetTimer;
-        
-        resetTimer();
-    };
-    
-    inactivityTime();
-    
-    let warningTime;
-    const setWarningTimer = function() {
-        clearTimeout(warningTime);
-        warningTime = setTimeout(() => {
+    // System Lock Functionality
+function initializeSystemLock() {
+    const lockOption = document.createElement('div');
+    lockOption.className = 'menu-item';
+    lockOption.id = 'systemLockOption';
+    lockOption.innerHTML = `
+        <i class="fas fa-lock"></i>
+        <span>Lock System</span>
+    `;
+
+    // Add lock option to logout menu
+    const colorSchemeToggle = document.getElementById('colorSchemeToggle');
+    if (colorSchemeToggle && colorSchemeToggle.parentNode) {
+        colorSchemeToggle.parentNode.insertBefore(lockOption, colorSchemeToggle.nextSibling);
+    }
+
+    // Add event listener for lock option
+    lockOption.addEventListener('click', function() {
+        lockSystem();
+    });
+}
+
+async function lockSystem() {
+    try {
+        const result = await Swal.fire({
+            title: 'Lock System?',
+            text: 'The system will be locked and require your password to unlock.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#119220ff',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, lock system!',
+            cancelButtonText: 'Cancel'
+        });
+
+        if (result.isConfirmed) {
+            // Show loading
             Swal.fire({
-                title: 'Session About to Expire',
-                text: 'Your session will expire in 1 minute due to inactivity. Press Button to continue.',
-                icon: 'info',
-                timer: 60000, 
-                timerProgressBar: true,
-                showConfirmButton: true,
-                confirmButtonText: 'Continue Session',
+                title: 'Locking System...',
+                text: 'Please wait while we secure the system.',
                 allowOutsideClick: false,
-                allowEscapeKey: false
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    inactivityTime();
-                    setWarningTimer();
+                didOpen: () => {
+                    Swal.showLoading();
                 }
             });
-        }, 540000);
-    };
-    
-    setWarningTimer();
-    
-    const resetWarningTimer = function() {
-        setWarningTimer();
-    };
-    
-    document.addEventListener('mousemove', resetWarningTimer);
-    document.addEventListener('keypress', resetWarningTimer);
-    document.addEventListener('click', resetWarningTimer);
 
-    //testinggggg
+            // Create form data for the request
+            const formData = new FormData();
+            formData.append('csrf_token', getCsrfToken());
 
-    console.log('Session timeout set to 20 seconds. Warning at 10 seconds.');
+            // Send lock request to server
+            const response = await fetch('../../../app/Controllers/AdminController.php?action=lockSystem', {
+                method: 'POST',
+                body: formData
+            });
+
+            // Check if response is OK
+            if (!response.ok) {
+                throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+            }
+
+            // Get response text first to debug
+            const responseText = await response.text();
+            console.log('Raw response:', responseText);
+
+            let data;
+            try {
+                // Try to parse as JSON
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('JSON parse error:', parseError);
+                // If JSON parsing fails, check if it's a simple success
+                if (responseText.includes('success') || responseText.trim() === '') {
+                    // Assume success if we can't parse but got a response
+                    data = { success: true, message: 'System locked successfully' };
+                } else {
+                    throw new Error('Invalid server response format');
+                }
+            }
+
+            if (data.success) {
+                Swal.fire({
+                    title: 'System Locked!',
+                    text: data.message || 'The system has been locked successfully.',
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    // Redirect to lock screen
+                    window.location.href = 'AdminLockScreen.php';
+                });
+            } else {
+                throw new Error(data.error || 'Failed to lock system');
+            }
+        }
+    } catch (error) {
+        console.error('Error locking system:', error);
+        Swal.fire({
+            title: 'Lock Failed',
+            text: error.message || 'Failed to lock system. Please try again.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+initializeSystemLock();
 
 
     const moreOptionsToggle = document.getElementById('moreOptionsToggle');

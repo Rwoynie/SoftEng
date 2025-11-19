@@ -3,46 +3,25 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
 
-// AdminDashboard.php - At the VERY TOP of the file
 require_once '../../../Database/config.php';
 require_once '../../../app/Controllers/AdminDashboardController.php';
 require_once '../../../app/Models/Thesis.php';
 require_once '../../../app/Controllers/RolesController.php';
 require_once '../../../app/Controllers/BackupController.php';
 
+// Start session
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$session_timeout = 10 * 60; 
-
-if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > $session_timeout)) {
-
-    $session_expired = true;
-    
-  
-    session_unset();
-    session_destroy();
-    session_write_close();
-    
-   
-    if (ini_get("session.use_cookies")) {
-        $params = session_get_cookie_params();
-        setcookie(session_name(), '', time() - 42000,
-            $params["path"], $params["domain"],
-            $params["secure"], $params["httponly"]
-        );
-    }
-    
-   
-    session_start();
-    $_SESSION['session_expired'] = true;
-    session_write_close();
-    
-    header('Location: ../User/indexLogin.php');
-    exit();
+if (!isset($_SESSION['system_locked'])) {
+    $_SESSION['system_locked'] = false;
 }
 
+if ($_SESSION['system_locked'] === true && basename($_SERVER['PHP_SELF']) !== 'AdminLockScreen.php') {
+    header('Location: AdminLockScreen.php');
+    exit();
+}
 
 $_SESSION['LAST_ACTIVITY'] = time();
 
@@ -63,12 +42,9 @@ try {
         $theses->is_recent = $interval->days <= 7;
     }
 } catch (Exception $e) {
-    // error_log("Error loading theses: " . $e->getMessage()); // Removed
     $thesis = [];
 }
 
-// Department Manager Class for handling department counts
-// Updated Department Manager Class for handling department counts
 class DepartmentManager
 {
     private $departments = [];

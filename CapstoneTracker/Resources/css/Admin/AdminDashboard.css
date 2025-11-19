@@ -5645,6 +5645,20 @@ background: #f8f9fa;
     background: var(--primary-color-dark);
 }
 
+#systemLockOption {
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#systemLockOption:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+#systemLockOption i {
+    color: #ff6b6b;
+}
+
+
 @media (max-width: 1400px) {
     .reports-card .access-list {
         grid-template-columns: repeat(3, 1fr);
