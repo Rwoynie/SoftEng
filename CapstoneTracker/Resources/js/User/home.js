@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeEventListeners();
     initializeAnnouncementModals();
     initializeProgramClicks(); 
+     initializePolicyModals();
 
     
     // Initialize search page if we're on search page
@@ -1121,3 +1122,89 @@ function initializeProgramClicks() {
         });
     });
 }
+
+// Modal Functions
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    
+    // Trigger animations
+    setTimeout(() => {
+        const modalContent = modal.querySelector('.premium-modal-content');
+        const backdrop = modal.querySelector('.premium-modal-backdrop');
+        
+        modalContent.style.animation = 'premiumModalIn 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+        backdrop.style.animation = 'premiumBackdropIn 0.4s ease';
+    }, 50);
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    
+    const modalContent = modal.querySelector('.premium-modal-content');
+    const backdrop = modal.querySelector('.premium-modal-backdrop');
+    
+    // Add closing animations
+    modalContent.style.animation = 'premiumModalIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) reverse';
+    backdrop.style.animation = 'premiumBackdropIn 0.3s ease reverse';
+    
+    setTimeout(() => {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        
+        // Reset animations
+        modalContent.style.animation = '';
+        backdrop.style.animation = '';
+    }, 250);
+}
+
+// Template download function
+function downloadTemplate(templateType) {
+    // In a real implementation, this would link to actual template files
+    alert(`Downloading ${templateType} template. In a real implementation, this would download the actual file.`);
+}
+
+// Citation copy function
+function copyCitation() {
+    const citationText = document.getElementById('citationExample').textContent;
+    
+    navigator.clipboard.writeText(citationText).then(() => {
+        alert('Citation copied to clipboard!');
+    }).catch(err => {
+        console.error('Failed to copy citation: ', err);
+        alert('Failed to copy citation. Please select and copy the text manually.');
+    });
+}
+
+// Schedule appointment function
+function scheduleAppointment() {
+    alert('In a real implementation, this would open a scheduling system. For now, please contact support directly to schedule an appointment.');
+}
+
+// Initialize modal event listeners
+function initializePolicyModals() {
+    // Close modals with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const openModals = document.querySelectorAll('.premium-modal[style*="display: block"]');
+            openModals.forEach(modal => {
+                closeModal(modal.id);
+            });
+        }
+    });
+    
+    // Close modals when clicking outside content
+    document.querySelectorAll('.premium-modal-backdrop').forEach(backdrop => {
+        backdrop.addEventListener('click', function() {
+            const modal = this.closest('.premium-modal');
+            if (modal) {
+                closeModal(modal.id);
+            }
+        });
+    });
+}
+
