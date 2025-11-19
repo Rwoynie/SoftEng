@@ -35,7 +35,7 @@
                 Department VARCHAR(255) NOT NULL,
                 Course VARCHAR(255) NOT NULL,   
                 
-                Profile_Pic BLOB,
+                Profile_Pic LONGBLOB,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX (Email),
