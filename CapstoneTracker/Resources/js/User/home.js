@@ -1055,12 +1055,12 @@ function initializeProgramClicks() {
     
     programCards.forEach(card => {
         card.addEventListener('click', function(e) {
-            // Don't trigger if clicking on carousel controls or indicators
             if (e.target.closest('.carousel-control') || e.target.closest('.carousel-indicators')) {
                 return;
             }
             
             const programCode = this.getAttribute('data-program-code').trim();
+            console.log('Clicked program code:', programCode); 
 
             const reverseCourseMap = {
                 'SITS': 'BSIT',
@@ -1072,9 +1072,10 @@ function initializeProgramClicks() {
                 'AFSET': 'BSED'
             };
 
+     
             const departmentCode = reverseCourseMap[programCode] || programCode || 'all';
+            console.log('Mapped department code:', departmentCode);
 
-            // Create hidden form and submit to search.php with correct department filter
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = 'search.php';
@@ -1104,13 +1105,16 @@ function initializeProgramClicks() {
             form.appendChild(pageInput);
 
             document.body.appendChild(form);
+            console.log('Submitting form with department:', departmentCode); 
             form.submit();
         });
         
-        // Add hover effect and pointer cursor
+    
         card.style.cursor = 'pointer';
         card.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-8px) scale(1.02)';
+            if (!this.style.transform || !this.style.transform.includes('scale')) {
+                this.style.transform = 'translateY(-8px) scale(1.02)';
+            }
         });
         card.addEventListener('mouseleave', function() {
             this.style.transform = 'translateY(0) scale(1)';

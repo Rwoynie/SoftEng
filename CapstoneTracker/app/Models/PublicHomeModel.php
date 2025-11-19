@@ -109,14 +109,19 @@ class PublicHomeModel {
                     ELSE '../../../resources/images/usep-logo-small.png'
                 END as logo
             FROM thesis t
-            WHERE (t.Title LIKE :query 
+            WHERE 1=1
+        ";
+        
+        // Add search condition only if query is not empty
+        if (!empty($query)) {
+            $sql .= " AND (t.Title LIKE :query 
                OR t.Author LIKE :query 
                OR t.Adviser LIKE :query 
                OR t.Thesis_AbstractFile LIKE :query
-               OR t.Thesis_Course LIKE :query)
-        ";
+               OR t.Thesis_Course LIKE :query)";
+        }
         
-        // Add department filter if specified
+        // Add department filter if specified and not 'all'
         if ($department !== 'all') {
             // Map short codes to actual database patterns
             $coursePatterns = [
@@ -155,7 +160,11 @@ class PublicHomeModel {
         $sql .= " LIMIT :limit OFFSET :offset";
 
         $this->db->query($sql);
-        $this->db->bind(':query', "%$query%");
+        
+        // Bind search parameter only if query is not empty
+        if (!empty($query)) {
+            $this->db->bind(':query', "%$query%");
+        }
         
         // Bind department patterns if filtering
         if ($department !== 'all' && isset($coursePatterns[$department])) {
@@ -408,12 +417,16 @@ public function getSearchCount($query, $department = 'all') {
         $sql = "
             SELECT COUNT(*) as total
             FROM thesis t
-            WHERE (t.Title LIKE :query 
+            WHERE 1=1
+        ";
+        
+        if (!empty($query)) {
+            $sql .= " AND (t.Title LIKE :query 
                OR t.Author LIKE :query 
                OR t.Adviser LIKE :query 
                OR t.Thesis_AbstractFile LIKE :query
-               OR t.Thesis_Course LIKE :query)
-        ";
+               OR t.Thesis_Course LIKE :query)";
+        }
         
         if ($department !== 'all') {
             $coursePatterns = [
@@ -437,7 +450,10 @@ public function getSearchCount($query, $department = 'all') {
         }
 
         $this->db->query($sql);
-        $this->db->bind(':query', "%$query%");
+        
+        if (!empty($query)) {
+            $this->db->bind(':query', "%$query%");
+        }
         
         if ($department !== 'all' && isset($coursePatterns[$department])) {
             $patterns = $coursePatterns[$department];

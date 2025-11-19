@@ -4665,7 +4665,6 @@ function initializeBackupHandlers() {
                 confirmButtonText: 'Restore',
                 cancelButtonText: 'Cancel',
                 preConfirm: () => {
-                    // Handle file upload and restoration here
                     return new Promise((resolve) => {
                         setTimeout(() => {
                             resolve();

@@ -317,48 +317,64 @@ $nonPinnedAnnouncements = array_filter($announcements, function($ann) {
 </div>
 
       <!-- Programs Carousel -->
+
         <section class="program-logos-section">
-          <div class="section-header">
-            <h2>Programs</h2>
-          </div>
-          
-          <div class="logo-carousel">
-            <button class="carousel-control prev">
-              <i class="fas fa-chevron-left"></i>
-            </button>
-            <div class="carousel-container">
-              <div class="logo-cards">
-                <?php if (!empty($programs)): ?>
-                  <?php foreach ($programs as $program): ?>
-                    <div class="logo-card" data-program-code="<?php echo htmlspecialchars($program['code'] ?? ''); ?>">
-                      <img src="<?php echo htmlspecialchars($program['image']); ?>" alt="<?php echo htmlspecialchars($program['name']); ?>">
-                      <div class="card-content">
-                        <h3><?php echo htmlspecialchars($program['name']); ?></h3>
-                        <p><?php echo htmlspecialchars($program['meaning']); ?></p>
-                      </div>
-                    </div>
-                  <?php endforeach; ?>
-                <?php else: ?>
-                  <div class="logo-card empty-state">
-                    <div class="card-content">
-                      <h3>No Programs Available</h3>
-                      <p>Check back later.</p>
-                    </div>
-                  </div>
-                <?php endif; ?>
-              </div>
+            <div class="section-header">
+                <h2>Programs</h2>
             </div>
-            <button class="carousel-control next">
-              <i class="fas fa-chevron-right"></i>
-            </button>
-            <div class="carousel-indicators">
-              <?php if (!empty($programs)): ?>
-                <?php for ($i = 0; $i < count($programs); $i++): ?>
-                  <div class="indicator <?php echo $i === 0 ? 'active' : ''; ?>" data-index="<?php echo $i; ?>"></div>
-                <?php endfor; ?>
-              <?php endif; ?>
+            
+            <div class="logo-carousel">
+                <button class="carousel-control prev">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="carousel-container">
+                    <div class="logo-cards">
+                        <?php if (!empty($programs)): ?>
+                            <?php foreach ($programs as $program): ?>
+                                <?php 
+                               
+                                $programCodeMap = [
+                                    'SITS' => 'SITS',
+                                    'AECES' => 'AECES', 
+                                    'AFSET' => 'AFSET',
+                                    'FTVETS' => 'FTVETS',
+                                    'OFEE' => 'OFEE',
+                                    'OFSET' => 'OFSET',
+                                    'SABES' => 'SABES'
+                                ];
+                                
+                                $programName = $program['name'] ?? '';
+                                $programCode = $programCodeMap[$programName] ?? $programName;
+                                ?>
+                                <div class="logo-card" data-program-code="<?php echo htmlspecialchars($programCode); ?>">
+                                    <img src="<?php echo htmlspecialchars($program['image']); ?>" alt="<?php echo htmlspecialchars($program['name']); ?>">
+                                    <div class="card-content">
+                                        <h3><?php echo htmlspecialchars($program['name']); ?></h3>
+                                        <p><?php echo htmlspecialchars($program['meaning']); ?></p>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="logo-card empty-state">
+                                <div class="card-content">
+                                    <h3>No Programs Available</h3>
+                                    <p>Check back later.</p>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <button class="carousel-control next">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                <div class="carousel-indicators">
+                    <?php if (!empty($programs)): ?>
+                        <?php for ($i = 0; $i < count($programs); $i++): ?>
+                            <div class="indicator <?php echo $i === 0 ? 'active' : ''; ?>" data-index="<?php echo $i; ?>"></div>
+                        <?php endfor; ?>
+                    <?php endif; ?>
+                </div>
             </div>
-          </div>
         </section>
 
       <!-- Call to Action -->
