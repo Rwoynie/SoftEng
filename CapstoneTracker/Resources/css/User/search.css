@@ -92,6 +92,13 @@
     border-radius: 8px;
 }
 
+.card-icons {
+    display: ruby;
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: center;
+}
+
 .department-badge {
     background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
     color: white;

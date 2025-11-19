@@ -233,19 +233,20 @@
                        @current_user_id);
             END;",
 
+           
             "CREATE TRIGGER audit_thesis_uploads
             AFTER INSERT ON THESIS
             FOR EACH ROW
             BEGIN
                 INSERT INTO AUDIT_LOGS (table_name, record_id, action, new_values, user_id)
                 VALUES ('THESIS', NEW.ID, 'INSERT', 
-                       JSON_OBJECT('Title', NEW.Title, 'Author', NEW.Author, 'Thesis_Department', NEW.Thesis_Department),
-                       NEW.User_ID);
+                    JSON_OBJECT('Title', NEW.Title, 'Author', NEW.Author, 'Thesis_Course', NEW.Thesis_Course),
+                    NEW.User_ID);
                 
                 INSERT INTO NOTIFICATIONS (user_id, type, title, message, related_id)
                 SELECT ID, 'thesis_upload', 'New Thesis Uploaded', 
-                       CONCAT('A new thesis \"', NEW.Title, '\" has been uploaded by ', NEW.Author),
-                       NEW.ID
+                    CONCAT('A new thesis \"', NEW.Title, '\" has been uploaded by ', NEW.Author),
+                    NEW.ID
                 FROM USER_INFORMATION 
                 WHERE User_Role IN ('admin', 'superAdmin') AND Acc_Status = 'approved';
             END;",

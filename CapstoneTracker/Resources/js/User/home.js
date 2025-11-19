@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeCarousels();
     initializeEventListeners();
     initializeAnnouncementModals();
+    initializeProgramClicks(); 
+
     
     // Initialize search page if we're on search page
     if (document.getElementById('results-page')) {
@@ -1046,3 +1048,72 @@ window.addEventListener('beforeunload', () => {
     });
     carouselInstances = [];
 });
+
+
+function initializeProgramClicks() {
+    const programCards = document.querySelectorAll('.logo-card[data-program-code]');
+    
+    programCards.forEach(card => {
+        card.addEventListener('click', function(e) {
+            // Don't trigger if clicking on carousel controls or indicators
+            if (e.target.closest('.carousel-control') || e.target.closest('.carousel-indicators')) {
+                return;
+            }
+            
+            const programCode = this.getAttribute('data-program-code').trim();
+
+            const reverseCourseMap = {
+                'SITS': 'BSIT',
+                'SABES': 'BSABE',
+                'AECES': 'BECED',
+                'OFSET': 'BSNED',
+                'FTVETS': 'BTVTED',
+                'OFEE': 'BEED',
+                'AFSET': 'BSED'
+            };
+
+            const departmentCode = reverseCourseMap[programCode] || programCode || 'all';
+
+            // Create hidden form and submit to search.php with correct department filter
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'search.php';
+
+            const queryInput = document.createElement('input');
+            queryInput.type = 'hidden';
+            queryInput.name = 'query';
+            queryInput.value = '';
+            form.appendChild(queryInput);
+
+            const deptInput = document.createElement('input');
+            deptInput.type = 'hidden';
+            deptInput.name = 'department';
+            deptInput.value = departmentCode; 
+            form.appendChild(deptInput);
+
+            const sortInput = document.createElement('input');
+            sortInput.type = 'hidden';
+            sortInput.name = 'sort';
+            sortInput.value = 'recent';
+            form.appendChild(sortInput);
+
+            const pageInput = document.createElement('input');
+            pageInput.type = 'hidden';
+            pageInput.name = 'page';
+            pageInput.value = '1';
+            form.appendChild(pageInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        });
+        
+        // Add hover effect and pointer cursor
+        card.style.cursor = 'pointer';
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-8px) scale(1.02)';
+        });
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+        });
+    });
+}
