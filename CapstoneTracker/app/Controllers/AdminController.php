@@ -377,20 +377,139 @@ class AdminController extends Controller {
         return in_array($email, $authorizedAdmins);
     }
 
+        public function lockSystem() {
+        try {
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            
+            if (!$this->isLoggedIn() || !$this->isAdmin()) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Unauthorized access'
+                ]);
+                exit;
+            }
+            
+            $_SESSION['system_locked'] = true;
+            
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'System locked successfully'
+            ]);
+            exit;
+            
+        } catch (Exception $e) {
+            error_log("Error locking system: " . $e->getMessage());
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'error' => 'Error locking system: ' . $e->getMessage()
+            ]);
+            exit;
+        }
+    }
+
+    /**
+     * Verify admin password for system unlock
+     */
+    public function verifyAdminPassword($user_id, $password) {
+        try {
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            
+            error_log("=== PASSWORD VERIFICATION DEBUG ===");
+            error_log("User ID: " . $user_id);
+            error_log("Password received: " . (!empty($password) ? "SET" : "EMPTY"));
+            error_log("Session user_id: " . ($_SESSION['user_id'] ?? 'NOT SET'));
+            error_log("Session user_name: " . ($_SESSION['user_name'] ?? 'NOT SET'));
+            
+            if (empty($user_id) || empty($password)) {
+                error_log("ERROR: User ID or password empty");
+                return [
+                    'success' => false,
+                    'error' => 'User ID and password are required'
+                ];
+            }
+            
+            require_once 'C:\xampp1\php\SoftEng\CapstoneTracker\app\Models\User.php';
+            $userModel = new User();
+            
+            $user = $userModel->getUserById($user_id);
+            
+            if (!$user) {
+                error_log("ERROR: User not found with ID: " . $user_id);
+                return [
+                    'success' => false,
+                    'error' => 'User not found'
+                ];
+            }
+            
+            error_log("User found - ID: " . ($user->ID ?? 'NOT SET'));
+            error_log("User found - Email: " . ($user->Email ?? 'NOT SET'));
+            error_log("User Role: " . ($user->User_Role ?? 'NOT SET'));
+            error_log("Stored password hash: " . ($user->pswrd ?? 'NOT SET'));
+            error_log("Stored password hash length: " . strlen($user->pswrd ?? ''));
+            
+            if (empty($user->pswrd)) {
+                error_log("ERROR: Password field is empty in database");
+                return [
+                    'success' => false,
+                    'error' => 'Password not set in database'
+                ];
+            }
+            
+            error_log("Plain text password for verification: " . $password);
+            
+            $passwordVerified = password_verify($password . $user->Salt, $user->pswrd);
+            error_log("Password verify result: " . ($passwordVerified ? 'TRUE' : 'FALSE'));
+            
+            if ($passwordVerified) {
+                $_SESSION['system_locked'] = false;
+                
+                error_log("SUCCESS: Password verified - System unlocked for user ID: " . $user_id);
+                
+                return [
+                    'success' => true,
+                    'message' => 'Password verified successfully'
+                ];
+            } else {
+                error_log("FAILED: Password verification failed for user ID: " . $user_id);
+                
+                error_log("Password hash in DB: " . $user->pswrd);
+                error_log("Input password: " . $password);
+                error_log("Hash length: " . strlen($user->pswrd));
+                error_log("Hash prefix: " . substr($user->pswrd, 0, 7));
+                
+                return [
+                    'success' => false,
+                    'error' => 'Invalid password'
+                ];
+            }
+        } catch (Exception $e) {
+            error_log("ERROR in verifyAdminPassword: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            return [
+                'success' => false,
+                'error' => 'Error verifying password: ' . $e->getMessage()
+            ];
+        }
+    }
+
     public function dashboard() {
-        // Start session if not already started
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
         
-        // Check if user is logged in and is admin
         if (!$this->isLoggedIn() || !$this->isAdmin()) {
             $this->redirectWithError('Access denied. Admin privileges required.');
             return;
         }
         
 
-        // Prepare COMPLETE data array with ALL session values
         $data = [
             'user_id' => $_SESSION['user_id'] ?? null,
             'user_db_id' => $_SESSION['user_db_id'] ?? null, 
@@ -503,5 +622,58 @@ if ($action === 'login') {
     $adminController->logout();
 } elseif ($action === 'adminGoogleLogin') {
     $adminController->adminGoogleLogin();
+} elseif ($action === 'lockSystem') {
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    ob_start();
+    
+    try {
+        $adminController->lockSystem();
+    } catch (Exception $e) {
+        ob_clean();
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'error' => $e->getMessage()
+        ]);
+        exit;
+    } finally {
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+    }
+} elseif ($action === 'verifyAdminPassword') {
+    if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        ob_start();
+
+        try {
+            $user_id  = $_SESSION['user_id'];           
+            $password = $_POST['password'] ?? '';     
+
+            if (empty($user_id) || empty($password)) {
+                throw new Exception('User ID and password are required');
+            }
+
+            $result = $adminController->verifyAdminPassword($user_id, $password);
+
+            ob_clean();
+            header('Content-Type: application/json');
+            echo json_encode($result);
+            exit;
+
+        } catch (Exception $e) {
+            ob_clean();
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]);
+            exit;
+        }
+    }
 }
 ?>
