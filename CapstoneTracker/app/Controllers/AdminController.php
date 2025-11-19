@@ -412,7 +412,7 @@ class AdminController extends Controller {
         }
     }
 
-    /**
+      /**
      * Verify admin password for system unlock
      */
     public function verifyAdminPassword($user_id, $password) {
@@ -420,82 +420,44 @@ class AdminController extends Controller {
             if (session_status() === PHP_SESSION_NONE) {
                 session_start();
             }
-            
-            error_log("=== PASSWORD VERIFICATION DEBUG ===");
-            error_log("User ID: " . $user_id);
-            error_log("Password received: " . (!empty($password) ? "SET" : "EMPTY"));
-            error_log("Session user_id: " . ($_SESSION['user_id'] ?? 'NOT SET'));
-            error_log("Session user_name: " . ($_SESSION['user_name'] ?? 'NOT SET'));
-            
+
+            // Optional minimal logging (remove or comment in production if you want silence)
+            error_log("Unlock attempt for User ID (auto-inc): {$user_id}");
+
             if (empty($user_id) || empty($password)) {
-                error_log("ERROR: User ID or password empty");
-                return [
-                    'success' => false,
-                    'error' => 'User ID and password are required'
-                ];
+                return ['success' => false, 'error' => 'Missing credentials'];
             }
-            
-            require_once 'C:\xampp1\php\SoftEng\CapstoneTracker\app\Models\User.php';
+
+            // Use relative path – works on every machine
+            require_once __DIR__ . '/../Models/User.php';
             $userModel = new User();
-            
+
             $user = $userModel->getUserById($user_id);
-            
+
             if (!$user) {
-                error_log("ERROR: User not found with ID: " . $user_id);
-                return [
-                    'success' => false,
-                    'error' => 'User not found'
-                ];
+                error_log("Unlock failed – user not found (ID: {$user_id})");
+                return ['success' => false, 'error' => 'User not found'];
             }
-            
-            error_log("User found - ID: " . ($user->ID ?? 'NOT SET'));
-            error_log("User found - Email: " . ($user->Email ?? 'NOT SET'));
-            error_log("User Role: " . ($user->User_Role ?? 'NOT SET'));
-            error_log("Stored password hash: " . ($user->pswrd ?? 'NOT SET'));
-            error_log("Stored password hash length: " . strlen($user->pswrd ?? ''));
-            
-            if (empty($user->pswrd)) {
-                error_log("ERROR: Password field is empty in database");
-                return [
-                    'success' => false,
-                    'error' => 'Password not set in database'
-                ];
+
+            // Critical fixes: correct column names + salt concatenation
+            if (empty($user->pswrd) || empty($user->Salt)) {
+                return ['success' => false, 'error' => 'Password not configured'];
             }
-            
-            error_log("Plain text password for verification: " . $password);
-            
-            $passwordVerified = password_verify($password . $user->Salt, $user->pswrd);
-            error_log("Password verify result: " . ($passwordVerified ? 'TRUE' : 'FALSE'));
-            
-            if ($passwordVerified) {
+
+            $verified = password_verify($password . $user->Salt, $user->pswrd);
+
+            if ($verified) {
                 $_SESSION['system_locked'] = false;
-                
-                error_log("SUCCESS: Password verified - System unlocked for user ID: " . $user_id);
-                
-                return [
-                    'success' => true,
-                    'message' => 'Password verified successfully'
-                ];
+                error_log("System unlocked successfully for {$_SESSION['user_name']}");
+                return ['success' => true, 'message' => 'System unlocked'];
             } else {
-                error_log("FAILED: Password verification failed for user ID: " . $user_id);
-                
-                error_log("Password hash in DB: " . $user->pswrd);
-                error_log("Input password: " . $password);
-                error_log("Hash length: " . strlen($user->pswrd));
-                error_log("Hash prefix: " . substr($user->pswrd, 0, 7));
-                
-                return [
-                    'success' => false,
-                    'error' => 'Invalid password'
-                ];
+                error_log("Unlock failed – wrong password for {$_SESSION['user_name']}");
+                return ['success' => false, 'error' => 'Invalid password'];
             }
+
         } catch (Exception $e) {
-            error_log("ERROR in verifyAdminPassword: " . $e->getMessage());
-            error_log("Stack trace: " . $e->getTraceAsString());
-            return [
-                'success' => false,
-                'error' => 'Error verifying password: ' . $e->getMessage()
-            ];
+            error_log("verifyAdminPassword exception: " . $e->getMessage());
+            return ['success' => false, 'error' => 'Server error'];
         }
     }
 
