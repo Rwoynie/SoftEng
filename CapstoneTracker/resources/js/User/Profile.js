@@ -80,7 +80,7 @@ class ProfileManager {
         this.setElementValue('FullName', profileData.Full_Name || 'N/A');
         this.setElementValue('email', profileData.Email || 'N/A');
         this.setElementValue('userID', profileData.User_ID || 'N/A');
-        
+        this.setElementValue('roleHeader', profileData.role_display || 'N/A');
         this.setElementValue('course', profileData.Course || 'N/A');
         this.setElementValue('department', profileData.Department || 'N/A');
     
@@ -143,7 +143,7 @@ class ProfileManager {
         }
 
         if (profileTitle) {
-            profileTitle.textContent = `${profileData.role_display || 'User'} • ${profileData.Department || 'Unknown Department'}`;
+            profileTitle.textContent = `${profileData.role_display || 'User'}`;
         }
     }
 

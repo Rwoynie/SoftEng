@@ -29,6 +29,15 @@ try {
     $db = new Database();
     $thesisModel = new Thesis($db);
     $thesis = $thesisModel->getAllTheses();
+
+    // Get user role
+    $userId = $_SESSION['user_id'];
+    $rolesController = new RolesController($db);
+    $userRole = $rolesController->getUserRole($userId);
+    
+    // Determine if user is student
+    $isStudent = ($userRole === 'student'); // Adjust based on your role names
+    
     
     // Debug: Check if we got any data
     echo "<!-- Debug: Found " . count($thesis) . " theses -->";
@@ -154,6 +163,7 @@ $departmentManager->addDepartment('bsabe', 'BSABE | SABES', [
 $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science in Information Technology']);
 // Start session
 
+$isStudent = true;
 
 
 ?>
@@ -217,7 +227,7 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
                     </div>
                     <div class="profile-info">
                         <h2 data-value="FullName" class="profile-name"></h2>
-                        <p data-value="course" class="profile-title"></p>
+                        <p data-value="roleHeader" class="profile-title"></p>
                         
                     </div>
                 </div>
@@ -238,14 +248,17 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
                                 <span class="info-label">Email:</span>
                                 <span data-value="email" class="info-value"></span>
                             </div>
+                            <?php if ($isStudent == 'student'):?>
                             <div class="info-item">
                                 <span class="info-label">Department:</span>
                                 <span data-value="department" class="info-value"></span>
                             </div>
+                            <?php else:?>
                             <div class="info-item">
                                 <span class="info-label">Course:</span>
                                 <span data-value="course" class="info-value"></span>
                             </div>
+                            <?php endif; ?>
                         </div>
                     </div>
 
