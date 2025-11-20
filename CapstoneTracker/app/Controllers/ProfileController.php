@@ -1,4 +1,3 @@
-
 <?php
 
 date_default_timezone_set('Asia/Manila');
@@ -11,9 +10,6 @@ if (session_status() === PHP_SESSION_NONE) {
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
-
-// Set content type to JSON immediately
-header('Content-Type: application/json');
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -52,8 +48,10 @@ try {
     class ProfileController {
         private $profileModel;
         private $emailSender;
+        private $db;
         
         public function __construct($database) {
+            $this->db = $database;
             $this->profileModel = new Profile($database);
             // Initialize email sender only if needed and available
             if (class_exists('EmailSender')) {
@@ -69,19 +67,37 @@ try {
          */
         public function getProfileData($userId) {
             try {
-                error_log("Getting profile data for user ID: " . $userId);
+                error_log("=== GET PROFILE DATA DEBUG ===");
+                error_log("Requested user ID: " . $userId);
+                
+                // Validate user ID
+                if (empty($userId) || !is_numeric($userId)) {
+                    error_log("Invalid user ID: " . $userId);
+                    return [
+                        'success' => false,
+                        'message' => 'Invalid user ID'
+                    ];
+                }
                 
                 $profileData = $this->profileModel->getUserProfile($userId);
                 
+                error_log("Profile data result: " . ($profileData ? "FOUND" : "NOT FOUND"));
+                
                 if ($profileData) {
+                    error_log("Profile data details:");
+                    error_log("- Name: " . ($profileData['Full_Name'] ?? 'N/A'));
+                    error_log("- Email: " . ($profileData['Email'] ?? 'N/A'));
+                    error_log("- Profile Pic: " . ($profileData['Profile_Pic'] ?? 'N/A'));
+                    
                     return [
                         'success' => true,
                         'data' => $profileData
                     ];
                 } else {
+                    error_log("Profile not found for user ID: " . $userId);
                     return [
                         'success' => false,
-                        'message' => 'Profile not found'
+                        'message' => 'Profile not found for user ID: ' . $userId
                     ];
                 }
                 
@@ -89,12 +105,150 @@ try {
                 error_log("Profile Controller Error: " . $e->getMessage());
                 return [
                     'success' => false,
-                    'message' => 'Error retrieving profile data'
+                    'message' => 'Error retrieving profile data: ' . $e->getMessage()
                 ];
             }
         }
-        
-        
+
+        /**
+         * Serve profile image as image data
+         */
+        public function serveProfileImage($userId) {
+            try {
+                error_log("=== SERVING PROFILE IMAGE ===");
+                error_log("User ID: " . $userId);
+                
+                $imageBlob = $this->profileModel->getProfileImageBlob($userId);
+                
+                if ($imageBlob) {
+                    // Detect MIME type
+                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                    $mimeType = finfo_buffer($finfo, $imageBlob);
+                    finfo_close($finfo);
+                    
+                    error_log("Image MIME type: " . $mimeType);
+                    error_log("Image size: " . strlen($imageBlob) . " bytes");
+                    
+                    // Set appropriate headers
+                    header('Content-Type: ' . $mimeType);
+                    header('Cache-Control: max-age=3600'); // Cache for 1 hour
+                    header('Content-Length: ' . strlen($imageBlob));
+                    
+                    // Output the image data
+                    echo $imageBlob;
+                    error_log("Image served successfully");
+                } else {
+                    error_log("No profile image found, serving default");
+                    // Serve default image
+                    $defaultImagePath = realpath(__DIR__ . '/../../resources/Images/profile.png');
+                    if (file_exists($defaultImagePath)) {
+                        header('Content-Type: image/png');
+                        readfile($defaultImagePath);
+                    } else {
+                        error_log("Default image not found at: " . $defaultImagePath);
+                        http_response_code(404);
+                        echo "Default image not found";
+                    }
+                }
+                
+            } catch (Exception $e) {
+                error_log("Error serving profile image: " . $e->getMessage());
+                http_response_code(500);
+                echo "Error serving image";
+            }
+            exit();
+        }
+
+        /**
+         * Handle profile image upload
+         */
+        public function handleProfileImageUpload($userId, $files, $postData) {
+            try {
+                error_log("=== HANDLING PROFILE IMAGE UPLOAD ===");
+                
+                // Validate CSRF token
+                if (!$this->validateCsrfToken($postData['csrf_token'] ?? '')) {
+                    return [
+                        'success' => false,
+                        'message' => 'Invalid CSRF token'
+                    ];
+                }
+
+                if (!isset($files['profile_image']) || $files['profile_image']['error'] !== UPLOAD_ERR_OK) {
+                    return [
+                        'success' => false,
+                        'message' => 'No image file uploaded or upload error'
+                    ];
+                }
+
+                $uploadedFile = $files['profile_image'];
+                error_log("Uploaded file: " . $uploadedFile['name'] . ", Size: " . $uploadedFile['size']);
+                
+                // Validate file type
+                $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $mimeType = finfo_file($finfo, $uploadedFile['tmp_name']);
+                finfo_close($finfo);
+                
+                error_log("Detected MIME type: " . $mimeType);
+                
+                if (!in_array($mimeType, $allowedTypes)) {
+                    return [
+                        'success' => false,
+                        'message' => 'Invalid file type. Please upload JPEG, PNG, or GIF images only.'
+                    ];
+                }
+
+                // Validate file size (5MB max)
+                if ($uploadedFile['size'] > 5 * 1024 * 1024) {
+                    return [
+                        'success' => false,
+                        'message' => 'File size too large. Maximum size is 5MB.'
+                    ];
+                }
+
+                // Read the file content
+                $imageData = file_get_contents($uploadedFile['tmp_name']);
+                
+                if ($imageData === false) {
+                    return [
+                        'success' => false,
+                        'message' => 'Failed to read uploaded file'
+                    ];
+                }
+
+                error_log("Image data read successfully, size: " . strlen($imageData) . " bytes");
+                
+                // Update profile picture in database
+                $this->db->query("UPDATE USER_INFORMATION SET Profile_Pic = :profile_pic WHERE ID = :user_id");
+                
+                // Use PDO::PARAM_LOB for BLOB data
+                $this->db->bind(':profile_pic', $imageData, PDO::PARAM_LOB);
+                $this->db->bind(':user_id', $userId);
+                
+                if ($this->db->execute()) {
+                    error_log("Profile image updated successfully in database");
+                    return [
+                        'success' => true,
+                        'message' => 'Profile image updated successfully',
+                        'image_url' => '../../../app/Controllers/ProfileController.php?action=get_profile_image&user_id=' . $userId . '&t=' . time()
+                    ];
+                } else {
+                    error_log("Failed to update profile image in database");
+                    return [
+                        'success' => false,
+                        'message' => 'Failed to update profile image in database'
+                    ];
+                }
+
+            } catch (Exception $e) {
+                error_log("Profile Image Upload Error: " . $e->getMessage());
+                return [
+                    'success' => false,
+                    'message' => 'Error uploading image: ' . $e->getMessage()
+                ];
+            }
+        }
 
         /**
          * Handle PIN request for password change
@@ -136,7 +290,7 @@ try {
                 
                 // Generate 6-digit PIN
                 $pin = sprintf("%06d", mt_rand(1, 999999));
-                $expiryTime = date('Y-m-d H:i:s', strtotime('+10 minutes')); // PIN valid for 10 minutes
+                $expiryTime = date('Y-m-d H:i:s', strtotime('+10 minutes'));
                 
                 error_log("Generated PIN: " . $pin . " for user: " . $userId);
                 
@@ -181,7 +335,6 @@ try {
                 
             } catch (Exception $e) {
                 error_log("PIN Request Controller Error: " . $e->getMessage());
-                error_log("Stack trace: " . $e->getTraceAsString());
                 return [
                     'success' => false,
                     'message' => 'Error processing PIN request: ' . $e->getMessage()
@@ -290,17 +443,10 @@ try {
             $body = $this->getPinEmailBody($name, $pin);
             
             error_log("Attempting to send PIN email to: " . $email);
-            error_log("PIN: " . $pin);
-            error_log("Subject: " . $subject);
             
             try {
                 $result = $this->emailSender->sendHtmlEmail($email, $name, $subject, $body);
                 error_log("Email send result: " . ($result ? 'SUCCESS' : 'FAILED'));
-                
-                if (!$result) {
-                    error_log("Email sending failed for: " . $email);
-                }
-                
                 return $result;
             } catch (Exception $e) {
                 error_log("Exception in sendPinEmail: " . $e->getMessage());
@@ -384,19 +530,29 @@ try {
         
         error_log("Processing action: " . $action . " for user ID: " . $userId);
         
-        $response = [];
-        
         switch ($action) {
             case 'get_profile':
                 $response = $controller->getProfileData($userId);
+                echo json_encode($response);
                 break;
                 
             case 'request_pin':
                 $response = $controller->requestPin($userId, $_POST);
+                echo json_encode($response);
                 break;
                 
             case 'verify_pin_change_password':
                 $response = $controller->verifyPinAndChangePassword($userId, $_POST);
+                echo json_encode($response);
+                break;
+                
+            case 'get_profile_image':
+                $controller->serveProfileImage($userId);
+                break;
+                
+            case 'upload_profile_image':
+                $response = $controller->handleProfileImageUpload($userId, $_FILES, $_POST);
+                echo json_encode($response);
                 break;
                 
             default:
@@ -404,10 +560,8 @@ try {
                     'success' => false,
                     'message' => 'Invalid action'
                 ];
+                echo json_encode($response);
         }
-        
-        error_log("Sending response for action " . $action . ": " . json_encode($response));
-        echo json_encode($response);
         
     } else {
         echo json_encode([
@@ -418,7 +572,6 @@ try {
 
 } catch (Exception $e) {
     error_log("Profile Controller Main Error: " . $e->getMessage());
-    error_log("Stack trace: " . $e->getTraceAsString());
     echo json_encode([
         'success' => false,
         'message' => 'Server error: ' . $e->getMessage()
