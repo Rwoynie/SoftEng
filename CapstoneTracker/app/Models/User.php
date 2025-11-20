@@ -256,15 +256,18 @@ class User extends Model {
             
             // Execute the query
             $result = $this->db->execute();
-            
-            // If registration successful, create default role entry
+        
+            // If registration successful, create default role entry AND return user ID
             if ($result) {
                 $newUserId = $this->db->lastInsertId();
                 $this->createDefaultRole($newUserId, $userRole);
+                
+                error_log("Google registration SUCCESS - User ID: " . $newUserId);
+                return $newUserId; // Return the user ID directly
             }
             
-            error_log("Google registration result: " . ($result ? 'SUCCESS' : 'FAILED'));
-            return $result;
+            error_log("Google registration FAILED");
+            return false;
             
         } catch (Exception $e) {
             error_log("Google user registration error: " . $e->getMessage());
