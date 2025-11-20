@@ -19,32 +19,31 @@
         return [
             // USER_INFORMATION TABLE (UPDATED WITH ADDITIONAL FIELDS)
             "CREATE TABLE IF NOT EXISTS USER_INFORMATION (
-                ID INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-                pswrd VARCHAR(255) NOT NULL,
-                Salt VARCHAR(255) NOT NULL,
-                First_Name VARCHAR(50) NOT NULL,
-                Middle_Name VARCHAR(50),
-                Last_Name VARCHAR(50) NOT NULL,
-                Extension VARCHAR(20),
-                Email_Hash VARCHAR(64) UNIQUE NOT NULL, -- HASHED email as unique identifier
-                User_ID_Hash VARCHAR(64) UNIQUE NOT NULL, -- HASHED User_ID as unique identifier
-                Student_ID_Hash VARCHAR(64) UNIQUE, -- HASHED Student_ID
-                Employee_ID_Hash VARCHAR(64) UNIQUE, -- HASHED Employee_ID
-                User_Role ENUM('student', 'faculty', 'SubAdmin', 'superAdmin') NOT NULL,
-                Acc_Status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
-                Department VARCHAR(255) NOT NULL,
-                Course VARCHAR(255) NOT NULL,   
-                
-                Profile_Pic LONGBLOB,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX (Email_Hash),
-                INDEX (User_ID_Hash),
-                INDEX (Student_ID_Hash),
-                INDEX (Employee_ID_Hash),
-                INDEX (User_Role),
-                INDEX (Acc_Status)
-            ) ENGINE=InnoDB;",
+            ID INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            pswrd VARCHAR(255) NOT NULL,
+            Salt VARCHAR(255) NOT NULL,
+            First_Name VARCHAR(50) NOT NULL,
+            Middle_Name VARCHAR(50),
+            Last_Name VARCHAR(50) NOT NULL,
+            Extension VARCHAR(20),
+            Email VARCHAR(255) UNIQUE NOT NULL, -- Stores HASHED emails
+            User_ID VARCHAR(255) UNIQUE NOT NULL, -- Stores HASHED user_ids
+            Student_ID VARCHAR(255) UNIQUE, -- Stores HASHED student_ids
+            Employee_ID VARCHAR(255) UNIQUE, -- Stores HASHED employee_ids
+            User_Role ENUM('student', 'faculty', 'SubAdmin', 'superAdmin') NOT NULL,
+            Acc_Status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+            Department VARCHAR(255) NOT NULL,
+            Course VARCHAR(255) NOT NULL,
+            Profile_Pic LONGBLOB,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX (Email),
+            INDEX (User_ID),
+            INDEX (Student_ID),
+            INDEX (Employee_ID),
+            INDEX (User_Role),
+            INDEX (Acc_Status)
+        ) ENGINE=InnoDB;",
             
             // THESIS TABLE
             "CREATE TABLE IF NOT EXISTS THESIS (
@@ -403,13 +402,13 @@
      * Get default admin account data
      */
     public static function getDefaultAdminData() {
-        $password = 'compendiumSystemAdmin'; // Default password
+        $password = 'compendiumSystemAdmin';
         $salt = bin2hex(random_bytes(16));
         $hashedPassword = password_hash($password . $salt, PASSWORD_DEFAULT);
         
-        // Hash the identifiers - CRITICAL: This must match what loginAdmin expects
+        // Hash the identifiers for storage in plain-named columns
         $emailHash = hash('sha256', 'admin@usep.edu.ph');
-        $userIdHash = hash('sha256', 'ADMIN001'); // This is what loginAdmin will hash and compare
+        $userIdHash = hash('sha256', 'ADMIN001');
         
         return [
             'pswrd' => $hashedPassword,
@@ -418,8 +417,8 @@
             'Middle_Name' => 'Admin',
             'Last_Name' => 'Admin',
             'Extension' => null,
-            'Email_Hash' => $emailHash,
-            'User_ID_Hash' => $userIdHash, // This stores the hashed ADMIN001
+            'Email' => $emailHash, // Store hashed value in Email column
+            'User_ID' => $userIdHash, // Store hashed value in User_ID column
             'User_Role' => 'superAdmin',
             'Acc_Status' => 'approved',
             'Department' => 'Administration',
@@ -551,26 +550,26 @@
             $adminData = self::getDefaultAdminData();
             
             // Check if admin already exists using hashed email
-            $this->db->query("SELECT ID FROM USER_INFORMATION WHERE Email_Hash = :email_hash");
-            $this->db->bind(':email_hash', $adminData['Email_Hash']);
+            $this->db->query("SELECT ID FROM USER_INFORMATION WHERE Email = :email");
+            $this->db->bind(':email', $adminData['Email']);
             $this->db->execute();
             
             if ($this->db->rowCount() == 0) {
                 // Build the query with only hashed fields
                 $this->db->query("INSERT INTO USER_INFORMATION 
-                    (pswrd, Salt, First_Name, Middle_Name, Last_Name, Extension, Email_Hash, User_ID_Hash, User_Role, Acc_Status, Department, Course, Profile_Pic) 
+                    (pswrd, Salt, First_Name, Middle_Name, Last_Name, Extension, Email, User_ID, User_Role, Acc_Status, Department, Course, Profile_Pic) 
                     VALUES 
-                    (:password, :salt, :first_name, :middle_name, :last_name, :extension, :email_hash, :user_id_hash, :user_role, :acc_status, :department, :course, :profile_pic)");
-                
-                // Bind all parameters - ONLY HASHDED FIELDS
+                    (:password, :salt, :first_name, :middle_name, :last_name, :extension, :email, :user_id, :user_role, :acc_status, :department, :course, :profile_pic)");
+
+                // Bind all parameters - using hashed values for Email and User_ID
                 $this->db->bind(':password', $adminData['pswrd']);
                 $this->db->bind(':salt', $adminData['Salt']);
                 $this->db->bind(':first_name', $adminData['First_Name']);
                 $this->db->bind(':middle_name', $adminData['Middle_Name']);
                 $this->db->bind(':last_name', $adminData['Last_Name']);
                 $this->db->bind(':extension', $adminData['Extension']);
-                $this->db->bind(':email_hash', $adminData['Email_Hash']); // Use hashed email
-                $this->db->bind(':user_id_hash', $adminData['User_ID_Hash']); // Use hashed user_id
+                $this->db->bind(':email', $adminData['Email']); // Hashed email
+                $this->db->bind(':user_id', $adminData['User_ID']); // Hashed user_id
                 $this->db->bind(':user_role', $adminData['User_Role']);
                 $this->db->bind(':acc_status', $adminData['Acc_Status']);
                 $this->db->bind(':department', $adminData['Department']);

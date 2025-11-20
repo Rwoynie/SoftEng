@@ -389,8 +389,8 @@ class AdminController extends Controller {
             error_log("Hashed email: " . $emailHash);
             
             // Query to find admin user by hashed email
-            $db->query('SELECT * FROM USER_INFORMATION WHERE Email_Hash = :email_hash AND User_Role IN ("superAdmin", "SubAdmin", "admin") LIMIT 1');
-            $db->bind(':email_hash', $emailHash);
+            $db->query('SELECT * FROM USER_INFORMATION WHERE Email = :email AND User_Role IN ("superAdmin", "SubAdmin", "admin") LIMIT 1');
+            $db->bind(':email', $emailHash);
             $result = $db->single();
             
             // Convert object to array if needed
