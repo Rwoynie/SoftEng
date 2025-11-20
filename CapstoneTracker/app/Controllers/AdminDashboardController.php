@@ -164,6 +164,9 @@ class AdminDashboardController {
             case 'generateReport':
                 $this->generateReport();
                 break;
+            case 'generateLogsReport':
+                $this->generateLogsReport();
+                break;
 
           
 
@@ -858,54 +861,185 @@ private function updateAnnouncement() {
      */
 private function getAuditLogs() {
     try {
-        error_log("=== DIRECT CONTROLLER getAuditLogs ===");
-        
-        // Bypass the model and query directly
-        $limit = $_GET['limit'] ?? 100;
-        $tableName = $_GET['table'] ?? null;
-        $action = $_GET['action_type'] ?? null;
-        
-        $db = new Database();
-        
-        $sql = "SELECT * FROM AUDIT_LOGS WHERE 1=1";
-        $params = [];
-        
-        if ($tableName) {
-            $sql .= " AND table_name = :table_name";
-            $params[':table_name'] = $tableName;
-        }
-        
-        if ($action) {
-            $sql .= " AND action = :action";
-            $params[':action'] = $action;
-        }
-        
-        $sql .= " ORDER BY changed_at DESC LIMIT :limit";
-        $params[':limit'] = $limit;
-        
-        error_log("Direct controller SQL: " . $sql);
-        
-        $db->query($sql);
-        foreach ($params as $key => $value) {
-            $db->bind($key, $value);
-        }
-        
-        $logs = $db->resultSet();
-        error_log("Direct controller found: " . count($logs) . " logs");
+        $logs = $this->getDetailedAuditLogs();
         
         $this->jsonResponse([
             'success' => true,
             'logs' => $logs,
-            'total' => count($logs),
-            'debug' => [
-                'query_used' => $sql,
-                'parameters' => $params
-            ]
+            'total' => count($logs)
         ]);
         
     } catch (Exception $e) {
-        error_log("Direct controller error: " . $e->getMessage());
+        error_log("Error in getAuditLogs: " . $e->getMessage());
         $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
+    }
+}
+
+/**
+ * Get detailed audit logs with exact timestamps and full details
+ */
+private function getDetailedAuditLogs() {
+    try {
+        $limit = $_GET['limit'] ?? 100;
+        
+        $db = new Database();
+        
+        $sql = "SELECT 
+                    al.*,
+                    ui.First_Name,
+                    ui.Last_Name, 
+                    ui.Email,
+                    ui.User_Role,
+                    DATE_FORMAT(al.changed_at, '%Y-%m-%d %H:%i:%s') as exact_timestamp,
+                    al.ip_address
+                FROM AUDIT_LOGS al 
+                LEFT JOIN USER_INFORMATION ui ON al.user_id = ui.ID 
+                ORDER BY al.changed_at DESC 
+                LIMIT :limit";
+        
+        $db->query($sql);
+        $db->bind(':limit', $limit);
+        
+        $logs = $db->resultSet();
+        
+        // Format the logs with detailed information
+        $formattedLogs = [];
+        foreach ($logs as $log) {
+            $formattedLogs[] = [
+                'id' => $log->id,
+                'timestamp' => $log->exact_timestamp,
+                'ip_address' => $log->ip_address ?: 'N/A',
+                'user_name' => $log->First_Name && $log->Last_Name ? 
+                    $log->First_Name . ' ' . $log->Last_Name : 
+                    ($log->user_name ?: 'System'),
+                'user_role' => $log->User_Role ?: 'System',
+                'action' => $this->getDetailedAction($log),
+                'details' => $this->getFullDetails($log),
+                'table_name' => $log->table_name,
+                'old_values' => $log->old_values,
+                'new_values' => $log->new_values
+            ];
+        }
+        
+        return $formattedLogs;
+        
+    } catch (Exception $e) {
+        error_log("Error getting detailed audit logs: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get detailed action description
+ */
+private function getDetailedAction($log) {
+    $action = strtoupper($log->action);
+    $table = $log->table_name;
+    
+    switch ($action) {
+        case 'INSERT':
+            if ($table === 'ANNOUNCEMENTS') return 'Created Announcement';
+            if ($table === 'THESIS') return 'Uploaded Thesis';
+            if ($table === 'USER_INFORMATION') return 'Registered User';
+            return 'Created Record';
+            
+        case 'UPDATE':
+            if ($table === 'ANNOUNCEMENTS') return 'Updated Announcement';
+            if ($table === 'USER_INFORMATION') return 'Updated User Account';
+            if ($table === 'THESIS') return 'Updated Thesis';
+            return 'Updated Record';
+            
+        case 'DELETE':
+            if ($table === 'ANNOUNCEMENTS') return 'Deleted Announcement';
+            if ($table === 'USER_INFORMATION') return 'Deleted User Account';
+            if ($table === 'THESIS') return 'Deleted Thesis';
+            return 'Deleted Record';
+            
+        default:
+            return $log->action;
+    }
+}
+
+/**
+ * Get full detailed description
+ */
+private function getFullDetails($log) {
+    $action = strtoupper($log->action);
+    $table = $log->table_name;
+    
+    try {
+        $oldValues = $log->old_values ? json_decode($log->old_values, true) : [];
+        $newValues = $log->new_values ? json_decode($log->new_values, true) : [];
+        
+        switch ($table) {
+            case 'ANNOUNCEMENTS':
+                if ($action === 'INSERT') {
+                    $title = $newValues['title'] ?? 'Unknown Title';
+                    return "Created new announcement: '{$title}' with type: " . ($newValues['type'] ?? 'information');
+                }
+                if ($action === 'UPDATE') {
+                    $title = $newValues['title'] ?? $oldValues['title'] ?? 'Unknown Title';
+                    $changes = [];
+                    if (isset($newValues['title']) && isset($oldValues['title']) && $newValues['title'] !== $oldValues['title']) {
+                        $changes[] = "title from '{$oldValues['title']}' to '{$newValues['title']}'";
+                    }
+                    if (isset($newValues['content']) && isset($oldValues['content']) && $newValues['content'] !== $oldValues['content']) {
+                        $changes[] = "content updated";
+                    }
+                    if (isset($newValues['status']) && isset($oldValues['status']) && $newValues['status'] !== $oldValues['status']) {
+                        $changes[] = "status from {$oldValues['status']} to {$newValues['status']}";
+                    }
+                    return "Updated announcement '{$title}': " . implode(', ', $changes);
+                }
+                if ($action === 'DELETE') {
+                    $title = $oldValues['title'] ?? 'Unknown Title';
+                    return "Permanently deleted announcement: '{$title}'";
+                }
+                break;
+                
+            case 'USER_INFORMATION':
+                if ($action === 'INSERT') {
+                    $name = ($newValues['First_Name'] ?? '') . ' ' . ($newValues['Last_Name'] ?? '');
+                    return "Registered new user: {$name} with role: " . ($newValues['User_Role'] ?? 'student');
+                }
+                if ($action === 'UPDATE') {
+                    $name = ($newValues['First_Name'] ?? $oldValues['First_Name'] ?? '') . ' ' . ($newValues['Last_Name'] ?? $oldValues['Last_Name'] ?? '');
+                    $changes = [];
+                    if (isset($newValues['User_Role']) && isset($oldValues['User_Role']) && $newValues['User_Role'] !== $oldValues['User_Role']) {
+                        $changes[] = "role from {$oldValues['User_Role']} to {$newValues['User_Role']}";
+                    }
+                    if (isset($newValues['Acc_Status']) && isset($oldValues['Acc_Status']) && $newValues['Acc_Status'] !== $oldValues['Acc_Status']) {
+                        $changes[] = "status from {$oldValues['Acc_Status']} to {$newValues['Acc_Status']}";
+                    }
+                    return "Updated user {$name}: " . implode(', ', $changes);
+                }
+                if ($action === 'DELETE') {
+                    $name = ($oldValues['First_Name'] ?? '') . ' ' . ($oldValues['Last_Name'] ?? '');
+                    return "Permanently deleted user account: {$name}";
+                }
+                break;
+                
+            case 'THESIS':
+                if ($action === 'INSERT') {
+                    $title = $newValues['Title'] ?? 'Unknown Title';
+                    return "Uploaded new thesis: '{$title}' by " . ($newValues['Thesis_Email'] ?? 'unknown authors');
+                }
+                if ($action === 'UPDATE') {
+                    $title = $newValues['Title'] ?? $oldValues['Title'] ?? 'Unknown Title';
+                    return "Updated thesis details for: '{$title}'";
+                }
+                if ($action === 'DELETE') {
+                    $title = $oldValues['Title'] ?? 'Unknown Title';
+                    return "Permanently deleted thesis: '{$title}'";
+                }
+                break;
+        }
+        
+        // Generic fallback
+        return "Performed {$action} operation on {$table} table";
+        
+    } catch (Exception $e) {
+        return "Performed {$action} operation on {$table} table";
     }
 }
 
@@ -1786,6 +1920,464 @@ private function getDepartmentDisplayName($department) {
     ];
     
     return $departmentMap[$department] ?? 'All Programs';
+}
+
+
+/**
+ * Generate PDF report for system logs
+ */
+private function generateLogsReport() {
+    try {
+        error_log("=== GENERATE LOGS REPORT METHOD CALLED ===");
+        
+        $logType = $_GET['log_type'] ?? 'all';
+        $filter = $_GET['filter'] ?? 'all';
+        $page = $_GET['page'] ?? 1;
+        
+        error_log("Processing log type: " . $logType . ", filter: " . $filter . ", page: " . $page);
+        
+        // Get log data based on type and filter
+        $logData = $this->getLogsForReport($logType, $filter, $page);
+        error_log("Log data retrieved successfully");
+        
+        // Check if dompdf is available
+        if (!class_exists('Dompdf\Dompdf')) {
+            throw new Exception('Dompdf library not found. Please install via composer: composer require dompdf/dompdf');
+        }
+        
+        // Generate HTML content
+        $html = $this->generateLogsReportHTML($logData, $logType, $filter, $page);
+        
+        // Configure dompdf
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+        $options->set('defaultFont', 'Arial');
+        
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+        
+        // Generate filename
+        $timestamp = date('Y-m-d_H-i-s');
+        $logTypeName = $this->getLogTypeDisplayName($logType);
+        $filename = "System_Logs_{$logTypeName}_{$timestamp}.pdf";
+        
+        // Output the PDF
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Transfer-Encoding: binary');
+        header('Accept-Ranges: bytes');
+        
+        echo $dompdf->output();
+        exit;
+        
+    } catch (Exception $e) {
+        error_log("PDF Logs Generation Error: " . $e->getMessage());
+        error_log("Stack trace: " . $e->getTraceAsString());
+        
+        $this->jsonResponse([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'message' => 'PDF logs generation failed'
+        ], 500);
+    }
+}
+
+/**
+ * Get logs data for PDF report
+ */
+private function getLogsForReport($logType, $filter, $page) {
+    $limit = 50; // 50 logs per page
+    $offset = ($page - 1) * $limit;
+    
+    try {
+        $db = new Database();
+        $logs = [];
+        $totalLogs = 0;
+        
+        // Build query based on log type and filter
+        $sql = "SELECT al.*, ui.First_Name, ui.Last_Name, ui.Email, ui.User_Role 
+                FROM AUDIT_LOGS al 
+                LEFT JOIN USER_INFORMATION ui ON al.user_id = ui.ID 
+                WHERE 1=1";
+        
+        $params = [];
+        
+        // Apply filters based on log type
+        switch($logType) {
+            case 'user':
+                $sql .= " AND al.table_name = 'USER_INFORMATION'";
+                break;
+            case 'admin':
+                $sql .= " AND (al.table_name IN ('ANNOUNCEMENTS', 'SYSTEM_LOGS', 'THESIS', 'BACKUP_LOGS') OR ui.User_Role IN ('admin', 'superAdmin', 'SubAdmin'))";
+                break;
+            case 'all':
+            default:
+                // No additional filters for 'all'
+                break;
+        }
+        
+        // Apply specific filters
+        if ($filter !== 'all') {
+            switch($filter) {
+                case 'login':
+                    $sql .= " AND al.table_name = 'LOGIN_ATTEMPTS'";
+                    break;
+                case 'user':
+                    $sql .= " AND al.table_name = 'USER_INFORMATION'";
+                    break;
+                case 'thesis':
+                    $sql .= " AND al.table_name = 'THESIS'";
+                    break;
+                case 'announcement':
+                    $sql .= " AND al.table_name = 'ANNOUNCEMENTS'";
+                    break;
+                case 'backup':
+                    $sql .= " AND al.table_name = 'BACKUP_LOGS'";
+                    break;
+                case 'management':
+                    $sql .= " AND al.table_name = 'USER_INFORMATION' AND al.action IN ('INSERT', 'UPDATE', 'DELETE')";
+                    break;
+            }
+        }
+        
+        // Count total logs
+        $countSql = "SELECT COUNT(*) as total FROM ($sql) as count_table";
+        $db->query($countSql);
+        foreach ($params as $key => $value) {
+            $db->bind($key, $value);
+        }
+        $countResult = $db->single();
+        $totalLogs = $countResult->total;
+        
+        // Get logs with pagination
+        $sql .= " ORDER BY al.changed_at DESC LIMIT :limit OFFSET :offset";
+        $params[':limit'] = $limit;
+        $params[':offset'] = $offset;
+        
+        $db->query($sql);
+        foreach ($params as $key => $value) {
+            $db->bind($key, $value);
+        }
+        
+        $logs = $db->resultSet();
+        
+        return [
+            'logs' => $logs,
+            'total_logs' => $totalLogs,
+            'current_page' => $page,
+            'total_pages' => ceil($totalLogs / $limit),
+            'logs_per_page' => $limit
+        ];
+        
+    } catch (Exception $e) {
+        error_log("Error getting logs for report: " . $e->getMessage());
+        return [
+            'logs' => [],
+            'total_logs' => 0,
+            'current_page' => $page,
+            'total_pages' => 0,
+            'logs_per_page' => $limit
+        ];
+    }
+}
+
+/**
+ * Generate HTML content for logs PDF report
+ */
+private function generateLogsReportHTML($logData, $logType, $filter, $page) {
+    $logTypeName = $this->getLogTypeDisplayName($logType);
+    $filterName = $this->getFilterDisplayName($filter);
+    $currentDate = date('F j, Y g:i A');
+    
+    $logs = $logData['logs'] ?? [];
+    $totalLogs = $logData['total_logs'] ?? 0;
+    $currentPage = $logData['current_page'] ?? 1;
+    $totalPages = $logData['total_pages'] ?? 1;
+    
+    $html = '
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>System Logs Report</title>
+        <style>
+            body { 
+                font-family: Arial, sans-serif; 
+                margin: 20px; 
+                color: #333;
+                line-height: 1.4;
+                font-size: 10px;
+            }
+            .header { 
+                text-align: center; 
+                border-bottom: 3px solid #ba1e1f; 
+                padding-bottom: 15px;
+                margin-bottom: 20px;
+            }
+            .header h1 { 
+                color: #ba1e1f; 
+                margin: 0; 
+                font-size: 20px;
+            }
+            .header h2 { 
+                color: #666; 
+                margin: 5px 0; 
+                font-size: 14px;
+                font-weight: normal;
+            }
+            .report-info {
+                display: flex;
+                justify-content: space-between;
+                margin: 15px 0;
+                padding: 10px;
+                background: #f8f9fa;
+                border-radius: 5px;
+            }
+            .info-item {
+                text-align: center;
+            }
+            .info-label {
+                font-size: 9px;
+                color: #666;
+                display: block;
+            }
+            .info-value {
+                font-size: 11px;
+                font-weight: bold;
+                color: #ba1e1f;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 15px 0;
+                font-size: 9px;
+            }
+            th, td {
+                border: 1px solid #ddd;
+                padding: 6px;
+                text-align: left;
+                word-wrap: break-word;
+            }
+            th {
+                background-color: #ba1e1f;
+                color: white;
+                font-weight: bold;
+                font-size: 8px;
+            }
+            tr:nth-child(even) {
+                background-color: #f8f9fa;
+            }
+            .timestamp {
+                font-size: 8px;
+                color: #666;
+            }
+            .user-info {
+                font-weight: bold;
+            }
+            .user-role {
+                font-size: 8px;
+                color: #666;
+            }
+            .action {
+                font-weight: bold;
+            }
+            .action-login { color: #28a745; }
+            .action-create { color: #007bff; }
+            .action-update { color: #ffc107; }
+            .action-delete { color: #dc3545; }
+            .footer {
+                margin-top: 20px;
+                text-align: center;
+                color: #666;
+                font-size: 8px;
+                border-top: 1px solid #ddd;
+                padding-top: 10px;
+            }
+            .page-info {
+                text-align: right;
+                font-size: 9px;
+                color: #666;
+                margin-bottom: 10px;
+            }
+            .no-logs {
+                text-align: center;
+                padding: 30px;
+                color: #666;
+                font-style: italic;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>System Logs Report</h1>
+            <h2>' . htmlspecialchars($logTypeName) . ' - ' . htmlspecialchars($filterName) . '</h2>
+            <p><strong>Generated on:</strong> ' . $currentDate . '</p>
+        </div>
+        
+        <div class="report-info">
+            <div class="info-item">
+                <span class="info-label">Total Logs</span>
+                <span class="info-value">' . $totalLogs . '</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Current Page</span>
+                <span class="info-value">' . $currentPage . ' of ' . $totalPages . '</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Logs Per Page</span>
+                <span class="info-value">50</span>
+            </div>
+        </div>
+        
+        <div class="page-info">
+            Page ' . $currentPage . ' of ' . $totalPages . '
+        </div>';
+        
+    if (empty($logs)) {
+        $html .= '
+        <div class="no-logs">
+            <h3>No Logs Found</h3>
+            <p>No system logs available for the selected criteria.</p>
+        </div>';
+    } else {
+        $html .= '
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 15%">Time & IP</th>
+                    <th style="width: 15%">User</th>
+                    <th style="width: 15%">Action</th>
+                    <th style="width: 55%">Details</th>
+                </tr>
+            </thead>
+            <tbody>';
+        
+        foreach ($logs as $log) {
+            $timestamp = date('M j, Y H:i:s', strtotime($log->changed_at));
+            $ip = $log->ip_address ?? 'N/A';
+            
+            $userName = 'System';
+            if ($log->First_Name && $log->Last_Name) {
+                $userName = $log->First_Name . ' ' . $log->Last_Name;
+            } elseif ($log->Email) {
+                $userName = $log->Email;
+            }
+            
+            $userRole = $this->formatUserRoleForReport($log->User_Role ?? 'System');
+            $action = $this->formatActionForReport($log->action ?? 'Unknown');
+            $details = $this->formatDetailsForReport($log);
+            
+            $actionClass = $this->getActionClassForReport($log->action);
+            
+            $html .= '
+                <tr>
+                    <td>
+                        <div class="timestamp">' . $timestamp . '</div>
+                        <strong>IP:</strong> ' . $ip . '
+                    </td>
+                    <td>
+                        <div class="user-info">' . htmlspecialchars($userName) . '</div>
+                        <div class="user-role">' . htmlspecialchars($userRole) . '</div>
+                    </td>
+                    <td>
+                        <span class="action ' . $actionClass . '">' . htmlspecialchars($action) . '</span>
+                    </td>
+                    <td>' . htmlspecialchars($details) . '</td>
+                </tr>';
+        }
+        
+        $html .= '
+            </tbody>
+        </table>';
+    }
+    
+    $html .= '
+        <div class="footer">
+            <p><strong>Generated by Compendium System | University of Southeastern Philippines</strong></p>
+            <p>This is an automated system logs report. For questions, contact system administrator.</p>
+        </div>
+    </body>
+    </html>';
+    
+    return $html;
+}
+
+/**
+ * Helper methods for report generation
+ */
+private function getLogTypeDisplayName($logType) {
+    $types = [
+        'all' => 'All Logs',
+        'user' => 'User Logs', 
+        'admin' => 'Admin Logs'
+    ];
+    return $types[$logType] ?? 'All Logs';
+}
+
+private function getFilterDisplayName($filter) {
+    $filters = [
+        'all' => 'All Activities',
+        'login' => 'Logins',
+        'user' => 'User Management',
+        'thesis' => 'Thesis',
+        'announcement' => 'Announcements',
+        'backup' => 'Backup',
+        'management' => 'Management'
+    ];
+    return $filters[$filter] ?? 'All Activities';
+}
+
+private function formatUserRoleForReport($role) {
+    $roleMap = [
+        'superAdmin' => 'Super Admin',
+        'admin' => 'Administrator',
+        'SubAdmin' => 'Sub-Admin',
+        'faculty' => 'Faculty',
+        'student' => 'Student'
+    ];
+    return $roleMap[$role] ?? $role;
+}
+
+private function formatActionForReport($action) {
+    $actionMap = [
+        'INSERT' => 'Created',
+        'UPDATE' => 'Updated', 
+        'DELETE' => 'Deleted',
+        'LOGIN' => 'Login',
+        'LOGOUT' => 'Logout'
+    ];
+    return $actionMap[$action] ?? $action;
+}
+
+private function formatDetailsForReport($log) {
+    $details = 'System operation';
+    
+    if ($log->table_name === 'ANNOUNCEMENTS') {
+        $details = 'Announcement management action';
+    } elseif ($log->table_name === 'USER_INFORMATION') {
+        $details = 'User account management action';
+    } elseif ($log->table_name === 'THESIS') {
+        $details = 'Thesis document management action';
+    } elseif ($log->table_name === 'LOGIN_ATTEMPTS') {
+        $details = 'User authentication attempt';
+    } elseif ($log->table_name === 'BACKUP_LOGS') {
+        $details = 'System backup operation';
+    }
+    
+    return $details;
+}
+
+private function getActionClassForReport($action) {
+    $actionMap = [
+        'INSERT' => 'action-create',
+        'UPDATE' => 'action-update',
+        'DELETE' => 'action-delete',
+        'LOGIN' => 'action-login'
+    ];
+    return $actionMap[$action] ?? '';
 }
 
 
