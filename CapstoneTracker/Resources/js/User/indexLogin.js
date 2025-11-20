@@ -1927,7 +1927,7 @@ function setupAdminForm() {
         adminLoginForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const username = document.getElementById('adminUsername').value;
+            const username = document.getElementById('adminUsername').value.trim();
             const password = document.getElementById('adminPassword').value;
             
             if (!username || !password) {
@@ -1938,15 +1938,30 @@ function setupAdminForm() {
             // Show loading state
             Swal.fire({
                 title: 'Authenticating...',
-                text: 'Please wait while we verify your credentials',
+                text: 'Please wait while we verify your admin credentials',
                 allowOutsideClick: false,
                 didOpen: () => {
                     Swal.showLoading();
                 }
             });
             
-            // Submit the form
-            this.submit();
+            // Submit via fetch to see detailed errors
+            const formData = new FormData(this);
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(data => {
+                console.log('Admin login response:', data);
+                // Let the form submit normally for now
+                this.submit();
+            })
+            .catch(error => {
+                console.error('Admin login error:', error);
+                this.submit();
+            });
         });
     }
 }

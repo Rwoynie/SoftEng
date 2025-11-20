@@ -26,10 +26,10 @@
                 Middle_Name VARCHAR(50),
                 Last_Name VARCHAR(50) NOT NULL,
                 Extension VARCHAR(20),
-                Email VARCHAR(255) UNIQUE NOT NULL,
-                User_ID VARCHAR(255) UNIQUE NOT NULL,
-                Student_ID VARCHAR(255) UNIQUE,
-                Employee_ID VARCHAR(255) UNIQUE,
+                Email_Hash VARCHAR(64) UNIQUE NOT NULL, -- HASHED email as unique identifier
+                User_ID_Hash VARCHAR(64) UNIQUE NOT NULL, -- HASHED User_ID as unique identifier
+                Student_ID_Hash VARCHAR(64) UNIQUE, -- HASHED Student_ID
+                Employee_ID_Hash VARCHAR(64) UNIQUE, -- HASHED Employee_ID
                 User_Role ENUM('student', 'faculty', 'SubAdmin', 'superAdmin') NOT NULL,
                 Acc_Status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
                 Department VARCHAR(255) NOT NULL,
@@ -38,10 +38,10 @@
                 Profile_Pic LONGBLOB,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX (Email),
-                INDEX (User_ID),
-                INDEX (Student_ID),
-                INDEX (Employee_ID),
+                INDEX (Email_Hash),
+                INDEX (User_ID_Hash),
+                INDEX (Student_ID_Hash),
+                INDEX (Employee_ID_Hash),
                 INDEX (User_Role),
                 INDEX (Acc_Status)
             ) ENGINE=InnoDB;",
@@ -210,15 +210,14 @@
                     SET changes = JSON_SET(changes, '$.status_changed', JSON_OBJECT('old', OLD.Acc_Status, 'new', NEW.Acc_Status));
                 END IF;
                 
-                IF OLD.Email != NEW.Email THEN
-                    SET changes = JSON_SET(changes, '$.email_changed', JSON_OBJECT('old', OLD.Email, 'new', NEW.Email));
-                END IF;
+                -- Note: We can't compare Email_Hash changes directly since they're hashed
+                -- But we can track when User_Role or Acc_Status changes
                 
                 IF JSON_LENGTH(changes) > 0 THEN
                     INSERT INTO AUDIT_LOGS (table_name, record_id, action, old_values, new_values, user_id)
                     VALUES ('USER_INFORMATION', NEW.ID, 'UPDATE', 
-                           JSON_OBJECT('User_Role', OLD.User_Role, 'Acc_Status', OLD.Acc_Status, 'Email', OLD.Email),
-                           JSON_OBJECT('User_Role', NEW.User_Role, 'Acc_Status', NEW.Acc_Status, 'Email', NEW.Email),
+                           JSON_OBJECT('User_Role', OLD.User_Role, 'Acc_Status', OLD.Acc_Status),
+                           JSON_OBJECT('User_Role', NEW.User_Role, 'Acc_Status', NEW.Acc_Status),
                            @current_user_id);
                 END IF;
             END;",
@@ -229,7 +228,7 @@
             BEGIN
                 INSERT INTO AUDIT_LOGS (table_name, record_id, action, old_values, user_id)
                 VALUES ('USER_INFORMATION', OLD.ID, 'DELETE', 
-                       JSON_OBJECT('User_Role', OLD.User_Role, 'Acc_Status', OLD.Acc_Status, 'Email', OLD.Email, 'First_Name', OLD.First_Name, 'Last_Name', OLD.Last_Name),
+                       JSON_OBJECT('User_Role', OLD.User_Role, 'Acc_Status', OLD.Acc_Status, 'First_Name', OLD.First_Name, 'Last_Name', OLD.Last_Name),
                        @current_user_id);
             END;",
 
@@ -354,7 +353,7 @@
                     VALUES (NEW.ID, 'user_approval', 'Account Approved', 
                            'Your account has been approved. You can now access all features.', NEW.ID);
                 END IF;
-            END;",
+            END;"
 
             
 
@@ -404,9 +403,13 @@
      * Get default admin account data
      */
     public static function getDefaultAdminData() {
-        $password = 'compendiumSystemAdmin';
+        $password = 'compendiumSystemAdmin'; // Default password
         $salt = bin2hex(random_bytes(16));
         $hashedPassword = password_hash($password . $salt, PASSWORD_DEFAULT);
+        
+        // Hash the identifiers - CRITICAL: This must match what loginAdmin expects
+        $emailHash = hash('sha256', 'admin@usep.edu.ph');
+        $userIdHash = hash('sha256', 'ADMIN001'); // This is what loginAdmin will hash and compare
         
         return [
             'pswrd' => $hashedPassword,
@@ -415,15 +418,12 @@
             'Middle_Name' => 'Admin',
             'Last_Name' => 'Admin',
             'Extension' => null,
-            'Email' => 'admin@usep.edu.ph',
-            'User_ID' => 'ADMIN001',
-            'Student_ID' => null,
-            'Employee_ID' => null,
+            'Email_Hash' => $emailHash,
+            'User_ID_Hash' => $userIdHash, // This stores the hashed ADMIN001
             'User_Role' => 'superAdmin',
             'Acc_Status' => 'approved',
             'Department' => 'Administration',
             'Course' => 'Administration',
-            'Designation' => 'System Administrator',
             'Profile_Pic' => null
         ];
     }
@@ -550,33 +550,31 @@
         try {
             $adminData = self::getDefaultAdminData();
             
-            $this->db->query("SELECT ID FROM USER_INFORMATION WHERE Email = :email");
-            $this->db->bind(':email', $adminData['Email']);
+            // Check if admin already exists using hashed email
+            $this->db->query("SELECT ID FROM USER_INFORMATION WHERE Email_Hash = :email_hash");
+            $this->db->bind(':email_hash', $adminData['Email_Hash']);
             $this->db->execute();
             
             if ($this->db->rowCount() == 0) {
-                // Build the query with all fields
+                // Build the query with only hashed fields
                 $this->db->query("INSERT INTO USER_INFORMATION 
-                    (pswrd, Salt, First_Name, Middle_Name, Last_Name, Extension, Email, User_ID, Student_ID, Employee_ID, User_Role, Acc_Status, Department, Course ,  Profile_Pic) 
+                    (pswrd, Salt, First_Name, Middle_Name, Last_Name, Extension, Email_Hash, User_ID_Hash, User_Role, Acc_Status, Department, Course, Profile_Pic) 
                     VALUES 
-                    (:password, :salt, :first_name, :middle_name, :last_name, :extension, :email, :user_id, :student_id, :employee_id, :user_role, :acc_status, :department, :course, :profile_pic)");
+                    (:password, :salt, :first_name, :middle_name, :last_name, :extension, :email_hash, :user_id_hash, :user_role, :acc_status, :department, :course, :profile_pic)");
                 
-                // Bind all parameters
+                // Bind all parameters - ONLY HASHDED FIELDS
                 $this->db->bind(':password', $adminData['pswrd']);
                 $this->db->bind(':salt', $adminData['Salt']);
                 $this->db->bind(':first_name', $adminData['First_Name']);
                 $this->db->bind(':middle_name', $adminData['Middle_Name']);
                 $this->db->bind(':last_name', $adminData['Last_Name']);
                 $this->db->bind(':extension', $adminData['Extension']);
-                $this->db->bind(':email', $adminData['Email']);
-                $this->db->bind(':user_id', $adminData['User_ID']);
-                $this->db->bind(':student_id', $adminData['Student_ID']);
-                $this->db->bind(':employee_id', $adminData['Employee_ID']);
+                $this->db->bind(':email_hash', $adminData['Email_Hash']); // Use hashed email
+                $this->db->bind(':user_id_hash', $adminData['User_ID_Hash']); // Use hashed user_id
                 $this->db->bind(':user_role', $adminData['User_Role']);
                 $this->db->bind(':acc_status', $adminData['Acc_Status']);
                 $this->db->bind(':department', $adminData['Department']);
                 $this->db->bind(':course', $adminData['Course']);
-                
                 $this->db->bind(':profile_pic', $adminData['Profile_Pic']);
                 
                 $this->db->execute();
