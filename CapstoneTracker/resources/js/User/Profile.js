@@ -115,12 +115,32 @@ async handleImageUpload(file) {
         }
 
         if (data.success) {
-            console.log('Upload successful');
+            console.log('Upload successful, new image URL:', data.image_url);
             
-            // Reload profile data to get the updated image URL
-            await this.loadProfileData();
+            // PROVEN WORKING METHOD: Create new image to test loading
+            const testImage = new Image();
             
-            this.showSuccessMessage('Profile image updated successfully!');
+            testImage.onload = () => {
+                console.log('✅ New image loaded successfully');
+                // Replace the profile image source
+                profileImage.src = testImage.src;
+                profileImage.style.opacity = '1';
+                this.showSuccessMessage('Profile image updated successfully!');
+                
+                // Update profile data to ensure consistency
+                this.loadProfileData();
+            };
+            
+            testImage.onerror = () => {
+                console.error('❌ Failed to load new image');
+                profileImage.style.opacity = '1';
+                this.showError('Failed to load new profile image. Please refresh the page.');
+            };
+            
+            // Add cache busting parameter
+            const newImageUrl = data.image_url + '&t=' + new Date().getTime();
+            console.log('Setting image source to:', newImageUrl);
+            testImage.src = newImageUrl;
             
         } else {
             console.log('Upload failed:', data.message);
@@ -266,6 +286,7 @@ async handleImageUpload(file) {
         
         // Add cache busting to ensure fresh image
         const cacheBustedUrl = imageUrl + (imageUrl.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
+        console.log('Loading image from:', cacheBustedUrl);
         testImage.src = cacheBustedUrl;
     }
 
