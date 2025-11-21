@@ -728,5 +728,95 @@ public function valueExists($field, $value) {
             return false;
         }
     }
+
+    /**
+     * Log login attempts
+     */
+    public function logLoginAttempt($email, $userId = null, $ipAddress = null, $userAgent = null, $success = false, $notes = '') {
+        try {
+            $query = "INSERT INTO LOGIN_ATTEMPTS (user_id, email, ip_address, user_agent, success, notes) 
+                      VALUES (:user_id, :email, :ip_address, :user_agent, :success, :notes)";
+            
+            $this->db->query($query);
+            $this->db->bind(':user_id', $userId);
+            $this->db->bind(':email', $email);
+            $this->db->bind(':ip_address', $ipAddress);
+            $this->db->bind(':user_agent', $userAgent);
+            $this->db->bind(':success', $success);
+            $this->db->bind(':notes', $notes);
+            
+            return $this->db->execute();
+        } catch (Exception $e) {
+            error_log("Login attempt logging error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Log user actions for audit
+     */
+    public function logUserAction($userId, $action, $description) {
+        try {
+            $query = "INSERT INTO AUDIT_LOGS (table_name, record_id, action, new_values, user_id) 
+                      VALUES ('USER_ACTIONS', :user_id, :action, :description, :user_id)";
+            
+            $this->db->query($query);
+            $this->db->bind(':user_id', $userId);
+            $this->db->bind(':action', $action);
+            $this->db->bind(':description', json_encode(['description' => $description]));
+            
+            return $this->db->execute();
+        } catch (Exception $e) {
+            error_log("User action logging error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get recent login attempts for a user
+     */
+    public function getRecentLoginAttempts($userId, $limit = 10) {
+        try {
+            $query = "SELECT * FROM LOGIN_ATTEMPTS 
+                      WHERE user_id = :user_id 
+                      ORDER BY attempt_time DESC 
+                      LIMIT :limit";
+            
+            $this->db->query($query);
+            $this->db->bind(':user_id', $userId);
+            $this->db->bind(':limit', $limit);
+            
+            return $this->db->resultSet();
+        } catch (Exception $e) {
+            error_log("Get recent login attempts error: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Check for suspicious login activity
+     */
+    public function checkSuspiciousActivity($email, $ipAddress, $timeFrameMinutes = 15) {
+        try {
+            $query = "SELECT COUNT(*) as attempt_count 
+                      FROM LOGIN_ATTEMPTS 
+                      WHERE (email = :email OR ip_address = :ip_address) 
+                      AND success = 0 
+                      AND attempt_time >= DATE_SUB(NOW(), INTERVAL :timeframe MINUTE)";
+            
+            $this->db->query($query);
+            $this->db->bind(':email', $email);
+            $this->db->bind(':ip_address', $ipAddress);
+            $this->db->bind(':timeframe', $timeFrameMinutes);
+            
+            $result = $this->db->single();
+            return $result->attempt_count;
+        } catch (Exception $e) {
+            error_log("Suspicious activity check error: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+
 }
 ?>

@@ -147,7 +147,7 @@ if ($setupError) {
         <form method="POST" action="../../Controllers/AuthController.php" enctype="multipart/form-data">
           <input type="hidden" name="action" value="login">
           <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
-          <input type="hidden" id="roleField" name="role">
+          <input type="hidden" id="roleField" name="role" value="student">
           <div class="mb-3">
             <label for="email" class="form-label">Email</label>
             <input type="text" id="username" name="email" class="form-control" placeholder="Enter USeP email" required>

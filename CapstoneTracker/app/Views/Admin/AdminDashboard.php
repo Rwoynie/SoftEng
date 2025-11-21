@@ -1088,14 +1088,7 @@ $displayUserData = [
                             <div class="stat-icon"><i class="fas fa-users"></i></div>
                             <div class="stat-info">
                                 <h3 id="totalStudents">0</h3>
-                                <p>Total Students</p>
-                            </div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-icon"><i class="fas fa-calendar"></i></div>
-                            <div class="stat-info">
-                                <h3 id="recentTheses">0</h3>
-                                <p>This Month</p>
+                                <p>Total Users</p>
                             </div>
                         </div>
                     </div>
@@ -1110,58 +1103,58 @@ $displayUserData = [
                             <div class="access-item accessCard active" id="allReportsBtn">
                                 <div class="access-info">
                                     <h4>All Programs</h4>
-                                    <p>Total thesis count across all programs</p>
+                                    <p>Total thesis across all programs</p>
                                     </div>
                                 <div class="access-count" id="allCount">0</div>
                                  </div>
                             <div class="access-item accessCard" id="bsitReports">
                                 <div class="access-info">
-                                    <h4>BSIT | SITS</h4>
-                                    <p>Information Technology</p>
+                                    <h4>BSIT</h4>
+                                    <p>Bachelor of Science in Information Technology</p>
                                      </div>
                                 <div class="access-count">0</div>
                                  </div>
                             <div class="access-item accessCard" id="becedReports">
                                 <div class="access-info">
-                                    <h4>BECED | AECES</h4>
-                                    <p>Early Childhood Education</p>
+                                    <h4>BECED</h4>
+                                    <p>Bachelor of Early Childhood Education</p>
 
                                     </div>
                                 <div class="access-count">0</div>
                                  </div>
                             <div class="access-item accessCard" id="bsedReports">
                                 <div class="access-info">
-                                    <h4>BSED | AFSET</h4>
-                                    <p>Secondary Education</p>
+                                    <h4>BSED</h4>
+                                    <p>Bachelor of Secondary Education</p>
                                      </div>
                                 <div class="access-count">0</div>
                             </div>
                             <div class="access-item accessCard" id="btvtedReports">
                                 <div class="access-info">
-                                    <h4>BTVTED | FTVETS</h4>
-                                    <p>Technical-Vocational</p>
+                                    <h4>BTVTED</h4>
+                                    <p>Bachelor of Technical-Vocational Teacher Education</p>
                                     </div>
                                 <div class="access-count">0</div>
                             </div>
                             <div class="access-item accessCard" id="beedReports">
                                 <div class="access-info">
-                                    <h4>BEED | OFEE</h4>
-                                    <p>Elementary Education</p>
+                                    <h4>BEED</h4>
+                                    <p>Bachelor of Elementary Education</p>
 
                                      </div>
                                 <div class="access-count">0</div>
                             </div>
                             <div class="access-item accessCard" id="bsnedReports">
                                 <div class="access-info">
-                                    <h4>BSNED | OFSET</h4>
-                                    <p>Special Needs Education</p>
+                                    <h4>BSNED</h4>
+                                    <p>Bachelor of Special Needs Education</p>
                                     </div>
                                 <div class="access-count">0</div>
                             </div>
                             <div class="access-item accessCard" id="bsabeReports">
                                 <div class="access-info">
-                                    <h4>BSABE | SABES</h4>
-                                    <p>Agricultural Engineering</p>
+                                    <h4>BSABE</h4>
+                                    <p>Bachelor of Science in Agricultural and Biosystems Engineering</p>
                                 </div>
                                 <div class="access-count">0</div>
                                  </div>
@@ -1173,10 +1166,9 @@ $displayUserData = [
                     <div class="charts-section">
                         <div class="chart-card">
                             <div class="chart-header">
-                                <h3>Student Distribution by Program</h3>
+                                <h3>User Distribution by Role</h3>
                                 <div class="chart-actions">
                                     <button class="chart-action-btn" title="refresh"><i class="fas fa-sync"></i></button>
-                                    <button class="chart-action-btn" title="download"><i class="fas fa-download"></i></button>
                                 </div>
                             </div>
                             <div class="chart-container">
@@ -1187,10 +1179,9 @@ $displayUserData = [
 
                         <div class="chart-card">
                             <div class="chart-header">
-                                <h3>Thesis Uploads (Last 12 Months)</h3>
+                                <h3>Total Thesis per Program</h3>
                                 <div class="chart-actions">
                                     <button class="chart-action-btn" title="refresh"><i class="fas fa-sync"></i></button>
-                                    <button class="chart-action-btn" title="download"><i class="fas fa-download"></i></button>
                                 </div>
                             </div>
                             <div class="chart-container">

@@ -698,11 +698,10 @@ public function getAuditLogs($limit, $table = null) {
                     u.Last_Name, 
                     u.User_Role
                 FROM AUDIT_LOGS a
-                LEFT JOIN USER_INFORMATION u ON a.user_id = u.ID"; // Use LEFT JOIN for user info
+                LEFT JOIN USER_INFORMATION u ON a.user_id = u.ID"; 
         
         $params = [];
 
-        // This conditional logic handles the optional $table parameter correctly.
         if (!empty($table)) {
             $sql .= " WHERE a.changed_table = :table";
             $params[':table'] = $table;
@@ -1059,6 +1058,46 @@ public function getLoginAttempts($limit) {
         }
     }
 
+
+    /**
+ * Get thesis counts by program with optional department filter
+ */
+public function getThesisCountsByProgram($department = 'all') {
+    try {
+        $courseMap = $this->getCourseCodesByDepartment($department);
+        $useFilter = $department !== 'all' && !empty($courseMap);
+
+        $sql = "
+            SELECT 
+                Thesis_Course as program,
+                COUNT(*) as thesis_count
+            FROM THESIS 
+            WHERE Thesis_Course IS NOT NULL 
+              AND Thesis_Course != ''
+        ";
+
+        $params = [];
+        if ($useFilter) {
+            $placeholders = str_repeat('?,', count($courseMap) - 1) . '?';
+            $sql .= " AND Thesis_Course IN ($placeholders)";
+            $params = $courseMap;
+        }
+
+        $sql .= " GROUP BY Thesis_Course ORDER BY thesis_count DESC";
+
+        $this->db->query($sql);
+        foreach ($params as $i => $val) {
+            $this->db->bind($i + 1, $val);
+        }
+
+        return $this->db->resultSet();
+    } catch (Exception $e) {
+        error_log("Error in getThesisCountsByProgram: " . $e->getMessage());
+        return [];
+    }
+}
+
+
     /**
      * Get department statistics for specific department
      */
@@ -1224,6 +1263,86 @@ private function getEmptyMonthlyData() {
     ];
     
     return $months;
+}
+
+/**
+ * Get user distribution by role for pie chart
+ */
+public function getUserDistributionByRole($department = 'all') {
+    try {
+        $sql = "
+            SELECT 
+                User_Role,
+                COUNT(*) as user_count
+            FROM USER_INFORMATION
+            WHERE Acc_Status = 'approved'
+            AND User_Role IS NOT NULL
+        ";
+        
+        $params = [];
+        
+        if ($department !== 'all') {
+            $courseCodes = $this->getCourseCodesByDepartment($department);
+            if (!empty($courseCodes)) {
+                $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
+                $sql .= " AND Course IN ($placeholders)";
+                $params = array_merge($params, $courseCodes);
+            }
+        }
+        
+        $sql .= " GROUP BY User_Role ORDER BY user_count DESC";
+        
+        $this->db->query($sql);
+        foreach ($params as $index => $value) {
+            $this->db->bind($index + 1, $value);
+        }
+        
+        return $this->db->resultSet();
+        
+    } catch (Exception $e) {
+        error_log("Error getting user distribution by role: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get total thesis per program for bar chart
+ */
+public function getThesisPerProgram($department = 'all') {
+    try {
+        $sql = "
+            SELECT 
+                Thesis_Course as program,
+                COUNT(*) as thesis_count
+            FROM THESIS 
+            WHERE Thesis_Course IS NOT NULL 
+            AND Thesis_Course != ''
+        ";
+        
+        $params = [];
+        
+        if ($department !== 'all') {
+            $courseCodes = $this->getCourseCodesByDepartment($department);
+            if (!empty($courseCodes)) {
+                $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
+                $sql .= " AND Thesis_Course IN ($placeholders)";
+                $params = array_merge($params, $courseCodes);
+            }
+        }
+        
+        $sql .= " GROUP BY Thesis_Course ORDER BY thesis_count DESC";
+        
+        $this->db->query($sql);
+        foreach ($params as $index => $value) {
+            $this->db->bind($index + 1, $value);
+        }
+        
+        return $this->db->resultSet();
+        
+    } catch (Exception $e) {
+        error_log("Error getting thesis per program: " . $e->getMessage());
+        return [];
+    }
 }
 
 
@@ -1515,6 +1634,136 @@ public function getDepartmentThesisCounts() {
     } catch (Exception $e) {
         error_log("Error getting department thesis counts: " . $e->getMessage());
         return [];
+    }
+}
+
+// Add to AdminDashboardModel.php
+
+/**
+ * Get login attempts with enhanced trigger data
+ */
+public function getLoginAttemptsWithTriggers($limit = 100) {
+    try {
+        $this->db->query("
+            SELECT 
+                la.*,
+                ui.First_Name,
+                ui.Last_Name,
+                ui.User_Role,
+                ui.Email,
+                la.notes,
+                la.attempt_time,
+                la.ip_address,
+                la.success,
+                la.user_agent
+            FROM LOGIN_ATTEMPTS la
+            LEFT JOIN USER_INFORMATION ui ON la.user_id = ui.ID
+            ORDER BY la.attempt_time DESC
+            LIMIT :limit
+        ");
+        $this->db->bind(':limit', $limit);
+        
+        return $this->db->resultSet();
+    } catch (Exception $e) {
+        error_log("Error getting login attempts with triggers: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get audit logs with trigger data
+ */
+public function getAuditLogsWithTriggers($limit = 100, $table = null) {
+    try {
+        $sql = "SELECT 
+                    al.*,
+                    ui.First_Name,
+                    ui.Last_Name,
+                    ui.User_Role,
+                    ui.Email,
+                    al.ip_address,
+                    al.changed_at,
+                    al.action,
+                    al.table_name,
+                    al.old_values,
+                    al.new_values
+                FROM AUDIT_LOGS al
+                LEFT JOIN USER_INFORMATION ui ON al.user_id = ui.ID";
+        
+        $params = [];
+
+        if (!empty($table)) {
+            $sql .= " WHERE al.table_name = :table";
+            $params[':table'] = $table;
+        }
+
+        $sql .= " ORDER BY al.changed_at DESC LIMIT :limit";
+        
+        $this->db->query($sql);
+        $this->db->bind(':limit', (int)$limit);
+        
+        if (!empty($table)) {
+            $this->db->bind(':table', $table);
+        }
+        
+        return $this->db->resultSet();
+    } catch (Exception $e) {
+        error_log("Error getting audit logs with triggers: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get suspicious login activities detected by triggers
+ */
+public function getSuspiciousActivities($limit = 50) {
+    try {
+        $this->db->query("
+            SELECT 
+                la.*,
+                ui.First_Name,
+                ui.Last_Name,
+                ui.User_Role,
+                COUNT(*) as attempt_count
+            FROM LOGIN_ATTEMPTS la
+            LEFT JOIN USER_INFORMATION ui ON la.user_id = ui.ID
+            WHERE la.success = FALSE
+            AND la.attempt_time >= DATE_SUB(NOW(), INTERVAL 1 HOUR)
+            GROUP BY la.ip_address
+            HAVING attempt_count >= 3
+            ORDER BY attempt_count DESC
+            LIMIT :limit
+        ");
+        $this->db->bind(':limit', $limit);
+        
+        return $this->db->resultSet();
+    } catch (Exception $e) {
+        error_log("Error getting suspicious activities: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get login statistics for dashboard
+ */
+public function getLoginStatistics($hours = 24) {
+    try {
+        $this->db->query("
+            SELECT 
+                COUNT(*) as total_attempts,
+                SUM(CASE WHEN success = TRUE THEN 1 ELSE 0 END) as successful_logins,
+                SUM(CASE WHEN success = FALSE THEN 1 ELSE 0 END) as failed_logins,
+                COUNT(DISTINCT ip_address) as unique_ips,
+                COUNT(DISTINCT user_id) as unique_users
+            FROM LOGIN_ATTEMPTS 
+            WHERE attempt_time >= DATE_SUB(NOW(), INTERVAL ? HOUR)
+        ");
+        $this->db->bind(1, $hours);
+        
+        return $this->db->single();
+    } catch (Exception $e) {
+        error_log("Error getting login statistics: " . $e->getMessage());
+        return null;
     }
 }
 

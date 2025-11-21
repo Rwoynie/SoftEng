@@ -341,96 +341,206 @@ class ReportsManager {
         this.createThesisUploadsChart(data.monthly_uploads);  
     }
 
-    createCourseDistributionChart(courseDistribution) {
-        const ctx = document.getElementById('studentPieChart');
-        if (!ctx) {
-            console.error('Student pie chart canvas not found');
-            return;
-        }
+    // Replace the createCourseDistributionChart method
+createCourseDistributionChart(userDistribution) {
+    const ctx = document.getElementById('studentPieChart');
+    if (!ctx) {
+        console.error('Student pie chart canvas not found');
+        return;
+    }
 
-        // Destroy existing chart if it exists
-        if (this.charts.studentPie) {
-            this.charts.studentPie.destroy();
-        }
+    // Destroy existing chart if it exists
+    if (this.charts.studentPie) {
+        this.charts.studentPie.destroy();
+    }
 
-        // Process real data for chart
-        const chartData = this.processCourseDistributionData(courseDistribution);
-        
-        console.log('Course Distribution Data for Pie Chart:', chartData);
+    // Process user distribution data for pie chart
+    const chartData = this.processUserDistributionData(userDistribution);
+    
+    console.log('User Distribution Data for Pie Chart:', chartData);
 
-        // Color mapping for courses
-        const courseColors = {
-            'Bachelor of Science in Information Technology': '#FF6B6B',
-            'Bachelor of Early Childhood Education': '#4ECDC4',
-            'Bachelor of Secondary Education': '#45B7D1',
-            'Bachelor of Technical-Vocational Teacher Education': '#96CEB4',
-            'Bachelor of Elementary Education': '#FFEAA7',
-            'Bachelor of Special Needs Education': '#cd84cdff',
-            'Bachelor of Science in Agricultural and Biosystems Engineering': '#48ffd1ff',
-            'Bachelor of Science in Agriculture and Biosystems Engineering': '#48ffd1ff'
-        };
+    // Color mapping for user roles
+    const roleColors = {
+        'student': '#FF6B6B',
+        'faculty': '#4ECDC4',
+        'admin': '#45B7D1',
+        'superAdmin': '#96CEB4',
+        'SubAdmin': '#FFEAA7'
+    };
 
-        // Assign colors
-        const backgroundColors = chartData.labels.map(label => {
-            // Try exact match first
-            if (courseColors[label]) {
-                return courseColors[label];
-            }
-            
-            // Try partial match
-            for (const [key, value] of Object.entries(courseColors)) {
-                if (label.toLowerCase().includes(key.toLowerCase()) || 
-                    key.toLowerCase().includes(label.toLowerCase())) {
-                    return value;
-                }
-            }
-            
-            // Fallback color
-            return '#CCCCCC';
-        });
+    // Assign colors
+    const backgroundColors = chartData.labels.map(label => {
+        const role = label.toLowerCase();
+        return roleColors[role] || '#CCCCCC';
+    });
 
-        this.charts.studentPie = new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: chartData.labels,
-                datasets: [{
-                    data: chartData.data,
-                    backgroundColor: backgroundColors,
-                    borderWidth: 2,
-                    borderColor: '#ffffff'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'bottom',
-                        labels: {
-                            padding: 15,
-                            usePointStyle: true,
-                            font: {
-                                size: 11,
-                                family: "'Inter', sans-serif"
-                            }
+    this.charts.studentPie = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: chartData.labels,
+            datasets: [{
+                data: chartData.data,
+                backgroundColor: backgroundColors,
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        usePointStyle: true,
+                        font: {
+                            size: 11,
+                            family: "'Inter', sans-serif"
                         }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || '';
-                                const value = context.raw || 0;
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-                                return `${label}: ${value} students (${percentage}%)`;
-                            }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                            return `${label}: ${value} users (${percentage}%)`;
                         }
                     }
                 }
             }
-        });
+        }
+    });
+}
+
+
+createThesisUploadsChart(programThesisCounts) {
+    const ctx = document.getElementById('thesisBarChart');
+    if (!ctx) {
+        console.error('Thesis bar chart canvas not found');
+        return;
     }
+
+    if (this.charts.thesisBar) {
+        this.charts.thesisBar.destroy();
+    }
+
+    const chartData = this.processProgramThesisData(programThesisCounts);
+    
+    console.log('Program Thesis Data for Bar Chart:', chartData);
+
+    this.charts.thesisBar = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: chartData.labels,
+            datasets: [{
+                label: 'Thesis Count',
+                data: chartData.data,
+                backgroundColor: 'rgba(186, 30, 31, 0.8)',
+                borderColor: 'rgba(186, 30, 31, 1)',
+                borderWidth: 1,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    },
+                    title: {
+                        display: true,
+                        text: 'Number of Theses'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Programs'
+                    }
+                }
+            }
+        }
+    });
+
+    this.updateChartFooterStats(chartData);
+}
+
+processUserDistributionData(userDistribution) {
+    if (!userDistribution || userDistribution.length === 0) {
+        return {
+            labels: ['No Data Available'],
+            data: [1]
+        };
+    }
+
+    const labels = userDistribution.map(item => {
+        const role = item.User_Role || item.user_role;
+
+        if (role === 'superAdmin') return 'Administrator';
+        if (role === 'SubAdmin') return 'Sub-Admin';
+        return role.charAt(0).toUpperCase() + role.slice(1);
+    });
+    const data = userDistribution.map(item => parseInt(item.user_count) || 0);
+    
+    return { labels, data };
+}
+
+processProgramThesisData(programThesisCounts) {
+    if (!programThesisCounts || programThesisCounts.length === 0) {
+        return {
+            labels: ['No Data Available'],
+            data: [0]
+        };
+    }
+
+    const labels = programThesisCounts.map(item => {
+        const program = item.program || item.Thesis_Course;
+
+        if (program.includes('Bachelor of Science in Information Technology')) return 'BSIT';
+        if (program.includes('Bachelor of Early Childhood Education')) return 'BECED';
+        if (program.includes('Bachelor of Secondary Education')) return 'BSED';
+        if (program.includes('Bachelor of Technical-Vocational Teacher Education')) return 'BTVTED';
+        if (program.includes('Bachelor of Elementary Education')) return 'BEED';
+        if (program.includes('Bachelor of Special Needs')) return 'BSNED';
+        if (program.includes('Bachelor of Science Agricultural and Biosystems Engineering')) return 'BSABE';
+        return program;
+    });
+    const data = programThesisCounts.map(item => parseInt(item.thesis_count) || 0);
+    
+    return { labels, data };
+}
+
+updateChartFooterStats(chartData) {
+    const chartFooter = document.querySelector('.chart-footer .chart-stats');
+    if (!chartFooter) return;
+
+    const totalTheses = chartData.data.reduce((sum, count) => sum + count, 0);
+    
+    chartFooter.innerHTML = `
+        <div class="chart-stat">
+            <span class="stat-label">Total Theses:</span>
+            <span class="stat-value">${totalTheses}</span>
+        </div>
+    `;
+}
+
+updateCharts(data) {
+    this.createCourseDistributionChart(data.user_distribution);  
+    this.createThesisUploadsChart(data.program_thesis_counts);   
+}
 
     createThesisUploadsChart(monthlyUploads) {
         const ctx = document.getElementById('thesisBarChart');
@@ -501,7 +611,7 @@ class ReportsManager {
 
     processMonthlyUploadsData(monthlyUploads) {
         if (!monthlyUploads || monthlyUploads.length === 0) {
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const months = ['BSIT', 'BECED', 'BSED', 'BTVTED', 'BEED', 'BSNED', 'BSABE'];
             return {
                 labels: months,
                 data: months.map(() => 0)
@@ -521,14 +631,9 @@ class ReportsManager {
         
         const maxUploads = Math.max(...uploadData.data);
         const maxIndex = uploadData.data.indexOf(maxUploads);
-        const peakMonth = uploadData.labels[maxIndex] || 'No data';
         const totalYear = uploadData.data.reduce((sum, count) => sum + count, 0);
         
         chartFooter.innerHTML = `
-            <div class="chart-stat">
-                <span class="stat-label">Peak Month:</span>
-                <span class="stat-value">${peakMonth} (${maxUploads})</span>
-            </div>
             <div class="chart-stat">
                 <span class="stat-label">Total This Year:</span>
                 <span class="stat-value">${totalYear}</span>
