@@ -1145,6 +1145,7 @@ async function sendGoogleCredentialToBackend(credential, userEmail, userName, se
         });
 
         console.log('Sending Google authentication with role:', selectedRole);
+        console.log('Action should be: googleLogin');
 
         // Send to AuthController
         const response = await fetch('../../Controllers/AuthController.php', {
@@ -1154,11 +1155,11 @@ async function sendGoogleCredentialToBackend(credential, userEmail, userName, se
             },
             credentials: 'include',
             body: new URLSearchParams({
-                'action': 'googleLogin',
+                'action': 'googleLogin', // ← MAKE SURE THIS IS CORRECT
                 'credential': credential,
                 'email': userEmail,
                 'name': userName,
-                'role': selectedRole, // Include the selected role
+                'role': selectedRole,
                 'csrf_token': '<?php echo $_SESSION["csrf_token"] ?? ""; ?>'
             })
         });
@@ -1167,21 +1168,32 @@ async function sendGoogleCredentialToBackend(credential, userEmail, userName, se
         console.log('Raw response:', responseText);
         
         let result;
-        // Handle response
-        if (responseText.includes('PHPMailer:') || 
-            responseText.includes('<br>') ||
-            responseText.includes('SMTP') ||
-            responseText.trim().startsWith('PHPMailer:')) {
-            
-            const jsonMatch = responseText.match(/\{.*\}/s);
-            if (jsonMatch) {
-                result = JSON.parse(jsonMatch[0]);
-            } else {
-                throw new Error('Server returned debug output instead of JSON');
-            }
-        } else {
-            // Normal JSON response
+        
+        // Handle empty or malformed responses
+        if (!responseText || responseText.trim() === '') {
+            throw new Error('Server returned empty response');
+        }
+        
+        // Try to parse as JSON
+        try {
             result = JSON.parse(responseText);
+        } catch (parseError) {
+            console.error('JSON parse error:', parseError);
+            console.log('Raw response that failed to parse:', responseText);
+            
+            // Try to extract JSON from the response if there's extra output
+            const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                try {
+                    result = JSON.parse(jsonMatch[0]);
+                    console.log('Extracted JSON from response:', result);
+                } catch (extractError) {
+                    console.error('Could not extract JSON:', extractError);
+                    throw new Error('Server returned invalid response format');
+                }
+            } else {
+                throw new Error('Server returned non-JSON response: ' + responseText.substring(0, 100));
+            }
         }
         
         handleGoogleAuthResult(result);
@@ -1194,6 +1206,9 @@ async function sendGoogleCredentialToBackend(credential, userEmail, userName, se
             icon: 'error',
             confirmButtonText: 'OK'
         });
+        
+        // Reset Google button
+        resetGoogleButton();
     }
 }
 
@@ -1927,7 +1942,7 @@ function setupAdminForm() {
         adminLoginForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const username = document.getElementById('adminUsername').value;
+            const username = document.getElementById('adminUsername').value.trim();
             const password = document.getElementById('adminPassword').value;
             
             if (!username || !password) {
@@ -1938,15 +1953,30 @@ function setupAdminForm() {
             // Show loading state
             Swal.fire({
                 title: 'Authenticating...',
-                text: 'Please wait while we verify your credentials',
+                text: 'Please wait while we verify your admin credentials',
                 allowOutsideClick: false,
                 didOpen: () => {
                     Swal.showLoading();
                 }
             });
             
-            // Submit the form
-            this.submit();
+            // Submit via fetch to see detailed errors
+            const formData = new FormData(this);
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(data => {
+                console.log('Admin login response:', data);
+                // Let the form submit normally for now
+                this.submit();
+            })
+            .catch(error => {
+                console.error('Admin login error:', error);
+                this.submit();
+            });
         });
     }
 }
