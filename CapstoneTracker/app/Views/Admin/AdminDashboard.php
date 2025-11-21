@@ -689,6 +689,10 @@ $displayUserData = [
                 <div id="logs-container" class="content-container" style="display: none;">
                     <header class="logHeader" id="logHeader">
                         <div class="title">System Logs</div>
+                                <button class="log-download-btn2">
+                                    <i class="fas fa-download me-2"></i>
+                                    Download System Logs
+                                </button>
                         <div class="logMenu">
                             <button class="selected" id="allLogsButton">All</button>
                             <button id="userLogsButton">User</button>
@@ -696,7 +700,7 @@ $displayUserData = [
                         </div>
                     </header>
 
-                    <!-- All Logs Container -->
+                   <!-- All Logs Container -->
                     <div id="allLogs-container" class="log-content active">
                         <div class="log-filter-bar">
                             <div class="search-download-container">
@@ -704,10 +708,7 @@ $displayUserData = [
                                     <i class="fas fa-search"></i>
                                     <input type="text" placeholder="Search all logs..." id="allLogSearchInput">
                                 </div>
-                                <button class="log-download-btn2">
-                                    <i class="fas fa-download me-2"></i>
-                                    Download System Logs
-                                </button>
+                                
                             </div>
                             
                             <div class="log-filter-options">
@@ -716,6 +717,7 @@ $displayUserData = [
                                 <button class="log-filter-btn" data-filter="user">User Management</button>
                                 <button class="log-filter-btn" data-filter="thesis">Thesis</button>
                                 <button class="log-filter-btn" data-filter="announcement">Announcements</button>
+                                <button class="log-filter-btn" data-filter="backup">Backup</button>
                             </div>
                         </div>
 
@@ -739,9 +741,12 @@ $displayUserData = [
                     <!-- User Log Container -->
                     <div id="userLogs-container" class="log-content" style="display: none;">
                         <div class="log-filter-bar">
-                            <div class="log-search-box">
-                                <i class="fas fa-search"></i>
-                                <input type="text" placeholder="Search user logs..." id="userLogSearchInput">
+                            <div class="search-download-container">
+                                <div class="log-search-box">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" placeholder="Search user logs..." id="userLogSearchInput">
+                                </div>
+                                
                             </div>
                             <div class="log-filter-options">
                                 <button class="log-filter-btn active" data-filter="all">All Activities</button>
@@ -770,15 +775,20 @@ $displayUserData = [
                     <!-- Admin Log Container -->
                     <div id="adminLogs-container" class="log-content" style="display: none;">
                         <div class="log-filter-bar">
-                            <div class="log-search-box">
-                                <i class="fas fa-search"></i>
-                                <input type="text" placeholder="Search admin logs..." id="adminLogSearchInput">
+                            <div class="search-download-container">
+                                <div class="log-search-box">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" placeholder="Search admin logs..." id="adminLogSearchInput">
+                                </div>
+                                
                             </div>
                             <div class="log-filter-options">
                                 <button class="log-filter-btn active" data-filter="all">All Activities</button>
-                                <button class="log-filter-btn" data-filter="system">System</button>
-                                <button class="log-filter-btn" data-filter="management">Management</button>
-                                <button class="log-filter-btn" data-filter="security">Security</button>
+                                <button class="log-filter-btn" data-filter="login">Logins</button>
+                                <button class="log-filter-btn" data-filter="user">User Management</button>
+                                <button class="log-filter-btn" data-filter="thesis">Thesis</button>
+                                <button class="log-filter-btn" data-filter="announcement">Announcements</button>
+                                <button class="log-filter-btn" data-filter="backup">Backup</button>
                             </div>
                         </div>
 
@@ -793,8 +803,7 @@ $displayUserData = [
                                     </tr>
                                 </thead>
                                 <tbody id="adminLogsTableBody">
-                                    
-                                
+                                    <!-- Admin logs will be populated here -->
                                 </tbody>
                             </table>
                         </div>
