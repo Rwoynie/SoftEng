@@ -1059,6 +1059,46 @@ public function getLoginAttempts($limit) {
         }
     }
 
+
+    /**
+ * Get thesis counts by program with optional department filter
+ */
+public function getThesisCountsByProgram($department = 'all') {
+    try {
+        $courseMap = $this->getCourseCodesByDepartment($department);
+        $useFilter = $department !== 'all' && !empty($courseMap);
+
+        $sql = "
+            SELECT 
+                Thesis_Course as program,
+                COUNT(*) as thesis_count
+            FROM THESIS 
+            WHERE Thesis_Course IS NOT NULL 
+              AND Thesis_Course != ''
+        ";
+
+        $params = [];
+        if ($useFilter) {
+            $placeholders = str_repeat('?,', count($courseMap) - 1) . '?';
+            $sql .= " AND Thesis_Course IN ($placeholders)";
+            $params = $courseMap;
+        }
+
+        $sql .= " GROUP BY Thesis_Course ORDER BY thesis_count DESC";
+
+        $this->db->query($sql);
+        foreach ($params as $i => $val) {
+            $this->db->bind($i + 1, $val);
+        }
+
+        return $this->db->resultSet();
+    } catch (Exception $e) {
+        error_log("Error in getThesisCountsByProgram: " . $e->getMessage());
+        return [];
+    }
+}
+
+
     /**
      * Get department statistics for specific department
      */
@@ -1224,6 +1264,86 @@ private function getEmptyMonthlyData() {
     ];
     
     return $months;
+}
+
+/**
+ * Get user distribution by role for pie chart
+ */
+public function getUserDistributionByRole($department = 'all') {
+    try {
+        $sql = "
+            SELECT 
+                User_Role,
+                COUNT(*) as user_count
+            FROM USER_INFORMATION
+            WHERE Acc_Status = 'approved'
+            AND User_Role IS NOT NULL
+        ";
+        
+        $params = [];
+        
+        if ($department !== 'all') {
+            $courseCodes = $this->getCourseCodesByDepartment($department);
+            if (!empty($courseCodes)) {
+                $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
+                $sql .= " AND Course IN ($placeholders)";
+                $params = array_merge($params, $courseCodes);
+            }
+        }
+        
+        $sql .= " GROUP BY User_Role ORDER BY user_count DESC";
+        
+        $this->db->query($sql);
+        foreach ($params as $index => $value) {
+            $this->db->bind($index + 1, $value);
+        }
+        
+        return $this->db->resultSet();
+        
+    } catch (Exception $e) {
+        error_log("Error getting user distribution by role: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get total thesis per program for bar chart
+ */
+public function getThesisPerProgram($department = 'all') {
+    try {
+        $sql = "
+            SELECT 
+                Thesis_Course as program,
+                COUNT(*) as thesis_count
+            FROM THESIS 
+            WHERE Thesis_Course IS NOT NULL 
+            AND Thesis_Course != ''
+        ";
+        
+        $params = [];
+        
+        if ($department !== 'all') {
+            $courseCodes = $this->getCourseCodesByDepartment($department);
+            if (!empty($courseCodes)) {
+                $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
+                $sql .= " AND Thesis_Course IN ($placeholders)";
+                $params = array_merge($params, $courseCodes);
+            }
+        }
+        
+        $sql .= " GROUP BY Thesis_Course ORDER BY thesis_count DESC";
+        
+        $this->db->query($sql);
+        foreach ($params as $index => $value) {
+            $this->db->bind($index + 1, $value);
+        }
+        
+        return $this->db->resultSet();
+        
+    } catch (Exception $e) {
+        error_log("Error getting thesis per program: " . $e->getMessage());
+        return [];
+    }
 }
 
 
