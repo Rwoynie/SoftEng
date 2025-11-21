@@ -1989,7 +1989,7 @@ private function generateLogsReport() {
  * Get logs data for PDF report
  */
 private function getLogsForReport($logType, $filter, $page) {
-    $limit = 50; // 50 logs per page
+    $limit = 50;
     $offset = ($page - 1) * $limit;
     
     try {

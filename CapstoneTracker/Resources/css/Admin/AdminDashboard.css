@@ -6219,3 +6219,74 @@ background: #f8f9fa;
         padding: 2px !important;
     }
 }
+
+/* Enhanced log styles for triggers */
+.log-action.action-login-success {
+    background-color: #d4edda;
+    color: #155724;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.log-action.action-login-failed {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.log-action.action-suspicious {
+    background-color: #fff3cd;
+    color: #856404;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    border: 1px solid #ffeaa7;
+}
+
+.log-notes {
+    font-size: 0.8em;
+    color: #6c757d;
+    margin-top: 4px;
+    font-style: italic;
+}
+
+.log-row:hover {
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+
+.log-row:hover td {
+    background-color: #f8f9fa;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.stat-card {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #ba1e1f;
+    margin: 10px 0;
+}
+
+.stat-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+    font-weight: 500;
+}

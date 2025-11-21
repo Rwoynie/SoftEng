@@ -827,6 +827,49 @@ class DatabaseSchema {
                     VALUES (NEW.ID, 'user_approval', 'Account Approved', 
                            'Your account has been approved. You can now access all features.', NEW.ID);
                 END IF;
+            END;",
+
+            "CREATE TRIGGER log_successful_login_attempt
+            AFTER INSERT ON LOGIN_ATTEMPTS
+            FOR EACH ROW
+            BEGIN
+                IF NEW.success = 1 THEN
+                    INSERT INTO AUDIT_LOGS (table_name, record_id, action, new_values, user_id)
+                    VALUES ('LOGIN_ATTEMPTS', NEW.id, 'INSERT', 
+                           JSON_OBJECT('email', NEW.email, 'user_id', NEW.user_id, 'ip_address', NEW.ip_address, 'success', NEW.success),
+                           NEW.user_id);
+                END IF;
+            END;",
+
+            "CREATE TRIGGER prevent_duplicate_logins
+            BEFORE UPDATE ON USER_INFORMATION
+            FOR EACH ROW
+            BEGIN
+            END;",
+
+             "CREATE TRIGGER detect_suspicious_login_activity
+            AFTER INSERT ON LOGIN_ATTEMPTS
+            FOR EACH ROW
+            BEGIN
+                DECLARE recent_failed_count INT;
+                
+                -- Count recent failed attempts from same IP
+                SELECT COUNT(*) INTO recent_failed_count
+                FROM LOGIN_ATTEMPTS 
+                WHERE ip_address = NEW.ip_address 
+                AND success = 0 
+                AND attempt_time >= DATE_SUB(NOW(), INTERVAL 15 MINUTE);
+                
+                -- If more than 5 failed attempts in 15 minutes, log as suspicious
+                IF recent_failed_count >= 5 THEN
+                    INSERT INTO NOTIFICATIONS (user_id, type, title, message, related_id)
+                    SELECT 
+                        NULL, 
+                        'security', 
+                        'Suspicious Login Activity Detected', 
+                        CONCAT('Multiple failed login attempts (', recent_failed_count, ') from IP: ', NEW.ip_address),
+                        NEW.id;
+                END IF;
             END;"
 
             
