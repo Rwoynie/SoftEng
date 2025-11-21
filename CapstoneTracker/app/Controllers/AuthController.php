@@ -1030,7 +1030,7 @@ private function properCaseName($name) {
    /**
  * Auto-register a user from Google Sign-In - WITH PROPER ROLE ASSIGNMENT
  */
-private function autoRegisterGoogleUser($email, $name, $selectedRole) {
+public function autoRegisterGoogleUser($email, $name, $selectedRole) {
     error_log("=== AUTO REGISTRATION CALLED ===");
     
     require_once ROOT_DIR . '\app\Models\User.php';
@@ -1063,6 +1063,7 @@ private function autoRegisterGoogleUser($email, $name, $selectedRole) {
             'profile_pic' => base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')
         ];
         
+        // Pass empty IDs so the model generates them
         if ($userRole === 'student') {
             $userData['student_id'] = '';
         } else if ($userRole === 'faculty') {
@@ -1070,14 +1071,23 @@ private function autoRegisterGoogleUser($email, $name, $selectedRole) {
         }
         
         error_log("Calling userModel->registerGoogleUser()");
-        $userId = $userModel->registerGoogleUser($userData);
+        $result = $userModel->registerGoogleUser($userData);
         
-        if ($userId) {
-            error_log("✅ User registered successfully with ID: " . $userId);
+        if ($result && isset($result['db_id'])) {
+            $userId = $result['db_id'];
+            $userIdentifier = $result['user_identifier']; // This is the original unhashed User_ID
+            
+            error_log("✅ User registered successfully:");
+            error_log("   - Database ID: " . $userId);
+            error_log("   - User_ID for email: " . $userIdentifier);
+            
+            // ✅ SEND WELCOME EMAIL WITH ACTUAL UNHASHED USER_ID
+            $this->sendWelcomeEmail($email, $name, $autoPassword, $userRole, $userIdentifier);
+            
             return [
                 'success' => true,
                 'user_id' => $userId,
-                'message' => 'Account created successfully'
+                'message' => 'Account created successfully as ' . ucfirst($userRole)
             ];
         } else {
             $modelError = $userModel->getError();
@@ -1301,7 +1311,7 @@ private function getWelcomeBackBody($name, $email, $role) {
 	/**
      * Find user by email for Google login flow
      */
-    private function findByEmail($email) {
+    public function findByEmail($email) {
         require_once ROOT_DIR . '\app\Models\User.php';
         $userModel = new User();
         

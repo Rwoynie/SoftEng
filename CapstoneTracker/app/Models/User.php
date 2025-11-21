@@ -17,7 +17,7 @@ class User extends Model {
     /**
      * Hash sensitive data using SHA-256
      */
-    private function hashData($data) {
+    public function hashData($data) {
         // Remove any trimming and case conversion that might be changing the input
         return hash('sha256', $data);
     }
@@ -172,11 +172,11 @@ class User extends Model {
             $hashedPassword = password_hash($data['password'] . $salt, PASSWORD_DEFAULT);
             
             // Generate unique User_ID based on role
-            $userId = $this->generateUserId($userRole, $data);
+            $originalUserId = $this->generateUserId($userRole, $data);
+            $userIdHash = $this->hashData($originalUserId);
             
             // Hash sensitive identifiers for storage in plain-named columns
             $emailHash = $this->hashData($data['email']);
-            $userIdHash = $this->hashData($userId);
             
             // Check if hashed values already exist in plain-named columns
             if ($this->valueExists('Email', $emailHash)) {
@@ -256,17 +256,22 @@ class User extends Model {
             
             // Execute the query
             $result = $this->db->execute();
-        
-            // If registration successful, create default role entry AND return user ID
+            
+            // If registration successful, create default role entry
             if ($result) {
                 $newUserId = $this->db->lastInsertId();
                 $this->createDefaultRole($newUserId, $userRole);
                 
-                error_log("Google registration SUCCESS - User ID: " . $newUserId);
-                return $newUserId; // Return the user ID directly
+                error_log("Google registration SUCCESS - DB ID: " . $newUserId . ", Original User_ID: " . $originalUserId);
+                
+                // Return both the database ID and original User_ID
+                return [
+                    'db_id' => $newUserId,
+                    'user_identifier' => $originalUserId
+                ];
             }
             
-            error_log("Google registration FAILED");
+            error_log("Google registration result: " . ($result ? 'SUCCESS' : 'FAILED'));
             return false;
             
         } catch (Exception $e) {
@@ -323,10 +328,9 @@ class User extends Model {
     /**
  * Generate unique User_ID based on role - FIXED VERSION
  */
-private function generateUserId($role, $data) {
-    error_log("=== GENERATE USER ID FOR GOOGLE ===");
+public function generateUserId($role, $data) {
+    error_log("=== GENERATE USER ID ===");
     error_log("Role: " . $role);
-    error_log("Data keys: " . implode(', ', array_keys($data)));
     
     $role = strtolower($role);
     
@@ -335,11 +339,9 @@ private function generateUserId($role, $data) {
         error_log("Student ID from data: " . $studentId);
         
         if (empty($studentId)) {
-            // Generate a student ID from email for Google users
-            $email = $data['email'] ?? '';
-            $username = explode('@', $email)[0] ?? 'google';
-            $studentId = 'STU' . date('Y') . '-' . strtoupper(substr($username, 0, 6)) . random_int(100, 999);
-            error_log("Generated Google Student ID: " . $studentId);
+            // Generate student ID: STU + Year + 5 random digits
+            $studentId = 'STU' . date('Y') . '-' . sprintf('%05d', random_int(0, 99999));
+            error_log("Generated Student ID: " . $studentId);
         }
         return $studentId;
         
@@ -348,17 +350,15 @@ private function generateUserId($role, $data) {
         error_log("Employee ID from data: " . $employeeId);
         
         if (empty($employeeId)) {
-            // Generate an employee ID from email for Google users
-            $email = $data['email'] ?? '';
-            $username = explode('@', $email)[0] ?? 'google';
-            $employeeId = 'FAC' . date('Y') . '-' . strtoupper(substr($username, 0, 6)) . random_int(100, 999);
-            error_log("Generated Google Employee ID: " . $employeeId);
+            // Generate faculty ID: FAC + Year + 5 random digits
+            $employeeId = 'FAC' . date('Y') . '-' . sprintf('%05d', random_int(0, 99999));
+            error_log("Generated Faculty ID: " . $employeeId);
         }
         return $employeeId;
         
     } else {
-        // For other roles
-        $userId = $data['user_id'] ?? 'USR' . date('Y') . '-' . random_int(1000, 9999);
+        // For other roles: USR + Year + 5 random digits
+        $userId = $data['user_id'] ?? 'USR' . date('Y') . '-' . sprintf('%05d', random_int(0, 99999));
         error_log("Other role User ID: " . $userId);
         return $userId;
     }
@@ -669,7 +669,7 @@ private function generateUserId($role, $data) {
     /**
  * Check if plain text value already exists in database
  */
-private function valueExists($field, $value) {
+public function valueExists($field, $value) {
     try {
         $this->db->query("SELECT ID FROM USER_INFORMATION WHERE $field = :value");
         $this->db->bind(':value', $value);

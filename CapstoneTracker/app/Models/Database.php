@@ -63,6 +63,13 @@ class Database {
     }
     
     public function bind($param, $value, $type = null) {
+        // Handle array values by converting to JSON string
+        if (is_array($value)) {
+            error_log("⚠️ Array detected in Database::bind() for parameter: $param");
+            error_log("Array value: " . print_r($value, true));
+            $value = json_encode($value); // Convert array to JSON string
+        }
+        
         if (is_null($type)) {
             switch (true) {
                 case is_int($value):
