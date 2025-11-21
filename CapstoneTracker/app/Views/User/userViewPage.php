@@ -230,13 +230,13 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
         </header>
             <div class="profile-card">
                 <div class="profile-header">
-                    <div class="profile-avatar">
-                    <label for="profileImage" style="cursor: pointer;">
+                <div class="profile-avatar">
+                    <label for="profileImage" style="cursor: pointer; display: block;">
                         <input type="file" id="profileImage" name="profileImage" accept="image/*" hidden>
-                        <img src="../../../resources/Images/profile.png" alt="Profile" class="profile-image">
+                        <img src="../../../resources/Images/profile.png" data-value="profileImage" alt="Profile" class="profile-image"/>
                     </label>
-                        <div class="online-status"></div>
-                    </div>
+                    <div class="online-status"></div>
+                </div>
                     <div class="profile-info">
                         <h2 data-value="FullName" class="profile-name"></h2>
                         <p data-value="roleHeader" class="profile-title"></p>
@@ -272,11 +272,7 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
                             </div>
                             <?php endif; ?>
                         </div>
-                        <div>
-                        <button class="btn btn-secondary" id="saveProfileImageButton">
-                            <i class="fa fa-camera" aria-hidden="true"></i> Change Profile Image
-                        </button>
-                        </div>
+                        
                     </div>
 
                     <div class="profile-section">
@@ -449,6 +445,7 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
 
 </body>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+
 </html>
 
 <?php

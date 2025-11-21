@@ -14,32 +14,183 @@ class ProfileManager {
     }
 
     /**
+     * Attach event listeners for profile actions
+     */
+    attachEventListeners() {
+        // Change Password Button
+        const changePasswordBtn = document.querySelector('.btn-primary');
+        if (changePasswordBtn) {
+            changePasswordBtn.innerHTML = '<i class="fa fa-key" aria-hidden="true"></i> Change Password';
+            changePasswordBtn.addEventListener('click', () => this.showChangePasswordModal());
+        }
+
+        // Logout Button
+        const logoutBtn = document.getElementById('logoutHeaderIcon');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.handleLogout();
+            });
+        }
+
+        // Profile Image Upload
+        this.attachProfileImageUpload();
+    }
+
+    /**
+ * Attach profile image upload functionality
+ */
+attachProfileImageUpload() {
+    const profileImageInput = document.getElementById('profileImage');
+    const profileImage = document.querySelector('.profile-image');
+    
+    if (profileImageInput && profileImage) {
+        profileImageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                this.handleImageUpload(file);
+            }
+        });
+
+        // Make the image clickable
+        profileImage.style.cursor = 'pointer';
+        profileImage.addEventListener('click', () => {
+            profileImageInput.click();
+        });
+    }
+}
+
+/**
+ * Handle image upload
+ */
+async handleImageUpload(file) {
+    console.log('Starting image upload...', file);
+    
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+        console.log('Invalid file type:', file.type);
+        this.showError('Please select a valid image file (JPEG, PNG, GIF)');
+        return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+        console.log('File too large:', file.size);
+        this.showError('Image size should be less than 5MB');
+        return;
+    }
+
+    try {
+        const profileImage = document.querySelector('.profile-image');
+        const originalSrc = profileImage.src;
+        
+        // Show loading state
+        profileImage.style.opacity = '0.5';
+        profileImage.style.transition = 'opacity 0.3s ease';
+
+        const formData = new FormData();
+        formData.append('profile_image', file);
+        formData.append('csrf_token', this.csrfToken);
+
+        console.log('Sending request to server...');
+        const response = await fetch('../../../app/Controllers/ProfileController.php?action=upload_profile_image', {
+            method: 'POST',
+            body: formData
+        });
+
+        console.log('Response status:', response.status);
+        const responseText = await response.text();
+        console.log('Raw response:', responseText);
+
+        let data;
+        try {
+            data = JSON.parse(responseText);
+            console.log('Parsed data:', data);
+        } catch (parseError) {
+            console.error('JSON parse error:', parseError);
+            console.error('Response that failed to parse:', responseText);
+            throw new Error('Server returned invalid response: ' + responseText.substring(0, 100));
+        }
+
+        if (data.success) {
+            console.log('Upload successful, new image URL:', data.image_url);
+            
+            // PROVEN WORKING METHOD: Create new image to test loading
+            const testImage = new Image();
+            
+            testImage.onload = () => {
+                console.log('✅ New image loaded successfully');
+                // Replace the profile image source
+                profileImage.src = testImage.src;
+                profileImage.style.opacity = '1';
+                this.showSuccessMessage('Profile image updated successfully!');
+                
+                // Update profile data to ensure consistency
+                this.loadProfileData();
+            };
+            
+            testImage.onerror = () => {
+                console.error('❌ Failed to load new image');
+                profileImage.style.opacity = '1';
+                this.showError('Failed to load new profile image. Please refresh the page.');
+            };
+            
+            // Add cache busting parameter
+            const newImageUrl = data.image_url + '&t=' + new Date().getTime();
+            console.log('Setting image source to:', newImageUrl);
+            testImage.src = newImageUrl;
+            
+        } else {
+            console.log('Upload failed:', data.message);
+            this.showError(data.message || 'Failed to upload image');
+            profileImage.style.opacity = '1';
+        }
+
+    } catch (error) {
+        console.error('Error uploading image:', error);
+        this.showError('Error uploading image: ' + error.message);
+        
+        const profileImage = document.querySelector('.profile-image');
+        profileImage.style.opacity = '1';
+    }
+}
+
+
+    /**
      * Load profile data from server
      */
     async loadProfileData() {
         try {
             console.log('Loading profile data...');
+            console.log('CSRF Token:', this.csrfToken);
             
             const response = await fetch('../../../app/Controllers/ProfileController.php?action=get_profile', {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',
+                    'Cache-Control': 'no-cache'
                 },
+                credentials: 'same-origin'
             });
             
-            if (!response) {
-                throw new Error('No response from server');
+            console.log('Response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             
             const responseText = await response.text();
-            console.log('Raw response:', responseText);
+            console.log('Raw response length:', responseText.length);
             
             if (!responseText.trim()) {
                 throw new Error('Empty response from server');
             }
             
+            // Check for HTML errors or PHP warnings
             if (responseText.trim().startsWith('<') || responseText.includes('<b>Warning</b>') || responseText.includes('<b>Fatal error</b>')) {
-                console.error('Server returned HTML error:', responseText);
+                console.error('Server returned HTML error');
                 throw new Error('Server configuration error. Please check PHP error logs.');
             }
             
@@ -48,15 +199,15 @@ class ProfileManager {
                 data = JSON.parse(responseText);
             } catch (parseError) {
                 console.error('JSON parse error:', parseError);
-                console.error('Response that failed to parse:', responseText.substring(0, 200));
+                console.error('Response that failed to parse (first 200 chars):', responseText.substring(0, 200));
                 throw new Error('Server returned invalid data format');
             }
             
             if (data.success) {
-                console.log('Profile data:', data.data);
-                this.populateProfileData(data.data);
                 console.log('Profile data loaded successfully');
+                this.populateProfileData(data.data);
             } else {
+                console.error('Server returned error:', data.message);
                 this.showError('Failed to load profile data: ' + (data.message || 'Unknown error'));
             }
         } catch (error) {
@@ -77,6 +228,7 @@ class ProfileManager {
         }
         
         // Personal Information
+        this.setElementValue('profileImage', profileData.Profile_Pic);
         this.setElementValue('FullName', profileData.Full_Name || 'N/A');
         this.setElementValue('email', profileData.Email || 'N/A');
         this.setElementValue('userID', profileData.User_ID || 'N/A');
@@ -95,6 +247,47 @@ class ProfileManager {
     
         // Update profile name and title in header
         this.updateProfileHeader(profileData);
+        
+        // PROVEN WORKING METHOD: Update profile image with proper loading
+        this.updateProfileImage(profileData.Profile_Pic);
+    }
+    
+    /**
+     * Update profile image with proper error handling
+     */
+    updateProfileImage(imageUrl) {
+        const profileImage = document.querySelector('.profile-image');
+        if (!profileImage) {
+            console.warn('Profile image element not found');
+            return;
+        }
+        
+        console.log('Updating profile image with URL:', imageUrl);
+        
+        // Create test image to verify it loads
+        const testImage = new Image();
+        
+        testImage.onload = () => {
+            console.log('✅ Profile image loaded successfully');
+            profileImage.src = imageUrl;
+            profileImage.style.opacity = '1';
+        };
+        
+        testImage.onerror = () => {
+            console.error('❌ Profile image failed to load, using default');
+            // Use default image with cache busting
+            profileImage.src = '../../../resources/Images/profile.png?t=' + new Date().getTime();
+            profileImage.style.opacity = '1';
+        };
+        
+        // Show loading state
+        profileImage.style.opacity = '0.5';
+        profileImage.style.transition = 'opacity 0.3s ease';
+        
+        // Add cache busting to ensure fresh image
+        const cacheBustedUrl = imageUrl + (imageUrl.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
+        console.log('Loading image from:', cacheBustedUrl);
+        testImage.src = cacheBustedUrl;
     }
 
     /**

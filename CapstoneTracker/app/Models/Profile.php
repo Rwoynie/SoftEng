@@ -30,7 +30,7 @@ class Profile {
                     ui.Acc_Status,
                     ui.Department,
                     ui.Course,
-                    ui.Profile_Pic,
+                    ui.Profile_Pic, 
                     ui.created_at,
                     ui.updated_at,
                     COALESCE(la.last_login, ui.created_at) as last_login,
@@ -62,8 +62,8 @@ class Profile {
                 // Format status for display
                 $result['status_display'] = ucfirst($result['Acc_Status']);
                 
-                // ALWAYS use default profile image - remove BLOB handling
-                $result['Profile_Pic'] = 'resources/Images/profile.png';
+                // FIXED: Return URL to image serving endpoint
+                $result['Profile_Pic'] = '../../../app/Controllers/ProfileController.php?action=get_profile_image&user_id=' . $userId . '&t=' . time();
                 
                 return $result;
             }
@@ -77,48 +77,21 @@ class Profile {
     }
 
     /**
-     * Update user profile image
-     */
-    public function updateProfileImage($userId, $imagePath) {
-        try {
-            error_log("Updating profile image for user $userId from: $imagePath");
-            
-            // Read the image file and convert to binary
-            $imageData = file_get_contents($imagePath);
-            if ($imageData === false) {
-                error_log("Failed to read image file: $imagePath");
-                return false;
-            }
-            
-            $this->db->query("UPDATE USER_INFORMATION SET Profile_Pic = :image_data, updated_at = NOW() WHERE ID = :user_id");
-            $this->db->bind(':image_data', $imageData);
-            $this->db->bind(':user_id', $userId);
-            
-            $result = $this->db->execute();
-            error_log("Profile image update result: " . ($result ? "SUCCESS" : "FAILED"));
-            
-            return $result;
-            
-        } catch (Exception $e) {
-            error_log("Profile Image Update Error: " . $e->getMessage());
-            error_log("Stack trace: " . $e->getTraceAsString());
-            return false;
-        }
-    }
-
-    /**
      * Get current profile image path
      */
-    public function getProfileImage($userId) {
+    public function getProfileImageBlob($userId) {
         try {
-            // Always return default image path
-            return 'resources/Images/profile.png';
+            $this->db->query("SELECT Profile_Pic FROM USER_INFORMATION WHERE ID = :user_id");
+            $this->db->bind(':user_id', $userId);
+            $result = $this->db->singleAssoc();
+            
+            return $result['Profile_Pic'] ?? null;
             
         } catch (Exception $e) {
-            error_log("Profile Image Fetch Error: " . $e->getMessage());
-            return 'resources/Images/profile.png';
+            error_log("Profile Image BLOB Fetch Error: " . $e->getMessage());
+            return null;
         }
-    }
+    }   
     
     
  
