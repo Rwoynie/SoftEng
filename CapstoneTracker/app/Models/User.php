@@ -35,29 +35,34 @@ class User extends Model {
             $userRole = $data['user_role'] ?? 'student';
             $userId = $this->generateUserId($userRole, $data);
             
-            // Hash sensitive identifiers but store in plain-named columns
+            // Hash sensitive identifiers for security
             $emailHash = $this->hashData($data['email']);
             $userIdHash = $this->hashData($userId);
             
-            // Check if hashed values already exist in plain-named columns
-            if ($this->valueExists('Email', $emailHash)) {
-                throw new Exception("Email address is already registered");
-            }
+            // Build the SQL query - store both plain and hashed values
+            $fields = [
+                'pswrd', 'Salt', 'First_Name', 'Last_Name', 
+                'Email', 'Email_Hash',           // Plain AND hashed email
+                'User_ID', 'User_ID_Hash',       // Plain AND hashed User_ID
+                'User_Role', 'Acc_Status', 'Profile_Pic'
+            ];
             
-            if ($this->valueExists('User_ID', $userIdHash)) {
-                throw new Exception("User ID is already registered");
-            }
+            $values = [
+                ':password', ':salt', ':first_name', ':last_name',
+                ':email_plain', ':email_hash',
+                ':user_id_plain', ':user_id_hash',
+                ':user_role', ':acc_status', ':profile_pic'
+            ];
             
-            // Build the SQL query - store hashed values in plain-named columns
-            $fields = ['pswrd', 'Salt', 'First_Name', 'Last_Name', 'Email', 'User_ID', 'User_Role', 'Acc_Status', 'Profile_Pic'];
-            $values = [':password', ':salt', ':first_name', ':last_name', ':email', ':user_id', ':user_role', ':acc_status', ':profile_pic'];
             $bindings = [
                 ':password' => $hashedPassword,
                 ':salt' => $salt,
                 ':first_name' => $data['first_name'] ?? '',
                 ':last_name' => $data['last_name'] ?? '',
-                ':email' => $emailHash, // Store hashed value in Email column
-                ':user_id' => $userIdHash, // Store hashed value in User_ID column
+                ':email_plain' => $data['email'],      // Store plain email
+                ':email_hash' => $emailHash,           // Store hashed email
+                ':user_id_plain' => $userId,           // Store plain User_ID
+                ':user_id_hash' => $userIdHash,        // Store hashed User_ID
                 ':user_role' => $userRole,
                 ':acc_status' => $data['acc_status'] ?? 'pending',
                 ':profile_pic' => $data['profile_pic'] ?? null
@@ -79,27 +84,35 @@ class User extends Model {
                 }
             }
             
-            // Add hashed Student_ID or Employee_ID in plain-named columns
+            // Add both plain and hashed Student_ID or Employee_ID
             if (($userRole === 'student' || $userRole === 'researcher') && !empty($data['student_id'])) {
                 $studentIdHash = $this->hashData($data['student_id']);
                 
-                if ($this->valueExists('Student_ID', $studentIdHash)) {
+                // Check if hashed value already exists
+                if ($this->valueExists('Student_ID_Hash', $studentIdHash)) {
                     throw new Exception("Student ID is already registered");
                 }
                 
                 $fields[] = 'Student_ID';
-                $values[] = ':student_id';
-                $bindings[':student_id'] = $studentIdHash; // Store hashed value
+                $fields[] = 'Student_ID_Hash';
+                $values[] = ':student_id_plain';
+                $values[] = ':student_id_hash';
+                $bindings[':student_id_plain'] = $data['student_id'];  // Plain
+                $bindings[':student_id_hash'] = $studentIdHash;        // Hashed
             } elseif ($userRole === 'faculty' && !empty($data['employee_id'])) {
                 $employeeIdHash = $this->hashData($data['employee_id']);
                 
-                if ($this->valueExists('Employee_ID', $employeeIdHash)) {
+                // Check if hashed value already exists
+                if ($this->valueExists('Employee_ID_Hash', $employeeIdHash)) {
                     throw new Exception("Employee ID is already registered");
                 }
                 
                 $fields[] = 'Employee_ID';
-                $values[] = ':employee_id';
-                $bindings[':employee_id'] = $employeeIdHash; // Store hashed value
+                $fields[] = 'Employee_ID_Hash';
+                $values[] = ':employee_id_plain';
+                $values[] = ':employee_id_hash';
+                $bindings[':employee_id_plain'] = $data['employee_id'];  // Plain
+                $bindings[':employee_id_hash'] = $employeeIdHash;        // Hashed
             }
             
             // Build the final query
@@ -136,8 +149,8 @@ class User extends Model {
     public function findByEmail($email) {
         $emailHash = $this->hashData($email);
         
-        $this->db->query('SELECT * FROM USER_INFORMATION WHERE Email = :email LIMIT 1');
-        $this->db->bind(':email', $emailHash); // Lookup hashed value in Email column
+        $this->db->query('SELECT * FROM USER_INFORMATION WHERE Email_Hash = :email LIMIT 1');
+        $this->db->bind(':email', $emailHash); // Lookup hashed value in Email_Hash column
         $result = $this->db->single();
         
         // Convert object to array if needed
@@ -157,7 +170,7 @@ class User extends Model {
      */
     public function registerGoogleUser($data) {
         try {
-            error_log("=== USER MODEL GOOGLE REGISTRATION (PLAIN COLUMNS, HASHED VALUES) ===");
+            error_log("=== USER MODEL GOOGLE REGISTRATION (DUAL STORAGE) ===");
             error_log("Received data: " . print_r($data, true));
             
             // Validate required fields
@@ -175,28 +188,42 @@ class User extends Model {
             $originalUserId = $this->generateUserId($userRole, $data);
             $userIdHash = $this->hashData($originalUserId);
             
-            // Hash sensitive identifiers for storage in plain-named columns
+            // Hash sensitive identifiers for storage
             $emailHash = $this->hashData($data['email']);
             
-            // Check if hashed values already exist in plain-named columns
-            if ($this->valueExists('Email', $emailHash)) {
+            // Check if hashed values already exist in hashed columns
+            if ($this->valueExists('Email_Hash', $emailHash)) {
                 throw new Exception("Email address is already registered");
             }
             
-            if ($this->valueExists('User_ID', $userIdHash)) {
+            if ($this->valueExists('User_ID_Hash', $userIdHash)) {
                 throw new Exception("User ID is already registered");
             }
             
-            // Build the SQL query with plain column names but hashed values
-            $fields = ['pswrd', 'Salt', 'First_Name', 'Last_Name', 'Email', 'User_ID', 'User_Role', 'Acc_Status'];
-            $values = [':password', ':salt', ':first_name', ':last_name', ':email', ':user_id', ':user_role', ':acc_status'];
+            // Build the SQL query with dual storage
+            $fields = [
+                'pswrd', 'Salt', 'First_Name', 'Last_Name', 
+                'Email', 'Email_Hash',           // Plain AND hashed email
+                'User_ID', 'User_ID_Hash',       // Plain AND hashed User_ID
+                'User_Role', 'Acc_Status'
+            ];
+            
+            $values = [
+                ':password', ':salt', ':first_name', ':last_name',
+                ':email_plain', ':email_hash',
+                ':user_id_plain', ':user_id_hash',
+                ':user_role', ':acc_status'
+            ];
+            
             $bindings = [
                 ':password' => $hashedPassword,
                 ':salt' => $salt,
                 ':first_name' => $data['first_name'] ?? '',
                 ':last_name' => $data['last_name'] ?? '',
-                ':email' => $emailHash, // Store hashed value in Email column
-                ':user_id' => $userIdHash, // Store hashed value in User_ID column
+                ':email_plain' => $data['email'],      // Store plain email
+                ':email_hash' => $emailHash,           // Store hashed email
+                ':user_id_plain' => $originalUserId,   // Store plain User_ID
+                ':user_id_hash' => $userIdHash,        // Store hashed User_ID
                 ':user_role' => $userRole,
                 ':acc_status' => 'approved' // Google users are auto-approved
             ];
@@ -217,27 +244,33 @@ class User extends Model {
                 }
             }
             
-            // Add hashed Student_ID or Employee_ID in plain-named columns
+            // Add both plain and hashed Student_ID or Employee_ID
             if ($userRole === 'student' && !empty($data['student_id'])) {
                 $studentIdHash = $this->hashData($data['student_id']);
                 
-                if ($this->valueExists('Student_ID', $studentIdHash)) {
+                if ($this->valueExists('Student_ID_Hash', $studentIdHash)) {
                     throw new Exception("Student ID is already registered");
                 }
                 
                 $fields[] = 'Student_ID';
-                $values[] = ':student_id';
-                $bindings[':student_id'] = $studentIdHash; // Store hashed value
+                $fields[] = 'Student_ID_Hash';
+                $values[] = ':student_id_plain';
+                $values[] = ':student_id_hash';
+                $bindings[':student_id_plain'] = $data['student_id'];  // Plain
+                $bindings[':student_id_hash'] = $studentIdHash;        // Hashed
             } elseif ($userRole === 'faculty' && !empty($data['employee_id'])) {
                 $employeeIdHash = $this->hashData($data['employee_id']);
                 
-                if ($this->valueExists('Employee_ID', $employeeIdHash)) {
+                if ($this->valueExists('Employee_ID_Hash', $employeeIdHash)) {
                     throw new Exception("Employee ID is already registered");
                 }
                 
                 $fields[] = 'Employee_ID';
-                $values[] = ':employee_id';
-                $bindings[':employee_id'] = $employeeIdHash; // Store hashed value
+                $fields[] = 'Employee_ID_Hash';
+                $values[] = ':employee_id_plain';
+                $values[] = ':employee_id_hash';
+                $bindings[':employee_id_plain'] = $data['employee_id'];  // Plain
+                $bindings[':employee_id_hash'] = $employeeIdHash;        // Hashed
             }
             
             // Build the final query
@@ -414,7 +447,7 @@ public function generateUserId($role, $data) {
      */
     public function emailExists($email) {
         $emailHash = $this->hashData($email);
-        return $this->valueExists('Email', $emailHash);
+        return $this->valueExists('Email_Hash', $emailHash);
     }
 
     /**
@@ -422,23 +455,23 @@ public function generateUserId($role, $data) {
      */
     public function userIdExists($userId) {
         $userIdHash = $this->hashData($userId);
-        return $this->valueExists('User_ID', $userIdHash);
+        return $this->valueExists('User_ID_Hash', $userIdHash);
     }
-
+    
     /**
-     * Check if Student_ID already exists - hashes input and checks plain column
+     * Check if Student_ID already exists - hashes input and checks hashed column
      */
     public function studentIdExists($studentId) {
         $studentIdHash = $this->hashData($studentId);
-        return $this->valueExists('Student_ID', $studentIdHash);
+        return $this->valueExists('Student_ID_Hash', $studentIdHash);
     }
-
+    
     /**
-     * Check if Employee_ID already exists - hashes input and checks plain column
+     * Check if Employee_ID already exists - hashes input and checks hashed column
      */
     public function employeeIdExists($employeeId) {
         $employeeIdHash = $this->hashData($employeeId);
-        return $this->valueExists('Employee_ID', $employeeIdHash);
+        return $this->valueExists('Employee_ID_Hash', $employeeIdHash);
     }
     
     /**
@@ -586,16 +619,16 @@ public function generateUserId($role, $data) {
      */
     public function loginAdmin($user_id, $password) {
         try {
-            error_log("=== USER MODEL loginAdmin (HASHED IN PLAIN COLUMNS) ===");
+            error_log("=== USER MODEL loginAdmin (HASHED LOOKUP) ===");
             error_log("User_ID provided: " . $user_id);
             
             // Hash the user_id for lookup
             $userIdHash = $this->hashData($user_id);
             error_log("Hashed User_ID for lookup: " . $userIdHash);
             
-            // Query using hashed value in plain User_ID column
-            $this->db->query('SELECT * FROM USER_INFORMATION WHERE User_ID = :user_id AND Acc_Status = "approved"');
-            $this->db->bind(':user_id', $userIdHash); // Lookup hashed value in User_ID column
+            // Query using hashed value in User_ID_Hash column
+            $this->db->query('SELECT * FROM USER_INFORMATION WHERE User_ID_Hash = :user_id AND Acc_Status = "approved"');
+            $this->db->bind(':user_id', $userIdHash); // Lookup hashed value in User_ID_Hash column
             $result = $this->db->single();
             
             error_log("Database query result: " . ($result ? "USER FOUND" : "USER NOT FOUND"));
@@ -636,13 +669,14 @@ public function generateUserId($role, $data) {
      * Student/Faculty login method - ONLY allows login by Email
      */
     public function loginByEmail($email, $password) {
-        error_log("=== USER MODEL loginByEmail (HASHED IN PLAIN COLUMNS) ===");
+        error_log("=== USER MODEL loginByEmail (HASHED LOOKUP) ===");
         
         $emailHash = $this->hashData($email);
         error_log("Hashed email for lookup: " . $emailHash);
         
-        $this->db->query('SELECT * FROM USER_INFORMATION WHERE Email = :email AND Acc_Status = "approved"');
-        $this->db->bind(':email', $emailHash); // Lookup hashed value in Email column
+        // Use Email_Hash column for lookup
+        $this->db->query('SELECT * FROM USER_INFORMATION WHERE Email_Hash = :email AND Acc_Status = "approved"');
+        $this->db->bind(':email', $emailHash); // Lookup hashed value in Email_Hash column
         
         $row = $this->db->single();
         

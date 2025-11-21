@@ -247,22 +247,34 @@ if ($setupError) {
               </div>
               <small class="text-muted">Use your university email (@usep.edu.ph)</small>
             </div>
-            <div class="col-md-6">
+            <div class="col-12">
               <label for="regPassword" class="form-label">Password</label>
               <div class="input-group">
-                <input type="password" id="regPassword" name="password" class="form-control" required>
+                <input type="password" id="regPassword" name="password" class="form-control" required
+                       pattern="^(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$"
+                       oninput="validatePassword(this)">
                 <button class="btn btn-outline-secondary" type="button" id="regTogglePassword" aria-label="Show password">
                   <i class="far fa-eye"></i>
                 </button>
               </div>
+              <small id="passwordHelp" class="form-text text-muted">
+                Password must be at least 8 characters long, include 1 uppercase letter and 1 number.
+              </small>
+              <div id="passwordError" class="invalid-feedback">
+                Please enter a valid password (min 8 chars, 1 uppercase, 1 number)
+              </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-12">
               <label for="regConfirmPassword" class="form-label">Confirm Password</label>
               <div class="input-group">
-                <input type="password" id="regConfirmPassword" name="confirmPassword" class="form-control" required>
+                <input type="password" id="regConfirmPassword" name="confirmPassword" class="form-control" required
+                       oninput="checkPasswordMatch()">
                 <button class="btn btn-outline-secondary" type="button" id="regToggleConfirm" aria-label="Show password">
                   <i class="far fa-eye"></i>
                 </button>
+              </div>
+              <div id="confirmPasswordError" class="invalid-feedback">
+                Passwords do not match
               </div>
             </div>
             <div class="col-12">
@@ -558,11 +570,112 @@ if ($setupError) {
 </body>
 
     <script>
+        // Password validation functions
+        function validatePassword(input) {
+            const password = input.value;
+            const passwordHelp = document.getElementById('passwordHelp');
+            const passwordError = document.getElementById('passwordError');
+            
+            // Check if password meets requirements
+            const hasMinLength = password.length >= 8;
+            const hasUppercase = /[A-Z]/.test(password);
+            const hasNumber = /\d/.test(password);
+            
+            // Toggle error state
+            if (!hasMinLength || !hasUppercase || !hasNumber) {
+                input.classList.add('is-invalid');
+                passwordError.style.display = 'block';
+            } else {
+                input.classList.remove('is-invalid');
+                passwordError.style.display = 'none';
+            }
+            
+            // Update password help text with current status
+            const status = [];
+            if (!hasMinLength) status.push('at least 8 characters');
+            if (!hasUppercase) status.push('1 uppercase letter');
+            if (!hasNumber) status.push('1 number');
+            
+            if (status.length > 0) {
+                passwordHelp.innerHTML = `Password needs: ${status.join(', ')}.`;
+                passwordHelp.className = 'form-text text-danger';
+            } else {
+                passwordHelp.innerHTML = 'Password meets all requirements.';
+                passwordHelp.className = 'form-text text-success';
+            }
+            
+            // Trigger password match check if confirm password is not empty
+            if (document.getElementById('regConfirmPassword').value) {
+                checkPasswordMatch();
+            }
+        }
         
-
+        function checkPasswordMatch() {
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('regConfirmPassword');
+            const confirmError = document.getElementById('confirmPasswordError');
+            
+            if (password !== confirmPassword.value) {
+                confirmPassword.classList.add('is-invalid');
+                confirmError.style.display = 'block';
+                return false;
+            } else {
+                confirmPassword.classList.remove('is-invalid');
+                confirmError.style.display = 'none';
+                return true;
+            }
+        }
+        
+        // Toggle password visibility
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle password visibility for registration form
+            const togglePassword = document.querySelector('#regTogglePassword');
+            const password = document.querySelector('#regPassword');
+            const toggleConfirm = document.querySelector('#regToggleConfirm');
+            const confirmPassword = document.querySelector('#regConfirmPassword');
+            
+            if (togglePassword && password) {
+                togglePassword.addEventListener('click', function() {
+                    const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+                    password.setAttribute('type', type);
+                    this.querySelector('i').classList.toggle('fa-eye-slash');
+                });
+            }
+            
+            if (toggleConfirm && confirmPassword) {
+                toggleConfirm.addEventListener('click', function() {
+                    const type = confirmPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+                    confirmPassword.setAttribute('type', type);
+                    this.querySelector('i').classList.toggle('fa-eye-slash');
+                });
+            }
+            
+            // Form submission validation
+            const forms = document.querySelectorAll('#studentRegisterForm, #facultyRegisterForm');
+            forms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    const password = document.getElementById('regPassword').value;
+                    const hasMinLength = password.length >= 8;
+                    const hasUppercase = /[A-Z]/.test(password);
+                    const hasNumber = /\d/.test(password);
+                    
+                    if (!hasMinLength || !hasUppercase || !hasNumber || !checkPasswordMatch()) {
+                        e.preventDefault();
+                        validatePassword(document.getElementById('regPassword'));
+                        checkPasswordMatch();
+                        
+                        // Scroll to first error
+                        const firstError = document.querySelector('.is-invalid');
+                        if (firstError) {
+                            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }
+                });
+            });
+        });
+        
         // Debug output
-    console.log('PHP errorMessage:', errorMessage);
-    
+        console.log('PHP errorMessage:', errorMessage);
     </script>
 
 </html>
