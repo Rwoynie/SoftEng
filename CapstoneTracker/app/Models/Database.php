@@ -148,6 +148,11 @@ class Database {
     }
 
     public function getConnection() {
-        return $this->dbh; // or whatever your PDO connection property is called
+        return $this->dbh; 
     }
+
+   
+public function getPdo() {
+    return $this->dbh; 
+}
 }

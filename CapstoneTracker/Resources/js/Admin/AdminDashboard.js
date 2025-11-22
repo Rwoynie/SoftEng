@@ -4969,22 +4969,45 @@ class SystemLogsManager {
     }
 
     initializeEventListeners() {
-        // Log view switching
         const allLogsButton = document.getElementById('allLogsButton');
         const userLogsButton = document.getElementById('userLogsButton');
         const adminLogsButton = document.getElementById('adminLogsButton');
-        
+
         if (allLogsButton) {
-            allLogsButton.addEventListener('click', () => this.switchLogView('all'));
-        }
-        if (userLogsButton) {
-            userLogsButton.addEventListener('click', () => this.switchLogView('user'));
-        }
-        if (adminLogsButton) {
-            adminLogsButton.addEventListener('click', () => this.switchLogView('admin'));
+            allLogsButton.addEventListener('click', () => {
+                this.switchLogView('all');
+                document.querySelectorAll('.logMenu button').forEach(btn => btn.classList.remove('selected'));
+                allLogsButton.classList.add('selected');
+            });
         }
 
-        // Log filtering
+        if (userLogsButton) {
+            userLogsButton.addEventListener('click', () => {
+                this.switchLogView('user');
+                document.querySelectorAll('.logMenu button').forEach(btn => btn.classList.remove('selected'));
+                userLogsButton.classList.add('selected');
+                
+                if (this.logsData.user.length === 0) {
+                    this.loadUserLogs();
+                }
+            });
+        }
+
+        if (adminLogsButton) {
+            adminLogsButton.addEventListener('click', () => {
+                this.switchLogView('admin');
+
+                document.querySelectorAll('.logMenu button').forEach(btn => btn.classList.remove('selected'));
+                adminLogsButton.classList.add('selected');
+                
+
+                if (this.logsData.admin.length === 0) {
+                    this.loadAdminLogs();
+                }
+            });
+        }
+
+        
         const logFilterButtons = document.querySelectorAll('.log-filter-btn');
         logFilterButtons.forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -5114,17 +5137,19 @@ class SystemLogsManager {
         try {
             this.showLogsLoading('user');
             
-            // Load user-specific logs (login attempts and user-related audit logs)
-            const loginAttemptsResponse = await fetch('../../../app/Controllers/AdminDashboardController.php?action=getLoginAttempts&limit=100');
-            const loginAttemptsData = await loginAttemptsResponse.json();
-            
-            const auditLogsResponse = await fetch('../../../app/Controllers/AdminDashboardController.php?action=getAuditLogs&table=USER_INFORMATION&limit=100');
+            const auditLogsResponse = await fetch('../../../app/Controllers/AdminDashboardController.php?action=getAuditLogs&limit=200');
             const auditLogsData = await auditLogsResponse.json();
             
-            const loginAttempts = loginAttemptsData.success ? loginAttemptsData.attempts : [];
-            const userAuditLogs = auditLogsData.success ? auditLogsData.logs : [];
+            const loginAttemptsResponse = await fetch('../../../app/Controllers/AdminDashboardController.php?action=getLoginAttempts&limit=200');
+            const loginAttemptsData = await loginAttemptsResponse.json();
             
-            const formattedLogs = this.formatUserLogs(userAuditLogs, loginAttempts);
+            const allAuditLogs = auditLogsData.success ? auditLogsData.logs : [];
+            const allLoginAttempts = loginAttemptsData.success ? loginAttemptsData.attempts : [];
+            
+            const userAuditLogs = allAuditLogs.filter(log => log.user_id == 2);
+            const userLoginAttempts = allLoginAttempts.filter(attempt => attempt.user_id == 2);
+            
+            const formattedLogs = this.formatUserLogs(userAuditLogs, userLoginAttempts);
             this.logsData.user = formattedLogs;
             this.displayLogs(formattedLogs, 'user');
             
@@ -5138,7 +5163,6 @@ class SystemLogsManager {
         try {
             this.showLogsLoading('admin');
             
-            // Load admin-specific logs (system actions, announcements, etc.)
             const auditLogsResponse = await fetch('../../../app/Controllers/AdminDashboardController.php?action=getAuditLogs&limit=150');
             const auditLogsData = await auditLogsResponse.json();
             
@@ -5162,7 +5186,6 @@ class SystemLogsManager {
     formatAllLogs(auditLogs, loginAttempts) {
         const formattedLogs = [];
 
-        // Format audit logs (including those from triggers)
         auditLogs.forEach(log => {
             if (!log) return;
 
@@ -5237,35 +5260,30 @@ class SystemLogsManager {
     }
 
     formatUserLogs(userAuditLogs, loginAttempts) {
-        // Filter and format user-specific logs
         const formattedLogs = [];
 
-        // User management actions from audit logs
         userAuditLogs.forEach(log => {
-            if (log.table_name === 'USER_INFORMATION') {
-                const userName = this.getUserNameFromLog(log);
-                const userRole = this.getUserRoleFromLog(log);
-                const action = this.getActionFromLog(log);
-                const details = this.getDetailedDescription(log);
-                const ipAddress = log.ip_address || 'N/A';
-                const timestamp = log.changed_at;
+            const userName = this.getUserNameFromLog(log);
+            const userRole = this.getUserRoleFromLog(log);
+            const action = this.getActionFromLog(log);
+            const details = this.getDetailedDescription(log);
+            const logType = this.getLogTypeFromLog(log);
+            const ipAddress = log.ip_address || 'N/A';
+            const timestamp = log.changed_at;
 
-                formattedLogs.push({
-                    type: 'user_management',
-                    timestamp: timestamp,
-                    user: userName,
-                    userRole: userRole,
-                    action: action,
-                    details: details,
-                    ip: ipAddress,
-                    source: 'audit'
-                });
-            }
-    });
-    
-    
-    // Add login attempts (including Google logins)
-    loginAttempts.forEach(attempt => {
+            formattedLogs.push({
+                type: logType,
+                timestamp: timestamp,
+                user: userName,
+                userRole: userRole,
+                action: action,
+                details: details,
+                ip: ipAddress,
+                source: 'audit'
+            });
+        });
+
+        loginAttempts.forEach(attempt => {
             const userName = attempt.First_Name && attempt.Last_Name ? 
                 `${attempt.First_Name} ${attempt.Last_Name}` : 
                 (attempt.email || 'Unknown User');
@@ -5281,7 +5299,6 @@ class SystemLogsManager {
                 `User successfully authenticated and accessed the system from IP address ${ipAddress}` :
                 `Authentication failure for user ${userName} from IP address ${ipAddress}`;
             
-            // Enhanced details for Google logins
             if (notes && notes.includes('Google')) {
                 action = isSuccess ? 'Google Login Successful' : 'Google Login Failed';
                 details = isSuccess ? 
@@ -5375,9 +5392,10 @@ class SystemLogsManager {
         return formattedLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     }
 
-    // Enhanced user name extraction to handle trigger data
+
     getUserNameFromLog(log) {
-        // Try to get user name from various possible fields
+
+        
         if (log.First_Name && log.Last_Name) {
             return `${log.First_Name} ${log.Last_Name}`;
         }
@@ -5390,7 +5408,7 @@ class SystemLogsManager {
         if (log.user_id) {
             return `User ID: ${log.user_id}`;
         }
-        // For trigger-based logs
+
         if (log.new_values) {
             try {
                 const newValues = typeof log.new_values === 'string' ? JSON.parse(log.new_values) : log.new_values;
@@ -5401,23 +5419,42 @@ class SystemLogsManager {
                     return newValues.email;
                 }
             } catch (e) {
-                // Ignore JSON parse errors
+                
             }
         }
         return 'System';
     }
 
-    // Enhanced action descriptions for triggers
     getActionFromLog(log) {
-    // Early return for login attempts (from LOGIN_ATTEMPTS table or trigger)
-    if (log.source === 'login' || log.table_name === 'LOGIN_ATTEMPTS') {
-        if (log.success === true || log.success === 1) {
-            return log.user_agent?.includes('Google') ? 'Google Login Successful' : 'Login Successful';
+        if (log.table_name === 'LOGIN') {
+        const newValues = log.new_values ? 
+            (typeof log.new_values === 'string' ? JSON.parse(log.new_values) : log.new_values) : {};
+        
+        if (newValues.description) {
+            if (newValues.description.includes('logged out')) {
+                return 'User Logout';
+            } else if (newValues.description.includes('registered and logged in via Google')) {
+                return 'Google Registration & Login';
+            } else if (newValues.description.includes('logged in via Google')) {
+                return 'Google Login Successful';
+            } else if (newValues.description.includes('logged in')) {
+                return 'Login Successful';
+            }
         }
-        return log.user_agent?.includes('Google') ? 'Google Login Failed' : 'Login Failed';
+        return 'User Action';
     }
 
-    // Handle audit logs (INSERT/UPDATE/DELETE)
+    if (log.table_name === 'LOGIN_ATTEMPTS' || log.source === 'login') {
+        const isGoogle = log.user_agent?.toLowerCase().includes('google') || 
+                        log.notes?.toLowerCase().includes('google');
+
+        if (log.success === true || log.success === 1 || log.success === '1') {
+            return isGoogle ? 'Google Login Successful' : 'Login Successful';
+        } else {
+            return isGoogle ? 'Google Login Failed' : 'Login Failed';
+        }
+    }
+
     if (log.action && ['INSERT', 'UPDATE', 'DELETE'].includes(log.action)) {
         const table = (log.table_name || '').toUpperCase();
 
@@ -5426,14 +5463,13 @@ class SystemLogsManager {
                 ANNOUNCEMENTS: 'Announcement Created',
                 THESIS: 'Thesis Uploaded',
                 USER_INFORMATION: 'User Registered',
-                LOGIN_ATTEMPTS: 'Login Attempt Logged',
                 DEFAULT: 'Record Created'
             },
             UPDATE: {
                 ANNOUNCEMENTS: 'Announcement Updated',
-                THESIS: 'Thesis Modified',
                 USER_INFORMATION: 'User Profile Updated',
-                ROLES: 'User Role/Permission Updated',
+                THESIS: 'Thesis Modified',
+                ROLES: 'User Permissions Updated',
                 DEFAULT: 'Record Updated'
             },
             DELETE: {
@@ -5450,39 +5486,51 @@ class SystemLogsManager {
         }
     }
 
-    // Special cases from custom triggers or notes
-    if (log.notes) {
-        if (log.notes.includes('Google')) {
-            return log.notes.includes('success') ? 'Google Login Successful' : 'Google Registration';
-        }
-        if (log.notes.includes('Suspicious')) return 'Suspicious Login Activity';
-        if (log.notes.includes('Brute force')) return 'Brute Force Attempt Detected';
-    }
-
-    // Fallback for direct action strings
-    const directMap = {
-        'LOGIN': 'User Login',
-        'LOGOUT': 'User Logout',
+    const directActions = {
+        'LOGIN': 'Login Successful',
+        'LOGIN_SUCCESS': 'Login Successful',
         'GOOGLE_LOGIN': 'Google Login Successful',
-        'GOOGLE_REGISTER': 'Google Registration',
         'ADMIN_LOGIN': 'Admin Login Successful',
+        'LOGOUT': 'User Logout',
+        'GOOGLE_REGISTER': 'Google Registration',
         'PASSWORD_RESET': 'Password Reset Requested',
+        'SUSPICIOUS_LOGIN': 'Suspicious Login Activity',
+        'BRUTE_FORCE_DETECTED': 'Brute Force Attempt Detected',
         'BACKUP_CREATED': 'System Backup Created'
     };
 
-    if (log.action && directMap[log.action]) {
-        return directMap[log.action];
+    if (log.action && directActions[log.action]) {
+        return directActions[log.action];
     }
 
-    // Final fallback
+    if (log.notes) {
+        const note = log.notes.toLowerCase();
+        if (note.includes('login successful') || note.includes('login success')) return 'Login Successful';
+        if (note.includes('login failed')) return 'Login Failed';
+        if (note.includes('google')) return note.includes('success') ? 'Google Login Successful' : 'Google Login Failed';
+        if (note.includes('suspicious')) return 'Suspicious Login Activity';
+    }
+
     return log.action || 'System Action';
 }
 
-    // Enhanced detailed descriptions for triggers
     getDetailedDescription(log) {
+         if (log.table_name === 'LOGIN') {
+        try {
+            const newValues = log.new_values ? 
+                (typeof log.new_values === 'string' ? JSON.parse(log.new_values) : log.new_values) : {};
+            
+            if (newValues.description) {
+                return newValues.description;
+            }
+        } catch (e) {
+            return log.new_values || 'User login activity';
+        }
+        return 'User authentication activity';
+    }
+
         let details = '';
-        
-        // Handle login attempts from triggers
+
         if (log.table_name === 'LOGIN_ATTEMPTS' || log.source === 'login') {
             const isSuccess = log.success || (log.rawData && log.rawData.success);
             const ipAddress = log.ip || (log.rawData && log.rawData.ip_address) || 'N/A';
@@ -5501,8 +5549,7 @@ class SystemLogsManager {
             }
             return details;
         }
-        
-        // Handle backup logs from triggers
+
         if (log.table_name === 'BACKUP_LOGS' || log.action?.includes('backup') || log.action?.includes('Backup')) {
             try {
                 if (log.new_values) {
@@ -5594,6 +5641,7 @@ class SystemLogsManager {
 
     // Enhanced log type detection
     getLogTypeFromLog(log) {
+        if (log.table_name === 'LOGIN') return 'login';
         if (log.table_name === 'ANNOUNCEMENTS') return 'announcement';
         if (log.table_name === 'USER_INFORMATION') return 'user';
         if (log.table_name === 'THESIS') return 'thesis';
@@ -5707,91 +5755,12 @@ class SystemLogsManager {
         if (!container) return;
 
         const logRows = container.querySelectorAll('.log-row');
-        logRows.forEach(row => {
-            row.addEventListener('click', () => {
-                this.showLogDetails(row);
-            });
-        });
-    }
-
-    showLogDetails(row) {
-        const logType = row.getAttribute('data-log-type');
-        const logId = row.getAttribute('data-log-id');
         
-        // Find the log data
-        const logs = this.logsData[this.currentLogView];
-        const log = logs.find(l => l.rawData?.id == logId);
-        
-        if (!log) return;
-
-        // Show detailed modal or expand row
-        this.displayLogDetailModal(log);
     }
 
-    displayLogDetailModal(log) {
-        // Create and show a modal with detailed log information
-        const modalHtml = `
-            <div class="modal fade" id="logDetailModal" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Log Details</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <strong>Timestamp:</strong> ${this.formatExactTimestamp(log.timestamp)}
-                                </div>
-                                <div class="col-md-6">
-                                    <strong>IP Address:</strong> ${log.ip}
-                                </div>
-                            </div>
-                            <div class="row mt-2">
-                                <div class="col-md-6">
-                                    <strong>User:</strong> ${log.user}
-                                </div>
-                                <div class="col-md-6">
-                                    <strong>Role:</strong> ${log.userRole}
-                                </div>
-                            </div>
-                            <div class="row mt-2">
-                                <div class="col-md-12">
-                                    <strong>Action:</strong> ${log.action}
-                                </div>
-                            </div>
-                            <div class="row mt-2">
-                                <div class="col-md-12">
-                                    <strong>Details:</strong> ${log.details}
-                                </div>
-                            </div>
-                            ${log.rawData ? `
-                            <div class="row mt-3">
-                                <div class="col-md-12">
-                                    <strong>Raw Data:</strong>
-                                    <pre class="mt-2 p-2 bg-light" style="font-size: 12px;">${JSON.stringify(log.rawData, null, 2)}</pre>
-                                </div>
-                            </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+    
 
-        // Remove existing modal if any
-        const existingModal = document.getElementById('logDetailModal');
-        if (existingModal) {
-            existingModal.remove();
-        }
-
-        // Add modal to body and show it
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        const modal = new bootstrap.Modal(document.getElementById('logDetailModal'));
-        modal.show();
-    }
-
-    // Enhanced action classes for triggers
+    
     getActionClass(action) {
         const actionMap = {
             'Login Successful': 'action-login-success',
@@ -5815,9 +5784,6 @@ class SystemLogsManager {
         
         return actionMap[action] || 'action-system';
     }
-
-    // ... rest of your existing methods (applyLogFilter, handleLogSearch, etc.)
-    // Keep all your existing utility methods
 
     applyLogFilter(filter) {
         this.currentLogFilter = filter;

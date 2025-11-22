@@ -758,7 +758,7 @@ public function valueExists($field, $value) {
     public function logUserAction($userId, $action, $description) {
         try {
             $query = "INSERT INTO AUDIT_LOGS (table_name, record_id, action, new_values, user_id) 
-                      VALUES ('USER_ACTIONS', :user_id, :action, :description, :user_id)";
+                      VALUES ('LOGIN', :user_id, :action, :description, :user_id)";
             
             $this->db->query($query);
             $this->db->bind(':user_id', $userId);

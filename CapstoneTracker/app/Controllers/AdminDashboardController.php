@@ -2148,31 +2148,35 @@ private function formatUserRoleForReport($role) {
 
 private function formatActionForReport($action) {
     $actionMap = [
-        'INSERT' => 'Created',
-        'UPDATE' => 'Updated', 
-        'DELETE' => 'Deleted',
-        'LOGIN' => 'Login',
-        'LOGOUT' => 'Logout'
+        'INSERT'  => 'Created',
+        'UPDATE'  => 'Updated',
+        'DELETE'  => 'Deleted',
+        'LOGIN'   => 'Login',
+        'LOGOUT'  => 'Logout',
+        'APPROVE' => 'Approved',
+        'REJECT'  => 'Rejected'
     ];
-    return $actionMap[$action] ?? $action;
+
+    return $actionMap[$action] ?? 'System Action';
 }
 
 private function formatDetailsForReport($log) {
-    $details = 'System operation';
-    
-    if ($log->table_name === 'ANNOUNCEMENTS') {
-        $details = 'Announcement management action';
-    } elseif ($log->table_name === 'USER_INFORMATION') {
-        $details = 'User account management action';
-    } elseif ($log->table_name === 'THESIS') {
-        $details = 'Thesis document management action';
-    } elseif ($log->table_name === 'LOGIN_ATTEMPTS') {
-        $details = 'User authentication attempt';
-    } elseif ($log->table_name === 'BACKUP_LOGS') {
-        $details = 'System backup operation';
-    }
-    
-    return $details;
+    if (!$log) return 'Unknown operation';
+
+    $table = $log->table_name ?? '';
+    $action = $log->action ?? '';
+
+    $user = trim(($log->First_Name ?? '') . ' ' . ($log->Last_Name ?? ''));
+    if (!$user || $user === ' ') $user = $log->Email ?? 'Unknown User';
+
+    $map = [
+        'USER_INFORMATION' => "User account '{$user}' was {$this->formatActionForReport($action)}",
+        'THESIS'           => "Thesis record was {$this->formatActionForReport($action)}",
+        'ANNOUNCEMENTS'    => "Announcement was {$this->formatActionForReport($action)}",
+        'LOGIN_ATTEMPTS'   => $action === 'LOGIN' ? 'User login attempt' : 'Authentication event'
+    ];
+
+    return $map[$table] ?? "Database operation on {$table}";
 }
 
 private function getActionClassForReport($action) {

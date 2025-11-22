@@ -378,39 +378,30 @@ class AdminDashboardModel {
         $stats = [];
 
         try {
-            // Total users
             $this->db->query("SELECT COUNT(*) as total FROM USER_INFORMATION");
             $stats['total_users'] = $this->db->single()->total;
 
-            // Total approved users
             $this->db->query("SELECT COUNT(*) as total FROM USER_INFORMATION WHERE Acc_Status = 'approved'");
             $stats['approved_users'] = $this->db->single()->total;
 
-            // Total pending users
             $this->db->query("SELECT COUNT(*) as total FROM USER_INFORMATION WHERE Acc_Status = 'pending'");
             $stats['pending_users'] = $this->db->single()->total;
 
-            // Total theses
             $this->db->query("SELECT COUNT(*) as total FROM THESIS");
             $stats['total_theses'] = $this->db->single()->total;
 
-            // Total reviews
             $this->db->query("SELECT COUNT(*) as total FROM THESIS_REVIEWS");
             $stats['total_reviews'] = $this->db->single()->total;
 
-            // Recent theses count (last 7 days)
             $this->db->query("SELECT COUNT(*) as total FROM THESIS WHERE uploaded_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
             $stats['recent_theses'] = $this->db->single()->total;
 
-            // Failed login attempts (last 24 hours)
             $this->db->query("SELECT COUNT(*) as total FROM LOGIN_ATTEMPTS WHERE success = FALSE AND attempt_time >= DATE_SUB(NOW(), INTERVAL 24 HOUR)");
             $stats['failed_logins_24h'] = $this->db->single()->total;
 
-            // Audit logs count (last 7 days)
             $this->db->query("SELECT COUNT(*) as total FROM AUDIT_LOGS WHERE changed_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
             $stats['audit_logs_7d'] = $this->db->single()->total;
 
-            // Unread notifications count
             $this->db->query("SELECT COUNT(*) as total FROM NOTIFICATIONS WHERE is_read = FALSE");
             $stats['unread_notifications'] = $this->db->single()->total;
 
