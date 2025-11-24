@@ -361,11 +361,19 @@ class RegistrationController {
                     throw new Exception("Invalid registration action: " . $action);
                 }
             } catch (Exception $e) {
-                // Store the specific error message
-                $_SESSION['error_message'] = $e->getMessage();
+                // Enhanced error handling for better UX
+                $errorMessage = $this->translateDatabaseError($e->getMessage());
+                
+                // Store the user-friendly error message
+                $_SESSION['error_message'] = $errorMessage;
                 // Also store which modal to open
                 $_SESSION['error_modal'] = ($action === 'faculty_register') ? 'faculty' : 'student';
+                
+                // Preserve form data for user convenience
+                $this->preserveFormData($_POST, $action);
+                
                 error_log("Registration exception: " . $e->getMessage());
+                error_log("User-friendly error: " . $errorMessage);
                 header('Location: ../../app/Views/User/indexLogin.php');
                 exit();
             }
@@ -395,9 +403,9 @@ class RegistrationController {
             throw new Exception('Only JPG, PNG, and GIF images are allowed');
         }
         
-        // Validate file size (5MB max)
-        if ($file['size'] > 5 * 1024 * 1024) {
-            throw new Exception('File size must be less than 5MB');
+        // Validate file size (2MB max - matches client-side validation)
+        if ($file['size'] > 2 * 1024 * 1024) {
+            throw new Exception('File size must be less than 2MB');
         }
         
         // Generate unique filename
@@ -428,13 +436,76 @@ class RegistrationController {
     }
     
     /**
-     * Get success response
+     * Preserve form data in session for repopulation after errors
      */
-    public function getSuccessResponse($message = "Registration successful!") {
-        return [
-            'success' => true,
-            'message' => $message
+    private function preserveFormData($postData, $action) {
+        // Fields to preserve (excluding sensitive data like passwords and tokens)
+        $fieldsToPreserve = [
+            'firstName', 'middleName', 'lastName', 'extension', 
+            'course', 'email', 'department'
         ];
+        
+        $preservedData = [];
+        foreach ($fieldsToPreserve as $field) {
+            if (isset($postData[$field]) && !empty($postData[$field])) {
+                $preservedData[$field] = htmlspecialchars($postData[$field]);
+            }
+        }
+        
+        // Store in session with action-specific key
+        $_SESSION['preserved_form_data'] = $preservedData;
+        $_SESSION['preserved_form_action'] = $action;
+        
+        error_log("Preserved form data for action: " . $action . " - Fields: " . implode(', ', array_keys($preservedData)));
+    }
+    
+    /**
+     * Translate technical database errors into user-friendly messages
+     */
+    private function translateDatabaseError($errorMessage) {
+        // Handle specific MySQL errors
+        if (strpos($errorMessage, 'max_allowed_packet') !== false || 
+            strpos($errorMessage, '1153') !== false ||
+            strpos($errorMessage, 'packet bigger than') !== false) {
+            return "Please choose a smaller image (under 2MB) and try again.";
+        }
+        
+        // Handle duplicate entry errors
+        if (strpos($errorMessage, 'Duplicate entry') !== false || 
+            strpos($errorMessage, 'already registered') !== false) {
+            return "This email or ID is already registered. Please use a different email or contact support if you believe this is an error.";
+        }
+        
+        // Handle connection errors
+        if (strpos($errorMessage, 'Communication link failure') !== false ||
+            strpos($errorMessage, 'Lost connection') !== false) {
+            return "We're experiencing technical difficulties. Please try again in a moment.";
+        }
+        
+        // Handle file upload errors
+        if (strpos($errorMessage, 'Failed to upload profile picture') !== false ||
+            strpos($errorMessage, 'File size must be less than') !== false) {
+            return "There was an issue with your profile picture. Please ensure it's under 2MB and try again.";
+        }
+        
+        // Handle validation errors (already user-friendly)
+        if (strpos($errorMessage, 'can only contain letters') !== false ||
+            strpos($errorMessage, 'Invalid email format') !== false ||
+            strpos($errorMessage, 'Passwords do not match') !== false ||
+            strpos($errorMessage, 'must be at least 8 characters') !== false ||
+            strpos($errorMessage, 'USeP email addresses') !== false) {
+            return $errorMessage; // These are already user-friendly
+        }
+        
+        // Handle any other database errors
+        if (strpos($errorMessage, 'SQLSTATE') !== false ||
+            strpos($errorMessage, 'PDOException') !== false ||
+            strpos($errorMessage, 'database') !== false) {
+            return "We're experiencing technical difficulties with our database. Please try again in a few minutes.";
+        }
+        
+        // If no specific error pattern matches, return a generic but friendly message
+        return "Registration failed due to a technical issue. Please try again or contact support if the problem persists.";
     }
     
     /**

@@ -73,8 +73,74 @@ document.addEventListener('DOMContentLoaded', function() {
     initializePage();
     setupAdminModal();
     setupAdminForm();
+    setupModalCloseHandlers();
+
+    // Setup registration password validation
+    setupRegistrationPasswordValidation();
 
 });
+
+function setupRegistrationPasswordValidation() {
+    const studentForm = document.getElementById('studentRegisterForm');
+    const facultyForm = document.getElementById('facultyRegisterForm');
+
+    if (studentForm) {
+        studentForm.addEventListener('submit', function(e) {
+            if (!validateRegistrationPasswords('regPassword', 'regConfirmPassword')) {
+                e.preventDefault();
+            }
+        });
+    }
+
+    if (facultyForm) {
+        facultyForm.addEventListener('submit', function(e) {
+            if (!validateRegistrationPasswords('facPassword', 'facConfirmPassword')) {
+                e.preventDefault();
+            }
+        });
+    }
+}
+
+function validateRegistrationPasswords(passwordId, confirmId) {
+    const passwordInput = document.getElementById(passwordId);
+    const confirmInput = document.getElementById(confirmId);
+
+    if (!passwordInput || !confirmInput) {
+        return true; // Fail open if fields are missing to avoid blocking form
+    }
+
+    const password = passwordInput.value || '';
+    const confirmPassword = confirmInput.value || '';
+
+    // Rule: at least 8 chars, at least one uppercase, one lowercase, one number, one special
+    const hasMinLength = password.length >= 8;
+    const hasUpper = /[A-Z]/.test(password);
+    const hasLower = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecial = /[^a-zA-Z0-9]/.test(password);
+
+    if (!hasMinLength || !hasUpper || !hasLower || !hasNumber || !hasSpecial) {
+        Swal.fire({
+            title: 'Invalid Password',
+            text: 'Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        return false;
+    }
+
+    if (password !== confirmPassword) {
+        Swal.fire({
+            title: 'Password Mismatch',
+            text: 'Password and Confirm Password do not match.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        return false;
+    }
+
+    return true;
+}
 
 
 function openLogin(role) {
@@ -305,11 +371,21 @@ function showRegistrationErrorAlert(message) {
 function openStudentRegistration() {
     const studentModal = new bootstrap.Modal(document.getElementById('studentRegisterModal'));
     studentModal.show();
+    
+    // Populate form with preserved data if available
+    setTimeout(() => {
+        populateFormData('student');
+    }, 100);
 }
 
 function openFacultyRegistration() {
     const facultyModal = new bootstrap.Modal(document.getElementById('facultyRegisterModal'));
     facultyModal.show();
+    
+    // Populate form with preserved data if available
+    setTimeout(() => {
+        populateFormData('faculty');
+    }, 100);
 }
 
 
@@ -1971,5 +2047,134 @@ function showAdminErrorAlert(message) {
             icon: 'error',
             confirmButtonText: 'OK'
         });
+    }
+}
+
+// File size validation function
+function validateFileSize(inputElement, maxSizeMB) {
+    const file = inputElement.files[0];
+    if (file) {
+        const fileSizeMB = file.size / (1024 * 1024); // Convert bytes to MB
+        if (fileSizeMB > maxSizeMB) {
+            Swal.fire({
+                title: 'File Too Large',
+                text: `Please select an image smaller than ${maxSizeMB}MB. Your file is ${(fileSizeMB).toFixed(2)}MB.`,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            inputElement.value = ''; // Clear the file input
+            return false;
+        }
+    }
+    return true;
+}
+
+// Populate form fields with preserved data from session
+function populateFormData(userType) {
+    // Check if we have preserved form data
+    if (typeof preservedFormData !== 'undefined' && preservedFormData) {
+        console.log('Populating form with preserved data:', preservedFormData);
+        
+        // Common fields for both student and faculty
+        const commonFields = {
+            'firstName': userType === 'student' ? 'regFirstName' : 'facFirstName',
+            'middleName': userType === 'student' ? 'regMiddleName' : 'facMiddleName', 
+            'lastName': userType === 'student' ? 'regLastName' : 'facLastName',
+            'extension': userType === 'student' ? 'regExtension' : 'facExtension',
+            'email': userType === 'student' ? 'regEmail' : 'facEmail'
+        };
+        
+        // Populate common fields
+        Object.keys(commonFields).forEach(field => {
+            const elementId = commonFields[field];
+            const element = document.getElementById(elementId);
+            if (element && preservedFormData[field]) {
+                element.value = preservedFormData[field];
+            }
+        });
+        
+        // Student-specific fields
+        if (userType === 'student') {
+            if (preservedFormData.course) {
+                const courseSelect = document.getElementById('regCourse');
+                if (courseSelect) {
+                    courseSelect.value = preservedFormData.course;
+                }
+            }
+        }
+        
+        // Faculty-specific fields
+        if (userType === 'faculty') {
+            if (preservedFormData.department) {
+                const deptSelect = document.getElementById('facDepartment');
+                if (deptSelect) {
+                    deptSelect.value = preservedFormData.department;
+                }
+            }
+        }
+        
+        console.log('Form populated with preserved data');
+    }
+}
+
+// Clear form fields when close button (X) is clicked
+function setupModalCloseHandlers() {
+    // Student registration modal close button
+    const studentCloseBtn = document.querySelector('#studentRegisterModal .btn-link[data-bs-dismiss="modal"]');
+    if (studentCloseBtn) {
+        studentCloseBtn.addEventListener('click', function() {
+            clearRegistrationForm('student');
+        });
+    }
+    
+    // Faculty registration modal close button
+    const facultyCloseBtn = document.querySelector('#facultyRegisterModal .btn-link[data-bs-dismiss="modal"]');
+    if (facultyCloseBtn) {
+        facultyCloseBtn.addEventListener('click', function() {
+            clearRegistrationForm('faculty');
+        });
+    }
+}
+
+// Clear registration form fields
+function clearRegistrationForm(userType) {
+    if (userType === 'student') {
+        // Clear student form fields
+        const studentFields = [
+            'regFirstName', 'regMiddleName', 'regLastName', 'regExtension',
+            'regCourse', 'regEmail', 'regPassword', 'regConfirmPassword', 'regProfilePic'
+        ];
+        
+        studentFields.forEach(fieldId => {
+            const element = document.getElementById(fieldId);
+            if (element) {
+                if (element.type === 'file') {
+                    element.value = ''; // Clear file input
+                } else {
+                    element.value = ''; // Clear text/select inputs
+                }
+            }
+        });
+        
+        console.log('Student registration form cleared');
+    } else if (userType === 'faculty') {
+        // Clear faculty form fields
+        const facultyFields = [
+            'facFirstName', 'facMiddleName', 'facLastName', 'facExtension',
+            'facDepartment', 'facEmail', 'facPassword', 'facConfirmPassword', 'facProfilePic'
+        ];
+        
+        facultyFields.forEach(fieldId => {
+            const element = document.getElementById(fieldId);
+            if (element) {
+                if (element.type === 'file') {
+                    element.value = ''; // Clear file input
+                } else {
+                    element.value = ''; // Clear text/select inputs
+                }
+            }
+        });
+        
+        console.log('Faculty registration form cleared');
     }
 }

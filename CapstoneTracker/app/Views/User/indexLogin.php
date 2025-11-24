@@ -248,7 +248,7 @@ if ($setupError) {
               </div>
               <small class="text-muted">Use your university email (@usep.edu.ph)</small>
             </div>
-            <div class="col-md-6">
+            <div class="col-12">
               <label for="regPassword" class="form-label">Password</label>
               <div class="input-group">
                 <input type="password" id="regPassword" name="password" class="form-control" required>
@@ -256,8 +256,9 @@ if ($setupError) {
                   <i class="far fa-eye"></i>
                 </button>
               </div>
+              <small class="text-muted">Password must be 8+ long, 1 uppercase, and 1 number.</small>
             </div>
-            <div class="col-md-6">
+            <div class="col-12">
               <label for="regConfirmPassword" class="form-label">Confirm Password</label>
               <div class="input-group">
                 <input type="password" id="regConfirmPassword" name="confirmPassword" class="form-control" required>
@@ -268,8 +269,8 @@ if ($setupError) {
             </div>
             <div class="col-12">
               <label for="regProfilePic" class="form-label">Profile picture</label>
-              <input type="file" id="regProfilePic" name="profilePic" class="form-control" accept="image/*">
-              <small class="text-muted">Max 5MB. JPG/PNG preferred.</small>
+              <input type="file" id="regProfilePic" name="profilePic" class="form-control" accept="image/*" onchange="validateFileSize(this, 2)">
+              <small class="text-muted">Max 2MB. JPG/PNG preferred.</small>
             </div>
             <div class="col-12 d-grid gap-2">
               <button type="submit" class="btn btn-primary">Create account</button>
@@ -333,7 +334,7 @@ if ($setupError) {
               </div>
               <small class="text-muted">Use your university email (@usep.edu.ph)</small>
             </div>
-            <div class="col-md-6">
+            <div class="col-12">
               <label for="facPassword" class="form-label">Password</label>
               <div class="input-group">
                 <input type="password" id="facPassword" name="password" class="form-control" required>
@@ -341,8 +342,9 @@ if ($setupError) {
                   <i class="far fa-eye"></i>
                 </button>
               </div>
+              <small class="text-muted">Password must be 8+ long, 1 uppercase, and 1 number.</small>
             </div>
-            <div class="col-md-6">
+            <div class="col-12">
               <label for="facConfirmPassword" class="form-label">Confirm Password</label>
               <div class="input-group">
                 <input type="password" id="facConfirmPassword" name="confirmPassword" class="form-control" required>
@@ -353,8 +355,8 @@ if ($setupError) {
             </div>
             <div class="col-12">
               <label for="facProfilePic" class="form-label">Profile picture (Optional)</label>
-              <input type="file" id="facProfilePic" name="profilePic" class="form-control" accept="image/*">
-              <small class="text-muted">Max 5MB. JPG/PNG preferred.</small>
+              <input type="file" id="facProfilePic" name="profilePic" class="form-control" accept="image/*" onchange="validateFileSize(this, 2)">
+              <small class="text-muted">Max 2MB. JPG/PNG preferred.</small>
             </div>
             <div class="col-12 d-grid gap-2">
               <button type="submit" class="btn btn-primary">Create account</button>
@@ -563,6 +565,19 @@ if ($setupError) {
 
         // Debug output
     console.log('PHP errorMessage:', errorMessage);
+    
+    // Pass preserved form data to JavaScript
+    <?php if (isset($_SESSION['preserved_form_data'])): ?>
+    preservedFormData = <?php echo json_encode($_SESSION['preserved_form_data']); ?>;
+    console.log('Preserved form data available:', preservedFormData);
+    <?php 
+        // Clear the preserved data after use
+        unset($_SESSION['preserved_form_data']);
+        unset($_SESSION['preserved_form_action']);
+    ?>
+    <?php else: ?>
+    preservedFormData = null;
+    <?php endif; ?>
     
     </script>
 
