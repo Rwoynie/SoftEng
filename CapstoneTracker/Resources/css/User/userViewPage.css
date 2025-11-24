@@ -227,34 +227,21 @@ body {
     flex-shrink: 0;
 }
 
-
 .searchbox {
     display: flex;
     padding: 12px;
     background: var(--color-white);
     border-radius: 8px;
-    width: 55vw;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.searchbox .icon {
-    color: var(--color-lite-grey);
-    margin: 0 10px 0 5px;
-}
-
-.searchbox input.search-text {
-    border: none;
-    font-family: "Quicksand";
-    background: inherit;
-    font-size: var(--size-medium);
-    font-weight: 600;
-    outline: none;
+    max-width: 600px;
     width: 100%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    order: 2;
 }
 
 .app-list-options {
     display: flex;
     align-items: center;
+    order: 1;
 }
 
 .app-list-options .icon {

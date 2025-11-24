@@ -161,10 +161,11 @@ if ($setupError) {
               </button>
             </div>
 
-            <div class="text-center mt-5">
+           
+          </div>
+          <div class="forgotPass">
             <a href="#" id="forgotPasswordLink" class="text-decoration-none">Forgot password?</a>
-          </div>
-          </div>
+           </div>
           <button type="submit" class="btn btn-success w-100 mb-2">Login</button>
           
 
@@ -227,7 +228,7 @@ if ($setupError) {
             
             
             <div class="col-12">
-              <label for="regCourse" class="form-label">Course / Program</label>
+              <label for="regCourse" class="form-label">Course</label>
               <select id="regCourse" name="course" class="form-select" required>
                 <option value="" selected disabled>Select your program</option>
                 <option>Bachelor of Technical-Vocational Teacher Education</option>
@@ -316,7 +317,7 @@ if ($setupError) {
             
             
             <div class="col-md-6">
-              <label for="facDepartment" class="form-label">Department / College</label>
+              <label for="facDepartment" class="form-label">Department</label>
               <select id="facDepartment" name="department" class="form-select" required>
                 <option value="" selected disabled>Select department</option>
                 <option>CTET</option>

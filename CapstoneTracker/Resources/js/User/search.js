@@ -180,35 +180,47 @@ document.addEventListener('DOMContentLoaded', function() {
     const resultsContainer = document.getElementById('thesis-results');
     
     if (listViewIcon && gridViewIcon && resultsContainer) {
-        // Load saved preference
-        const savedView = localStorage.getItem('viewPreference') || 'grid';
-        if (savedView === 'list') {
-            resultsContainer.classList.remove('grid');
-            resultsContainer.classList.add('list');
-            listViewIcon.classList.add('selected');
-            gridViewIcon.classList.remove('selected');
+        // Check if mobile device
+        const isMobile = window.innerWidth <= 575;
+        
+        if (isMobile) {
+            // Force grid view on mobile
+            resultsContainer.classList.remove('list');
+            resultsContainer.classList.add('grid');
+            if (gridViewIcon) gridViewIcon.classList.add('selected');
+            if (listViewIcon) listViewIcon.classList.remove('selected');
         } else {
-            resultsContainer.classList.remove('list');
-            resultsContainer.classList.add('grid');
-            gridViewIcon.classList.add('selected');
-            listViewIcon.classList.remove('selected');
+            // Load saved preference for desktop
+            // Load saved preference
+        const savedView = localStorage.getItem('viewPreference') || 'grid';
+            if (savedView === 'list') {
+                resultsContainer.classList.remove('grid');
+                resultsContainer.classList.add('list');
+                listViewIcon.classList.add('selected');
+                gridViewIcon.classList.remove('selected');
+            } else {
+                resultsContainer.classList.remove('list');
+                resultsContainer.classList.add('grid');
+                gridViewIcon.classList.add('selected');
+                listViewIcon.classList.remove('selected');
+            }
+            
+            listViewIcon.addEventListener('click', function() {
+                resultsContainer.classList.remove('grid');
+                resultsContainer.classList.add('list');
+                listViewIcon.classList.add('selected');
+                gridViewIcon.classList.remove('selected');
+                localStorage.setItem('viewPreference', 'list');
+            });
+            
+            gridViewIcon.addEventListener('click', function() {
+                resultsContainer.classList.remove('list');
+                resultsContainer.classList.add('grid');
+                gridViewIcon.classList.add('selected');
+                listViewIcon.classList.remove('selected');
+                localStorage.setItem('viewPreference', 'grid');
+            });
         }
-        
-        listViewIcon.addEventListener('click', function() {
-            resultsContainer.classList.remove('grid');
-            resultsContainer.classList.add('list');
-            listViewIcon.classList.add('selected');
-            gridViewIcon.classList.remove('selected');
-            localStorage.setItem('viewPreference', 'list');
-        });
-        
-        gridViewIcon.addEventListener('click', function() {
-            resultsContainer.classList.remove('list');
-            resultsContainer.classList.add('grid');
-            gridViewIcon.classList.add('selected');
-            listViewIcon.classList.remove('selected');
-            localStorage.setItem('viewPreference', 'grid');
-        });
     }
 });
 

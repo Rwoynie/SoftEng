@@ -7,7 +7,7 @@
 .searchbox {
     width: 100%;
     max-width: 500px;
-    margin-right: 2rem;
+   
 }
 
 .results-title h2 {
@@ -114,6 +114,7 @@
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+    line-clamp: 2;
     overflow: hidden;
     min-height: 3.2em;
 }
@@ -149,6 +150,7 @@
     display: -webkit-box;
     -webkit-line-clamp: 4;
     -webkit-box-orient: vertical;
+    line-clamp: 4;
     overflow: hidden;
 
     background: #f8f9fa;
@@ -771,3 +773,528 @@
     }
 }
 
+/* Extra Small Screens (576px - 767px) - Small Tablets */
+@media (max-width: 767px) {
+    /* Header */
+    .main-header {
+        padding: 0 0.75rem;
+        height: 60px;
+        flex-wrap: wrap;
+    }
+    
+    .main-header .logo {
+        flex: 1;
+    }
+    
+    .main-header .logo h1 {
+        font-size: 1.3rem;
+    }
+    
+    .main-header .logo h3 {
+        font-size: 1rem;
+    }
+    
+    .tabs {
+        margin-top: 0.5rem;
+    }
+    
+    .btn-login {
+        padding: 0.35rem 0.8rem;
+        font-size: 0.85rem;
+    }
+    
+    /* Search Results Header */
+    .results-header {
+        padding: 1rem 0.75rem;
+    }
+    
+    .search-filter {
+        gap: 1rem;
+        padding: 0.75rem 0;
+    }
+    
+    .filter-controls {
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    
+    .select {
+        min-width: 120px;
+    }
+    
+    .display-group {
+        gap: 0.25rem;
+    }
+    
+    .display-group .icon {
+        width: 36px;
+        height: 36px;
+        font-size: 0.9rem;
+    }
+    
+    .results-title h2 {
+        font-size: 1.5rem;
+    }
+    
+    .results-count {
+        font-size: 0.9rem;
+    }
+    
+    /* Thesis Cards */
+    .results-container {
+        padding: 1rem 0.75rem;
+    }
+    
+    .thesis-card {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .thesis-card .card-header {
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .card-logo {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .citation-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.7rem;
+    }
+    
+    .thesis-card h3 {
+        font-size: 1.1rem;
+        margin-bottom: 0.4rem;
+    }
+    
+    .department-badge {
+        padding: 0.3rem 0.8rem;
+        font-size: 0.7rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .authors, .adviser {
+        font-size: 0.85rem;
+        gap: 0.5rem;
+        margin-bottom: 0.15rem;
+    }
+    
+    .abstract-preview {
+        font-size: 0.85rem;
+        padding: 0.75rem;
+        -webkit-line-clamp: 3;
+    }
+    
+    .thesis-card .card-footer {
+        padding-top: 0.75rem;
+        gap: 0.75rem;
+    }
+    
+    .upload-date, .available {
+        font-size: 0.75rem;
+        gap: 0.4rem;
+    }
+    
+    /* Pagination */
+    .pagination {
+        margin-top: 2rem;
+        gap: 0.5rem;
+    }
+    
+    .pagination-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+    
+    .page-btn {
+        min-width: 35px;
+        height: 35px;
+        font-size: 0.85rem;
+    }
+}
+
+/* Extra Small Screens (<576px) - Mobile */
+@media (max-width: 575px) {
+    /* Header */
+    .main-header {
+        padding: 0 0.5rem;
+        height: auto;
+        min-height: 60px;
+        padding: 0.75rem 0.5rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .main-header .logo {
+        margin-top: 1rem;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+        flex: 0 0 100%;
+    }
+    
+    .main-header .logo img {
+        display: none; /* Hide logo image on mobile, keep title */
+    }
+    
+    .main-header .logo h1 {
+        font-size: 1.25rem;
+    }
+    
+    .main-header .logo h3 {
+        font-size: 0.95rem;
+    }
+    
+    /* Hide login button on mobile */
+    .main-header nav.tabs {
+        display: none;
+    }
+    
+    /* Search Results Header */
+    .results-header {
+        padding: 1rem 0.5rem;
+        text-align: center;
+    }
+    
+    .search-filter {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem 0;
+        align-items: stretch;
+    }
+    
+    .searchbox {
+        width: 100%;
+        max-width: none;
+        display: flex;
+        align-items: center;
+        background: var(--color-white);
+        border-radius: var(--border-radius);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 0.2rem;
+    }
+    
+    .searchbox .icon {
+        margin: 0 0.5rem 0 1rem;
+        flex-shrink: 0;
+        color: var(--color-lite-grey);
+    }
+    
+    .searchbox input {
+        font-size: 1rem;
+        padding: 1rem 0;
+        width: 100%;
+        flex: 1;
+        border: none;
+        outline: none;
+        background: transparent;
+    }
+    
+    .search-btn {
+        display: none; /* Hide search button on mobile */
+    }
+    
+    .filter-controls {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: 0.75rem;
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    .select {
+        flex: 0 1 auto;
+        min-width: 120px;
+    }
+    
+    .selected {
+        padding: 0.6rem 0.8rem;
+        font-size: 0.85rem;
+    }
+    
+    /* Hide display-group toggle on mobile */
+    .display-group {
+        display: none;
+    }
+    
+    .results-title {
+        margin-top: 1rem;
+    }
+    
+    .results-title h2 {
+        font-size: 1.4rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .results-count {
+        font-size: 0.85rem;
+        line-height: 1.4;
+    }
+    
+    /* Results Container */
+    .results-container {
+        padding: 1rem 0.5rem;
+    }
+    
+    /* Thesis Cards */
+    .results.grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .thesis-card {
+        padding: 1rem;
+        margin-bottom: 0;
+        border-left: none;
+        border-top: 3px solid var(--primary-color);
+    }
+    
+    .thesis-card .card-header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .card-logo {
+        width: 45px;
+        height: 45px;
+        flex-shrink: 0;
+    }
+    
+    .citation-btn {
+        padding: 0.35rem 0.7rem;
+        font-size: 0.65rem;
+        gap: 0.3rem;
+        min-height: 28px;
+    }
+    
+    .thesis-card h3 {
+        font-size: 1rem;
+        line-height: 1.3;
+        margin-bottom: 0.3rem;
+        -webkit-line-clamp: 2;
+        min-height: 2.6em;
+    }
+    
+    .department-badge {
+        padding: 0.25rem 0.6rem;
+        font-size: 0.65rem;
+        margin-bottom: 0.4rem;
+        align-self: flex-start;
+    }
+    
+    .authors, .adviser {
+        font-size: 0.8rem;
+        gap: 0.4rem;
+        margin-bottom: 0.1rem;
+        line-height: 1.3;
+    }
+    
+    .authors i, .adviser i {
+        width: 14px;
+        font-size: 0.8rem;
+    }
+    
+    .abstract-preview {
+        font-size: 0.8rem;
+        padding: 0.6rem;
+        margin-bottom: 0.5rem;
+        -webkit-line-clamp: 3;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+    }
+    
+    .thesis-card .card-footer {
+        padding-top: 0.6rem;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .upload-date, .available {
+        font-size: 0.7rem;
+        gap: 0.3rem;
+    }
+    
+    /* No Results */
+    .no-results {
+        text-align: center;
+        padding: 3rem 1rem;
+    }
+    
+    .no-results i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+    
+    .no-results h3 {
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .no-results p {
+        font-size: 0.9rem;
+    }
+    
+    /* Pagination */
+    .pagination {
+        margin-top: 2rem;
+        padding: 0 0.5rem;
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: center;
+    }
+    
+    .page-numbers {
+        order: 2;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.25rem;
+    }
+    
+    .pagination-btn {
+        padding: 0.6rem 1rem;
+        font-size: 0.85rem;
+        min-height: 44px;
+        width: 100%;
+        max-width: 150px;
+    }
+    
+    .pagination-btn.prev {
+        order: 1;
+    }
+    
+    .pagination-btn.next {
+        order: 3;
+    }
+    
+    .page-btn {
+        min-width: 35px;
+        height: 35px;
+        font-size: 0.8rem;
+    }
+    
+    /* Modal Enhancements for Mobile */
+    .modal {
+        padding: 0;
+    }
+    
+    .modal-content {
+        width: 100%;
+        height: 100vh;
+        max-height: 100vh;
+        margin: 0;
+        border-radius: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .modal-header {
+        padding: 1rem;
+        flex-shrink: 0;
+    }
+    
+    .modal-header h2 {
+        font-size: 1.2rem;
+        line-height: 1.3;
+        margin-right: 0.5rem;
+    }
+    
+    .close {
+        width: 32px;
+        height: 32px;
+        font-size: 1.2rem;
+    }
+    
+    .modal-body {
+        padding: 1rem;
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .thesis-info {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        padding: 1rem;
+    }
+    
+    .info-item {
+        gap: 0.25rem;
+    }
+    
+    .info-item strong {
+        font-size: 0.8rem;
+    }
+    
+    .info-item span {
+        font-size: 0.9rem;
+        line-height: 1.3;
+    }
+    
+    .abstract-section h3 {
+        font-size: 1.1rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .abstract-content {
+        font-size: 0.9rem;
+        padding: 1rem;
+        max-height: 60vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .modal-footer {
+        padding: 1rem;
+        flex-shrink: 0;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .modal-citation-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .modal-footer-actions {
+        width: 100%;
+        flex-direction: row;
+        gap: 0.5rem;
+        margin-left: 0;
+    }
+    
+    .btn-primary, .btn-secondary {
+        flex: 1;
+        padding: 0.75rem 0.5rem;
+        font-size: 0.85rem;
+        min-height: 44px;
+        justify-content: center;
+    }
+    
+    /* Touch-friendly interactions */
+    .citation-btn,
+    .modal-citation-btn,
+    .btn-primary,
+    .btn-secondary,
+    .pagination-btn,
+    .page-btn,
+    .display-group .icon,
+    button {
+        min-height: 44px;
+        min-width: 44px;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+    }
+}

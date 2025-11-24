@@ -429,6 +429,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     
     header('Content-Type: application/json');
     
+    // Check if session is already started
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
