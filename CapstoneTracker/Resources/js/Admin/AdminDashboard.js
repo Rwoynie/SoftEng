@@ -466,6 +466,7 @@ document.addEventListener('DOMContentLoaded', function() {
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             
+            
             // Check if file type is supported (only PDF)
             const fileExtension = file.name.split('.').pop().toLowerCase();
             if (fileExtension !== 'pdf') {
