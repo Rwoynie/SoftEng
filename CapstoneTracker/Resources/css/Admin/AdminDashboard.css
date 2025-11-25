@@ -1840,63 +1840,6 @@ body {
     font-size: 0.9rem;
 }
 
-
-/* Disabled browse button */
-.browse-btn.disabled {
-    pointer-events: none;
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.abstractFileInput.disabled {
-    pointer-events: none;
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.thesisFileInput.disabled {
-    pointer-events: none;
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* File preview item */
-.file-preview {
-    display: flex;
-    align-items: center;
-    padding: 10px;
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
-    margin-bottom: 10px;
-}
-
-.file-preview i {
-    font-size: 24px;
-    color: #dc3545; /* Red for PDF icon, adjust as needed */
-    margin-right: 10px;
-}
-
-.file-preview span {
-    flex: 1;
-}
-
-.file-preview .remove-file {
-    cursor: pointer;
-    color: #dc3545;
-    font-weight: bold;
-    margin-left: 10px;
-}
-
-.file-preview .remove-file:hover {
-    color: #a71d2a;
-}
-
-/* Hide empty state when files are present */
-.file-list-grid:not(:empty) .empty-state {
-    display: none;
-}
-
 /* Thesis form styles */
 .thesis-form {
     margin-bottom: 20px;

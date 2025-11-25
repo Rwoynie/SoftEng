@@ -144,23 +144,19 @@ class User extends Model {
     }
 
     /**
-     * Find user by email - USES HASHED LOOKUP
-     */
-    public function findByEmail($email) {
-        $emailHash = $this->hashData($email);
-        
-        $this->db->query('SELECT * FROM USER_INFORMATION WHERE Email_Hash = :email LIMIT 1');
-        $this->db->bind(':email', $emailHash); // Lookup hashed value in Email_Hash column
-        $result = $this->db->single();
-        
-        // Convert object to array if needed
-        if (is_object($result)) {
-            $result = (array)$result;
-        }
-        
-        error_log("findByEmail result: " . ($result ? 'FOUND' : 'NOT FOUND'));
-        return $result;
-    }
+ * Find user by email - CASE-INSENSITIVE plain text lookup
+ */
+public function findByEmail($email) {
+    $query = "SELECT * FROM USER_INFORMATION WHERE LOWER(Email) = LOWER(:email) LIMIT 1";
+    $this->db->query($query);
+    $this->db->bind(':email', trim($email));
+    
+    $result = $this->db->single();
+    
+    error_log("findByEmail('$email') -> " . ($result ? 'FOUND (ID: ' . $result->ID . ')' : 'NOT FOUND'));
+    
+    return $result;
+}
 
    
 

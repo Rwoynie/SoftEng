@@ -25,8 +25,6 @@ let uploadedFiles = {
     thesis: []
 };
 
-let abstractBrowse, thesisBrowse, abstractFileInput, thesisFileInput;
-
 document.addEventListener('DOMContentLoaded', function() {
     // Profile functionality (existing code)
    
@@ -38,7 +36,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const abstractDropArea = document.getElementById('abstractDropArea');
     const thesisDropArea = document.getElementById('thesisDropArea');
-    
+    const abstractFileInput = document.getElementById('abstractFileInput');
+    const thesisFileInput = document.getElementById('thesisFileInput');
 
     const btnUpload = document.querySelector('.btn-upload');
     
@@ -56,20 +55,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const adminAccessBtn = document.getElementById('adminAccess');
     const facultyAccessBtn = document.getElementById('facultyAccess');
     const studentAccessBtn = document.getElementById('studentAccess');
-
-    abstractBrowse = abstractDropArea.querySelector('.browse-btn');
-    thesisBrowse = thesisDropArea.querySelector('.browse-btn');
-
-    abstractFileInput = document.getElementById('abstractFileInput');
-    thesisFileInput = document.getElementById('thesisFileInput');
-    
-    const abstractFileList = document.getElementById('abstractFileList');
-
-    
-    const thesisFileList = document.getElementById('thesisFileList');
-
-    // Upload Button
-    const uploadBtn = document.getElementById('uploadBtn');
 
     initializeLogsDownload();
 
@@ -381,13 +366,6 @@ document.addEventListener('DOMContentLoaded', function() {
         dropArea.addEventListener('drop', function(e) {
             const dt = e.dataTransfer;
             const files = dt.files;
-            
-            // NEW: Disable browse button when files are dropped
-            const browseBtn = this.querySelector('.browse-btn');
-            if (browseBtn && files.length > 0) {
-                browseBtn.classList.add('disabled');
-            }
-            
             handleFiles(files, fileType);
         });
     }
@@ -448,8 +426,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize both upload areas
     initializeUploadArea(abstractDropArea, abstractFileInput);
     initializeUploadArea(thesisDropArea, thesisFileInput);
-    initializeBrowseButtonStates();
-    
 
     // File input handling via browse buttons
     const browseBtns = document.querySelectorAll('.browse-btn');
@@ -502,10 +478,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 continue;
             }
             
-            // Check if file is already in the list using a more reliable method
+            // FIX: Check if file is already in the list using a more reliable method
             const isDuplicate = uploadedFiles[fileType].some(existingFile => 
                 existingFile.name === file.name && 
-                existingFile.size === file.size
+                existingFile.size === file.size &&
+                existingFile.lastModified === file.lastModified
             );
             
             if (isDuplicate) {
@@ -523,29 +500,16 @@ document.addEventListener('DOMContentLoaded', function() {
             displayFile(file, fileType);
         }
         
-        // Disable browse button and file input for this file type after adding files
-        const browseBtn = fileType === 'abstract' ? abstractBrowse : thesisBrowse;
-        const fileInput = fileType === 'abstract' ? abstractFileInput : thesisFileInput;
-        
-        if (browseBtn && uploadedFiles[fileType].length > 0) {
-            browseBtn.classList.add('disabled');
-            browseBtn.disabled = true;
-            console.log('Browse button disabled for:', fileType);
-        }
-        
-        if (fileInput && uploadedFiles[fileType].length > 0) {
-            fileInput.disabled = true;
-            console.log('File input disabled for:', fileType);
-        }
-        
         // Update upload button state
         updateUploadButtonState();
     }
     
-    
 
-   // Display file in the list with preview
+
+    // Display file in the list with preview
     function displayFile(file, fileType) {
+       
+        
         const fileListId = fileType === 'abstract' ? 'abstractFileList' : 'thesisFileList';
         const fileList = document.getElementById(fileListId);
         const fileCategory = fileList.closest('.file-category');
@@ -553,11 +517,12 @@ document.addEventListener('DOMContentLoaded', function() {
             fileCategory.classList.add('has-files');
         }
         
-        // Check if file already exists in the display before adding
+        // FIX: Check if file already exists in the display before adding
         const existingFileItems = fileList.querySelectorAll('.file-item-card');
         for (let existingItem of existingFileItems) {
             const existingFileName = existingItem.querySelector('.file-name-preview').textContent;
             if (existingFileName === file.name) {
+               
                 return; // Don't add duplicate display
             }
         }
@@ -606,7 +571,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const fileName = this.getAttribute('data-filename');
             const fileType = this.getAttribute('data-filetype');
             
-            console.log('Remove button clicked for:', fileName, fileType);
             
             removeFile(fileName, fileType);
             
@@ -662,24 +626,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Remove from uploadedFiles array
         uploadedFiles[fileType] = uploadedFiles[fileType].filter(file => file.name !== fileName);
         
-        // Re-enable browse button AND file input if no files left for this type
-        const browseBtn = fileType === 'abstract' ? abstractBrowse : thesisBrowse;
-        const fileInput = fileType === 'abstract' ? abstractFileInput : thesisFileInput;
-        
-        if (uploadedFiles[fileType].length === 0) {
-            // Re-enable browse button
-            if (browseBtn) {
-                browseBtn.classList.remove('disabled');
-                browseBtn.disabled = false;
-            }
-            
-            // Re-enable file input
-            if (fileInput) {
-                fileInput.disabled = false;
-                fileInput.value = ''; // Clear the input value
-            }
-        }
-        
         const fileListId = fileType === 'abstract' ? 'abstractFileList' : 'thesisFileList';
         const fileList = document.getElementById(fileListId);
         if (uploadedFiles[fileType].length === 0) {
@@ -687,6 +633,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (fileCategory) {
                 fileCategory.classList.remove('has-files');
             }
+        }
+
+        // FIX: Clear the file input value to allow re-selection of the same file
+        if (fileType === 'abstract' && abstractFileInput) {
+            abstractFileInput.value = '';
+        } else if (fileType === 'thesis' && thesisFileInput) {
+            thesisFileInput.value = '';
         }
         
         updateUploadButtonState();
@@ -746,15 +699,9 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
-
-    
     
     // Function to reset upload form
     function resetUploadForm() {
-        console.log('🚀 resetUploadForm() called!');
-        console.log('Before reset - abstract files:', uploadedFiles.abstract.length);
-        console.log('Before reset - thesis files:', uploadedFiles.thesis.length);
-        
         // Clear uploaded files arrays
         uploadedFiles.abstract = [];
         uploadedFiles.thesis = [];
@@ -763,39 +710,15 @@ document.addEventListener('DOMContentLoaded', function() {
         showEmptyState('abstract');
         showEmptyState('thesis');
         
-        // Clear both file inputs and ensure they're enabled
-        if (abstractFileInput) {
-            abstractFileInput.value = '';
-            abstractFileInput.disabled = false;
-            console.log('Abstract file input reset and enabled');
-        }
-        if (thesisFileInput) {
-            thesisFileInput.value = '';
-            thesisFileInput.disabled = false;
-            console.log('Thesis file input reset and enabled');
-        }
-    
-        // Re-enable browse buttons
-        if (abstractBrowse) {
-            abstractBrowse.classList.remove('disabled');
-            abstractBrowse.disabled = false;
-            console.log('Abstract browse button enabled');
-        }
-        if (thesisBrowse) {
-            thesisBrowse.classList.remove('disabled');
-            thesisBrowse.disabled = false;
-            console.log('Thesis browse button enabled');
-        }
-        
-        // Initialize browse button states
-        initializeBrowseButtonStates();
+        // Clear both file inputs
+        if (abstractFileInput) abstractFileInput.value = '';
+        if (thesisFileInput) thesisFileInput.value = '';
         
         // Clear all form fields
         const formFields = [
             'thesisTitle',
             'thesisAuthor',
-            'thesisAdviser',
-            'courseInput'
+            'thesisAdviser'
         ];
         
         formFields.forEach(fieldId => {
@@ -808,41 +731,18 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Reset department select
         const departmentSelect = document.getElementById('departmentSelect');
+        const courseInput = document.getElementById('courseInput');
+
         if (departmentSelect) {
             departmentSelect.selectedIndex = 0;
             departmentSelect.style.borderColor = '#ddd';
         }
-        
-        // Reset course input
-        const courseInput = document.getElementById('courseInput');
+
         if (courseInput) {
             courseInput.innerHTML = '<option value="" selected disabled>Select your program</option>';
             courseInput.disabled = true;
             courseInput.style.borderColor = '#ddd';
         }
-    
-        const hardboundSelect = document.getElementById('hardboundSelect');
-        if (hardboundSelect) {
-            hardboundSelect.value = 'Yes';
-            hardboundSelect.style.borderColor = '#51cf66';
-        }
-        
-        // Reset modal to create mode
-        const uploadBtn = document.getElementById('uploadBtn');
-        const modalTitle = document.querySelector('.upload-modal .modal-title');
-        
-        if (uploadBtn) {
-            uploadBtn.textContent = 'Upload Thesis';
-            uploadBtn.removeAttribute('data-thesis-id');
-        }
-        
-        if (modalTitle) {
-            modalTitle.textContent = 'Upload New Thesis';
-        }
-        
-        console.log('After reset - abstract files:', uploadedFiles.abstract.length);
-        console.log('After reset - thesis files:', uploadedFiles.thesis.length);
-        console.log('Reset completed');
         
         // Update button state
         updateUploadButtonState();
@@ -2385,7 +2285,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('FAB clicked, opening modal');
                 try {
                     // DON'T reset the form when opening modal - keep existing files
-                    // resetUploadForm(); // REMOVE THIS LINE - This was the problem!
+                    // resetUploadForm(); // REMOVE THIS LINE
                     
                     uploadModal.classList.add('active');
                     document.body.style.overflow = 'hidden';
@@ -2393,12 +2293,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Update button state in case files are already selected
                     updateUploadButtonState();
-                    
-                    // DEBUG: Check file input states
-                    console.log('Abstract file input disabled:', abstractFileInput?.disabled);
-                    console.log('Thesis file input disabled:', thesisFileInput?.disabled);
-                    console.log('Abstract browse disabled:', abstractBrowse?.disabled);
-                    console.log('Thesis browse disabled:', thesisBrowse?.disabled);
                 } catch (error) {
                     console.error('Error opening modal:', error);
                 }
@@ -3574,26 +3468,72 @@ function filterThesesByDepartment(departmentValue) {
         }
     }
 
-   // Show empty state when no files
-function showEmptyState(fileType) {
-    const fileListId = fileType === 'abstract' ? 'abstractFileList' : 'thesisFileList';
-    const fileList = document.getElementById(fileListId);
-    
-    if (fileList) {
-        fileList.innerHTML = `
-            <div class="empty-state">
-                <i class="far fa-file-pdf"></i>
-                <p>No ${fileType} files selected</p>
-            </div>
-        `;
+    function resetUploadForm() {
+        // Clear uploaded files arrays
+        uploadedFiles.abstract = [];
+        uploadedFiles.thesis = [];
         
-        // Also remove the has-files class from the file category
-        const fileCategory = fileList.closest('.file-category');
-        if (fileCategory) {
-            fileCategory.classList.remove('has-files');
+        // Clear file displays
+        showEmptyState('abstract');
+        showEmptyState('thesis');
+        
+        // Clear both file inputs
+        if (abstractFileInput) abstractFileInput.value = '';
+        if (thesisFileInput) thesisFileInput.value = '';
+        
+        // Clear all form fields
+        const formFields = [
+            'thesisTitle',
+            'thesisAuthor',
+            'thesisAdviser',
+            'courseInput'
+        ];
+        
+        formFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.value = '';
+                field.style.borderColor = '#ddd';
+            }
+        });
+        
+        // Reset department select
+        const departmentSelect = document.getElementById('departmentSelect');
+        if (departmentSelect) {
+            departmentSelect.selectedIndex = 0;
+            departmentSelect.style.borderColor = '#ddd';
         }
+        
+        // Reset course input
+        const courseInput = document.getElementById('courseInput');
+        if (courseInput) {
+            courseInput.innerHTML = '<option value="" selected disabled>Select your program</option>';
+            courseInput.disabled = true;
+            courseInput.style.borderColor = '#ddd';
+        }
+
+        const hardboundSelect = document.getElementById('hardboundSelect');
+        if (hardboundSelect) {
+            hardboundSelect.value = 'Yes';
+            hardboundSelect.style.borderColor = '#51cf66';
+        }
+        
+        // Reset modal to create mode
+        const uploadBtn = document.getElementById('uploadBtn');
+        const modalTitle = document.querySelector('.upload-modal .modal-title');
+        
+        if (uploadBtn) {
+            uploadBtn.textContent = 'Upload Thesis';
+            uploadBtn.removeAttribute('data-thesis-id');
+        }
+        
+        if (modalTitle) {
+            modalTitle.textContent = 'Upload New Thesis';
+        }
+        
+        // Update button state
+        updateUploadButtonState();
     }
-}
 
     if (uploadModal) {
         uploadModal.addEventListener('click', function(e) {
@@ -3799,7 +3739,6 @@ async function lockSystem() {
         });
     }
 }
-
 
 initializeSystemLock();
 
@@ -4263,17 +4202,6 @@ function handleFiles(files, fileType) {
         displayFile(file, fileType);
     }
     
-    const browseBtn = fileType === 'abstract' ? abstractBrowse : thesisBrowse;
-    const fileInput = fileType === 'abstract' ? abstractFileInput : thesisFileInput;
-    
-    if (browseBtn && uploadedFiles[fileType].length > 0) {
-        browseBtn.classList.add('disabled');
-        browseBtn.disabled = true;
-    }
-    
-    if (fileInput && uploadedFiles[fileType].length > 0) {
-        fileInput.disabled = true;
-    }
     // Update upload button state
     updateUploadButtonState();
 }
@@ -4283,20 +4211,12 @@ function showEmptyState(fileType) {
     const fileListId = fileType === 'abstract' ? 'abstractFileList' : 'thesisFileList';
     const fileList = document.getElementById(fileListId);
     
-    if (fileList) {
-        fileList.innerHTML = `
-            <div class="empty-state">
-                <i class="far fa-file-pdf"></i>
-                <p>No ${fileType} files selected</p>
-            </div>
-        `;
-        
-        // Also remove the has-files class from the file category
-        const fileCategory = fileList.closest('.file-category');
-        if (fileCategory) {
-            fileCategory.classList.remove('has-files');
-        }
-    }
+    fileList.innerHTML = `
+        <div class="empty-state">
+            <i class="far fa-file-pdf"></i>
+            <p>No ${fileType} files selected</p>
+        </div>
+    `;
 }
 
 // Format file size to human readable format
@@ -4310,70 +4230,19 @@ function formatFileSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-    // Remove file from the list
-    function removeFile(fileName, fileType) {
-        console.log('Removing file:', fileName, 'from:', fileType);
-        
-        // Remove from uploadedFiles array
-        uploadedFiles[fileType] = uploadedFiles[fileType].filter(file => file.name !== fileName);
-        
-        console.log('Files remaining after removal:', uploadedFiles[fileType].length);
-        
-        // Re-enable browse button and file input if no files left for this type
-        const browseBtn = fileType === 'abstract' ? abstractBrowse : thesisBrowse;
-        const fileInput = fileType === 'abstract' ? abstractFileInput : thesisFileInput;
-        
-        if (browseBtn && uploadedFiles[fileType].length === 0) {
-            browseBtn.classList.remove('disabled');
-            browseBtn.disabled = false;
-            console.log('Browse button re-enabled for:', fileType);
-        }
-        
-        if (fileInput && uploadedFiles[fileType].length === 0) {
-            fileInput.disabled = false;
-            fileInput.value = ''; // Clear the input value
-            console.log('File input re-enabled for:', fileType);
-        }
-        
-        const fileListId = fileType === 'abstract' ? 'abstractFileList' : 'thesisFileList';
-        const fileList = document.getElementById(fileListId);
-        if (uploadedFiles[fileType].length === 0) {
-            const fileCategory = fileList.closest('.file-category');
-            if (fileCategory) {
-                fileCategory.classList.remove('has-files');
-            }
-        }
-        
-        updateUploadButtonState();
-    }
-
-// NEW: Initialize browse button states based on existing files
-function initializeBrowseButtonStates() {
-    // Abstract files
-    if (abstractBrowse && abstractFileInput) {
-        if (uploadedFiles.abstract.length > 0) {
-            abstractBrowse.classList.add('disabled');
-            abstractBrowse.disabled = true;
-            abstractFileInput.disabled = true;
-        } else {
-            abstractBrowse.classList.remove('disabled');
-            abstractBrowse.disabled = false;
-            abstractFileInput.disabled = false;
-        }
+// Remove file from the list
+function removeFile(fileName, fileType) {
+    // Remove from uploadedFiles array
+    uploadedFiles[fileType] = uploadedFiles[fileType].filter(file => file.name !== fileName);
+    
+    // FIX: Clear the file input value to allow re-selection of the same file
+    if (fileType === 'abstract' && abstractFileInput) {
+        abstractFileInput.value = '';
+    } else if (fileType === 'thesis' && thesisFileInput) {
+        thesisFileInput.value = '';
     }
     
-    // Thesis files
-    if (thesisBrowse && thesisFileInput) {
-        if (uploadedFiles.thesis.length > 0) {
-            thesisBrowse.classList.add('disabled');
-            thesisBrowse.disabled = true;
-            thesisFileInput.disabled = true;
-        } else {
-            thesisBrowse.classList.remove('disabled');
-            thesisBrowse.disabled = false;
-            thesisFileInput.disabled = false;
-        }
-    }
+    updateUploadButtonState();
 }
 
 // Preview file using Google Docs Viewer for docx and PDF.js for pdf
@@ -4940,7 +4809,6 @@ async function downloadLogsAsPDF(logType, filter, page = 1) {
         });
     }
 }
-
 
 
 
