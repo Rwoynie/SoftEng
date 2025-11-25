@@ -1590,23 +1590,26 @@ public function getReportsStats($department = 'all', $course = 'all') {
     /**
  * Get course codes by department with proper mapping
  */
-private function getCourseCodesByDepartment($department) {
-    $departmentMap = [
-        'beced' => ['Bachelor of Early Childhood Education', 'BECED'],
-        'bsed' => ['Bachelor of Secondary Education', 'BSED'],
-        'btvted' => ['Bachelor of Technical-Vocational Teacher Education', 'BTVTED'],
-        'beed' => ['Bachelor of Elementary Education', 'BEED'],
-        'bsned' => ['Bachelor of Special Needs Education', 'BSNED'],
-        'bsabe' => [
-            'Bachelor of Science in Agricultural and Biosystems Engineering',
-            'Bachelor of Science in Agriculture and Biosystems Engineering',
-            'BSABE'
-        ],
-        'bsit' => ['Bachelor of Science in Information Technology', 'BSIT']
-    ];
-    
-    return $departmentMap[$department] ?? [];
-}
+    private function getCourseCodesByDepartment($department) {
+        $department = strtolower(trim($department));
+        
+        $map = [
+            'all'    => [],
+            'bsit'   => ['Bachelor of Science in Information Technology', 'BSIT'],
+            'beced'  => ['Bachelor of Early Childhood Education', 'BECED'],
+            'bsed'   => ['Bachelor of Secondary Education', 'BSED'],
+            'btvted' => ['Bachelor of Technical-Vocational Teacher Education', 'BTVTED'],
+            'beed'   => ['Bachelor of Elementary Education', 'BEED'],
+            'bsned'  => ['Bachelor of Special Needs Education', 'BSNED'],
+            'bsabe'  => [
+                'Bachelor of Science in Agricultural and Biosystems Engineering',
+                'Bachelor of Science in Agriculture and Biosystems Engineering',
+                'BSABE'
+            ],
+        ];
+
+        return $map[$department] ?? [];
+    }
 
 
 /**
@@ -1661,56 +1664,50 @@ public function getCoursesByDepartment($department) {
 }
 
 
+    public function getDepartmentThesisCounts() {
+        try {
+            $counts = [];
+            
 
-    ## Add to AdminDashboardModel.php (at the end, before closing }):
-public function getDepartmentThesisCounts() {
-    try {
-        $departmentMap = [
-            'beced' => ['Bachelor of Early Childhood Education'],
-            'bsed' => ['Bachelor of Secondary Education'],
-            'btvted' => ['Bachelor of Technical-Vocational Teacher Education'],
-            'beed' => ['Bachelor of Elementary Education'],
-            'bsned' => ['Bachelor of Special Needs Education'],
-            'bsabe' => [
-                'Bachelor of Science in Agricultural and Biosystems Engineering',
-                'Bachelor of Science in Agriculture and Biosystems Engineering'
-            ],
-            'bsit' => ['Bachelor of Science in Information Technology']
-        ];
+            $this->db->query("SELECT COUNT(*) as count FROM thesis");
+            $counts['all'] = $this->db->single()->count ?? 0;
+            
         
-        $counts = [];
-        
-        // All
-        $this->db->query("SELECT COUNT(*) as count FROM thesis");
-        $counts['all'] = $this->db->single()->count ?? 0;
-        
-        // Per department
-        foreach ($departmentMap as $dept => $courses) {
-            if (empty($courses)) {
-                $counts[$dept] = 0;
-                continue;
+            $departmentMapping = [
+                'bsit' => ['Bachelor of Science in Information Technology', 'BSIT'],
+                'beced' => ['Bachelor of Early Childhood Education', 'BECED'],
+                'bsed' => ['Bachelor of Secondary Education', 'BSED'],
+                'btvted' => ['Bachelor of Technical-Vocational Teacher Education', 'BTVTED'],
+                'beed' => ['Bachelor of Elementary Education', 'BEED'],
+                'bsned' => ['Bachelor of Special Needs Education', 'BSNED'],
+                'bsabe' => [
+                    'Bachelor of Science in Agricultural and Biosystems Engineering',
+                    'Bachelor of Science in Agriculture and Biosystems Engineering',
+                    'BSABE'
+                ],
+            ];
+            
+            foreach ($departmentMapping as $deptCode => $courseNames) {
+                $placeholders = str_repeat('?,', count($courseNames) - 1) . '?';
+                $sql = "SELECT COUNT(*) as count FROM thesis WHERE Thesis_Course IN ($placeholders)";
+                
+                $this->db->query($sql);
+                foreach ($courseNames as $i => $courseName) {
+                    $this->db->bind($i + 1, $courseName);
+                }
+                $result = $this->db->single();
+                $counts[$deptCode] = $result->count ?? 0;
             }
             
-            $placeholders = str_repeat('?,', count($courses) - 1) . '?';
-            $sql = "SELECT COUNT(*) as count FROM thesis WHERE Thesis_Course IN ($placeholders)";
+            return $counts;
             
-            $this->db->query($sql);
-            foreach ($courses as $index => $course) {
-                $this->db->bind($index + 1, $course);
-            }
-            
-            $counts[$dept] = $this->db->single()->count ?? 0;
+        } catch (Exception $e) {
+            error_log("Error in getDepartmentThesisCounts: " . $e->getMessage());
+            // Return default counts
+            return array_fill_keys(['all', 'bsit', 'beced', 'bsed', 'btvted', 'beed', 'bsned', 'bsabe'], 0);
         }
-        
-        return $counts;
-        
-    } catch (Exception $e) {
-        error_log("Error getting department thesis counts: " . $e->getMessage());
-        return [];
     }
-}
 
-// Add to AdminDashboardModel.php
 
 /**
  * Get login attempts with enhanced trigger data

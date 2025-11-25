@@ -375,23 +375,31 @@ class ReportsManager {
     }
 
     updateDepartmentCounts(programCounts) {
+        console.log('Raw program counts:', programCounts); 
+        
         const allEl = document.getElementById('allCount');
         if (allEl) allEl.textContent = programCounts.all || 0;
 
-        const map = {
-            'bsitCount': 'Bachelor of Science in Information Technology',
-            'becedCount': 'Bachelor of Early Childhood Education',
-            'bsedCount': 'Bachelor of Secondary Education',
-            'btvtedCount': 'Bachelor of Technical-Vocational Teacher Education',
-            'beedCount': 'Bachelor of Elementary Education',
-            'bsnedCount': 'Bachelor of Special Needs Education',
-            'bsabeCount': 'Bachelor of Science in Agricultural and Biosystems Engineering'
+        // Map department codes to their element IDs
+        const departmentMap = {
+            'bsitCount': 'bsit',
+            'becedCount': 'beced', 
+            'bsedCount': 'bsed',
+            'btvtedCount': 'btvted',
+            'beedCount': 'beed',
+            'bsnedCount': 'bsned',
+            'bsabeCount': 'bsabe'
         };
 
-        Object.keys(map).forEach(id => {
+        Object.keys(departmentMap).forEach(id => {
             const el = document.getElementById(id);
-            if (el && programCounts[map[id]] !== undefined) {
-                el.textContent = programCounts[map[id]];
+            const deptCode = departmentMap[id];
+            if (el && programCounts[deptCode] !== undefined) {
+                el.textContent = programCounts[deptCode];
+                console.log(`Setting ${id} (${deptCode}) to:`, programCounts[deptCode]); // Debug
+            } else {
+                console.log(`Element ${id} not found or no data for ${deptCode}`); // Debug
+                if (el) el.textContent = '0';
             }
         });
     }
