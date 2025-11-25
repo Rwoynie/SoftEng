@@ -1112,7 +1112,7 @@ $displayUserData = [
                                     <h4>BSIT</h4>
                                     <p>Bachelor of Science in Information Technology</p>
                                      </div>
-                                <div class="access-count">0</div>
+                                <div class="access-count" id="bsitCount">0</div>
                                  </div>
                             <div class="access-item accessCard" id="becedReports">
                                 <div class="access-info">
@@ -1120,43 +1120,43 @@ $displayUserData = [
                                     <p>Bachelor of Early Childhood Education</p>
 
                                     </div>
-                                <div class="access-count">0</div>
+                                <div class="access-count" id="becedCount">0</div>
                                  </div>
                             <div class="access-item accessCard" id="bsedReports">
                                 <div class="access-info">
                                     <h4>BSED</h4>
                                     <p>Bachelor of Secondary Education</p>
                                      </div>
-                                <div class="access-count">0</div>
+                                <div class="access-count" id="bsedCount">0</div>
                             </div>
                             <div class="access-item accessCard" id="btvtedReports">
                                 <div class="access-info">
                                     <h4>BTVTED</h4>
                                     <p>Bachelor of Technical-Vocational Teacher Education</p>
                                     </div>
-                                <div class="access-count">0</div>
+                                <div class="access-count" id="btvtedCount">0</div>
                             </div>
                             <div class="access-item accessCard" id="beedReports">
-                                <div class="access-info">
+                                <div class="access-info" >
                                     <h4>BEED</h4>
                                     <p>Bachelor of Elementary Education</p>
 
                                      </div>
-                                <div class="access-count">0</div>
+                                <div class="access-count" id="beedCount">0</div>
                             </div>
                             <div class="access-item accessCard" id="bsnedReports">
                                 <div class="access-info">
                                     <h4>BSNED</h4>
                                     <p>Bachelor of Special Needs Education</p>
                                     </div>
-                                <div class="access-count">0</div>
+                                <div class="access-count" id="bsnedCount">0</div>
                             </div>
                             <div class="access-item accessCard" id="bsabeReports">
                                 <div class="access-info">
                                     <h4>BSABE</h4>
                                     <p>Bachelor of Science in Agricultural and Biosystems Engineering</p>
                                 </div>
-                                <div class="access-count">0</div>
+                                <div class="access-count" id="bsabeCount">0</div>
                                  </div>
                         </div>
                     </div>
