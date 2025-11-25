@@ -1050,14 +1050,11 @@ public function getLoginAttempts($limit) {
     }
 
 
-    /**
- * Get thesis counts by program with optional department filter
+/**
+ * Get thesis counts by program with course filtering
  */
-public function getThesisCountsByProgram($department = 'all') {
+public function getThesisCountsByProgram($department = 'all', $course = 'all') {
     try {
-        $courseMap = $this->getCourseCodesByDepartment($department);
-        $useFilter = $department !== 'all' && !empty($courseMap);
-
         $sql = "
             SELECT 
                 Thesis_Course as program,
@@ -1068,10 +1065,21 @@ public function getThesisCountsByProgram($department = 'all') {
         ";
 
         $params = [];
-        if ($useFilter) {
-            $placeholders = str_repeat('?,', count($courseMap) - 1) . '?';
-            $sql .= " AND Thesis_Course IN ($placeholders)";
-            $params = $courseMap;
+        
+        // Apply department filtering
+        if ($department !== 'all') {
+            $courseCodes = $this->getCourseCodesByDepartment($department);
+            if (!empty($courseCodes)) {
+                $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
+                $sql .= " AND Thesis_Course IN ($placeholders)";
+                $params = array_merge($params, $courseCodes);
+            }
+        }
+
+        // Apply specific course filtering
+        if ($course !== 'all' && !empty($course)) {
+            $sql .= " AND Thesis_Course = ?";
+            $params[] = $course;
         }
 
         $sql .= " GROUP BY Thesis_Course ORDER BY thesis_count DESC";
@@ -1257,9 +1265,9 @@ private function getEmptyMonthlyData() {
 }
 
 /**
- * Get user distribution by role for pie chart
+ * Get user distribution by role with course filtering
  */
-public function getUserDistributionByRole($department = 'all') {
+public function getUserDistributionByRole($department = 'all', $course = 'all') {
     try {
         $sql = "
             SELECT 
@@ -1272,6 +1280,7 @@ public function getUserDistributionByRole($department = 'all') {
         
         $params = [];
         
+        // Apply department filtering
         if ($department !== 'all') {
             $courseCodes = $this->getCourseCodesByDepartment($department);
             if (!empty($courseCodes)) {
@@ -1279,6 +1288,12 @@ public function getUserDistributionByRole($department = 'all') {
                 $sql .= " AND Course IN ($placeholders)";
                 $params = array_merge($params, $courseCodes);
             }
+        }
+
+        // Apply specific course filtering
+        if ($course !== 'all' && !empty($course)) {
+            $sql .= " AND Course = ?";
+            $params[] = $course;
         }
         
         $sql .= " GROUP BY User_Role ORDER BY user_count DESC";
@@ -1296,10 +1311,11 @@ public function getUserDistributionByRole($department = 'all') {
     }
 }
 
+
 /**
- * Get total thesis per program for bar chart
+ * Get thesis per program with course filtering
  */
-public function getThesisPerProgram($department = 'all') {
+public function getThesisPerProgram($department = 'all', $course = 'all') {
     try {
         $sql = "
             SELECT 
@@ -1312,6 +1328,7 @@ public function getThesisPerProgram($department = 'all') {
         
         $params = [];
         
+        // Apply department filtering
         if ($department !== 'all') {
             $courseCodes = $this->getCourseCodesByDepartment($department);
             if (!empty($courseCodes)) {
@@ -1319,6 +1336,12 @@ public function getThesisPerProgram($department = 'all') {
                 $sql .= " AND Thesis_Course IN ($placeholders)";
                 $params = array_merge($params, $courseCodes);
             }
+        }
+
+        // Apply specific course filtering
+        if ($course !== 'all' && !empty($course)) {
+            $sql .= " AND Thesis_Course = ?";
+            $params[] = $course;
         }
         
         $sql .= " GROUP BY Thesis_Course ORDER BY thesis_count DESC";
@@ -1362,67 +1385,70 @@ public function getProgramThesisCounts() {
     }
 }
 
-    /**
-     * Get reports statistics for cards
-     */
-    public function getReportsStats($department = 'all') {
+/**
+ * Get reports statistics with course filtering
+ */
+public function getReportsStats($department = 'all', $course = 'all') {
     try {
-        $stats = [];
+        // Base queries
+        $userSql = "SELECT COUNT(*) as total FROM USER_INFORMATION WHERE Acc_Status = 'approved' AND User_Role = 'student' OR User_Role = 'faculty' OR User_Role = 'SubAdmin'";
+        $thesisSql = "SELECT COUNT(*) as total FROM THESIS WHERE 1=1";
         
-        $courseCodes = $this->getCourseCodesByDepartment($department);
-        $useCourses = !empty($courseCodes) && $department !== 'all';
-        
-        $sqlTheses = "SELECT COUNT(*) as total FROM THESIS WHERE 1=1";
-        if ($useCourses) {
-            $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
-            $sqlTheses .= " AND Thesis_Course IN ($placeholders)";
-        }
-        
-        $this->db->query($sqlTheses);
-        if ($useCourses) {
-            foreach ($courseCodes as $index => $code) {
-                $this->db->bind($index + 1, $code);
-            }
-        }
-        $stats['total_theses'] = $this->db->single()->total;
-        
-        $sqlStudents = "SELECT COUNT(*) as total FROM USER_INFORMATION WHERE Acc_Status = 'approved' AND User_Role = 'student'";
-        if ($useCourses) {
-            $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
-            $sqlStudents .= " AND Course IN ($placeholders)";
-        }
-        
-        $this->db->query($sqlStudents);
-        if ($useCourses) {
-            foreach ($courseCodes as $index => $code) {
-                $this->db->bind($index + 1, $code);
-            }
-        }
-        $stats['total_students'] = $this->db->single()->total;
-        
+        $userParams = [];
+        $thesisParams = [];
 
-        $sqlRecent = "SELECT COUNT(*) as total FROM THESIS WHERE uploaded_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
-        if ($useCourses) {
-            $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
-            $sqlRecent .= " AND Thesis_Course IN ($placeholders)";
-        }
-        
-        $this->db->query($sqlRecent);
-        if ($useCourses) {
-            foreach ($courseCodes as $index => $code) {
-                $this->db->bind($index + 1, $code);
+        // Apply department filtering
+        if ($department !== 'all' && !empty($department)) {
+            $courseCodes = $this->getCourseCodesByDepartment($department);
+            
+            if (!empty($courseCodes)) {
+                $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
+                
+                // For users: filter by Course field
+                $userSql .= " AND Course IN ($placeholders)";
+                $userParams = array_merge($userParams, $courseCodes);
+                
+                // For theses: filter by Thesis_Course field  
+                $thesisSql .= " AND Thesis_Course IN ($placeholders)";
+                $thesisParams = array_merge($thesisParams, $courseCodes);
             }
         }
-        $stats['recent_theses'] = $this->db->single()->total;
-        
-        return $stats;
-        
+
+        // Apply specific course filtering
+        if ($course !== 'all' && !empty($course)) {
+            $userSql .= " AND Course = ?";
+            $userParams[] = $course;
+            
+            $thesisSql .= " AND Thesis_Course = ?";
+            $thesisParams[] = $course;
+        }
+
+        // Get total approved users
+        $this->db->query($userSql);
+        foreach ($userParams as $index => $value) {
+            $this->db->bind($index + 1, $value);
+        }
+        $totalApprovedUsers = (int)($this->db->single()->total ?? 0);
+
+        // Get total theses
+        $this->db->query($thesisSql);
+        foreach ($thesisParams as $index => $value) {
+            $this->db->bind($index + 1, $value);
+        }
+        $totalTheses = (int)($this->db->single()->total ?? 0);
+
+        return [
+            'total_theses' => $totalTheses,
+            'total_students' => $totalApprovedUsers,
+            'total_users' => $totalApprovedUsers
+        ];
+
     } catch (Exception $e) {
-        error_log("Error getting reports stats: " . $e->getMessage());
+        error_log("getReportsStats error: " . $e->getMessage());
         return [
             'total_theses' => 0,
             'total_students' => 0,
-            'recent_theses' => 0
+            'total_users' => 0
         ];
     }
 }
@@ -1561,22 +1587,78 @@ public function getProgramThesisCounts() {
     }
 }
 
-    private function getCourseCodesByDepartment($department) {
-        $departmentMap = [
-            'beced' => ['Bachelor of Early Childhood Education'],
-            'bsed' => ['Bachelor of Secondary Education'],
-            'btvted' => ['Bachelor of Technical-Vocational Teacher Education'],
-            'beed' => ['Bachelor of Elementary Education'],
-            'bsned' => ['Bachelor of Special Needs Education'],
-            'bsabe' => [
-                'Bachelor of Science in Agricultural and Biosystems Engineering',
-                'Bachelor of Science in Agriculture and Biosystems Engineering'
-            ],
-            'bsit' => ['Bachelor of Science in Information Technology']
-        ];
-        
-        return $departmentMap[$department] ?? [];
+    /**
+ * Get course codes by department with proper mapping
+ */
+private function getCourseCodesByDepartment($department) {
+    $departmentMap = [
+        'beced' => ['Bachelor of Early Childhood Education', 'BECED'],
+        'bsed' => ['Bachelor of Secondary Education', 'BSED'],
+        'btvted' => ['Bachelor of Technical-Vocational Teacher Education', 'BTVTED'],
+        'beed' => ['Bachelor of Elementary Education', 'BEED'],
+        'bsned' => ['Bachelor of Special Needs Education', 'BSNED'],
+        'bsabe' => [
+            'Bachelor of Science in Agricultural and Biosystems Engineering',
+            'Bachelor of Science in Agriculture and Biosystems Engineering',
+            'BSABE'
+        ],
+        'bsit' => ['Bachelor of Science in Information Technology', 'BSIT']
+    ];
+    
+    return $departmentMap[$department] ?? [];
+}
+
+
+/**
+ * Get all available courses from database
+ */
+public function getAllCourses() {
+    try {
+        $this->db->query("
+            SELECT DISTINCT Course 
+            FROM USER_INFORMATION 
+            WHERE Course IS NOT NULL AND Course != ''
+            ORDER BY Course
+        ");
+        return $this->db->resultSet();
+    } catch (Exception $e) {
+        error_log("Error getting all courses: " . $e->getMessage());
+        return [];
     }
+}
+
+/**
+ * Get courses by department
+ */
+public function getCoursesByDepartment($department) {
+    try {
+        if ($department === 'all') {
+            return $this->getAllCourses();
+        }
+        
+        $courseCodes = $this->getCourseCodesByDepartment($department);
+        if (empty($courseCodes)) {
+            return [];
+        }
+        
+        $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
+        $this->db->query("
+            SELECT DISTINCT Course 
+            FROM USER_INFORMATION 
+            WHERE Course IN ($placeholders)
+            ORDER BY Course
+        ");
+        
+        foreach ($courseCodes as $index => $course) {
+            $this->db->bind($index + 1, $course);
+        }
+        
+        return $this->db->resultSet();
+    } catch (Exception $e) {
+        error_log("Error getting courses by department: " . $e->getMessage());
+        return [];
+    }
+}
 
 
 

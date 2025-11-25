@@ -1220,53 +1220,59 @@ private function testAuditQuery() {
     /**
      * Get reports data for charts and statistics
      */
-    private function getReports() {
-        try {
-            $reportType = $_GET['type'] ?? 'overview';
-            $department = $_GET['department'] ?? 'all';
-            
-            switch ($reportType) {
-                case 'thesis':
-                    $data = $this->getThesisReports($department);
-                    break;
-                case 'users':
-                    $data = $this->getUserReports($department);
-                    break;
-                case 'department':
-                    $data = $this->getDepartmentReports($department);
-                    break;
-                case 'overview':
-                default:
-                    $data = $this->getOverviewReports($department);
-                    break;
-            }
-            
-            $this->jsonResponse([
-                'success' => true,
-                'data' => $data,
-                'report_type' => $reportType,
-                'department' => $department
-            ]);
-            
-        } catch (Exception $e) {
-            $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
+private function getReports() {
+    try {
+        $reportType = $_GET['type'] ?? 'overview';
+        $department = $_GET['department'] ?? 'all';
+        $course = $_GET['course'] ?? 'all'; // New course parameter
+        
+        switch ($reportType) {
+            case 'thesis':
+                $data = $this->getThesisReports($department, $course);
+                break;
+            case 'users':
+                $data = $this->getUserReports($department, $course);
+                break;
+            case 'department':
+                $data = $this->getDepartmentReports($department, $course);
+                break;
+            case 'overview':
+            default:
+                $data = $this->getOverviewReports($department, $course);
+                break;
         }
+        
+        $this->jsonResponse([
+            'success' => true,
+            'data' => $data,
+            'report_type' => $reportType,
+            'department' => $department,
+            'course' => $course
+        ]);
+        
+    } catch (Exception $e) {
+        $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
     }
+}
 
 /**
  * Get overview reports data for charts
  */
-private function getOverviewReports($department = 'all') {
-    $stats = $this->model->getReportsStats($department);
-    $userDistribution = $this->getUserCountsByRole(); 
-    $programThesisCounts = $this->model->getProgramThesisCounts(); 
-    $programCounts = $this->model->getProgramThesisCounts();
+private function getOverviewReports($department = 'all', $course = 'all') {
+    $stats = $this->model->getReportsStats($department, $course);
+    $userDistribution = $this->model->getUserDistributionByRole($department, $course); 
+    $programThesisCounts = $this->model->getThesisPerProgram($department, $course);
+    $programCounts = $this->model->getDepartmentThesisCounts();
+
+    // Get available courses for the selected department
+    $availableCourses = $this->model->getCoursesByDepartment($department);
 
     return [
         'stats' => $stats,
         'user_distribution' => $userDistribution, 
-        'program_thesis_counts' => $programThesisCounts, 
-        'program_counts' => $programCounts
+        'program_thesis_counts' => $programThesisCounts,
+        'program_counts' => $programCounts,
+        'available_courses' => $availableCourses
     ];
 }
 
@@ -1313,22 +1319,6 @@ private function getUserCountsByRole() {
         }
 
 
-    /**
-     * Get reports statistics
-     */
-
-    private function getReportsStats($department = 'all') {
-    try {
-        return $this->model->getReportsStats($department);
-    } catch (Exception $e) {
-        error_log("Error getting reports stats: " . $e->getMessage());
-        return [
-            'total_theses' => 0,
-            'total_students' => 0,
-            'recent_theses' => 0
-        ];
-    }
-}
 
     /**
      * Map department values to course codes
@@ -1431,47 +1421,46 @@ private function handleGetLoginAttempts() {
 
     
 private function generateReport() {
-    $this->checkAdminAccess();
-
     $department = $_GET['department'] ?? 'all';
-    $validDepts = ['all', 'bsit', 'beced', 'bsed', 'btvted', 'beed', 'bsned', 'bsabe'];
-    if (!in_array($department, $validDepts)) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Invalid department']);
+    $course = $_GET['course'] ?? 'all';
+
+    try {
+        $stats = $this->model->getReportsStats($department, $course);
+        
+        $totalTheses = (int)($stats->total_theses ?? $stats['total_theses'] ?? 0);
+        $totalUsers = (int)($stats->total_students ?? $stats['total_students'] ?? $stats['total_users'] ?? 0);
+
+        $pieData = $this->preparePieChartData($department, $course);
+        $barData = $this->prepareBarChartData($department, $course);
+
+        $currentDate = date('F j, Y');
+        $deptName = strtoupper($department) === 'ALL' ? 'All Programs' : strtoupper($department);
+        $courseName = $course === 'all' ? 'All Courses' : $course;
+
+
+        $html = $this->generateReportHTML($deptName, $courseName, $currentDate, $totalTheses, $totalUsers, $pieData, $barData);
+
+        $options = new Options();
+        $options->set('isRemoteEnabled', true);
+        $options->set('defaultFont', 'DejaVu Sans');
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+        
+        $dompdf->stream("Thesis_Report_{$deptName}_" . date('Y-m-d') . ".pdf", ['Attachment' => true]);
         exit;
+
+    } catch (Exception $e) {
+        error_log("Error generating report: " . $e->getMessage());
+        
+        // Fallback: return JSON error response
+        $this->jsonResponse([
+            'success' => false,
+            'error' => 'Failed to generate PDF report: ' . $e->getMessage()
+        ], 500);
     }
-
-    // Get stats
-    $stats = $this->model->getReportsStats($department);
-
-    // Get chart data
-    $pieData = $this->preparePieChartData($department);        // User roles
-    $barData = $this->prepareBarChartData($department);        // Thesis per program
-
-    $deptName = $this->getDepartmentDisplayName($department);
-    $currentDate = date('F j, Y');
-
-    $html = $this->generateReportHTML(
-        $deptName,
-        $currentDate,
-        $stats['total_theses'] ?? 0,
-        $stats['total_students'] ?? 0,
-        $pieData,
-        $barData
-    );
-
-    $options = new Options();
-    $options->set('isRemoteEnabled', true);
-    $options->set('defaultFont', 'DejaVu Sans');
-
-    $dompdf = new Dompdf($options);
-    $dompdf->loadHtml($html);
-    $dompdf->setPaper('A4', 'portrait');
-    $dompdf->render();
-
-    $filename = "Thesis_Compendium_Report_{$deptName}_" . date('Y-m-d') . ".pdf";
-    $dompdf->stream($filename, ['Attachment' => true]);
-    exit;
 }
 
 private function generateReportHTML($deptName, $currentDate, $totalTheses, $totalUsers, $pieData, $barData) {
@@ -1670,39 +1659,31 @@ private function generatePieChartTable($pieChartData) {
 /**
  * Generate bar chart as a table for PDF
  */
+/**
+ * Generate bar chart as a table for PDF (updated for programs instead of months)
+ */
 private function generateBarChartTable($barChartData) {
     $html = '<table class="chart-table">';
-    $html .= '<thead><tr><th>Program</th><th>Thesis Uploads</th></tr></thead><tbody>';
+    $html .= '<thead><tr><th>Program</th><th>Thesis Count</th></tr></thead><tbody>';
     
-    $totalUploads = 0;
-    $maxUploads = 0;
-    $peakMonth = '';
+    $totalTheses = 0;
     
     foreach ($barChartData as $item) {
-        $count = $item['upload_count'] ?? $item['count'] ?? 0;
-        $month = $item['month'] ?? 'Unknown';
-        $totalUploads += $count;
-        
-        if ($count > $maxUploads) {
-            $maxUploads = $count;
-            $peakMonth = $month;
-        }
+        $count = (int)($item['thesis_count'] ?? 0);
+        $program = $item['program'] ?? 'Unknown';
+        $totalTheses += $count;
         
         $html .= '
             <tr>
-                <td>' . htmlspecialchars($month) . '</td>
+                <td>' . htmlspecialchars($program) . '</td>
                 <td>' . $count . '</td>
             </tr>';
     }
     
     $html .= '
         <tr style="font-weight: bold; background-color: #e9ecef;">
-            <td>Total Thesis for Academic Year</td>
-            <td>' . $totalUploads . '</td>
-        </tr>
-        <tr style="font-weight: bold; background-color: #d1ecf1;">
-            <td>Program that has the Most Thesis (' . htmlspecialchars($peakMonth) . ')</td>
-            <td>' . $maxUploads . '</td>
+            <td>Total Theses</td>
+            <td>' . $totalTheses . '</td>
         </tr>
     </tbody></table>';
     

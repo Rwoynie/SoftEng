@@ -1093,7 +1093,7 @@ $displayUserData = [
                         </div>
                     </div>
 
-                    <!-- Department Reports -->
+                    <!-- Program Reports -->
                     <div class="reports-card" id="reports-card">
                         <div class="content-header">
                             <h3>Program Reports</h3>
