@@ -11,6 +11,111 @@ class ProfileManager {
     init() {
         this.loadProfileData();
         this.attachEventListeners();
+        this.attachEditableFieldEvents();
+    }
+
+    /**
+     * Attach events for editable course/department dropdowns (Google users only)
+     */
+    attachEditableFieldEvents() {
+        // Course select (for students)
+        const courseSelect = document.getElementById('courseSelect');
+        const saveCourseBtn = document.getElementById('saveCourseBtn');
+        
+        if (courseSelect && saveCourseBtn) {
+            courseSelect.addEventListener('change', () => {
+                const originalValue = courseSelect.getAttribute('data-original') || '';
+                saveCourseBtn.style.display = courseSelect.value !== originalValue ? 'inline-block' : 'none';
+            });
+            
+            saveCourseBtn.addEventListener('click', () => {
+                this.saveProfileField('course', courseSelect.value);
+            });
+        }
+
+        // Department select (for faculty)
+        const departmentSelect = document.getElementById('departmentSelect');
+        const saveDepartmentBtn = document.getElementById('saveDepartmentBtn');
+        
+        if (departmentSelect && saveDepartmentBtn) {
+            departmentSelect.addEventListener('change', () => {
+                const originalValue = departmentSelect.getAttribute('data-original') || '';
+                saveDepartmentBtn.style.display = departmentSelect.value !== originalValue ? 'inline-block' : 'none';
+            });
+            
+            saveDepartmentBtn.addEventListener('click', () => {
+                this.saveProfileField('department', departmentSelect.value);
+            });
+        }
+    }
+
+    /**
+     * Save profile field (course or department)
+     */
+    async saveProfileField(field, value) {
+        // Show confirmation dialog first
+        const fieldDisplayName = field.charAt(0).toUpperCase() + field.slice(1);
+        const result = await Swal.fire({
+            title: `Update ${fieldDisplayName}`,
+            text: `Are you sure you want to change your ${field} to "${value}"?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3498db',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fa fa-check" style="margin-right: 5px;"></i> Yes, Update',
+            cancelButtonText: '<i class="fa fa-times" style="margin-right: 5px;"></i> Cancel'
+        });
+
+        if (!result.isConfirmed) {
+            return; // User cancelled
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('csrf_token', this.csrfToken);
+            formData.append('field', field);
+            formData.append('value', value);
+
+            const response = await fetch('../../../app/Controllers/ProfileController.php?action=update_profile', {
+                method: 'POST',
+                body: formData
+            });
+
+            const responseText = await response.text();
+            let data;
+
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('JSON parse error:', parseError);
+                throw new Error('Server returned invalid response');
+            }
+
+            if (data.success) {
+                // Show appropriate success message for profile field updates
+                this.showProfileUpdateSuccess(fieldDisplayName, value);
+                
+                // Update the select's data-original attribute
+                const select = document.getElementById(`${field}Select`);
+                if (select) {
+                    select.setAttribute('data-original', value);
+                }
+                
+                // Hide save button
+                const saveBtn = document.getElementById(`save${fieldDisplayName}Btn`);
+                if (saveBtn) {
+                    saveBtn.style.display = 'none';
+                }
+                
+                // Reload profile data to ensure consistency
+                this.loadProfileData();
+            } else {
+                this.showError(data.message || `Failed to update ${field}`);
+            }
+        } catch (error) {
+            console.error(`Error saving ${field}:`, error);
+            this.showError(`Error updating ${field}: ${error.message}`);
+        }
     }
 
     /**
@@ -18,7 +123,7 @@ class ProfileManager {
      */
     attachEventListeners() {
         // Change Password Button
-        const changePasswordBtn = document.querySelector('.btn-primary');
+        const changePasswordBtn = document.getElementById('changePasswordBtn');
         if (changePasswordBtn) {
             changePasswordBtn.innerHTML = '<i class="fa fa-key" aria-hidden="true"></i> Change Password';
             changePasswordBtn.addEventListener('click', () => this.showChangePasswordModal());
@@ -233,8 +338,25 @@ async handleImageUpload(file) {
         this.setElementValue('email', profileData.Email || 'N/A');
         this.setElementValue('userID', profileData.User_ID || 'N/A');
         this.setElementValue('roleHeader', profileData.role_display || 'N/A');
+        
+        // Set course/department values for both text and dropdown elements
         this.setElementValue('course', profileData.Course || 'N/A');
         this.setElementValue('department', profileData.Department || 'N/A');
+        
+        // Set selected values for dropdowns (for Google users)
+        this.setSelectValue('courseSelect', profileData.Course || '');
+        this.setSelectValue('departmentSelect', profileData.Department || '');
+        
+        // Set data-original attributes for change detection
+        const courseSelect = document.getElementById('courseSelect');
+        if (courseSelect) {
+            courseSelect.setAttribute('data-original', profileData.Course || '');
+        }
+        
+        const departmentSelect = document.getElementById('departmentSelect');
+        if (departmentSelect) {
+            departmentSelect.setAttribute('data-original', profileData.Department || '');
+        }
     
         // Account Settings
         this.setElementValue('member', profileData.member_since || 'N/A');
@@ -291,6 +413,16 @@ async handleImageUpload(file) {
     }
 
     /**
+     * Set select element value
+     */
+    setSelectValue(elementId, value) {
+        const element = document.getElementById(elementId);
+        if (element && element.tagName === 'SELECT') {
+            element.value = value;
+        }
+    }
+
+    /**
      * Set element value by data attribute
      */
     setElementValue(dataAttribute, value) {
@@ -337,27 +469,6 @@ async handleImageUpload(file) {
 
         if (profileTitle) {
             profileTitle.textContent = `${profileData.role_display || 'User'}`;
-        }
-    }
-
-    /**
-     * Attach event listeners for profile actions
-     */
-    attachEventListeners() {
-        // Change Password Button
-        const changePasswordBtn = document.querySelector('.btn-primary');
-        if (changePasswordBtn) {
-            changePasswordBtn.innerHTML = '<i class="fa fa-key" aria-hidden="true"></i> Change Password';
-            changePasswordBtn.addEventListener('click', () => this.showChangePasswordModal());
-        }
-
-        // Logout Button
-        const logoutBtn = document.getElementById('logoutHeaderIcon');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.handleLogout();
-            });
         }
     }
 
@@ -708,6 +819,18 @@ async handleImageUpload(file) {
             icon: 'success',
             
             
+            timer: 3000,
+            showConfirmButton: false
+        });
+    }
+
+    /**
+     * Show profile update success message
+     */
+    showProfileUpdateSuccess(fieldName, value) {
+        Swal.fire({
+            html: `<div style="color: #2c3e50; font-size: 16px; font-weight: 600;">${fieldName} Updated Successfully!</div>`,
+            icon: 'success',
             timer: 3000,
             showConfirmButton: false
         });

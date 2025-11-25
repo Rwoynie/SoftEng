@@ -151,8 +151,14 @@ class Database {
         return $this->dbh; 
     }
 
-   
-public function getPdo() {
-    return $this->dbh; 
-}
+    public function getPdo() {
+        return $this->dbh; 
+    }
+
+    public function errorInfo() {
+        if ($this->stmt) {
+            return $this->stmt->errorInfo();
+        }
+        return $this->dbh ? $this->dbh->errorInfo() : null;
+    }
 }

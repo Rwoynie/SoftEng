@@ -17,35 +17,36 @@ class DatabaseSchema {
         public static function getTableQueries() {
             return [
                 "CREATE TABLE IF NOT EXISTS USER_INFORMATION (
-                ID INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-                pswrd VARCHAR(255) NOT NULL,
-                Salt VARCHAR(255) NOT NULL,
-                First_Name VARCHAR(50) NOT NULL,
-                Middle_Name VARCHAR(50),
-                Last_Name VARCHAR(50) NOT NULL,
-                Extension VARCHAR(20),
-                Email VARCHAR(255) UNIQUE NOT NULL, -- Stores HASHED emails
-                User_ID VARCHAR(255) UNIQUE NOT NULL, -- Stores HASHED user_ids
-                Student_ID VARCHAR(255) UNIQUE, -- Stores HASHED student_ids
-                Employee_ID VARCHAR(255) UNIQUE, -- Stores HASHED employee_ids
-                Email_Hash VARCHAR(255),
-                User_ID_Hash VARCHAR(255),
-                Student_ID_Hash VARCHAR(255),
-                Employee_ID_Hash VARCHAR(255), -- Changed semicolon to comma here
-                User_Role ENUM('student', 'faculty', 'SubAdmin', 'superAdmin') NOT NULL,
-                Acc_Status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
-                Department VARCHAR(255) NOT NULL,
-                Course VARCHAR(255) NOT NULL,
-                Profile_Pic LONGBLOB,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX (Email),
-                INDEX (User_ID),
-                INDEX (Student_ID),
-                INDEX (Employee_ID),
-                INDEX (User_Role),
-                INDEX (Acc_Status)
-            ) ENGINE=InnoDB;",
+        ID INT(11) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        pswrd VARCHAR(255) NOT NULL,
+        Salt VARCHAR(255) NOT NULL,
+        First_Name VARCHAR(50) NOT NULL,
+        Middle_Name VARCHAR(50),
+        Last_Name VARCHAR(50) NOT NULL,
+        Extension VARCHAR(20),
+        Email VARCHAR(255) UNIQUE NOT NULL, -- Stores HASHED emails
+        User_ID VARCHAR(255) UNIQUE NOT NULL, -- Stores HASHED user_ids
+        Student_ID VARCHAR(255) UNIQUE, -- Stores HASHED student_ids
+        Employee_ID VARCHAR(255) UNIQUE, -- Stores HASHED employee_ids
+        Email_Hash VARCHAR(255),
+        User_ID_Hash VARCHAR(255),
+        Student_ID_Hash VARCHAR(255),
+        Employee_ID_Hash VARCHAR(255), -- Changed semicolon to comma here
+        User_Role ENUM('student', 'faculty', 'SubAdmin', 'superAdmin') NOT NULL,
+        Acc_Status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+        Login_Method ENUM('manual', 'google') DEFAULT 'manual',
+        Department VARCHAR(255) NOT NULL,
+        Course VARCHAR(255) NOT NULL,
+        Profile_Pic LONGBLOB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX (Email),
+        INDEX (User_ID),
+        INDEX (Student_ID),
+        INDEX (Employee_ID),
+        INDEX (User_Role),
+        INDEX (Acc_Status)
+    ) ENGINE=InnoDB;",
             
             // THESIS TABLE
             "CREATE TABLE IF NOT EXISTS THESIS (
