@@ -438,11 +438,34 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    function setUploadAreaDisabledState(isDisabled, fileType) {
+        const fileInput = fileType === 'abstract' ? abstractFileInput : thesisFileInput;
+        const dropArea = fileType === 'abstract' ? abstractDropArea : thesisDropArea;
+        const browseBtn = dropArea.querySelector('.browse-btn');
+        
+        if (isDisabled) {
+            fileInput.classList.add('disabled');
+            fileInput.disabled = true;
+            browseBtn.classList.add('disabled');
+            browseBtn.style.pointerEvents = 'none';
+            dropArea.style.opacity = '0.6';
+        } else {
+            fileInput.classList.remove('disabled');
+            fileInput.disabled = false;
+            browseBtn.classList.remove('disabled');
+            browseBtn.style.pointerEvents = 'auto';
+            dropArea.style.opacity = '1';
+        }
+    }
     
     // Handle the selected files
     function handleFiles(files, fileType) {
+
+        setUploadAreaDisabledState(true, fileType); 
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
+            
             
             // Check if file type is supported (only PDF)
             const fileExtension = file.name.split('.').pop().toLowerCase();
@@ -625,6 +648,10 @@ document.addEventListener('DOMContentLoaded', function() {
     function removeFile(fileName, fileType) {
         // Remove from uploadedFiles array
         uploadedFiles[fileType] = uploadedFiles[fileType].filter(file => file.name !== fileName);
+
+        if (uploadedFiles[fileType].length === 0) {
+            setUploadAreaDisabledState(false, fileType);
+        }
         
         const fileListId = fileType === 'abstract' ? 'abstractFileList' : 'thesisFileList';
         const fileList = document.getElementById(fileListId);
@@ -702,6 +729,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Function to reset upload form
     function resetUploadForm() {
+
+        // Re-enable all upload areas
+        setUploadAreaDisabledState(false, 'abstract');
+        setUploadAreaDisabledState(false, 'thesis');
         // Clear uploaded files arrays
         uploadedFiles.abstract = [];
         uploadedFiles.thesis = [];
@@ -2537,14 +2568,16 @@ document.addEventListener('DOMContentLoaded', function() {
                                 
                                 // Append the uploaded files to FormData
                                 // Append abstract files
-                                uploadedFiles.abstract.forEach((file, index) => {
-                                    formData.append(`abstract_files[]`, file);
-                                });
+                                if (uploadedFiles.abstract.length > 0) {
+                                    formData.delete('abstract_file'); // Remove any existing
+                                    formData.append('abstract_file', uploadedFiles.abstract[0]); // Use first file
+                                }
                                 
                                 // Append thesis files  
-                                uploadedFiles.thesis.forEach((file, index) => {
-                                    formData.append(`thesis_files[]`, file);
-                                });
+                                if (uploadedFiles.thesis.length > 0) {
+                                    formData.delete('thesis_file'); // Remove any existing
+                                    formData.append('thesis_file', uploadedFiles.thesis[0]); // Use first file
+                                }
                                 
                                 // Debug: Log form data before sending
                                 console.log('Form data being sent:');
@@ -4141,70 +4174,6 @@ browseBtns.forEach((browseBtn, index) => {
     });
 });
 
-// Handle the selected files
-function handleFiles(files, fileType) {
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        
-        // Check if file type is supported (only PDF)
-        const fileExtension = file.name.split('.').pop().toLowerCase();
-        if (fileExtension !== 'pdf') {
-            Swal.fire({
-                title: 'Unsupported File Type',
-                text: 'Please upload only PDF files.',
-                icon: 'error',
-                confirmButtonText: 'OK'
-            });
-            continue;
-        }
-        
-        // Check file size (max 50MB)
-        const maxFileSize = 50 * 1024 * 1024;
-        if (file.size > maxFileSize) {
-            Swal.fire({
-                title: 'File Too Large',
-                text: 'Please upload files smaller than 50MB.',
-                icon: 'error',
-                confirmButtonText: 'OK'
-            });
-            continue;
-        }
-        
-        if (file.size === 0) {
-            Swal.fire({
-                title: 'Empty File',
-                text: 'The selected file is empty.',
-                icon: 'error',
-                confirmButtonText: 'OK'
-            });
-            continue;
-        }
-        
-        // FIX: Check if file is already in the list using a more reliable method
-        const isDuplicate = uploadedFiles[fileType].some(existingFile => 
-            existingFile.name === file.name && 
-            existingFile.size === file.size &&
-            existingFile.lastModified === file.lastModified
-        );
-        
-        if (isDuplicate) {
-            Swal.fire({
-                title: 'File Already Added',
-                text: 'This file has already been added to the upload list.',
-                icon: 'warning',
-                confirmButtonText: 'OK'
-            });
-            continue;
-        }
-        
-        // Add file to the appropriate array
-        uploadedFiles[fileType].push(file);
-        displayFile(file, fileType);
-    }
-    
-    // Update upload button state
-    updateUploadButtonState();
-}
 
 // Show empty state when no files
 function showEmptyState(fileType) {
@@ -4231,19 +4200,7 @@ function formatFileSize(bytes) {
 }
 
 // Remove file from the list
-function removeFile(fileName, fileType) {
-    // Remove from uploadedFiles array
-    uploadedFiles[fileType] = uploadedFiles[fileType].filter(file => file.name !== fileName);
-    
-    // FIX: Clear the file input value to allow re-selection of the same file
-    if (fileType === 'abstract' && abstractFileInput) {
-        abstractFileInput.value = '';
-    } else if (fileType === 'thesis' && thesisFileInput) {
-        thesisFileInput.value = '';
-    }
-    
-    updateUploadButtonState();
-}
+
 
 // Preview file using Google Docs Viewer for docx and PDF.js for pdf
 function previewFile(fileName, fileType) {
