@@ -6293,3 +6293,21 @@ background: #f8f9fa;
     font-size: 0.9rem;
     font-weight: 500;
 }
+
+/* 1 file upload only */
+.file-input.disabled {
+    cursor: not-allowed;
+    border: 2px dashed #d9d9d9;
+}
+
+.browse-btn.disabled {
+    cursor: not-allowed;
+    background-color: #e9ecef;
+    color: #adb5bd;
+}
+
+/* Optional: Style the entire drop area when disabled */
+.upload-area.disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
