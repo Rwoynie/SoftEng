@@ -433,7 +433,9 @@ if ($setupError) {
                   </button>
                 </div>
               </div>
-              
+              <div class="text-center mt-5">
+                <a href="#" id="forgotPasswordLinkAdmin" class="text-decoration-none">Forgot password?</a>
+              </div>
               <br>
               <button type="submit" class="btn btn-danger w-100 mb-2">
                 <i class="fas fa-sign-in-alt me-2"></i>Admin Login

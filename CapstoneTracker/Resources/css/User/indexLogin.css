@@ -240,6 +240,20 @@ body {
 
 }
 
+#forgotPasswordLinkAdmin {
+    
+    font-family: Quicksand;
+    color: #272727;
+    transition: all 0.15s ease;
+}
+
+#forgotPasswordLinkAdmin:hover {
+    
+    text-decoration: underline !important;
+    
+
+}
+
 #forgotPasswordStep2 .fa-check-circle {
     color: #28a745;
 }
@@ -996,6 +1010,7 @@ hr {
 }
 
 #adminLoginModal .btn-danger {
+    margin-top: -1.5vw;
     border-radius: 10px;
     font-weight: 600;
     background: #dc3545;
