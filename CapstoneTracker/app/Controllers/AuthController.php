@@ -52,33 +52,49 @@ public function handleRequest() {
         
         error_log("ACTION DETECTED: " . $action);
         
-        // Check for Google login by multiple possible action names
+        // Google Login (multiple ways it can be triggered)
         if ($action === 'googleLogin' || 
             $action === 'google_login' || 
             (isset($_POST['credential']) && isset($_POST['email']))) {
             
-            error_log("✅ GOOGLE LOGIN DETECTED - Calling googleLogin()");
+            error_log("GOOGLE LOGIN DETECTED - Calling googleLogin()");
             $this->googleLogin();
             return;
         }
+        // Normal Email/Password Login
         elseif ($action === 'login') {
             error_log("Calling processLogin()");
             $this->processLogin();
+            return;
         }
+        // Forgot Password: Send Verification Code
+        elseif ($action === 'send_verification_code') {
+            error_log("Calling sendVerificationCode()");
+            $this->sendVerificationCode();
+            return;
+        }
+        // Forgot Password: Verify Code & Reset Password
+        elseif ($action === 'verify_reset_code') {
+            error_log("Calling verifyResetCode()");
+            $this->verifyResetCode();
+            return;
+        }
+        // Unknown action → reject
         else {
-            error_log("❌ UNKNOWN ACTION: " . $action);
-            $_SESSION['error_message'] = "Invalid action: " . $action;
+            error_log("UNKNOWN ACTION: " . $action);
+            $_SESSION['error_message'] = "Invalid request.";
             header('Location: ../../app/Views/User/indexLogin.php');
             exit();
         }
-    } elseif ($_SERVER['REQUEST_METHOD'] == 'GET') {
-            $action = $_GET['action'] ?? '';
-            
-            if ($action === 'logout') {
-                $this->logout();
-            }
+    } 
+    elseif ($_SERVER['REQUEST_METHOD'] == 'GET') {
+        $action = $_GET['action'] ?? '';
+        
+        if ($action === 'logout') {
+            $this->logout();
         }
     }
+}
     
     public function processLogin() {
         // Get form data
