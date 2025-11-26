@@ -720,14 +720,14 @@ public function generateUserId($role, $data) {
         $emailHash = $this->hashData($email);
         error_log("Hashed email for lookup: " . $emailHash);
         
-        // Use Email_Hash column for lookup
-        $this->db->query('SELECT * FROM USER_INFORMATION WHERE Email_Hash = :email AND Acc_Status = "approved"');
-        $this->db->bind(':email', $emailHash); // Lookup hashed value in Email_Hash column
+        // Use Email_Hash column for lookup - removed Acc_Status check since we handle that in controller
+        $this->db->query('SELECT * FROM USER_INFORMATION WHERE Email_Hash = :email');
+        $this->db->bind(':email', $emailHash);
         
         $row = $this->db->single();
         
         if ($row) {
-            error_log("User found");
+            error_log("User found - verifying password");
             
             $hashedPassword = $row->pswrd;
             $salt = $row->Salt;
@@ -740,7 +740,7 @@ public function generateUserId($role, $data) {
                 error_log("❌ Password verification FAILED");
             }
         } else {
-            error_log("❌ No approved user found with hashed email: " . $emailHash);
+            error_log("❌ No user found with hashed email: " . $emailHash);
         }
         
         return false;

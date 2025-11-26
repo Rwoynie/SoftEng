@@ -265,15 +265,27 @@ function showLoginErrorAlert(message) {
         // Customize based on message content
         if (msg.includes('pending') || msg.includes('approval')) {
             title = 'Account Pending';
-            icon = 'info'; // Change to info icon for pending accounts
+            icon = 'info';
         } else if (msg.includes('rejected')) {
             title = 'Account Rejected';
-            icon = 'warning'; // Change to warning icon for rejected accounts
+            icon = 'warning';
+        } else if (msg.includes('suspended')) {
+            title = 'Account Suspended';
+            icon = 'error';
+        } else if (msg.includes('Invalid password')) {
+            title = 'Invalid Password';
+            icon = 'error';
+        } else if (msg.includes('No account found')) {
+            title = 'Account Not Found';
+            icon = 'error';
+        } else if (msg.includes('Invalid credentials for the selected role')) {
+            title = 'Role Mismatch';
+            icon = 'warning';
         }
         
         Swal.fire({
             title: title,
-            html: msg, // Use html instead of text to render HTML tags
+            html: msg,
             icon: icon,
             confirmButtonText: 'OK'
         });

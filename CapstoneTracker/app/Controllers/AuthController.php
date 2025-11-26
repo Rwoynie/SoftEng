@@ -1378,15 +1378,24 @@ private function getWelcomeBackBody($name, $email, $role) {
             error_log("Username: " . $username);
             error_log("Role: " . $role);
             
-            // MODIFIED: Use loginByEmail which now returns user regardless of status
-            $user = $userModel->loginByEmail($username, $password);
+            // First, check if user exists regardless of status
+            $userExists = $userModel->findByEmail($username);
             
-            if ($user) {
+            if ($userExists) {
                 error_log("✅ User found in database");
                 
-                // Check if user role matches the selected role
-                $userRole = strtolower($user->User_Role ?? '');
+                // Convert to array if object
+                if (is_object($userExists)) {
+                    $userExists = (array)$userExists;
+                }
+                
+                $userRole = strtolower($userExists['User_Role'] ?? '');
                 $selectedRole = strtolower($role);
+                $accStatus = $userExists['Acc_Status'] ?? 'unknown';
+                
+                error_log("User role: " . $userRole);
+                error_log("Selected role: " . $selectedRole);
+                error_log("Account status: " . $accStatus);
                 
                 // Map role names for compatibility
                 $roleMapping = [
@@ -1396,60 +1405,55 @@ private function getWelcomeBackBody($name, $email, $role) {
                 
                 $mappedRole = $roleMapping[$selectedRole] ?? $selectedRole;
                 
-                error_log("User role: " . $userRole);
-                error_log("Selected role: " . $mappedRole);
-                error_log("Account status: " . ($user->Acc_Status ?? 'unknown'));
-                
-                if ($userRole === $mappedRole) {
-                    // Check account status before allowing login
-                    if ($user->Acc_Status === 'pending') {
-                        error_log("❌ Account pending approval");
-                        $_SESSION['error_message'] = "Your account is pending approval. Please wait for administrator approval before logging in.";
-                        return false;
-                    } else if ($user->Acc_Status === 'rejected') {
-                        error_log("❌ Account rejected");
-                        $_SESSION['error_message'] = "Your account registration was rejected. Please contact the administrator for more information.";
-                        return false;
-                    } else if ($user->Acc_Status === 'approved') {
-                        // Account is approved - allow login
-                        error_log("✅ Account approved - login allowed");
-                        return [
-                            'id' => $user->ID,
-                            'username' => $user->Email,
-                            'email' => $user->Email,
-                            'name' => $user->First_Name . ' ' . $user->Last_Name,
-                            'role' => $user->User_Role
-                        ];
-                    } else {
-                        // Unknown status
-                        error_log("❌ Unknown account status: " . ($user->Acc_Status ?? 'unknown'));
-                        $_SESSION['error_message'] = 'Your account status is invalid. Please contact administrator.';
-                        return false;
-                    }
-                } else {
-                    error_log("❌ Role mismatch: User role is $userRole, but selected role is $selectedRole");
+                // Check role match first
+                if ($userRole !== $mappedRole) {
+                    error_log("❌ Role mismatch: User role is $userRole, but selected role is $mappedRole");
                     $_SESSION['error_message'] = 'Invalid credentials for the selected role.';
                     return false;
                 }
-            } else {
-                // No user found or password incorrect
-                error_log("❌ No user found or password incorrect");
                 
-                // Debug: Check if user exists but password is wrong
-                $userExists = $userModel->findByEmail($username);
-                if ($userExists) {
-                    error_log("⚠️ User exists but password verification failed");
-                    error_log("Stored password hash: " . ($userExists->pswrd ?? 'not found'));
-                    
-                    // Test password verification
-                    $storedPassword = $userExists->pswrd ?? '';
-                    $passwordValid = password_verify($password, $storedPassword);
-                    error_log("Password verification result: " . ($passwordValid ? 'VALID' : 'INVALID'));
-                } else {
-                    error_log("⚠️ User not found with email: " . $username);
+                // Check account status before password verification
+                if ($accStatus === 'pending') {
+                    error_log("❌ Account pending approval");
+                    $_SESSION['error_message'] = "Your account is pending approval. Please wait for administrator approval before logging in.";
+                    return false;
+                } else if ($accStatus === 'rejected') {
+                    error_log("❌ Account rejected");
+                    $_SESSION['error_message'] = "Your account registration was rejected. Please contact the administrator for more information.";
+                    return false;
+                } else if ($accStatus === 'suspended') {
+                    error_log("❌ Account suspended");
+                    $_SESSION['error_message'] = "Your account has been suspended. Please contact the administrator.";
+                    return false;
+                } else if ($accStatus !== 'approved') {
+                    error_log("❌ Unknown account status: " . $accStatus);
+                    $_SESSION['error_message'] = 'Your account status is invalid. Please contact administrator.';
+                    return false;
                 }
                 
-                $_SESSION['error_message'] = 'Invalid credentials. Please try again.';
+                // Now verify password for approved accounts
+                error_log("✅ Account approved - verifying password");
+                $user = $userModel->loginByEmail($username, $password);
+                
+                if ($user) {
+                    error_log("✅ Password verification successful");
+                    return [
+                        'id' => $user->ID,
+                        'username' => $user->Email,
+                        'email' => $user->Email,
+                        'name' => $user->First_Name . ' ' . $user->Last_Name,
+                        'role' => $user->User_Role
+                    ];
+                } else {
+                    error_log("❌ Password verification failed");
+                    $_SESSION['error_message'] = 'Invalid password. Please try again.';
+                    return false;
+                }
+                
+            } else {
+                // No user found with this email
+                error_log("❌ User not found with email: " . $username);
+                $_SESSION['error_message'] = 'No account found with this email address.';
                 return false;
             }
             
