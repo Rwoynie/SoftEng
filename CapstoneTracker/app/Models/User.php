@@ -174,6 +174,12 @@ public function findByEmail($email) {
                 throw new Exception("Email and user role are required for Google registration");
             }
             
+            // NEW: Restrict Google Sign-In to @usep.edu.ph domain only
+            if (!preg_match('/@usep\.edu\.ph$/i', $data['email'])) {
+                error_log("Google registration blocked: Non-USeP email attempted - " . $data['email']);
+                throw new Exception("Only USeP email addresses (@usep.edu.ph) are allowed for Google registration");
+            }
+            
             $userRole = $data['user_role'];
             
             // Generate salt and hash password
