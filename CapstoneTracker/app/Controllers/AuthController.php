@@ -289,77 +289,58 @@ public function sendVerificationCode() {
  * Verify reset code and update password
  */
 public function verifyResetCode() {
-    // Clear output buffers
-    while (ob_get_level() > 0) {
-        ob_end_clean();
-    }
-    
-    header('Content-Type: application/json');
-    
+    if (ob_get_level()) ob_end_clean();
+    header('Content-Type: application/json; charset=utf-8');
+
     try {
-        $email = $_POST['email'] ?? '';
-        $verificationCode = $_POST['verification_code'] ?? '';
-        $newPassword = $_POST['new_password'] ?? ''; // User's chosen password
-        
-        error_log("Verify reset code with user's password");
-        error_log("Email: " . $email);
-        error_log("Code: " . $verificationCode);
-        
-        if (empty($email) || empty($verificationCode) || empty($newPassword)) {
-            throw new Exception('All fields are required.');
+        $email = trim($_POST['email'] ?? '');
+        $code  = $_POST['verification_code'] ?? '';
+        $pass  = $_POST['new_password'] ?? '';
+
+        if (empty($email) || empty($code) || empty($pass)) {
+            echo json_encode(['success' => false, 'message' => 'Missing data']);
+            exit;
         }
-        
-        if (strlen($verificationCode) !== 6 || !is_numeric($verificationCode)) {
-            throw new Exception('Invalid verification code format.');
-        }
-        
-        if (strlen($newPassword) < 8) {
-            throw new Exception('Password must be at least 8 characters long.');
-        }
-        
-        // Validate verification code (simpler now - just check the code)
-        $isValid = $this->validateVerificationCode($email, $verificationCode);
-        
-        if (!$isValid) {
-            throw new Exception('Invalid verification code. Please check the code and try again.');
-        }
-        
-        // Get user
+
         $user = $this->findByEmail($email);
-        if (!$user) {
-            throw new Exception('User not found.');
+        if (!$user || !isset($user->ID)) {
+            echo json_encode(['success' => false, 'message' => 'User not found']);
+            exit;
         }
-        
-        if (is_object($user)) {
-            $user = (array)$user;
+
+        if (!$this->validateVerificationCode($email, $code)) {
+            echo json_encode(['success' => false, 'message' => 'Invalid or expired code']);
+            exit;
         }
-        
-        $userId = $user['ID'] ?? null;
-        
-        // Update user password with user's chosen password
-        $passwordUpdated = $this->updateUserPassword($userId, $newPassword);
-        
-        if ($passwordUpdated) {
-            // Mark code as used
-            $this->markVerificationCodeAsUsed($email, $verificationCode);
-            
-            error_log("Password reset successful for: " . $email);
-            echo json_encode([
-                'success' => true,
-                'message' => 'Password has been reset successfully.'
-            ]);
+
+        // Generate new salt + hash
+        $newSalt = bin2hex(random_bytes(16));
+        $hashed = password_hash($pass . $newSalt, PASSWORD_DEFAULT);
+
+        // USE YOUR DATABASE CLASS STYLE — bind() instead of execute([array])
+        require_once ROOT_DIR . '\app\Models\User.php';
+        $userModel = new User();
+        $db = $userModel->getDb();
+
+        $db->query("UPDATE USER_INFORMATION SET pswrd = :hash, Salt = :salt WHERE ID = :id");
+        $db->bind(':hash', $hashed);
+        $db->bind(':salt', $newSalt);
+        $db->bind(':id', $user->ID);
+
+        $db->execute();
+
+        if ($db->rowCount() > 0) {
+            $this->markVerificationCodeAsUsed($email, $code);
+            echo json_encode(['success' => true, 'message' => 'Password reset successfully!']);
         } else {
-            throw new Exception('Failed to reset password. Please try again.');
+            echo json_encode(['success' => false, 'message' => 'No changes made (possible duplicate)']);
         }
-        
+
     } catch (Exception $e) {
-        error_log("Verify reset code error: " . $e->getMessage());
-        echo json_encode([
-            'success' => false,
-            'message' => $e->getMessage()
-        ]);
-        exit();
+        error_log("verifyResetCode ERROR: " . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Server error']);
     }
+    exit;
 }
 
 
@@ -729,73 +710,6 @@ private function markVerificationCodeAsUsed($email, $code) {
         ";
     }
     
-
-    /**
- * Update user password - WITH DETAILED DEBUGGING
- */
-private function updateUserPassword($userId, $newPassword) {
-    try {
-        require_once ROOT_DIR . '\app\Models\User.php';
-        $userModel = new User();
-        $db = $userModel->getDb();
-        
-        error_log("=== UPDATE USER PASSWORD DEBUG ===");
-        error_log("User ID: " . $userId);
-        error_log("New Password (plain): " . $newPassword);
-        
-        // Hash the new password
-        $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
-        error_log("Hashed Password: " . $hashedPassword);
-        
-        // Check if password is valid
-        if (empty($hashedPassword)) {
-            error_log("❌ Password hashing failed!");
-            return false;
-        }
-        
-        error_log("Executing UPDATE query with column 'pswrd'...");
-        
-        // FIXED: Using correct column name 'pswrd'
-        $db->query('UPDATE USER_INFORMATION SET pswrd = :password WHERE ID = :user_id');
-        $db->bind(':password', $hashedPassword);
-        $db->bind(':user_id', $userId);
-        
-        $result = $db->execute();
-        
-        error_log("Update result: " . ($result ? 'SUCCESS' : 'FAILED'));
-        
-        // Check how many rows were affected
-        $rowCount = $db->rowCount();
-        error_log("Rows affected: " . $rowCount);
-        
-        if ($result && $rowCount > 0) {
-            error_log("✅ Password update confirmed - row modified");
-            
-            // Verify the update worked by reading back the password
-            $db->query('SELECT pswrd FROM USER_INFORMATION WHERE ID = :user_id'); // FIXED: pswrd
-            $db->bind(':user_id', $userId);
-            $updatedUser = $db->single();
-            
-            if ($updatedUser) {
-                $storedPassword = is_object($updatedUser) ? $updatedUser->pswrd : $updatedUser['pswrd']; // FIXED: pswrd
-                error_log("Stored password after update: " . $storedPassword);
-                
-                // Verify the hash
-                $passwordMatches = password_verify($newPassword, $storedPassword);
-                error_log("Password verification: " . ($passwordMatches ? 'SUCCESS' : 'FAILED'));
-            }
-        } else {
-            error_log("❌ No rows affected by update");
-        }
-        
-        return $result && $rowCount > 0;
-        
-    } catch (Exception $e) {
-        error_log("💥 Error updating user password: " . $e->getMessage());
-        return false;
-    }
-}
-
 
 
     /**
