@@ -361,13 +361,25 @@ public function getThesisById($id) {
     /**
      * Get thesis stats (lowercase table + subqueries for robustness)
      */
-    public function getThesisStats() {
+public function getThesisStats() {
     try {
         $this->db->query("
             SELECT 
-                (SELECT COUNT(*) FROM thesis) as total_papers,
-                (SELECT COUNT(DISTINCT Author) FROM thesis WHERE Author IS NOT NULL AND Author != '') as total_authors,
-                (SELECT COUNT(DISTINCT Thesis_Course) FROM thesis WHERE Thesis_Course IS NOT NULL AND Thesis_Course != '') as total_departments
+                (SELECT COUNT(*) FROM thesis) AS total_papers,
+
+                /* Count total authors using comma logic */
+                (
+                    SELECT SUM(
+                        LENGTH(Author) - LENGTH(REPLACE(Author, ',', '')) + 1
+                    )
+                    FROM thesis
+                    WHERE Author IS NOT NULL AND Author != ''
+                ) AS total_authors,
+
+                (SELECT COUNT(DISTINCT Thesis_Course) 
+                 FROM thesis 
+                 WHERE Thesis_Course IS NOT NULL AND Thesis_Course != '') 
+                AS total_departments
         ");
 
         $result = $this->db->single();
@@ -386,6 +398,7 @@ public function getThesisById($id) {
         return [0, 0, 0];
     }
 }
+
 
 /**
  * Get all programs with the number of approved thesis papers
