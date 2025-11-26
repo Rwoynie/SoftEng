@@ -96,80 +96,80 @@ public function handleRequest() {
     }
 }
     
-    public function processLogin() {
-        // Get form data
-        error_log("=== LOGIN ATTEMPT DEBUG ===");
-        error_log("Login attempt - Email: " . ($_POST['email'] ?? 'empty'));
-        error_log("Login attempt - Password: " . (($_POST['password'] ?? 'empty') ? '***' : 'empty'));
-        error_log("Login attempt - Role: " . ($_POST['role'] ?? 'empty'));
+public function processLogin() {
+    // Get form data
+    error_log("=== LOGIN ATTEMPT DEBUG ===");
+    error_log("Login attempt - Email: " . ($_POST['email'] ?? 'empty'));
+    error_log("Login attempt - Password: " . (($_POST['password'] ?? 'empty') ? '***' : 'empty'));
+    error_log("Login attempt - Role: " . ($_POST['role'] ?? 'empty'));
 
-        // Get client information for logging
-        $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
-        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown';
-        $email = $_POST['email'] ?? '';
+    // Get client information for logging
+    $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
+    $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown';
+    $email = $_POST['email'] ?? '';
 
-        // Log login attempt (initially as failed)
-        $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Login attempt started');
+    // Log login attempt (initially as failed)
+    $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Login attempt started');
 
-        // Validate CSRF token first
-        $csrfToken = $_POST['csrf_token'] ?? '';
-        if (!$this->validateCsrfToken($csrfToken)) {
-            $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Invalid CSRF token');
-            $this->redirectWithError('Invalid security token. Please try again.');
-            return;
-        }
-
-        $username = $_POST['email'] ?? '';
-        $password = $_POST['password'] ?? '';
-        $role = $_POST['role'] ?? '';
-        
-        // Validate input
-        if (empty($username) || empty($password)) {
-            $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Missing email or password');
-            $this->redirectWithError('All fields are required.');
-            return;
-        }
-        
-        // Clear any existing error message
-        if (isset($_SESSION['error_message'])) {
-            unset($_SESSION['error_message']);
-        }
-        
-        error_log("Attempting to authenticate user: " . $username);
-        
-        // Authenticate user
-        $user = $this->authenticateUser($username, $password, $role);
-        
-        if ($user) {
-            error_log("✅ Login SUCCESS for: " . $username);
-            
-            // Log successful login
-            $this->logLoginAttempt($email, $user['id'], $ipAddress, $userAgent, true, 'Login successful');
-            
-            // Log user action for audit
-            $this->logUserAction($user['id'], 'login', 'User logged in successfully');
-            
-            // Create session and redirect
-            $this->createUserSession($user);
-            $this->redirect('../../app/Views/User/userViewPage.php');
-        } else {
-            // Log failed login
-            $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Invalid credentials');
-            
-            // Debug: Log the error message that was set
-            $errorMsg = $_SESSION['error_message'] ?? 'No error message set';
-            error_log("❌ Login FAILED for: " . $username);
-            error_log("Error message: " . $errorMsg);
-            
-            // Ensure we have an error message
-            if (!isset($_SESSION['error_message']) || empty($_SESSION['error_message'])) {
-                $_SESSION['error_message'] = 'Invalid credentials. Please try again.';
-            }
-            
-            header('Location: ../../app/Views/User/indexLogin.php');
-            exit();
-        }
+    // Validate CSRF token first
+    $csrfToken = $_POST['csrf_token'] ?? '';
+    if (!$this->validateCsrfToken($csrfToken)) {
+        $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Invalid CSRF token');
+        $this->redirectWithError('Invalid security token. Please try again.');
+        return;
     }
+
+    $username = $_POST['email'] ?? '';
+    $password = $_POST['password'] ?? '';
+    $role = $_POST['role'] ?? '';
+    
+    // Validate input
+    if (empty($username) || empty($password)) {
+        $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Missing email or password');
+        $this->redirectWithError('All fields are required.');
+        return;
+    }
+    
+    // Clear any existing error message
+    if (isset($_SESSION['error_message'])) {
+        unset($_SESSION['error_message']);
+    }
+    
+    error_log("Attempting to authenticate user: " . $username);
+    
+    // Authenticate user
+    $user = $this->authenticateUser($username, $password, $role);
+    
+    if ($user) {
+        error_log("✅ Login SUCCESS for: " . $username);
+        
+        // Log successful login
+        $this->logLoginAttempt($email, $user['id'], $ipAddress, $userAgent, true, 'Login successful');
+        
+        // Log user action for audit
+        $this->logUserAction($user['id'], 'login', 'User logged in successfully');
+        
+        // Create session and redirect DIRECTLY without showing success message
+        $this->createUserSession($user);
+        $this->redirect('../../app/Views/User/userViewPage.php');
+    } else {
+        // Log failed login
+        $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Invalid credentials');
+        
+        // Debug: Log the error message that was set
+        $errorMsg = $_SESSION['error_message'] ?? 'No error message set';
+        error_log("❌ Login FAILED for: " . $username);
+        error_log("Error message: " . $errorMsg);
+        
+        // Ensure we have an error message
+        if (!isset($_SESSION['error_message']) || empty($_SESSION['error_message'])) {
+            $_SESSION['error_message'] = 'Invalid credentials. Please try again.';
+        }
+        
+        header('Location: ../../app/Views/User/indexLogin.php');
+        exit();
+    }
+}
 
     /**
      * Log login attempts
@@ -789,160 +789,160 @@ public function debugDatabaseState() {
 
 
 public function googleLogin() {
-        // Start output buffering
-        while (ob_get_level() > 0) {
-            ob_end_clean();
+    // Start output buffering
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    
+    try {
+        error_log("=== GOOGLE LOGIN - PROPER EXISTING USER HANDLING ===");
+        
+        // Set header for JSON response
+        header('Content-Type: application/json');
+        
+        $credential = $_POST['credential'] ?? '';
+        $email = $_POST['email'] ?? '';
+        $name = $_POST['name'] ?? '';
+        $selectedRole = $_POST['role'] ?? 'student';
+
+        // Get client information for logging
+        $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown';
+
+        // Log Google login attempt
+        $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Google login attempt started');
+    
+        // Basic validation
+        if (empty($credential) || empty($email)) {
+            $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Missing Google authentication data');
+            throw new Exception('Missing required Google authentication data.');
         }
-        
-        try {
-            error_log("=== GOOGLE LOGIN - PROPER EXISTING USER HANDLING ===");
-            
-            // Set header for JSON response
-            header('Content-Type: application/json');
-            
-            $credential = $_POST['credential'] ?? '';
-            $email = $_POST['email'] ?? '';
-            $name = $_POST['name'] ?? '';
-            $selectedRole = $_POST['role'] ?? 'student';
+    
+        error_log("=== DEBUGGING USER EXISTENCE CHECK ===");
 
-            // Get client information for logging
-            $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
-            $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown';
+        // Check if user exists in database FIRST
+        $user = $this->findByEmail($email);
 
-            // Log Google login attempt
-            $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Google login attempt started');
+        error_log("findByEmail result: " . ($user ? 'USER FOUND' : 'USER NOT FOUND'));
+        error_log("findByEmail return type: " . gettype($user));
+        error_log("findByEmail return value: " . print_r($user, true));
         
-            // Basic validation
-            if (empty($credential) || empty($email)) {
-                $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Missing Google authentication data');
-                throw new Exception('Missing required Google authentication data.');
+        if ($user) {
+            error_log("✅ SHOULD GO TO LOGIN FLOW");
+            // Convert user to array if it's an object
+            if (is_object($user)) {
+                $user = (array)$user;
             }
-        
-            error_log("=== DEBUGGING USER EXISTENCE CHECK ===");
-    
-            // Check if user exists in database FIRST
-            $user = $this->findByEmail($email);
-    
-            error_log("findByEmail result: " . ($user ? 'USER FOUND' : 'USER NOT FOUND'));
-            error_log("findByEmail return type: " . gettype($user));
-            error_log("findByEmail return value: " . print_r($user, true));
             
-            if ($user) {
-                error_log("✅ SHOULD GO TO LOGIN FLOW");
-                // Convert user to array if it's an object
-                if (is_object($user)) {
-                    $user = (array)$user;
-                }
-                
-                // Safely get user properties
-                $accStatus = $user['Acc_Status'] ?? 'unknown';
-                $userId = $user['ID'] ?? null;
-                $userEmail = $user['Email'] ?? '';
-                $firstName = $user['First_Name'] ?? '';
-                $lastName = $user['Last_Name'] ?? '';
-                $userRole = $user['User_Role'] ?? '';
-                
-                error_log("User details - ID: $userId, Status: $accStatus, Role: $userRole");
-                
-                // ✅ ROLE VALIDATION
-                $normalizedUserRole = strtolower($userRole);
-                $normalizedSelectedRole = strtolower($selectedRole);
+            // Safely get user properties
+            $accStatus = $user['Acc_Status'] ?? 'unknown';
+            $userId = $user['ID'] ?? null;
+            $userEmail = $user['Email'] ?? '';
+            $firstName = $user['First_Name'] ?? '';
+            $lastName = $user['Last_Name'] ?? '';
+            $userRole = $user['User_Role'] ?? '';
+            
+            error_log("User details - ID: $userId, Status: $accStatus, Role: $userRole");
+            
+            // ✅ ROLE VALIDATION
+            $normalizedUserRole = strtolower($userRole);
+            $normalizedSelectedRole = strtolower($selectedRole);
 
-                // Map role names for compatibility
-                if ($normalizedSelectedRole === 'researcher') {
-                    $normalizedSelectedRole = 'student';
-                }
+            // Map role names for compatibility
+            if ($normalizedSelectedRole === 'researcher') {
+                $normalizedSelectedRole = 'student';
+            }
 
-                if ($normalizedUserRole !== $normalizedSelectedRole) {
-                    $this->logLoginAttempt($email, $userId, $ipAddress, $userAgent, false, "Role mismatch: $normalizedUserRole vs $normalizedSelectedRole");
-                    error_log("❌ ROLE MISMATCH: User role ($normalizedUserRole) vs selected role ($normalizedSelectedRole)");
-                    throw new Exception("This account is registered as a " . ucfirst($normalizedUserRole) . ". Please use the " . ucfirst($normalizedUserRole) . " login option.");
-                }
+            if ($normalizedUserRole !== $normalizedSelectedRole) {
+                $this->logLoginAttempt($email, $userId, $ipAddress, $userAgent, false, "Role mismatch: $normalizedUserRole vs $normalizedSelectedRole");
+                error_log("❌ ROLE MISMATCH: User role ($normalizedUserRole) vs selected role ($normalizedSelectedRole)");
+                throw new Exception("This account is registered as a " . ucfirst($normalizedUserRole) . ". Please use the " . ucfirst($normalizedUserRole) . " login option.");
+            }
+            
+            // ✅ Check account status
+            if ($accStatus === 'pending') {
+                $this->logLoginAttempt($email, $userId, $ipAddress, $userAgent, false, 'Account pending approval');
+                throw new Exception('Your account is pending approval. Please wait for administrator approval.');
+            } else if ($accStatus === 'rejected') {
+                $this->logLoginAttempt($email, $userId, $ipAddress, $userAgent, false, 'Account rejected');
+                throw new Exception('Your account registration was rejected. Please contact the administrator.');
+            } else if ($accStatus === 'approved') {
+                // ✅ EXISTING APPROVED USER: Log them in
+                error_log("✅ Account approved - logging in existing user");
                 
-                // ✅ Check account status
-                if ($accStatus === 'pending') {
-                    $this->logLoginAttempt($email, $userId, $ipAddress, $userAgent, false, 'Account pending approval');
-                    throw new Exception('Your account is pending approval. Please wait for administrator approval.');
-                } else if ($accStatus === 'rejected') {
-                    $this->logLoginAttempt($email, $userId, $ipAddress, $userAgent, false, 'Account rejected');
-                    throw new Exception('Your account registration was rejected. Please contact the administrator.');
-                } else if ($accStatus === 'approved') {
-                    // ✅ EXISTING APPROVED USER: Log them in
-                    error_log("✅ Account approved - logging in existing user");
-                    
+                $this->createUserSession([
+                    'id' => $userId,
+                    'email' => $userEmail,
+                    'name' => $firstName . ' ' . $lastName,
+                    'role' => $userRole
+                ]);
+                
+                // Log successful Google login
+                $this->logLoginAttempt($email, $userId, $ipAddress, $userAgent, true, 'Google login successful');
+                $this->logUserAction($userId, 'google_login', 'User logged in via Google');
+                
+                error_log("✅ Session created successfully for existing user ID: $userId");
+                
+                $redirectUrl = $this->getRedirectUrlByRole($userRole);
+                
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Login successful!',
+                    'redirect_url' => $redirectUrl
+                ]);
+                exit();
+            } else {
+                $this->logLoginAttempt($email, $userId, $ipAddress, $userAgent, false, 'Invalid account status');
+                throw new Exception('Your account status is invalid. Please contact administrator.');
+            }
+        } else {
+            error_log("❌ GOING TO REGISTRATION FLOW (THIS SHOULD NOT HAPPEN FOR EXISTING USERS)");
+            $registrationResult = $this->autoRegisterGoogleUser($email, $name, $selectedRole);
+
+            if ($registrationResult['success']) {
+                $userId = $registrationResult['user_id'] ?? null;
+                
+                if ($userId) {
+                    // Log the user in after registration
                     $this->createUserSession([
                         'id' => $userId,
-                        'email' => $userEmail,
-                        'name' => $firstName . ' ' . $lastName,
-                        'role' => $userRole
+                        'email' => $email,
+                        'name' => $name,
+                        'role' => $selectedRole
                     ]);
                     
-                    // Log successful Google login
-                    $this->logLoginAttempt($email, $userId, $ipAddress, $userAgent, true, 'Google login successful');
-                    $this->logUserAction($userId, 'google_login', 'User logged in via Google');
+                    // Log successful Google registration and login
+                    $this->logLoginAttempt($email, $userId, $ipAddress, $userAgent, true, 'Google registration and login successful');
+                    $this->logUserAction($userId, 'google_register', 'User registered and logged in via Google');
                     
-                    error_log("✅ Session created successfully for existing user ID: $userId");
-                    
-                    $redirectUrl = $this->getRedirectUrlByRole($userRole);
+                    $redirectUrl = $this->getRedirectUrlByRole($selectedRole);
                     
                     echo json_encode([
                         'success' => true,
-                        'message' => 'Login successful!',
+                        'message' => 'Check your email for further information.',
                         'redirect_url' => $redirectUrl
                     ]);
                     exit();
                 } else {
-                    $this->logLoginAttempt($email, $userId, $ipAddress, $userAgent, false, 'Invalid account status');
-                    throw new Exception('Your account status is invalid. Please contact administrator.');
+                    $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Account created but login failed');
+                    throw new Exception('Account created but login failed. Please try logging in manually.');
                 }
             } else {
-                error_log("❌ GOING TO REGISTRATION FLOW (THIS SHOULD NOT HAPPEN FOR EXISTING USERS)");
-                $registrationResult = $this->autoRegisterGoogleUser($email, $name, $selectedRole);
-
-                if ($registrationResult['success']) {
-                    $userId = $registrationResult['user_id'] ?? null;
-                    
-                    if ($userId) {
-                        // Log the user in after registration
-                        $this->createUserSession([
-                            'id' => $userId,
-                            'email' => $email,
-                            'name' => $name,
-                            'role' => $selectedRole
-                        ]);
-                        
-                        // Log successful Google registration and login
-                        $this->logLoginAttempt($email, $userId, $ipAddress, $userAgent, true, 'Google registration and login successful');
-                        $this->logUserAction($userId, 'google_register', 'User registered and logged in via Google');
-                        
-                        $redirectUrl = $this->getRedirectUrlByRole($selectedRole);
-                        
-                        echo json_encode([
-                            'success' => true,
-                            'message' => 'Account created successfully!',
-                            'redirect_url' => $redirectUrl
-                        ]);
-                        exit();
-                    } else {
-                        $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Account created but login failed');
-                        throw new Exception('Account created but login failed. Please try logging in manually.');
-                    }
-                } else {
-                    $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Google registration failed: ' . $registrationResult['message']);
-                    throw new Exception($registrationResult['message']);
-                }
+                $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Google registration failed: ' . $registrationResult['message']);
+                throw new Exception($registrationResult['message']);
             }
-    
-        } catch (Exception $e) {
-            error_log("Google login exception: " . $e->getMessage());
-            
-            echo json_encode([
-                'success' => false,
-                'message' => $e->getMessage()
-            ]);
-            exit();
         }
+
+    } catch (Exception $e) {
+        error_log("Google login exception: " . $e->getMessage());
+        
+        echo json_encode([
+            'success' => false,
+            'message' => $e->getMessage()
+        ]);
+        exit();
     }
+}
 
 private function getRedirectUrlByRole($userRole) {
     $normalizedRole = strtolower($userRole);

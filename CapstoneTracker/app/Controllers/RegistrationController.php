@@ -367,7 +367,7 @@ class RegistrationController {
                     $result = $this->registerStudent($_POST, $_FILES);
                     
                     if ($result) {
-                        $_SESSION['success_message'] = "Student registration successful! Your account is now pending for approval.";
+                        $_SESSION['success_message'] = "Your account is now pending for approval. Check your Email for further information.";
                         header('Location: ../../app/Views/User/indexLogin.php');
                         exit();
                     } else {
@@ -378,7 +378,7 @@ class RegistrationController {
                     $result = $this->registerFaculty($_POST, $_FILES);
                     
                     if ($result) {
-                        $_SESSION['success_message'] = "Faculty registration successful! Your account is now pending for approval.";
+                        $_SESSION['success_message'] = "Your account is now pending for approval. Check your Email for further information.";
                         header('Location: ../../app/Views/User/indexLogin.php');
                         exit();
                     } else {
