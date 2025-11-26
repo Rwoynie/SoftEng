@@ -581,7 +581,7 @@ async function handleVerificationSubmit() {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
             body: new URLSearchParams({
-                'action': 'verifyResetCode',
+                'action': 'verify_reset_code',
                 'email': email,
                 'verification_code': verificationCode,
                 'new_password': newPassword, // Send user's chosen password
@@ -823,7 +823,7 @@ async function sendVerificationCode(email, isResend = false) {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
             body: new URLSearchParams({
-                'action': 'sendVerificationCode',
+                'action': 'send_verification_code',
                 'email': email,
                 'csrf_token': getCsrfToken()
             })
