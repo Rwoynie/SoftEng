@@ -342,9 +342,18 @@ function setupFormHandlers() {
 // Forgot Password with Verification Code - USER CHOOSES PASSWORD
 function setupForgotPassword() {
     const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+    const forgotPasswordLinkAdmin = document.getElementById('forgotPasswordLinkAdmin');
     
     if (forgotPasswordLink) {
         forgotPasswordLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            openForgotPasswordModal();
+        });
+    }
+
+    // ADD THIS - Reuse the same function for admin
+    if (forgotPasswordLinkAdmin) {
+        forgotPasswordLinkAdmin.addEventListener('click', function(e) {
             e.preventDefault();
             openForgotPasswordModal();
         });
