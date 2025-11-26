@@ -9,6 +9,7 @@ if (!defined('ROOT_DIR')) {
     define('ROOT_DIR', dirname(__DIR__, 2)); 
 }
  */
+require_once '../Utils/EmailSender.php';
 require_once '../Models/Database.php';
 require_once '../Models/Model.php';
 require_once '../Models/User.php';
@@ -220,12 +221,22 @@ class RegistrationController {
             ];
             
             // Use the register function from User model
-            $result = $this->userModel->register($userData);
-            
-            if ($result) {
+            $userId = $this->userModel->register($userData);  // <-- CHANGED: Now captures returned User_ID (or false)
+
+            if ($userId !== false) {  // <-- CHANGED: Check !== false instead of just $result
+                // NEW: Send confirmation email without password
+                $emailSender = new EmailSender();
+                $toName = trim($firstName . ' ' . $lastName);
+                $toEmail = $data['email'];
+                $password = '';  // Empty for manual registration (no password in email)
+                $role = 'student';
+                
+                $emailSender->sendWelcomeEmail($toEmail, $toName, $password, $role, $userId);
+                
                 return true;
             } else {
-                throw new Exception("Registration failed. Please try again.");
+                $modelError = $this->userModel->getError();
+                throw new Exception($modelError ?: "Registration failed. Please try again.");
             }
             
         } catch (Exception $e) {
@@ -299,12 +310,20 @@ class RegistrationController {
             ];
             
             // Use the register function from User model
-            $result = $this->userModel->register($userData);
-            
-            if ($result) {
+            $userId = $this->userModel->register($userData);  // ← Now returns User_ID string or false
+
+            if ($userId !== false) {
+                // Send confirmation email – NO password, only User_ID
+                $emailSender = new EmailSender();
+                $toName = trim($firstName . ' ' . ($middleName ? $middleName . ' ' : '') . $lastName);
+                $toEmail = $data['email'];
+                $password = '';  // Empty → template knows it's manual registration
+                $role = 'faculty';
+
+                $emailSender->sendWelcomeEmail($toEmail, $toName, $password, $role, $userId);
+
                 return true;
-            } else {
-                // Get the specific error from the model if available
+            } else {// Get the specific error from the model if available
                 $modelError = $this->userModel->getError();
                 throw new Exception($modelError ?: "Registration failed. Please try again.");
             }

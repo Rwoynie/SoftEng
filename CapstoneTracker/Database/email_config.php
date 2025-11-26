@@ -16,6 +16,52 @@ class EmailConfig {
     const WELCOME_SUBJECT = 'Welcome to Compendium System - Your Account Details';
     
     public static function getWelcomeBody($name, $email, $password, $role, $userIdentifier) {
+        $isManual = empty($password);
+        $loginMethod = $isManual ? '.' : ' using Google Sign-In.';
+        
+        $passwordSection = '';
+        if (!$isManual) {
+            $passwordSection = "
+            <div class='password-box'>
+                <p><strong>Your Auto-Generated Password:</strong></p>
+                <p style='font-size: 24px; letter-spacing: 2px;'>{$password}</p>
+            </div>
+            ";
+        }
+        
+        $userIdSection = "
+        <div class='password-box'>
+            <p><strong>Your User ID:</strong></p>
+            <p style='font-size: 24px; letter-spacing: 2px;'>{$userIdentifier}</p>
+        </div>
+        ";
+        
+        $infoSection = $isManual ? "
+        <div class='info-box'>
+            <p><strong>Important Information:</strong></p>
+            <ul>
+                <li>You have registered with your own password</li>
+                <li>Your account is pending administrator approval</li>
+                <li>We recommend reviewing your account settings after approval</li>
+                <li>Keep your password secure and do not share it with anyone</li>
+            </ul>
+        </div>
+        " : "
+        <div class='info-box'>
+            <p><strong>Important Information:</strong></p>
+            <ul>
+                <li>You can use this password to log in directly if Google Sign-In is unavailable</li>
+                <li>We recommend changing your password after first login</li>
+                <li>Keep this password secure and do not share it with anyone</li>
+                <li>This password was automatically generated for your account</li>
+            </ul>
+        </div>
+        ";
+        
+        $approvalNote = $isManual ? "
+        <p>Your account is currently pending administrator approval. You will be notified once approved.</p>
+        " : '';
+        
         return "
         <!DOCTYPE html>
         <html>
@@ -39,36 +85,21 @@ class EmailConfig {
                 
                 <div class='content'>
                     <h2>Welcome, {$name}!</h2>
-                    <p>Your account has been successfully created in the Compendium System using Google Sign-In.</p>
+                    <p>Your account has been successfully created in the Compendium System{$loginMethod}</p>
                     
                     <div class='info-box'>
                         <p><strong>Account Details:</strong></p>
                         <ul>
                             <li><strong>Email:</strong> {$email}</li>
                             <li><strong>Role:</strong> " . ucfirst($role) . "</li>
-                            <li><strong>Login Method:</strong> Google Sign-In</li>
+                            <li><strong>Login Method:</strong> " . ($isManual ? 'Email/Password' : 'Google Sign-In') . "</li>
                         </ul>
                     </div>
                     
-                    <div class='password-box'>
-                        <p><strong>Your Auto-Generated Password:</strong></p>
-                        <p style='font-size: 24px; letter-spacing: 2px;'>{$password}</p>
-                    </div>
-
-                    <div class='password-box'>
-                        <p><strong>Your User ID:</strong></p>
-                        <p style='font-size: 24px; letter-spacing: 2px;'>{$userIdentifier}</p>
-                    </div>
-
-                    <div class='info-box'>
-                        <p><strong>Important Information:</strong></p>
-                        <ul>
-                            <li>You can use this password to log in directly if Google Sign-In is unavailable</li>
-                            <li>We recommend changing your password after first login</li>
-                            <li>Keep this password secure and do not share it with anyone</li>
-                            <li>This password was automatically generated for your account</li>
-                        </ul>
-                    </div>
+                    {$passwordSection}
+                    {$userIdSection}
+                    {$infoSection}
+                    {$approvalNote}
                     
                     <p><strong>Access the system:</strong> <a href='http://localhost:3000'>Compendium System Portal</a></p>
                     

@@ -133,9 +133,10 @@ class User extends Model {
             if ($result) {
                 $newUserId = $this->db->lastInsertId();
                 $this->createDefaultRole($newUserId, $userRole);
+                return $userId;
             }
             
-            return $result;
+            return false;
             
         } catch (Exception $e) {
             error_log("User registration error: " . $e->getMessage());
