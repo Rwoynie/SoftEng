@@ -550,6 +550,11 @@ $displayUserData = [
 
                                         if (count($users) > 0) {
                                             foreach ($users as $user) {
+                                                // Add this constraint: Skip if user is superAdmin
+                                                if ($user->User_Role === 'superAdmin') {
+                                                    continue;
+                                                }
+                                        
                                                 // Format full name
                                                 $fullName = htmlspecialchars($user->First_Name);
                                                 if (!empty($user->Middle_Name)) {
@@ -559,10 +564,10 @@ $displayUserData = [
                                                 if (!empty($user->Extension)) {
                                                     $fullName .= ' ' . htmlspecialchars($user->Extension);
                                                 }
-
+                                        
                                                 // Format email
                                                 $email = htmlspecialchars($user->Email);
-
+                                        
                                                 // Determine status badge class
                                                 $statusClass = 'status-pending';
                                                 $statusText = 'Pending';
@@ -573,7 +578,7 @@ $displayUserData = [
                                                     $statusClass = 'status-rejected';
                                                     $statusText = 'Rejected';
                                                 }
-
+                                        
                                                 // Determine role badge class and display text
                                                 $roleClass = 'role-student';
                                                 $roleText = 'Student';
@@ -584,15 +589,15 @@ $displayUserData = [
                                                     $roleClass = 'role-faculty';
                                                     $roleText = 'Faculty';
                                                 }
-
+                                        
                                                 // Format join date
                                                 $joinDate = date('M j, Y', strtotime($user->created_at));
-
+                                        
                                                 // Determine if approve button should be disabled
                                                 $approveDisabled = $user->Acc_Status === 'approved' ? 'disabled' : '';
                                                 $approveClass = $user->Acc_Status === 'approved' ? 'disabled' : '';
-
-                                    ?>
+                                        
+                                        ?>
                                                 <tr data-status="<?php echo strtolower($user->Acc_Status); ?>">
                                                     <td><?php echo $fullName; ?></td>
                                                     <td><?php echo $email; ?></td>
@@ -615,11 +620,11 @@ $displayUserData = [
                                                         </button>
                                                     </td>
                                                 </tr>
-                                            <?php
+                                        <?php
                                             }
                                         } else {
                                             // No users found
-                                            ?>
+                                        ?>
                                             <tr>
                                                 <td colspan="6" style="text-align: center; padding: 20px;">
                                                     <div class="no-accounts-found">
