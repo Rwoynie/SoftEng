@@ -1418,54 +1418,110 @@ private function handleGetLoginAttempts() {
     $attempts = $this->model->getLoginAttempts($limit);
     $this->jsonResponse(['success' => true, 'attempts' => $attempts]);
 }
-
-    
 private function generateReport() {
+    // Add custom error handler to catch warnings
+    set_error_handler(function($errno, $errstr, $errfile, $errline) {
+        throw new Exception("Error in $errfile on line $errline: $errstr");
+    });
+
     $department = $_GET['department'] ?? 'all';
     $course = $_GET['course'] ?? 'all';
 
     try {
-        $stats = $this->model->getReportsStats($department, $course);
+        error_log("=== STARTING PDF GENERATION ===");
+        error_log("Department: $department, Course: $course");
         
-        $totalTheses = (int)($stats->total_theses ?? $stats['total_theses'] ?? 0);
-        $totalUsers = (int)($stats->total_students ?? $stats['total_students'] ?? $stats['total_users'] ?? 0);
+        $stats = $this->model->getReportsStats($department, $course);
+        error_log("Stats received: " . print_r($stats, true));
+        
+        // Safely extract and convert to numbers
+        $totalTheses = 0;
+        $totalUsers = 0;
+        
+        if (is_object($stats)) {
+            $totalTheses = is_numeric($stats->total_theses ?? 0) ? (float)$stats->total_theses : 0;
+            $totalUsers = is_numeric($stats->total_students ?? $stats->total_users ?? 0) ? (float)($stats->total_students ?? $stats->total_users) : 0;
+        } elseif (is_array($stats)) {
+            $totalTheses = is_numeric($stats['total_theses'] ?? 0) ? (float)$stats['total_theses'] : 0;
+            $totalUsers = is_numeric($stats['total_students'] ?? $stats['total_users'] ?? 0) ? (float)($stats['total_students'] ?? $stats['total_users']) : 0;
+        } else {
+            error_log("Stats is not object or array: " . gettype($stats));
+        }
+        
+        error_log("Total theses: $totalTheses (type: " . gettype($totalTheses) . ")");
+        error_log("Total users: $totalUsers (type: " . gettype($totalUsers) . ")");
 
+        error_log("Preparing pie chart data...");
         $pieData = $this->preparePieChartData($department, $course);
+        error_log("Pie data prepared successfully");
+        
+        error_log("Preparing bar chart data...");
         $barData = $this->prepareBarChartData($department, $course);
+        error_log("Bar data prepared successfully");
 
         $currentDate = date('F j, Y');
         $deptName = strtoupper($department) === 'ALL' ? 'All Programs' : strtoupper($department);
         $courseName = $course === 'all' ? 'All Courses' : $course;
 
-
+        error_log("Generating HTML content...");
         $html = $this->generateReportHTML($deptName, $courseName, $currentDate, $totalTheses, $totalUsers, $pieData, $barData);
+        
+        if (empty($html)) {
+            throw new Exception("HTML content generation failed");
+        }
+
+        error_log("HTML content generated successfully");
+
+        if (!class_exists('Dompdf\Dompdf')) {
+            throw new Exception('Dompdf library not found');
+        }
 
         $options = new Options();
         $options->set('isRemoteEnabled', true);
         $options->set('defaultFont', 'DejaVu Sans');
+        $options->set('isHtml5ParserEnabled', true);
 
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
         
+        error_log("PDF generation completed successfully");
         $dompdf->stream("Thesis_Report_{$deptName}_" . date('Y-m-d') . ".pdf", ['Attachment' => true]);
+        
         exit;
 
     } catch (Exception $e) {
-        error_log("Error generating report: " . $e->getMessage());
+        error_log("=== PDF GENERATION FAILED ===");
+        error_log("Error: " . $e->getMessage());
+        error_log("Stack trace: " . $e->getTraceAsString());
         
-        // Fallback: return JSON error response
+        // Restore error handler
+        restore_error_handler();
+        
         $this->jsonResponse([
             'success' => false,
-            'error' => 'Failed to generate PDF report: ' . $e->getMessage()
+            'error' => 'Failed to generate PDF report: ' . $e->getMessage(),
+            'debug_info' => [
+                'department' => $department,
+                'course' => $course,
+                'stats_type' => gettype($stats),
+                'stats_value' => $stats
+            ]
         ], 500);
+    } finally {
+        // Ensure error handler is restored
+        restore_error_handler();
     }
 }
 
-private function generateReportHTML($deptName, $currentDate, $totalTheses, $totalUsers, $pieData, $barData) {
+private function generateReportHTML($deptName, $courseName, $currentDate, $totalTheses, $totalUsers, $pieData, $barData) {
     $pieTable = $this->generatePieChartTable($pieData);
     $barTable = $this->generateBarChartTable($barData);
+
+    // Safely format numbers - ensure they are numeric
+    $formattedTheses = number_format((float)$totalTheses, 0);
+    $formattedUsers = number_format((float)$totalUsers, 0);
 
     return '<!DOCTYPE html>
     <html><head><meta charset="utf-8"><title>Report - ' . htmlspecialchars($deptName) . '</title>
@@ -1488,21 +1544,22 @@ private function generateReportHTML($deptName, $currentDate, $totalTheses, $tota
         <div class="header">
             <h1>Compendium System</h1>
             <h2>System Report - ' . htmlspecialchars($deptName) . '</h2>
+            <p><strong>Course:</strong> ' . htmlspecialchars($courseName) . '</p>
             <p><strong>Generated on:</strong> ' . $currentDate . '</p>
         </div>
 
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-number">' . number_format($totalTheses) . '</div>
+                <div class="stat-number">' . $formattedTheses . '</div>
                 <div class="stat-label">Total Theses Uploaded</div>
             </div>
             <br>
             <div class="stat-card">
-                <div class="stat-number">' . number_format($totalUsers) . '</div>
+                <div class="stat-number">' . $formattedUsers . '</div>
                 <div class="stat-label">Registered & Approved Users</div>
             </div>
         </div>
-
+        <br><br><br>
         <h3 class="section-title">User Distribution by Role</h3>
         ' . $pieTable . '
 
@@ -1516,63 +1573,101 @@ private function generateReportHTML($deptName, $currentDate, $totalTheses, $tota
     </body></html>';
 }
 
-
 /**
  * Prepare pie chart data: User Distribution by Role (Approved Users Only)
  */
-private function preparePieChartData($department = 'all') {
+private function preparePieChartData($department = 'all', $course = 'all') {
     try {
         $sql = "SELECT User_Role, COUNT(*) as count 
                 FROM USER_INFORMATION 
                 WHERE Acc_Status = 'approved'";
 
+        $params = [];
+        
         if ($department !== 'all') {
-            $courseMap = $this->getCourseCodesByDepartment($department);
-            if (!empty($courseMap)) {
-                $placeholders = str_repeat('?,', count($courseMap) - 1) . '?';
+            $courseCodes = $this->getCourseCodesByDepartment($department);
+            if (!empty($courseCodes)) {
+                $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
                 $sql .= " AND Course IN ($placeholders)";
+                $params = array_merge($params, $courseCodes);
             }
+        }
+
+        // Apply specific course filtering
+        if ($course !== 'all' && !empty($course)) {
+            $sql .= " AND Course = ?";
+            $params[] = $course;
         }
 
         $sql .= " GROUP BY User_Role ORDER BY count DESC";
 
         $this->model->getDatabase()->query($sql);
-        if ($department !== 'all' && !empty($courseMap)) {
-            foreach ($courseMap as $i => $course) {
-                $this->model->getDatabase()->bind($i + 1, $course);
-            }
+        foreach ($params as $i => $value) {
+            $this->model->getDatabase()->bind($i + 1, $value);
         }
 
         $results = $this->model->getDatabase()->resultSet();
+
+        // Debug: Check what results we're getting
+        error_log("Pie chart query results: " . print_r($results, true));
+        error_log("Results type: " . gettype($results));
+        error_log("Results count: " . count($results));
+
+        // Ensure results is an array
+        if (!is_array($results)) {
+            error_log("Results is not an array, converting...");
+            $results = [];
+        }
 
         $colors = ['#ba1e1f', '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4'];
         $roleLabels = [
             'student' => 'Students',
             'faculty' => 'Faculty',
             'SubAdmin' => 'Sub-Admins',
-            'superAdmin' => 'Super Admins'
+            'superAdmin' => 'Super Admins',
+            'admin' => 'Admins'
         ];
 
         $data = [];
-        foreach ($results as $idx => $row) {
-            $role = $row->User_Role ?? $row['User_Role'] ?? 'unknown';
-            $count = (int)($row->count ?? 0);
-
-            $data[] = [
-                'label' => $roleLabels[$role] ?? ucfirst($role),
-                'value' => $count,
-                'color' => $colors[$idx % count($colors)]
-            ];
+        
+        // Safely iterate through results
+        if (is_array($results) && !empty($results)) {
+            foreach ($results as $idx => $row) {
+                // Handle both object and array formats safely
+                $role = '';
+                $count = 0;
+                
+                if (is_object($row)) {
+                    $role = $row->User_Role ?? 'unknown';
+                    $count = (int)($row->count ?? 0);
+                } elseif (is_array($row)) {
+                    $role = $row['User_Role'] ?? 'unknown';
+                    $count = (int)($row['count'] ?? 0);
+                }
+                
+                // Only add if we have valid data
+                if (!empty($role) && $count > 0) {
+                    $data[] = [
+                        'label' => $roleLabels[$role] ?? ucfirst($role),
+                        'value' => $count,
+                        'color' => $colors[$idx % count($colors)]
+                    ];
+                }
+            }
         }
 
         // Fallback if no users
         if (empty($data)) {
-            $data[] = ['label' => 'No Users', 'value' => 1, 'color' => '#cccccc'];
+            error_log("No valid user data found, using fallback");
+            $data[] = ['label' => 'No Approved Users', 'value' => 1, 'color' => '#cccccc'];
         }
 
+        error_log("Final pie chart data: " . print_r($data, true));
         return $data;
+        
     } catch (Exception $e) {
         error_log("Pie chart error: " . $e->getMessage());
+        error_log("Stack trace: " . $e->getTraceAsString());
         return [['label' => 'Error Loading Data', 'value' => 1, 'color' => '#ff0000']];
     }
 }
@@ -1580,9 +1675,19 @@ private function preparePieChartData($department = 'all') {
 /**
  * Prepare bar chart data: Thesis Count per Program
  */
-private function prepareBarChartData($department = 'all') {
+private function prepareBarChartData($department = 'all', $course = 'all') {
     try {
-        $programCounts = $this->model->getThesisCountsByProgram($department);
+        $programCounts = $this->model->getThesisCountsByProgram($department, $course);
+
+        // Debug: Check what we're getting
+        error_log("Raw program counts: " . print_r($programCounts, true));
+        error_log("Program counts type: " . gettype($programCounts));
+
+        // Ensure programCounts is an array
+        if (!is_array($programCounts)) {
+            error_log("Program counts is not an array, converting to empty array");
+            $programCounts = [];
+        }
 
         $shortNames = [
             'Bachelor of Science in Information Technology' => 'BSIT',
@@ -1596,29 +1701,50 @@ private function prepareBarChartData($department = 'all') {
         ];
 
         $data = [];
-        foreach ($programCounts as $row) {
-            $fullName = $row->program ?? $row['program'] ?? 'Unknown';
-            $count = (int)($row->thesis_count ?? 0);
+        
+        // Safely iterate through programCounts
+        if (is_array($programCounts) && !empty($programCounts)) {
+            foreach ($programCounts as $row) {
+                // Handle both object and array formats safely
+                $fullName = '';
+                $count = 0;
+                
+                if (is_object($row)) {
+                    $fullName = $row->program ?? $row->Thesis_Course ?? 'Unknown';
+                    $count = (int)($row->thesis_count ?? 0);
+                } elseif (is_array($row)) {
+                    $fullName = $row['program'] ?? $row['Thesis_Course'] ?? 'Unknown';
+                    $count = (int)($row['thesis_count'] ?? 0);
+                }
 
-            $displayName = $shortNames[$fullName] ?? 'Other';
+                $displayName = $shortNames[$fullName] ?? 'Other';
 
-            $data[] = [
-                'program' => $displayName,
-                'thesis_count' => $count
-            ];
+                if ($count > 0) {
+                    $data[] = [
+                        'program' => $displayName,
+                        'thesis_count' => $count
+                    ];
+                }
+            }
         }
 
         // Sort by count descending
-        usort($data, fn($a, $b) => $b['thesis_count'] <=> $a['thesis_count']);
+        usort($data, function($a, $b) {
+            return ($b['thesis_count'] ?? 0) <=> ($a['thesis_count'] ?? 0);
+        });
 
-        // Fallback
+        // Fallback if no data
         if (empty($data)) {
+            error_log("No thesis data found, using fallback");
             $data[] = ['program' => 'No Theses', 'thesis_count' => 0];
         }
 
+        error_log("Final bar chart data: " . print_r($data, true));
         return $data;
+        
     } catch (Exception $e) {
         error_log("Bar chart error: " . $e->getMessage());
+        error_log("Stack trace: " . $e->getTraceAsString());
         return [['program' => 'Error', 'thesis_count' => 0]];
     }
 }
@@ -1627,22 +1753,42 @@ private function prepareBarChartData($department = 'all') {
  * Generate pie chart as a table for PDF
  */
 private function generatePieChartTable($pieChartData) {
+    // Ensure pieChartData is an array
+    if (!is_array($pieChartData)) {
+        error_log("Pie chart table data is not array: " . gettype($pieChartData));
+        $pieChartData = [];
+    }
+    
     $html = '<table class="chart-table">';
-    $html .= '<thead><tr><th>Program</th><th>Students</th><th>Percentage</th></tr></thead><tbody>';
+    $html .= '<thead><tr><th>User Role</th><th>User Count</th><th>Percentage</th></tr></thead><tbody>';
     
-    $totalStudents = array_sum(array_column($pieChartData, 'value'));
+    $totalStudents = 0;
     
-    foreach ($pieChartData as $item) {
-        $percentage = $totalStudents > 0 ? round(($item['value'] / $totalStudents) * 100, 1) : 0;
-        $html .= '
-            <tr>
-                <td>
-                    <span class="color-swatch" style="background-color: ' . $item['color'] . '"></span>
-                    ' . htmlspecialchars($item['label']) . '
-                </td>
-                <td>' . $item['value'] . '</td>
-                <td>' . $percentage . '%</td>
-            </tr>';
+    // Safely calculate total
+    if (is_array($pieChartData)) {
+        foreach ($pieChartData as $item) {
+            if (is_array($item)) {
+                $totalStudents += $item['value'] ?? 0;
+            }
+        }
+    }
+    
+    // Safely generate rows
+    if (is_array($pieChartData)) {
+        foreach ($pieChartData as $item) {
+            if (!is_array($item)) continue;
+            
+            $percentage = $totalStudents > 0 ? round(($item['value'] / $totalStudents) * 100, 1) : 0;
+            $html .= '
+                <tr>
+                    <td>
+                        <span class="color-swatch" style="background-color: ' . ($item['color'] ?? '#cccccc') . '"></span>
+                        ' . htmlspecialchars($item['label'] ?? 'Unknown') . '
+                    </td>
+                    <td>' . ($item['value'] ?? 0) . '</td>
+                    <td>' . $percentage . '%</td>
+                </tr>';
+        }
     }
     
     $html .= '
@@ -1656,28 +1802,33 @@ private function generatePieChartTable($pieChartData) {
     return $html;
 }
 
-/**
- * Generate bar chart as a table for PDF
- */
-/**
- * Generate bar chart as a table for PDF (updated for programs instead of months)
- */
 private function generateBarChartTable($barChartData) {
+    // Ensure barChartData is an array
+    if (!is_array($barChartData)) {
+        error_log("Bar chart table data is not array: " . gettype($barChartData));
+        $barChartData = [];
+    }
+    
     $html = '<table class="chart-table">';
     $html .= '<thead><tr><th>Program</th><th>Thesis Count</th></tr></thead><tbody>';
     
     $totalTheses = 0;
     
-    foreach ($barChartData as $item) {
-        $count = (int)($item['thesis_count'] ?? 0);
-        $program = $item['program'] ?? 'Unknown';
-        $totalTheses += $count;
-        
-        $html .= '
-            <tr>
-                <td>' . htmlspecialchars($program) . '</td>
-                <td>' . $count . '</td>
-            </tr>';
+    // Safely generate rows
+    if (is_array($barChartData)) {
+        foreach ($barChartData as $item) {
+            if (!is_array($item)) continue;
+            
+            $count = (int)($item['thesis_count'] ?? 0);
+            $program = $item['program'] ?? 'Unknown';
+            $totalTheses += $count;
+            
+            $html .= '
+                <tr>
+                    <td>' . htmlspecialchars($program) . '</td>
+                    <td>' . $count . '</td>
+                </tr>';
+        }
     }
     
     $html .= '
