@@ -201,14 +201,14 @@ public function findByEmail($email) {
                 'pswrd', 'Salt', 'First_Name', 'Last_Name', 
                 'Email', 'Email_Hash',           // Plain AND hashed email
                 'User_ID', 'User_ID_Hash',       // Plain AND hashed User_ID
-                'User_Role', 'Acc_Status'
+                'User_Role', 'Acc_Status', 'Login_Method'
             ];
             
             $values = [
                 ':password', ':salt', ':first_name', ':last_name',
                 ':email_plain', ':email_hash',
                 ':user_id_plain', ':user_id_hash',
-                ':user_role', ':acc_status'
+                ':user_role', ':acc_status', ':login_method'
             ];
             
             $bindings = [
@@ -221,7 +221,8 @@ public function findByEmail($email) {
                 ':user_id_plain' => $originalUserId,   // Store plain User_ID
                 ':user_id_hash' => $userIdHash,        // Store hashed User_ID
                 ':user_role' => $userRole,
-                ':acc_status' => 'approved' // Google users are auto-approved
+                ':acc_status' => 'approved', // Google users are auto-approved
+                ':login_method' => 'google'
             ];
             
             // Optional fields
@@ -475,6 +476,46 @@ public function generateUserId($role, $data) {
      */
     public function getError() {
         return $this->error ?? null;
+    }
+
+    /**
+     * Update user profile (course/department)
+     */
+    public function updateUserProfile($userId, $course = null, $department = null) {
+        try {
+            $query = "UPDATE USER_INFORMATION SET ";
+            $params = [];
+            $bindings = [];
+            
+            if ($course !== null) {
+                $params[] = "Course = :course";
+                $bindings[':course'] = $course;
+            }
+            
+            if ($department !== null) {
+                $params[] = "Department = :department";
+                $bindings[':department'] = $department;
+            }
+            
+            if (empty($params)) {
+                return false; // Nothing to update
+            }
+            
+            $query .= implode(', ', $params) . " WHERE ID = :user_id";
+            $bindings[':user_id'] = $userId;
+            
+            $this->db->query($query);
+            
+            foreach ($bindings as $key => $value) {
+                $this->db->bind($key, $value);
+            }
+            
+            return $this->db->execute();
+            
+        } catch (Exception $e) {
+            error_log("Error updating user profile: " . $e->getMessage());
+            return false;
+        }
     }
 
     /**

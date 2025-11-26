@@ -28,6 +28,7 @@ class Profile {
                     ui.Employee_ID,
                     ui.User_Role,
                     ui.Acc_Status,
+                    ui.Login_Method,
                     ui.Department,
                     ui.Course,
                     ui.Profile_Pic, 

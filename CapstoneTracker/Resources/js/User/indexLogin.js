@@ -73,6 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializePage();
     setupAdminModal();
     setupAdminForm();
+    setupPasswordToggles(); // Add password toggles for all modals
 
 });
 
@@ -373,23 +374,91 @@ function setupForgotPassword() {
 }
 
 function setupPasswordToggles() {
-    // Toggle new password visibility
+    // Toggle new password visibility (password reset)
     const toggleNewPassword = document.getElementById('toggleNewPassword');
     const newPasswordInput = document.getElementById('newPassword');
     
     if (toggleNewPassword && newPasswordInput) {
         toggleNewPassword.addEventListener('click', function() {
-            togglePasswordVisibility(newPasswordInput, this.querySelector('i'));
+            const icon = this.querySelector('i');
+            togglePasswordVisibility(newPasswordInput, icon);
         });
     }
     
-    // Toggle confirm password visibility
+    // Toggle confirm password visibility (password reset)
     const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
     const confirmPasswordInput = document.getElementById('confirmPassword');
     
     if (toggleConfirmPassword && confirmPasswordInput) {
         toggleConfirmPassword.addEventListener('click', function() {
-            togglePasswordVisibility(confirmPasswordInput, this.querySelector('i'));
+            const icon = this.querySelector('i');
+            togglePasswordVisibility(confirmPasswordInput, icon);
+        });
+    }
+    
+    // Toggle login modal password visibility
+    const toggleLoginPassword = document.getElementById('togglePasswordBtn');
+    const loginPasswordInput = document.getElementById('password');
+    
+    if (toggleLoginPassword && loginPasswordInput) {
+        toggleLoginPassword.addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            togglePasswordVisibility(loginPasswordInput, icon);
+        });
+    }
+    
+    // Toggle admin modal password visibility
+    const toggleAdminPassword = document.getElementById('adminTogglePassword');
+    const adminPasswordInput = document.getElementById('adminPassword');
+    
+    if (toggleAdminPassword && adminPasswordInput) {
+        toggleAdminPassword.addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            togglePasswordVisibility(adminPasswordInput, icon);
+        });
+    }
+    
+    // Toggle student registration password visibility
+    const regTogglePassword = document.getElementById('regTogglePassword');
+    const regPassword = document.getElementById('regPassword');
+    
+    if (regTogglePassword && regPassword) {
+        regTogglePassword.addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            togglePasswordVisibility(regPassword, icon);
+        });
+    }
+    
+    // Toggle student registration confirm password visibility
+    const regToggleConfirm = document.getElementById('regToggleConfirm');
+    const regConfirmPassword = document.getElementById('regConfirmPassword');
+    
+    if (regToggleConfirm && regConfirmPassword) {
+        regToggleConfirm.addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            togglePasswordVisibility(regConfirmPassword, icon);
+        });
+    }
+    
+    // Toggle faculty registration password visibility
+    const facTogglePassword = document.getElementById('facTogglePassword');
+    const facPassword = document.getElementById('facPassword');
+    
+    if (facTogglePassword && facPassword) {
+        facTogglePassword.addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            togglePasswordVisibility(facPassword, icon);
+        });
+    }
+    
+    // Toggle faculty registration confirm password visibility
+    const facToggleConfirm = document.getElementById('facToggleConfirm');
+    const facConfirmPassword = document.getElementById('facConfirmPassword');
+    
+    if (facToggleConfirm && facConfirmPassword) {
+        facToggleConfirm.addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            togglePasswordVisibility(facConfirmPassword, icon);
         });
     }
     
@@ -411,8 +480,10 @@ function setupPasswordToggles() {
 function togglePasswordVisibility(input, icon) {
     const isHidden = input.type === 'password';
     input.type = isHidden ? 'text' : 'password';
-    icon.classList.toggle('fa-eye');
-    icon.classList.toggle('fa-eye-slash');
+    if (icon) {
+        icon.classList.toggle('fa-eye');
+        icon.classList.toggle('fa-eye-slash');
+    }
 }
 
 function updatePasswordStrength(password) {

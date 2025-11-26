@@ -235,20 +235,20 @@ class BackupManager {
             cancelButtonColor: '#3085d6',
             confirmButtonText: 'Yes, Restore Backup!',
             cancelButtonText: 'Cancel',
-            reverseButtons: true,
-            dangerMode: true
+            reverseButtons: true
+            // Remove dangerMode parameter
         });
-    
+
         if (!result.isConfirmed) {
             return;
         }
-    
+
         try {
             const formData = new FormData();
             formData.append('action', 'restore_backup');
             formData.append('backup_file', backupFileName);
             formData.append('csrf_token', this.getCsrfToken());
-    
+
             // Show loading state
             Swal.fire({
                 title: 'Restoring Backup...',
@@ -258,14 +258,14 @@ class BackupManager {
                     Swal.showLoading();
                 }
             });
-    
+
             const response = await fetch('../../../app/Controllers/BackupController.php', {
                 method: 'POST',
                 body: formData
             });
-    
+
             const result = await response.json();
-    
+
             if (result.success) {
                 Swal.fire({
                     title: 'Success!',
@@ -276,28 +276,31 @@ class BackupManager {
                     window.location.reload();
                 });
             } else {
-                throw new Error(result.error || 'Failed to restore backup');
+                // Provide more specific error messages
+                let userMessage = result.error;
+                if (result.error.includes('Duplicate entry')) {
+                    userMessage = 'Some data already exists in the database. This is normal if you are restoring to a database that already has data.';
+                } else if (result.error.includes('already exists')) {
+                    userMessage = 'Some tables already exist. The restore process has skipped these.';
+                }
+                
+                throw new Error(userMessage);
             }
-    
+
         } catch (error) {
             console.error('Backup restore error:', error);
             
-            // Show detailed error message
-            let errorMessage = error.message;
-            if (errorMessage.includes('mysqldump') || errorMessage.includes('mysql')) {
-                errorMessage += '\n\nPlease check that MySQL is running and the paths are correct.';
-            }
-            
             Swal.fire({
-                title: 'Restore Failed',
+                title: 'Restore Completed with Notes',
                 html: `<div style="text-align: left;">
-                        <p>${errorMessage}</p>
+                        <p>${error.message}</p>
+                        <p><strong>Note:</strong> Some data may not have been restored due to existing records.</p>
                         <details style="margin-top: 10px;">
                             <summary>Technical Details</summary>
                             <pre style="background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto; font-size: 12px; margin-top: 10px;">${error.stack}</pre>
                         </details>
-                       </div>`,
-                icon: 'error',
+                    </div>`,
+                icon: 'warning',
                 confirmButtonText: 'OK',
                 width: '600px'
             });

@@ -227,7 +227,7 @@ if ($setupError) {
             
             
             <div class="col-12">
-              <label for="regCourse" class="form-label">Course / Program</label>
+              <label for="regCourse" class="form-label">Course</label>
               <select id="regCourse" name="course" class="form-select" required>
                 <option value="" selected disabled>Select your program</option>
                 <option>Bachelor of Technical-Vocational Teacher Education</option>
@@ -284,7 +284,9 @@ if ($setupError) {
             </div>
             <div class="col-12 d-grid gap-2">
               <button type="submit" class="btn btn-primary">Create account</button>
-              <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="modal">Back to login</button>
+              <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="modal">
+                <i class="fas fa-arrow-left me-2"></i> Back to login
+              </button>
             </div>
           </div>
         </form>
@@ -327,8 +329,8 @@ if ($setupError) {
             </div>
             
             
-            <div class="col-md-6">
-              <label for="facDepartment" class="form-label">Department / College</label>
+            <div class="col-12">
+              <label for="facDepartment" class="form-label">Department</label>
               <select id="facDepartment" name="department" class="form-select" required>
                 <option value="" selected disabled>Select department</option>
                 <option>CTET</option>
@@ -344,22 +346,34 @@ if ($setupError) {
               </div>
               <small class="text-muted">Use your university email (@usep.edu.ph)</small>
             </div>
-            <div class="col-md-6">
+            <div class="col-12">
               <label for="facPassword" class="form-label">Password</label>
               <div class="input-group">
-                <input type="password" id="facPassword" name="password" class="form-control" required>
+                <input type="password" id="facPassword" name="password" class="form-control" required
+                       pattern="^(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$"
+                       oninput="validatePassword(this)">
                 <button class="btn btn-outline-secondary" type="button" id="facTogglePassword" aria-label="Show password">
                   <i class="far fa-eye"></i>
                 </button>
               </div>
+              <small id="facPasswordHelp" class="form-text text-muted">
+                Password must be at least 8 characters long, include 1 uppercase letter and 1 number.
+              </small>
+              <div id="facPasswordError" class="invalid-feedback">
+                Please enter a valid password (min 8 chars, 1 uppercase, 1 number)
+              </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-12">
               <label for="facConfirmPassword" class="form-label">Confirm Password</label>
               <div class="input-group">
-                <input type="password" id="facConfirmPassword" name="confirmPassword" class="form-control" required>
+                <input type="password" id="facConfirmPassword" name="confirmPassword" class="form-control" required
+                       oninput="checkPasswordMatch()">
                 <button class="btn btn-outline-secondary" type="button" id="facToggleConfirm" aria-label="Show password">
                   <i class="far fa-eye"></i>
                 </button>
+              </div>
+              <div id="facConfirmPasswordError" class="invalid-feedback">
+                Passwords do not match
               </div>
             </div>
             <div class="col-12">
@@ -369,7 +383,9 @@ if ($setupError) {
             </div>
             <div class="col-12 d-grid gap-2">
               <button type="submit" class="btn btn-primary">Create account</button>
-              <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="modal">Back to login</button>
+              <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="modal">
+                <i class="fas fa-arrow-left me-2"></i> Back to login
+              </button>
             </div>
           </div>
         </form>
@@ -473,7 +489,9 @@ if ($setupError) {
             <button type="submit" class="btn btn-primary" id="sendCodeBtn">
               <i class="fas fa-paper-plane me-2"></i>Send Verification Code
             </button>
-            <button type="button" class="btn btn-link" data-bs-dismiss="modal">Back to Login</button>
+            <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="modal">
+              <i class="fas fa-arrow-left me-2"></i> Back to login
+            </button>
           </div>
         </form>
       </div>
@@ -557,8 +575,8 @@ if ($setupError) {
               <strong>Success!</strong> You can now use your new password to login.
             </div>
             
-            <button type="button" class="btn btn-primary mt-3" data-bs-dismiss="modal">
-              <i class="fas fa-sign-in-alt me-2"></i>Return to Login
+            <button type="button" class="btn btn-outline-danger w-100" data-bs-dismiss="modal">
+              <i class="fas fa-arrow-left me-2"></i>Return to Login
             </button>
           </div>
         </div>
@@ -573,8 +591,11 @@ if ($setupError) {
         // Password validation functions
         function validatePassword(input) {
             const password = input.value;
-            const passwordHelp = document.getElementById('passwordHelp');
-            const passwordError = document.getElementById('passwordError');
+            const formId = input.closest('form').id;
+            const isStudentForm = formId === 'studentRegisterForm';
+            
+            const passwordHelp = document.getElementById(isStudentForm ? 'passwordHelp' : 'facPasswordHelp');
+            const passwordError = document.getElementById(isStudentForm ? 'passwordError' : 'facPasswordError');
             
             // Check if password meets requirements
             const hasMinLength = password.length >= 8;
@@ -584,10 +605,10 @@ if ($setupError) {
             // Toggle error state
             if (!hasMinLength || !hasUppercase || !hasNumber) {
                 input.classList.add('is-invalid');
-                passwordError.style.display = 'block';
+                if (passwordError) passwordError.style.display = 'block';
             } else {
                 input.classList.remove('is-invalid');
-                passwordError.style.display = 'none';
+                if (passwordError) passwordError.style.display = 'none';
             }
             
             // Update password help text with current status
@@ -596,81 +617,77 @@ if ($setupError) {
             if (!hasUppercase) status.push('1 uppercase letter');
             if (!hasNumber) status.push('1 number');
             
-            if (status.length > 0) {
-                passwordHelp.innerHTML = `Password needs: ${status.join(', ')}.`;
-                passwordHelp.className = 'form-text text-danger';
-            } else {
-                passwordHelp.innerHTML = 'Password meets all requirements.';
-                passwordHelp.className = 'form-text text-success';
+            if (passwordHelp) {
+                if (status.length > 0) {
+                    passwordHelp.innerHTML = `Password needs: ${status.join(', ')}.`;
+                    passwordHelp.className = 'form-text text-danger';
+                } else {
+                    passwordHelp.innerHTML = 'Password meets all requirements.';
+                    passwordHelp.className = 'form-text text-success';
+                }
             }
             
             // Trigger password match check if confirm password is not empty
-            if (document.getElementById('regConfirmPassword').value) {
+            const confirmPasswordId = isStudentForm ? 'regConfirmPassword' : 'facConfirmPassword';
+            if (document.getElementById(confirmPasswordId).value) {
                 checkPasswordMatch();
             }
         }
         
         function checkPasswordMatch() {
-            const password = document.getElementById('regPassword').value;
-            const confirmPassword = document.getElementById('regConfirmPassword');
-            const confirmError = document.getElementById('confirmPasswordError');
+            const formId = event ? event.target.closest('form').id : 
+                         (document.activeElement ? document.activeElement.closest('form').id : 'studentRegisterForm');
+            const isStudentForm = formId === 'studentRegisterForm';
             
-            if (password !== confirmPassword.value) {
+            const passwordId = isStudentForm ? 'regPassword' : 'facPassword';
+            const confirmPasswordId = isStudentForm ? 'regConfirmPassword' : 'facConfirmPassword';
+            const confirmErrorId = isStudentForm ? 'confirmPasswordError' : 'facConfirmPasswordError';
+            
+            const password = document.getElementById(passwordId);
+            const confirmPassword = document.getElementById(confirmPasswordId);
+            const confirmError = document.getElementById(confirmErrorId);
+            
+            if (!password || !confirmPassword) return;
+            
+            if (password.value !== confirmPassword.value) {
                 confirmPassword.classList.add('is-invalid');
-                confirmError.style.display = 'block';
+                if (confirmError) confirmError.style.display = 'block';
                 return false;
             } else {
                 confirmPassword.classList.remove('is-invalid');
-                confirmError.style.display = 'none';
+                if (confirmError) confirmError.style.display = 'none';
                 return true;
             }
         }
         
-        // Toggle password visibility
-        document.addEventListener('DOMContentLoaded', function() {
-            // Toggle password visibility for registration form
-            const togglePassword = document.querySelector('#regTogglePassword');
-            const password = document.querySelector('#regPassword');
-            const toggleConfirm = document.querySelector('#regToggleConfirm');
-            const confirmPassword = document.querySelector('#regConfirmPassword');
-            
-            if (togglePassword && password) {
-                togglePassword.addEventListener('click', function() {
-                    const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
-                    password.setAttribute('type', type);
-                    this.querySelector('i').classList.toggle('fa-eye-slash');
-                });
-            }
-            
-            if (toggleConfirm && confirmPassword) {
-                toggleConfirm.addEventListener('click', function() {
-                    const type = confirmPassword.getAttribute('type') === 'password' ? 'text' : 'password';
-                    confirmPassword.setAttribute('type', type);
-                    this.querySelector('i').classList.toggle('fa-eye-slash');
-                });
-            }
-            
-            // Form submission validation
-            const forms = document.querySelectorAll('#studentRegisterForm, #facultyRegisterForm');
-            forms.forEach(form => {
-                form.addEventListener('submit', function(e) {
-                    const password = document.getElementById('regPassword').value;
-                    const hasMinLength = password.length >= 8;
-                    const hasUppercase = /[A-Z]/.test(password);
-                    const hasNumber = /\d/.test(password);
+        // Form submission validation
+        const forms = document.querySelectorAll('#studentRegisterForm, #facultyRegisterForm');
+        forms.forEach(form => {
+            form.addEventListener('submit', function(e) {
+                const isStudentForm = form.id === 'studentRegisterForm';
+                const passwordId = isStudentForm ? 'regPassword' : 'facPassword';
+                
+                const password = document.getElementById(passwordId).value;
+                const hasMinLength = password.length >= 8;
+                const hasUppercase = /[A-Z]/.test(password);
+                const hasNumber = /\d/.test(password);
+                
+                if (!hasMinLength || !hasUppercase || !hasNumber || !checkPasswordMatch()) {
+                    e.preventDefault();
                     
-                    if (!hasMinLength || !hasUppercase || !hasNumber || !checkPasswordMatch()) {
-                        e.preventDefault();
-                        validatePassword(document.getElementById('regPassword'));
-                        checkPasswordMatch();
-                        
-                        // Scroll to first error
-                        const firstError = document.querySelector('.is-invalid');
-                        if (firstError) {
-                            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }
+                    // Validate password
+                    const passwordInput = document.getElementById(passwordId);
+                    if (passwordInput) validatePassword(passwordInput);
+                    
+                    // Check password match
+                    checkPasswordMatch();
+                    
+                    // Scroll to first error
+                    const firstError = form.querySelector('.is-invalid');
+                    if (firstError) {
+                        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }
-                });
+                }
             });
         });
         

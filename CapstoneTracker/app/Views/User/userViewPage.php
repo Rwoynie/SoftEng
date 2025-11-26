@@ -43,11 +43,20 @@ try {
     // Determine if user is student
     $isStudent = ($userRole === 'student');
     
+    // Get full user data including Login_Method
+    require_once '../../../app/Models/User.php';
+    $userModel = new User($db);
+    $userData = $userModel->getUserById($userId);
+    $loginMethod = $userData ? ($userData->Login_Method ?? 'manual') : 'manual';
+    $isGoogleUser = ($loginMethod === 'google');
+    
     // Debug information
     echo "<!-- Debug: Found " . count($thesis) . " theses -->";
     echo "<!-- Debug: User role data: " . print_r($userRoleData, true) . " -->";
     echo "<!-- Debug: User role: " . $userRole . " -->";
     echo "<!-- Debug: Is student: " . ($isStudent ? 'true' : 'false') . " -->";
+    echo "<!-- Debug: Login method: " . $loginMethod . " -->";
+    echo "<!-- Debug: Is Google user: " . ($isGoogleUser ? 'true' : 'false') . " -->";
     
     foreach ($thesis as $theses) {
         $uploadDate = new DateTime($theses->uploaded_at);
@@ -252,23 +261,46 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
                         </h3>
                         <div class="info-grid">
                             <div class="info-item">
-                                <span class="info-label">User ID:</span>
+                                <span class="info-label"><i class="fa fa-id-card"></i> User ID:</span>
                                 <span data-value="userID" class="info-value"></span>
                             </div>
                             
                             <div class="info-item">
-                                <span class="info-label">Email:</span>
+                                <span class="info-label"><i class="fa fa-envelope"></i> Email:</span>
                                 <span data-value="email" class="info-value"></span>
                             </div>
                             <?php if (!$isStudent): // Show department for non-students (faculty, admin, etc.) ?>
                             <div class="info-item">
-                                <span class="info-label">Department:</span>
-                                <span data-value="department" class="info-value"></span>
+                                <span class="info-label"><i class="fa fa-building"></i> Department:</span>
+                                <?php if ($isGoogleUser): ?>
+                                    <select id="departmentSelect" class="form-select info-value editable-input" style="width: auto; display: inline-block; margin-left: 10px;">
+                                        <option value="" selected disabled>Select department</option>
+                                        <option value="CTET">CTET</option>
+                                        <option value="COE">COE</option>
+                                    </select>
+                                    <button id="saveDepartmentBtn" class="btn btn-sm btn-primary save-btn" style="display: none;"><i class="fa fa-save"></i> Save</button>
+                                <?php else: ?>
+                                    <span data-value="department" class="info-value"></span>
+                                <?php endif; ?>
                             </div>
                             <?php else: // Show course for students ?>
                             <div class="info-item">
-                                <span class="info-label">Course:</span>
-                                <span data-value="course" class="info-value"></span>
+                                <span class="info-label"><i class="fa fa-graduation-cap"></i> Course:</span>
+                                <?php if ($isGoogleUser): ?>
+                                    <select id="courseSelect" class="form-select info-value editable-input" style="width: auto; display: inline-block; margin-left: 10px;">
+                                        <option value="" selected disabled>Select your program</option>
+                                        <option value="Bachelor of Technical-Vocational Teacher Education">Bachelor of Technical-Vocational Teacher Education</option>
+                                        <option value="Bachelor of Special Needs Education">Bachelor of Special Needs Education</option>
+                                        <option value="Bachelor of Early Childhood Education">Bachelor of Early Childhood Education</option>
+                                        <option value="Bachelor of Secondary Education">Bachelor of Secondary Education</option>
+                                        <option value="Bachelor of Science in Information Technology">Bachelor of Science in Information Technology</option>
+                                        <option value="Bachelor of Elementary Education">Bachelor of Elementary Education</option>
+                                        <option value="Bachelor of Science in Agricultural and Biosystems Engineering">Bachelor of Science in Agricultural and Biosystems Engineering</option>
+                                    </select>
+                                    <button id="saveCourseBtn" class="btn btn-sm btn-primary save-btn" style="display: none;"><i class="fa fa-save"></i> Save</button>
+                                <?php else: ?>
+                                    <span data-value="course" class="info-value"></span>
+                                <?php endif; ?>
                             </div>
                             <?php endif; ?>
                         </div>
@@ -282,25 +314,25 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
                         </h3>
                         <div class="info-grid">
                             <div class="info-item">
-                                <span class="info-label">Member Since:</span>
+                                <span class="info-label"><i class="fa fa-calendar-plus"></i> Member Since:</span>
                                 <span data-value="member" class="info-value"></span>
                             </div>
                             <div class="info-item">
-                                <span class="info-label">Last Login:</span>
+                                <span class="info-label"><i class="fa fa-clock"></i> Last Login:</span>
                                 <span data-value="lastlogin" class="info-value"></span>
                             </div>
                             <div class="info-item">
-                                <span class="info-label">Status:</span>
+                                <span class="info-label"><i class="fa fa-shield-alt"></i> Status:</span>
                                 <span data-value="acc_status" class="info-value status-active"></span>
                             </div>
                             <div class="info-item">
-                                <span class="info-label">Role:</span>
+                                <span class="info-label"><i class="fa fa-user-tag"></i> Role:</span>
                                 <span data-value="role" class="info-value"></span>
                             </div>
                         </div>
                         
                         <div class="action-buttons">
-                        <button class="btn btn-primary">
+                        <button class="btn btn-primary" id="changePasswordBtn">
                             <i class="fa fa-key" aria-hidden="true"></i>
                             Change Password
                         </button>

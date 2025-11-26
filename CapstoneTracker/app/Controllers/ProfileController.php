@@ -513,6 +513,86 @@ try {
         }
         
         /**
+         * Handle profile field updates (course/department)
+         */
+        public function updateProfile($userId, $postData) {
+            try {
+                error_log("=== UPDATE PROFILE ===");
+                error_log("User ID: " . $userId);
+                error_log("Post data: " . print_r($postData, true));
+                
+                // Validate CSRF token
+                if (!$this->validateCsrfToken($postData['csrf_token'] ?? '')) {
+                    return [
+                        'success' => false,
+                        'message' => 'Invalid CSRF token'
+                    ];
+                }
+                
+                $field = $postData['field'] ?? '';
+                $value = $postData['value'] ?? '';
+                
+                error_log("Field: " . $field . ", Value: " . $value);
+                
+                // Validate field
+                if (!in_array($field, ['course', 'department'])) {
+                    return [
+                        'success' => false,
+                        'message' => 'Invalid field'
+                    ];
+                }
+                
+                // Get user data to check login method
+                $userData = $this->profileModel->getUserProfile($userId);
+                if (!$userData) {
+                    return [
+                        'success' => false,
+                        'message' => 'User not found'
+                    ];
+                }
+                
+                // Check if user logged in with Google
+                if (($userData['Login_Method'] ?? 'manual') !== 'google') {
+                    return [
+                        'success' => false,
+                        'message' => 'Only Google users can edit this field'
+                    ];
+                }
+                
+                // Update the profile
+                require_once '../Models/User.php';
+                $userModel = new User($this->db);
+                
+                if ($field === 'course') {
+                    $result = $userModel->updateUserProfile($userId, $value, null);
+                } elseif ($field === 'department') {
+                    $result = $userModel->updateUserProfile($userId, null, $value);
+                }
+                
+                if ($result) {
+                    error_log("Profile updated successfully");
+                    return [
+                        'success' => true,
+                        'message' => ucfirst($field) . ' updated successfully'
+                    ];
+                } else {
+                    error_log("Failed to update profile");
+                    return [
+                        'success' => false,
+                        'message' => 'Failed to update ' . $field
+                    ];
+                }
+                
+            } catch (Exception $e) {
+                error_log("Profile update error: " . $e->getMessage());
+                return [
+                    'success' => false,
+                    'message' => 'Error updating profile: ' . $e->getMessage()
+                ];
+            }
+        }
+        
+        /**
          * Validate CSRF token
          */
         private function validateCsrfToken($token) {
@@ -552,6 +632,11 @@ try {
                 
             case 'upload_profile_image':
                 $response = $controller->handleProfileImageUpload($userId, $_FILES, $_POST);
+                echo json_encode($response);
+                break;
+                
+            case 'update_profile':
+                $response = $controller->updateProfile($userId, $_POST);
                 echo json_encode($response);
                 break;
                 
