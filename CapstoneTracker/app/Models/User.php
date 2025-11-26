@@ -128,19 +128,21 @@ class User extends Model {
             
             // Execute the query
             $result = $this->db->execute();
-            
-            // If registration successful, create default role entry
+
             if ($result) {
                 $newUserId = $this->db->lastInsertId();
                 $this->createDefaultRole($newUserId, $userRole);
-                return $userId;
+                return $userId;        // MUST be this (NOT return true!)
             }
-            
             return false;
-            
+
+            $this->error = $this->db->getError() ?: "Unknown database error during registration";
+            error_log("MANUAL REGISTRATION FAILED: " . $this->error);
+            return false;
         } catch (Exception $e) {
-            error_log("User registration error: " . $e->getMessage());
-            throw $e;
+            $this->error = $e->getMessage();
+            error_log("Registration Exception: " . $e->getMessage());
+            return false;
         }
     }
 
