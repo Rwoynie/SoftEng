@@ -407,9 +407,18 @@ function setupPasswordToggles() {
     const newPasswordInput = document.getElementById('newPassword');
     
     if (toggleNewPassword && newPasswordInput) {
-        toggleNewPassword.addEventListener('click', function() {
+        // Remove existing event listeners
+        const newToggle = toggleNewPassword.cloneNode(true);
+        toggleNewPassword.parentNode.replaceChild(newToggle, toggleNewPassword);
+        
+        newToggle.addEventListener('click', function() {
             const icon = this.querySelector('i');
-            togglePasswordVisibility(newPasswordInput, icon);
+            const isHidden = newPasswordInput.type === 'password';
+            newPasswordInput.type = isHidden ? 'text' : 'password';
+            if (icon) {
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            }
         });
     }
     
@@ -418,9 +427,18 @@ function setupPasswordToggles() {
     const confirmPasswordInput = document.getElementById('confirmPassword');
     
     if (toggleConfirmPassword && confirmPasswordInput) {
-        toggleConfirmPassword.addEventListener('click', function() {
+        // Remove existing event listeners
+        const confirmToggle = toggleConfirmPassword.cloneNode(true);
+        toggleConfirmPassword.parentNode.replaceChild(confirmToggle, toggleConfirmPassword);
+        
+        confirmToggle.addEventListener('click', function() {
             const icon = this.querySelector('i');
-            togglePasswordVisibility(confirmPasswordInput, icon);
+            const isHidden = confirmPasswordInput.type === 'password';
+            confirmPasswordInput.type = isHidden ? 'text' : 'password';
+            if (icon) {
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            }
         });
     }
     
@@ -429,9 +447,18 @@ function setupPasswordToggles() {
     const loginPasswordInput = document.getElementById('password');
     
     if (toggleLoginPassword && loginPasswordInput) {
-        toggleLoginPassword.addEventListener('click', function() {
+        // Remove existing event listeners
+        const loginToggle = toggleLoginPassword.cloneNode(true);
+        toggleLoginPassword.parentNode.replaceChild(loginToggle, toggleLoginPassword);
+        
+        loginToggle.addEventListener('click', function() {
             const icon = this.querySelector('i');
-            togglePasswordVisibility(loginPasswordInput, icon);
+            const isHidden = loginPasswordInput.type === 'password';
+            loginPasswordInput.type = isHidden ? 'text' : 'password';
+            if (icon) {
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            }
         });
     }
     
@@ -440,9 +467,18 @@ function setupPasswordToggles() {
     const adminPasswordInput = document.getElementById('adminPassword');
     
     if (toggleAdminPassword && adminPasswordInput) {
-        toggleAdminPassword.addEventListener('click', function() {
+        // Remove existing event listeners
+        const adminToggle = toggleAdminPassword.cloneNode(true);
+        toggleAdminPassword.parentNode.replaceChild(adminToggle, toggleAdminPassword);
+        
+        adminToggle.addEventListener('click', function() {
             const icon = this.querySelector('i');
-            togglePasswordVisibility(adminPasswordInput, icon);
+            const isHidden = adminPasswordInput.type === 'password';
+            adminPasswordInput.type = isHidden ? 'text' : 'password';
+            if (icon) {
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            }
         });
     }
     
@@ -451,9 +487,18 @@ function setupPasswordToggles() {
     const regPassword = document.getElementById('regPassword');
     
     if (regTogglePassword && regPassword) {
-        regTogglePassword.addEventListener('click', function() {
+        // Remove existing event listeners
+        const regPassToggle = regTogglePassword.cloneNode(true);
+        regTogglePassword.parentNode.replaceChild(regPassToggle, regTogglePassword);
+        
+        regPassToggle.addEventListener('click', function() {
             const icon = this.querySelector('i');
-            togglePasswordVisibility(regPassword, icon);
+            const isHidden = regPassword.type === 'password';
+            regPassword.type = isHidden ? 'text' : 'password';
+            if (icon) {
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            }
         });
     }
     
@@ -462,9 +507,18 @@ function setupPasswordToggles() {
     const regConfirmPassword = document.getElementById('regConfirmPassword');
     
     if (regToggleConfirm && regConfirmPassword) {
-        regToggleConfirm.addEventListener('click', function() {
+        // Remove existing event listeners
+        const regConfirmToggle = regToggleConfirm.cloneNode(true);
+        regToggleConfirm.parentNode.replaceChild(regConfirmToggle, regToggleConfirm);
+        
+        regConfirmToggle.addEventListener('click', function() {
             const icon = this.querySelector('i');
-            togglePasswordVisibility(regConfirmPassword, icon);
+            const isHidden = regConfirmPassword.type === 'password';
+            regConfirmPassword.type = isHidden ? 'text' : 'password';
+            if (icon) {
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            }
         });
     }
     
@@ -473,9 +527,18 @@ function setupPasswordToggles() {
     const facPassword = document.getElementById('facPassword');
     
     if (facTogglePassword && facPassword) {
-        facTogglePassword.addEventListener('click', function() {
+        // Remove existing event listeners
+        const facPassToggle = facTogglePassword.cloneNode(true);
+        facTogglePassword.parentNode.replaceChild(facPassToggle, facTogglePassword);
+        
+        facPassToggle.addEventListener('click', function() {
             const icon = this.querySelector('i');
-            togglePasswordVisibility(facPassword, icon);
+            const isHidden = facPassword.type === 'password';
+            facPassword.type = isHidden ? 'text' : 'password';
+            if (icon) {
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            }
         });
     }
     
@@ -484,9 +547,18 @@ function setupPasswordToggles() {
     const facConfirmPassword = document.getElementById('facConfirmPassword');
     
     if (facToggleConfirm && facConfirmPassword) {
-        facToggleConfirm.addEventListener('click', function() {
+        // Remove existing event listeners
+        const facConfirmToggle = facToggleConfirm.cloneNode(true);
+        facToggleConfirm.parentNode.replaceChild(facConfirmToggle, facToggleConfirm);
+        
+        facConfirmToggle.addEventListener('click', function() {
             const icon = this.querySelector('i');
-            togglePasswordVisibility(facConfirmPassword, icon);
+            const isHidden = facConfirmPassword.type === 'password';
+            facConfirmPassword.type = isHidden ? 'text' : 'password';
+            if (icon) {
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            }
         });
     }
     
@@ -583,6 +655,13 @@ async function handleVerificationSubmit() {
     const newPassword = newPasswordInput.value;
     const confirmPassword = confirmPasswordInput.value;
     
+    // Check if this is an admin context by looking at modal title or stored flag
+    const modalTitle = document.querySelector('#passwordResetModal .modal-title');
+    const isAdminReset = modalTitle && (
+        modalTitle.innerHTML.includes('Admin') || 
+        modalTitle.textContent.includes('Admin')
+    );
+    
     // Validate inputs
     if (!verificationCode || verificationCode.length !== 6 || !/^\d+$/.test(verificationCode)) {
         Swal.fire('Error', 'Please enter a valid 6-digit code containing only numbers', 'error');
@@ -612,13 +691,15 @@ async function handleVerificationSubmit() {
                 'action': 'verify_reset_code',
                 'email': email,
                 'verification_code': verificationCode,
-                'new_password': newPassword, // Send user's chosen password
+                'new_password': newPassword,
+                'is_admin': isAdminReset ? '1' : '0', // Make sure this is sent
                 'csrf_token': getCsrfToken()
             })
         });
 
         const responseText = await response.text();
         console.log('Verify code response:', responseText);
+        console.log('Admin reset flag sent:', isAdminReset);
         
         let result;
         try {
