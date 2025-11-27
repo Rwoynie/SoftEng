@@ -1400,15 +1400,8 @@ async function sendGoogleCredentialToBackend(credential, userEmail, userName, se
 
 function handleGoogleAuthResult(result) {
     if (result.success) {
-        Swal.fire({
-            title: 'Success!',
-            text: result.message,
-            icon: 'success',
-            confirmButtonText: 'OK'
-        }).then(() => {
-            console.log('Redirecting to:', result.redirect_url);
-            window.location.href = result.redirect_url || '../../app/Views/User/userViewPage.php';
-        });
+        console.log('Google login successful, redirecting to:', result.redirect_url);
+        window.location.href = result.redirect_url || '../../app/Views/User/userViewPage.php';
     } else {
         // Show specific error message for role mismatch
         if (result.message.includes('registered as') && result.message.includes('Please use')) {
@@ -1657,23 +1650,16 @@ async function sendAdminGoogleCredentialToBackend(credential, userEmail, userNam
 
 function handleAdminAuthResult(result) {
     if (result.success) {
-        Swal.fire({
-            title: 'Admin Access Granted!',
-            text: result.message,
-            icon: 'success',
-            confirmButtonText: 'OK'
-        }).then(() => {
-            // Redirect to admin dashboard
-            window.location.href = result.redirect_url || '../../app/Views/Admin/adminDashboard.php';
-        });
+        // Redirect to admin dashboard immediately without showing success message
+        window.location.href = result.redirect_url || '../../app/Views/Admin/adminDashboard.php';
     } else {
+        // Only show SweetAlert for errors
         Swal.fire({
-            title: 'Admin Authentication Failed',
-            text: result.message || 'Authentication failed. Please try traditional admin login.',
+            title: 'Admin Access Denied',
+            text: result.message,
             icon: 'error',
             confirmButtonText: 'OK'
         });
-        resetAdminGoogleButton();
     }
 }
 

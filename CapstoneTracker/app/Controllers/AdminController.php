@@ -299,11 +299,7 @@ class AdminController extends Controller {
                 }
                 
                 // Check if account is approved
-                if ($accStatus === 'pending') {
-                    throw new Exception('Your admin account is pending approval.');
-                } else if ($accStatus === 'rejected') {
-                    throw new Exception('Your admin account was rejected. Please contact system administrator.');
-                } else if ($accStatus === 'approved') {
+                if ($accStatus === 'approved') {
                     // ✅ APPROVED ADMIN: Log them in
                     error_log("Admin account approved, creating session...");
                     
@@ -321,12 +317,11 @@ class AdminController extends Controller {
                     
                     error_log("Admin session created successfully");
                     
-                    // Clear buffer and send clean JSON
+                    // Clear buffer and send clean JSON - remove success message
                     ob_clean();
                     header('Content-Type: application/json');
                     echo json_encode([
                         'success' => true,
-                        'message' => 'Admin login successful',
                         'redirect_url' => '../../Views/Admin/AdminDashboard.php'
                     ]);
                     exit();
