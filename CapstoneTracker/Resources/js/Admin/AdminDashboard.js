@@ -1617,12 +1617,17 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
 
         <div class="menu-item" id="colorSchemeToggle">
-            <i class="fas fa-palette"></i>
+            <i class="fa-solid fa-palette"></i>
             <span>Change Color</span>
             <div class="toggle-switch">
                 <input type="checkbox" id="colorSchemeCheckbox">
                 <span class="toggle-slider"></span>
             </div>
+        </div>
+
+        <div class="menu-item" id="systemLockOption">
+            <i class="fa-solid fa-lock"></i>
+            <span>Lock System</span>
         </div>
 
         <button class="logout-menu-btn">
@@ -3773,7 +3778,7 @@ async function lockSystem() {
     }
 }
 
-initializeSystemLock();
+
 
 
     const moreOptionsToggle = document.getElementById('moreOptionsToggle');

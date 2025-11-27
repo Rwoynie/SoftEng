@@ -5116,7 +5116,6 @@ body {
 .more-options-menu.active {
     display: block;
 }
-
 .menu-item {
     display: flex;
     align-items: center;
@@ -5124,10 +5123,27 @@ body {
     cursor: pointer;
     transition: all 0.2s ease;
     color: var(--color-dark-grey);
+    margin-bottom: 0.5vw;
 }
+
 
 .menu-item:hover {
     background-color: #f5f5f5;
+}
+
+/* Ensure hover effects work for all menu items including system lock */
+#systemLockOption.menu-item:hover,
+#colorSchemeToggle.menu-item:hover {
+    background-color: #f5f5f5;
+    
+}
+
+.menu-item:hover i {
+    color: var(--primary-color);
+}
+
+.menu-item:hover span {
+    color: var(--primary-color);
 }
 
 .menu-item i {
@@ -5657,9 +5673,7 @@ background: #f8f9fa;
     background-color: rgba(255, 255, 255, 0.1);
 }
 
-#systemLockOption i {
-    color: #ff6b6b;
-}
+
 
 
 @media (max-width: 1400px) {
