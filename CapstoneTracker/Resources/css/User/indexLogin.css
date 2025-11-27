@@ -954,6 +954,7 @@ hr {
 /* ADMIN LOGIN MODAL STYLES */
 #adminLoginModal .modal-content {
     border-radius: 15px;
+    
     box-shadow: 0 6px 25px rgba(0,0,0,0.3);
     font-family: 'Poppins', sans-serif;
     border: 2px solid #dc3545;
@@ -1111,4 +1112,37 @@ hr {
 
 .sequence-error-notification .fa-exclamation-triangle {
     color: #ffc107;
+}
+
+/* More dramatic tint effect */
+body.forgot-password-open #loginModal,
+body.forgot-password-open #studentRegisterModal, 
+body.forgot-password-open #facultyRegisterModal,
+body.forgot-password-open #adminLoginModal {
+    opacity: 0.3 !important;
+    filter: brightness(0.3) grayscale(0.8);
+    transition: all 0.3s ease;
+}
+
+body.forgot-password-open .modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(3px);
+}
+
+/* Ensure forgot password modal stays on top and clear */
+#forgotPasswordModal {
+    z-index: 9999 !important;
+}
+
+#forgotPasswordModal .modal-content {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.modal-body {
+    position: relative;
+    flex: 1 1 auto;
+    padding: var(--bs-modal-padding);
+    padding-bottom: 0vw;
 }

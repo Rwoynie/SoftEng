@@ -358,6 +358,13 @@ function setupForgotPassword() {
             openForgotPasswordModal();
         });
     }
+
+    const backToLoginBtn = document.getElementById('backToLoginFromForgot');
+    if (backToLoginBtn) {
+        backToLoginBtn.addEventListener('click', function() {
+            document.body.classList.remove('forgot-password-open');
+        });
+    }
     
     // Setup forgot password form
     const forgotPasswordForm = document.getElementById('forgotPasswordForm');
@@ -726,14 +733,20 @@ function openForgotPasswordModal() {
             sendCodeBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Send Verification Code';
         }
         
+        // Add class to body to trigger the tint effect
+        document.body.classList.add('forgot-password-open');
+        
         // Show the modal
         const forgotPasswordModal = document.getElementById('forgotPasswordModal');
         if (forgotPasswordModal) {
             const modal = new bootstrap.Modal(forgotPasswordModal);
+            
+            // Remove the tint when forgot password modal is closed
+            forgotPasswordModal.addEventListener('hidden.bs.modal', function() {
+                document.body.classList.remove('forgot-password-open');
+            });
+            
             modal.show();
-        } else {
-            console.error('Forgot password modal not found');
-            Swal.fire('Error', 'Password reset functionality is currently unavailable.', 'error');
         }
     } catch (error) {
         console.error('Error opening forgot password modal:', error);

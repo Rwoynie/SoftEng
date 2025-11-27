@@ -405,7 +405,7 @@ if ($setupError) {
           <div class="modal-header text-center w-100 d-block position-relative">
             <img src="../../../resources/Images/ThesisCompLogo.png" class="sysLogo mb-2" alt="Logo" style="width:80px;">
             <h5 class="modal-title">
-                <i class="fas fa-shield-alt admin-icon"></i>
+                
                 Admin Login
             </h5>
             <button type="button" class="btn btn-link text-white position-absolute" style="top:8px; right:10px; font-size:24px; text-decoration:none;" data-bs-dismiss="modal" aria-label="Close">&times;</button>
@@ -421,7 +421,7 @@ if ($setupError) {
               <input type="hidden" name="action" value="login">
               <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
               <div class="mb-3">
-                <label for="adminUsername" class="form-label">Admin ID</label>
+                <label for="adminUsername" class="form-label">User ID</label>
                 <input type="text" id="adminUsername" name="admin_username" class="form-control" placeholder="Enter admin ID" required>
               </div>
               <div class="mb-3">
@@ -473,8 +473,7 @@ if ($setupError) {
       <div class="modal-header border-0 text-center w-100 d-block position-relative">
         <img src="../../../resources/Images/ThesisCompLogo.png" class="sysLogo mb-2" alt="Logo" style="width:80px;">
         <h5 class="modal-title">Reset Password</h5>
-        <button type="button" class="btn btn-link text-muted position-absolute" style="top:8px; right:10px; font-size:24px; text-decoration:none;" data-bs-dismiss="modal" aria-label="Close">&times;</button>
-      </div>
+        </div>
       <div class="modal-body">
         <p class="text-muted mb-4">Enter your email address and we'll send you a verification code to reset your password.</p>
         <form id="forgotPasswordForm">
@@ -491,9 +490,9 @@ if ($setupError) {
             <button type="submit" class="btn btn-primary" id="sendCodeBtn">
               <i class="fas fa-paper-plane me-2"></i>Send Verification Code
             </button>
-            <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="modal">
+            <button type="button" class="btn btn-outline-danger w-100" id="backToLoginFromForgot" data-bs-dismiss="modal">
               <i class="fas fa-arrow-left me-2"></i> Back to login
-            </button>
+          </button>
           </div>
         </form>
       </div>

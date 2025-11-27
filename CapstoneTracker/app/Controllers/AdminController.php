@@ -356,7 +356,8 @@ class AdminController extends Controller {
         }
     }
 
-    /**
+    
+        /**
      * Find admin by email
      */
     private function findAdminByEmail($email) {
@@ -384,13 +385,10 @@ class AdminController extends Controller {
             $userModel = new User();
             $db = $userModel->getDb();
             
-            // Hash the email for lookup
-            $emailHash = hash('sha256', $email);
-            error_log("Hashed email: " . $emailHash);
-            
-            // Query to find admin user by hashed email
+            // FIX: Query with the original email, NOT the hashed one
+            // The USER_INFORMATION table stores the actual email address
             $db->query('SELECT * FROM USER_INFORMATION WHERE Email = :email AND User_Role IN ("superAdmin", "SubAdmin", "admin") LIMIT 1');
-            $db->bind(':email', $emailHash);
+            $db->bind(':email', $email); // Use original email, not hashed
             $result = $db->single();
             
             // Convert object to array if needed
@@ -406,15 +404,19 @@ class AdminController extends Controller {
                 error_log("  - Status: " . ($result['Acc_Status'] ?? 'unknown'));
                 error_log("  - First Name: " . ($result['First_Name'] ?? 'unknown'));
                 error_log("  - Last Name: " . ($result['Last_Name'] ?? 'unknown'));
+                error_log("  - Email: " . ($result['Email'] ?? 'unknown')); // Log the actual email
             } else {
-                error_log("❌ No admin found with email hash: " . $emailHash);
+                error_log("❌ No admin found with email: " . $email);
                 
                 // Debug: Check what users exist with admin roles
-                $db->query('SELECT ID, User_Role, Acc_Status, First_Name, Last_Name FROM USER_INFORMATION WHERE User_Role IN ("superAdmin", "SubAdmin", "admin")');
+                $db->query('SELECT ID, Email, User_Role, Acc_Status, First_Name, Last_Name FROM USER_INFORMATION WHERE User_Role IN ("superAdmin", "SubAdmin", "admin")');
                 $allAdmins = $db->resultSet();
                 error_log("All admin users in database: " . count($allAdmins));
                 foreach ($allAdmins as $admin) {
-                    error_log("  - ID: " . ($admin->ID ?? 'unknown') . ", Role: " . ($admin->User_Role ?? 'unknown') . ", Status: " . ($admin->Acc_Status ?? 'unknown'));
+                    error_log("  - ID: " . ($admin->ID ?? 'unknown') . 
+                            ", Email: " . ($admin->Email ?? 'unknown') . 
+                            ", Role: " . ($admin->User_Role ?? 'unknown') . 
+                            ", Status: " . ($admin->Acc_Status ?? 'unknown'));
                 }
             }
             
@@ -430,7 +432,7 @@ class AdminController extends Controller {
     private function isAuthorizedAdminEmail($email) {
         // Define your authorized admin emails
         $authorizedAdmins = [
-            'superadmin@usep.edu.ph',
+            'admin@usep.edu.ph',
             // Add other authorized admin emails
         ];
         
