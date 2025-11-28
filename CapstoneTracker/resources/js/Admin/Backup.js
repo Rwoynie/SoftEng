@@ -25,10 +25,10 @@ class BackupManager {
         }
 
         // View Backup History Button
-        const viewHistoryBtn = document.getElementById('viewBackupHistoryBtn');
-        if (viewHistoryBtn) {
-            viewHistoryBtn.addEventListener('click', () => {
-                this.toggleBackupHistory();
+        const createDiffBackupBtn = document.getElementById('createDiffBackupBtn');
+        if (createDiffBackupBtn) {
+            createDiffBackupBtn.addEventListener('click', () => {
+                this.createDifferentialBackup();
             });
         }
     }
@@ -49,7 +49,7 @@ class BackupManager {
     // Update the renderBackupHistory method to use proper event delegation
     renderBackupHistory(backups) {
         const tbody = document.getElementById('backupHistoryTableBody');
-
+    
         if (backups.length === 0) {
             tbody.innerHTML = `
                 <tr>
@@ -62,27 +62,37 @@ class BackupManager {
             `;
             return;
         }
-
-        tbody.innerHTML = backups.map(backup => `
-            <tr>
-                <td>${this.formatDate(backup.created_at)}</td>
-                <td>${backup.file_name}</td>
-                <td>${backup.size_formatted}</td>
-                <td>Manual Backup</td>
-                <td class="text-center">
-                    <button class="backup-action download-btn" data-filename="${backup.file_name}" data-action="download" title="Download Backup">
-                        <i class="fas fa-download"></i>
-                    </button>
-                    <button class="backup-action restore-btn" data-filename="${backup.file_name}" data-action="restore" title="Restore Backup">
-                        <i class="fas fa-upload"></i>
-                    </button>
-                    <button class="backup-action delete-btn" data-filename="${backup.file_name}" data-action="delete" title="Delete Backup">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-
+    
+        tbody.innerHTML = backups.map(backup => {
+            // Determine backup type based on filename or type property
+            let backupType = 'Manual Backup';
+            if (backup.file_name.includes('full_backup_') || backup.type === 'full') {
+                backupType = 'Full Backup';
+            } else if (backup.file_name.includes('diff_backup_') || backup.type === 'differential') {
+                backupType = 'Differential Backup';
+            }
+            
+            return `
+                <tr>
+                    <td>${this.formatDate(backup.created_at)}</td>
+                    <td>${backup.file_name}</td>
+                    <td>${backup.size_formatted}</td>
+                    <td>${backupType}</td>
+                    <td class="text-center">
+                        <button class="backup-action download-btn" data-filename="${backup.file_name}" data-action="download" title="Download Backup">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="backup-action restore-btn" data-filename="${backup.file_name}" data-action="restore" title="Restore Backup">
+                            <i class="fas fa-upload"></i>
+                        </button>
+                        <button class="backup-action delete-btn" data-filename="${backup.file_name}" data-action="delete" title="Delete Backup">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    
         // Add event listeners to the new buttons
         this.initTableEventListeners();
     }
@@ -110,6 +120,57 @@ class BackupManager {
                     }
                 }
             });
+        }
+    }
+
+    async createDifferentialBackup() {
+        const result = await Swal.fire({
+            title: 'Create Differential Backup?',
+            text: 'This will create a backup of only the data changed since the last backup. This is faster and smaller than a full backup.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, Create Differential Backup!',
+            cancelButtonText: 'Cancel',
+        });
+    
+        if (!result.isConfirmed) {
+            return;
+        }
+    
+        const diffBackupBtn = document.getElementById('createDiffBackupBtn');
+        const originalText = diffBackupBtn.innerHTML;
+        
+        try {
+            diffBackupBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Differential Backup...';
+            diffBackupBtn.disabled = true;
+    
+            const formData = new FormData();
+            formData.append('action', 'create_differential_backup');
+            formData.append('csrf_token', this.getCsrfToken());
+    
+            const response = await fetch('../../../app/Controllers/BackupController.php', {
+                method: 'POST',
+                body: formData
+            });
+    
+            const result = await response.json();
+    
+            if (result.success) {
+                this.showNotification('Differential backup created successfully!', 'success');
+                this.loadBackupInfo();
+                this.loadBackupHistory();
+            } else {
+                throw new Error(result.error || 'Failed to create differential backup');
+            }
+    
+        } catch (error) {
+            console.error('Differential backup creation error:', error);
+            this.showNotification('Error creating differential backup: ' + error.message, 'error');
+        } finally {
+            diffBackupBtn.innerHTML = originalText;
+            diffBackupBtn.disabled = false;
         }
     }
 

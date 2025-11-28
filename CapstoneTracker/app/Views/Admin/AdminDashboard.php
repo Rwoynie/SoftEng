@@ -1216,10 +1216,10 @@ $displayUserData = [
                                 <div class="backup-icon">
                                     <i class="fas fa-download"></i>
                                 </div>
-                                <h3>Create Backup</h3>
+                                <h3>Create Full Backup</h3>
                                 <p>Create a complete backup of the system database and files</p>
                                 <button class="btn btn-primary backup-action-btn" id="createBackupBtn">
-                                    <i class="fas fa-database"></i> Create System Backup
+                                    <i class="fas fa-database"></i> Create Full System Backup
                                 </button>
                             </div>
                             
@@ -1238,9 +1238,11 @@ $displayUserData = [
                                 <div class="backup-icon">
                                     <i class="fas fa-history"></i>
                                 </div>
-                                <h3>Backup History</h3>
-                                <p>View and manage previous system backups</p>
-                                
+                                <h3>Differential Backup</h3>
+                                <p>Create a backup from the last transaction</p>
+                                <button class="btn btn-tertiary backup-action-btn" id="createDiffBackupBtn">
+                                    <i class="fas fa-file-import"></i> Create Differential Backup
+                                </button>
                             </div>
                         </div>
                         

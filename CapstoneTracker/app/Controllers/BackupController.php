@@ -76,6 +76,8 @@ class BackupController {
                     break;
                 case 'get_backup_info':
                     $this->getBackupInfo();
+                case 'create_differential_backup':
+                    $this->createDifferentialBackup();
                     break;
                 default:
                     $this->sendJsonResponse(['success' => false, 'error' => 'Invalid action']);
@@ -130,6 +132,23 @@ class BackupController {
             
         } catch (Exception $e) {
             $this->sendJsonResponse(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    private function createDifferentialBackup() {
+        $result = $this->backupModel->createDifferentialBackup();
+        
+        if ($result['success']) {
+            $this->sendJsonResponse([
+                'success' => true,
+                'message' => 'Differential backup created successfully',
+                'backup_file' => $result['file_name'],
+                'size' => $result['size_formatted'],
+                'timestamp' => $result['timestamp'],
+                'type' => $result['type']
+            ]);
+        } else {
+            $this->sendJsonResponse(['success' => false, 'error' => $result['error']]);
         }
     }
 

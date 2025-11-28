@@ -15,10 +15,214 @@ class Backup {
         }
     }
 
+    private function getLastBackupTimestamp() {
+        try {
+            $backups = $this->getBackupHistory();
+            if (!empty($backups)) {
+                // Return the timestamp of the most recent backup
+                return strtotime($backups[0]['created_at']);
+            }
+        } catch (Exception $e) {
+            error_log("Error getting last backup timestamp: " . $e->getMessage());
+        }
+        return 0; // Return 0 if no previous backups
+    }
+
+    public function createDifferentialBackup() {
+        try {
+            $lastBackupTime = $this->getLastBackupTimestamp();
+            $timestamp = date('Y-m-d_H-i-s');
+            $backupFileName = "diff_backup_{$timestamp}.sql";
+            $backupFilePath = $this->backupPath . $backupFileName;
+            
+            // Get database configuration
+            $host = DB_HOST;
+            $user = DB_USER;
+            $pass = DB_PASS;
+            $name = DB_NAME;
+            
+            if ($this->createDifferentialBackupWithPHP($backupFilePath, $lastBackupTime)) {
+                error_log("Differential backup created successfully");
+                
+                // Check if backup file was created
+                if (!file_exists($backupFilePath) || filesize($backupFilePath) === 0) {
+                    throw new Exception("Differential backup file was not created or is empty.");
+                }
+                
+                // Compress the backup
+                $compressedPath = $this->compressBackup($backupFilePath);
+                
+                // Delete the original SQL file
+                unlink($backupFilePath);
+                
+                // Log backup creation
+                $this->logBackupAction('create_differential', $compressedPath);
+                
+                return [
+                    'success' => true,
+                    'file_path' => $compressedPath,
+                    'file_name' => basename($compressedPath),
+                    'size' => filesize($compressedPath),
+                    'size_formatted' => $this->formatBytes(filesize($compressedPath)),
+                    'timestamp' => $timestamp,
+                    'type' => 'differential'
+                ];
+            } else {
+                throw new Exception("Differential backup method failed");
+            }
+            
+        } catch (Exception $e) {
+            error_log("Differential backup creation error: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    private function createDifferentialBackupWithPHP($backupFilePath, $sinceTimestamp) {
+        try {
+            $host = DB_HOST;
+            $user = DB_USER;
+            $pass = DB_PASS;
+            $name = DB_NAME;
+            
+            $connection = new mysqli($host, $user, $pass, $name);
+            
+            if ($connection->connect_error) {
+                throw new Exception("Connection failed: " . $connection->connect_error);
+            }
+            
+            // Set UTF8 encoding
+            $connection->set_charset("utf8mb4");
+            
+            $output = "-- PHP MySQL Differential Backup\n";
+            $output .= "-- Generated: " . date('Y-m-d H:i:s') . "\n";
+            $output .= "-- Database: " . $name . "\n";
+            $output .= "-- Since: " . date('Y-m-d H:i:s', $sinceTimestamp) . "\n\n";
+            
+            // Disable foreign key checks at the beginning
+            $output .= "SET FOREIGN_KEY_CHECKS=0;\n\n";
+            
+            // Get all tables (excluding views)
+            $tables = array();
+            $result = $connection->query("SHOW FULL TABLES WHERE Table_Type = 'BASE TABLE'");
+            while ($row = $result->fetch_row()) {
+                $tables[] = $row[0];
+            }
+            
+            $hasChanges = false;
+            
+            foreach ($tables as $table) {
+                // Check if table has updated_at or created_at timestamp column
+                $hasTimestamp = false;
+                $timestampColumn = '';
+                
+                $columnResult = $connection->query("SHOW COLUMNS FROM `$table`");
+                while ($column = $columnResult->fetch_assoc()) {
+                    if (in_array(strtolower($column['Field']), ['updated_at', 'created_at', 'last_modified'])) {
+                        $hasTimestamp = true;
+                        $timestampColumn = $column['Field'];
+                        break;
+                    }
+                }
+                
+                if ($hasTimestamp && $timestampColumn) {
+                    // Use timestamp column to get only recent changes
+                    $whereClause = "WHERE `$timestampColumn` > FROM_UNIXTIME($sinceTimestamp)";
+                } else {
+                    // For tables without timestamp, we'll backup all data (fallback)
+                    // In a real implementation, you might want to handle this differently
+                    $whereClause = "";
+                }
+                
+                $data = $connection->query("SELECT * FROM `$table` $whereClause");
+                
+                if ($data && $data->num_rows > 0) {
+                    $hasChanges = true;
+                    $numFields = $data->field_count;
+                    
+                    $output .= "--\n-- Dumping data for table `$table` (changes since last backup)\n--\n";
+                    
+                    // First delete existing records that will be updated
+                    $primaryKey = $this->getPrimaryKey($connection, $table);
+                    if ($primaryKey) {
+                        $data->data_seek(0); // Reset pointer
+                        while ($row = $data->fetch_assoc()) {
+                            $output .= "DELETE FROM `$table` WHERE `$primaryKey` = '" . $connection->real_escape_string($row[$primaryKey]) . "';\n";
+                        }
+                        $data->data_seek(0); // Reset pointer again for INSERT
+                    }
+                    
+                    // Now insert the updated records
+                    while ($row = $data->fetch_assoc()) {
+                        $output .= "INSERT INTO `$table` VALUES(";
+                        
+                        $fieldIndex = 0;
+                        foreach ($row as $value) {
+                            // Handle NULL values
+                            if ($value === null) {
+                                $output .= "NULL";
+                            } else {
+                                // Check if this field is a JSON column
+                                $fieldInfo = $data->fetch_field_direct($fieldIndex);
+                                $isJson = $this->isJsonColumn($connection, $table, $fieldInfo->name);
+                                
+                                if ($isJson && !empty($value)) {
+                                    // For JSON columns, ensure valid JSON
+                                    $jsonValue = $this->validateJsonValue($value);
+                                    $output .= "'" . $connection->real_escape_string($jsonValue) . "'";
+                                } else {
+                                    // Regular string escaping
+                                    $output .= "'" . $connection->real_escape_string($value) . "'";
+                                }
+                            }
+                            
+                            if ($fieldIndex < ($numFields - 1)) {
+                                $output .= ",";
+                            }
+                            $fieldIndex++;
+                        }
+                        $output .= ");\n";
+                    }
+                    $output .= "\n";
+                }
+            }
+            
+            // If no changes found, create a minimal backup file
+            if (!$hasChanges) {
+                $output .= "-- No changes detected since last backup\n";
+            }
+            
+            // Re-enable foreign key checks at the end
+            $output .= "SET FOREIGN_KEY_CHECKS=1;\n";
+            
+            // Write to file
+            if (file_put_contents($backupFilePath, $output) === false) {
+                throw new Exception("Could not write to differential backup file");
+            }
+            
+            $connection->close();
+            return true;
+            
+        } catch (Exception $e) {
+            error_log("Differential backup method failed: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    private function getPrimaryKey($connection, $table) {
+        $result = $connection->query("SHOW KEYS FROM `$table` WHERE Key_name = 'PRIMARY'");
+        if ($result && $row = $result->fetch_assoc()) {
+            return $row['Column_name'];
+        }
+        return null;
+    }
+
     public function createBackup() {
         try {
             $timestamp = date('Y-m-d_H-i-s');
-            $backupFileName = "backup_{$timestamp}.sql";
+            $backupFileName = "full_backup_{$timestamp}.sql";
             $backupFilePath = $this->backupPath . $backupFileName;
             
             // Get database configuration
@@ -51,7 +255,8 @@ class Backup {
                     'file_name' => basename($compressedPath),
                     'size' => filesize($compressedPath),
                     'size_formatted' => $this->formatBytes(filesize($compressedPath)),
-                    'timestamp' => $timestamp
+                    'timestamp' => $timestamp,
+                    'type' => 'full'  // Add type
                 ];
             } else {
                 throw new Exception("PHP backup method failed");
