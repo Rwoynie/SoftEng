@@ -5598,25 +5598,34 @@ background: #f8f9fa;
 }
 
 .log-download-btn2 {
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    display: flex;
+    background: var(--primary-color);
     color: white;
+    bottom: 30px;
+    right: 30px;
+    font-size: var(--size-xlarge);
     border: none;
     padding: 10px 20px;
-    border-radius: 25px;
+    border-radius: 50%;
     cursor: pointer;
     font-weight: 600;
-    display: flex;
+    width: 60px;
+    height: 60px;
     align-items: center;
+    text-align: center;
     gap: 8px;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(186, 30, 31, 0.3);
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(163, 21, 23, 0.5);
     white-space: nowrap;
-    position: static;
+    position: fixed;
+    transition: transform 0.2s, box-shadow 0.2s;
+    z-index: 1000;   
 }
 
 .log-download-btn2:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(186, 30, 31, 0.4);
+    transform: scale(1.1);
+    box-shadow: 0 6px 25px rgba(163, 21, 23, 0.6);
 }
 
 
@@ -6346,3 +6355,4 @@ background: #f8f9fa;
     opacity: 0.6;
     pointer-events: none;
 }
+

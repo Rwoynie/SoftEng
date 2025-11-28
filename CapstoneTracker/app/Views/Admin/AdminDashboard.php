@@ -696,7 +696,7 @@ $displayUserData = [
                         <div class="title">System Logs</div>
                                 <button class="log-download-btn2">
                                     <i class="fas fa-download me-2"></i>
-                                    Download System Logs
+                                    
                                 </button>
                         <div class="logMenu">
                             <button class="selected" id="allLogsButton">All</button>
