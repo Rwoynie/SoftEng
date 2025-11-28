@@ -72,6 +72,19 @@ if ($setupError) {
   // Also log the detailed error
   error_log("Database setup error details: " . $setupError);
 }
+
+
+// Store login attempt information
+$loginAttemptsRemaining = $_SESSION['login_attempts_remaining'] ?? 3;
+$accountLocked = $_SESSION['account_locked'] ?? false;
+$lockoutTime = $_SESSION['lockout_time'] ?? 0;
+$loginEmail = $_SESSION['login_email'] ?? '';
+
+// Clear these after use to prevent showing on page refresh
+unset($_SESSION['login_attempts_remaining']);
+unset($_SESSION['account_locked']);
+unset($_SESSION['lockout_time']);
+unset($_SESSION['login_email']);
 ?> 
 
 <!DOCTYPE html>
@@ -96,11 +109,16 @@ if ($setupError) {
     
 
     <script>
-        const errorMessage = "<?php echo addslashes($errorMessage); ?>";
-        const errorModal = "<?php echo addslashes($errorModal); ?>";
-        const showModal = <?php echo $showModal ? 'true' : 'false'; ?>;
-        const successMessage = "<?php echo addslashes($successMessage); ?>";
-        const adminErrorMessage = "<?php echo addslashes($adminErrorMessage); ?>";
+      const errorMessage = "<?php echo addslashes($errorMessage); ?>";
+      const errorModal = "<?php echo addslashes($errorModal); ?>";
+      const showModal = <?php echo $showModal ? 'true' : 'false'; ?>;
+      const successMessage = "<?php echo addslashes($successMessage); ?>";
+      const adminErrorMessage = "<?php echo addslashes($adminErrorMessage); ?>";
+
+      const loginAttemptsRemaining = <?php echo (int)($loginAttemptsRemaining ?? 3); ?>;
+      const accountLocked = <?php echo isset($accountLocked) && $accountLocked ? 'true' : 'false'; ?>;
+      const lockoutTime = <?php echo (int)($lockoutTime ?? 0); ?>;
+      const loginEmail = "<?php echo addslashes($loginEmail ?? ''); ?>";
     </script>
 </head> 
 <body>
@@ -691,6 +709,7 @@ if ($setupError) {
                 }
             });
         });
+
         
         // Debug output
         console.log('PHP errorMessage:', errorMessage);

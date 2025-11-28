@@ -330,10 +330,7 @@ $totalAllcourse = array_sum($courseCounts);
               Copy APA Citation
           </button>
           <div class="modal-footer-actions">
-              <button id="viewFullThesis" class="btn-primary">
-                  <i class="fas fa-external-link-alt"></i>
-                  View Full Thesis
-              </button>
+              
               <button class="btn-secondary close-modal">Close</button>
           </div>
       </div>

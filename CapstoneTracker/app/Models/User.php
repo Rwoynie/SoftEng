@@ -781,17 +781,25 @@ public function valueExists($field, $value) {
     public function logLoginAttempt($email, $userId = null, $ipAddress = null, $userAgent = null, $success = false, $notes = '') {
         try {
             $query = "INSERT INTO LOGIN_ATTEMPTS (user_id, email, ip_address, user_agent, success, notes) 
-                      VALUES (:user_id, :email, :ip_address, :user_agent, :success, :notes)";
+                    VALUES (:user_id, :email, :ip_address, :user_agent, :success, :notes)";
             
             $this->db->query($query);
             $this->db->bind(':user_id', $userId);
-            $this->db->bind(':email', $email);
+            $this->db->bind(':email', $email); // Store plain email for tracking
             $this->db->bind(':ip_address', $ipAddress);
             $this->db->bind(':user_agent', $userAgent);
-            $this->db->bind(':success', $success);
+            $this->db->bind(':success', $success, PDO::PARAM_BOOL);
             $this->db->bind(':notes', $notes);
             
-            return $this->db->execute();
+            $result = $this->db->execute();
+            
+            if (!$result) {
+                error_log("Failed to log login attempt for email: " . $email);
+                return false;
+            }
+            
+            return true;
+            
         } catch (Exception $e) {
             error_log("Login attempt logging error: " . $e->getMessage());
             return false;

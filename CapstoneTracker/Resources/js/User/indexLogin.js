@@ -1,7 +1,6 @@
 
-// Show error message as SweetAlert and reopen modal if there is an error
 document.addEventListener('DOMContentLoaded', function() {
-    // Check if we should show the modal based on error message
+
     if (event.ShiftKey && event.key === 'h') {
         event.preventDefault();
         
@@ -65,6 +64,58 @@ document.addEventListener('DOMContentLoaded', function() {
                 adminModalInstance.show();
             }
         }, 1000);
+    }
+
+     
+
+        if (typeof accountLocked !== 'undefined' && accountLocked && accountLocked !== 'false') {
+            showLoginAttemptAlert(errorMessage, 0, true, lockoutTime);
+            
+
+            setTimeout(() => {
+                openLogin('Researcher');
+            }, 1500);
+        } else if (typeof loginAttemptsRemaining !== 'undefined' && loginAttemptsRemaining < 3) {
+            showLoginAttemptAlert(errorMessage, loginAttemptsRemaining, false, 0);
+            
+
+            setTimeout(() => {
+                openLogin('Researcher');
+            }, 1500);
+        }
+        
+
+    if (typeof errorMessage !== 'undefined' && errorMessage && errorMessage !== '') {
+            
+        if (!accountLocked && loginAttemptsRemaining >= 3) {
+                if (window.location.href.includes('AuthController') || 
+                    errorMessage.includes('login') || 
+                    errorMessage.includes('Login') ||
+                    errorMessage.includes('credentials') ||
+                    errorMessage.includes('pending') ||
+                    errorMessage.includes('rejected')) {
+                    showLoginErrorAlert(errorMessage);
+                } else {
+                    showErrorAlert(errorMessage);
+                }
+            }
+            
+            // Your existing modal opening code...
+            const modalType = typeof errorModal !== 'undefined' ? errorModal : '';
+            
+            if (modalType === 'student' || errorMessage.includes('Student') || errorMessage.includes('student')) {
+                setTimeout(() => {
+                    openStudentRegistration();
+                }, 1000);
+            } else if (modalType === 'faculty' || errorMessage.includes('Faculty') || errorMessage.includes('faculty')) {
+                setTimeout(() => {
+                    openFacultyRegistration();
+                }, 1000);
+            } else {
+                setTimeout(() => {
+                    openLogin('Researcher');
+                }, 1000);
+            }
     }
 
     
@@ -2122,7 +2173,6 @@ function setupAdminForm() {
                 return;
             }
             
-            // Show loading state
             Swal.fire({
                 title: 'Authenticating...',
                 text: 'Please wait while we verify your admin credentials',
@@ -2132,7 +2182,6 @@ function setupAdminForm() {
                 }
             });
             
-            // Submit via fetch to see detailed errors
             const formData = new FormData(this);
             
             fetch(this.action, {
@@ -2142,7 +2191,6 @@ function setupAdminForm() {
             .then(response => response.text())
             .then(data => {
                 console.log('Admin login response:', data);
-                // Let the form submit normally for now
                 this.submit();
             })
             .catch(error => {
@@ -2173,5 +2221,59 @@ function showAdminErrorAlert(message) {
             icon: 'error',
             confirmButtonText: 'OK'
         });
+    }
+}
+
+function showLoginAttemptAlert(message, attemptsRemaining, isLocked, lockoutSeconds) {
+    if (isLocked) {
+        const minutes = Math.ceil(lockoutSeconds / 60);
+        Swal.fire({
+            title: 'Account Locked',
+            html: `
+                <div class="text-center">
+                    <i class="fas fa-lock fa-3x text-warning mb-3"></i>
+                    <p>${message}</p>
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-clock me-2"></i>
+                        <strong>Time remaining:</strong> ${minutes} minute(s)
+                    </div>
+                    <small class="text-muted">This is a security measure to protect your account.</small>
+                </div>
+            `,
+            icon: 'warning',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#ffc107'
+        });
+    } else if (attemptsRemaining < 3) {
+        Swal.fire({
+            title: 'Login Failed',
+            html: `
+                <div class="text-center">
+                    <i class="fas fa-exclamation-triangle fa-2x text-danger mb-3"></i>
+                    <p>${message}</p>
+                    <div class="attempts-warning mt-3">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        <strong>Attempts remaining:</strong> ${attemptsRemaining}
+                    </div>
+                    <small class="text-muted">After 3 failed attempts, your account will be locked for 5 minutes.</small>
+                </div>
+            `,
+            icon: 'error',
+            confirmButtonText: 'Try Again',
+            confirmButtonColor: '#dc3545'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                if (loginEmail) {
+                    const emailInput = document.getElementById('username');
+                    const passwordInput = document.getElementById('password');
+                    if (emailInput && passwordInput) {
+                        emailInput.value = loginEmail;
+                        passwordInput.focus();
+                    }
+                }
+            }
+        });
+    } else {
+        showLoginErrorAlert(message);
     }
 }

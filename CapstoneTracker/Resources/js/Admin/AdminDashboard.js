@@ -1625,10 +1625,6 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         </div>
 
-        <div class="menu-item" id="systemLockOption">
-            <i class="fa-solid fa-lock"></i>
-            <span>Lock System</span>
-        </div>
 
         <button class="logout-menu-btn">
             <i class="fas fa-sign-out-alt"></i>Logout
@@ -3867,6 +3863,8 @@ async function lockSystem() {
         });
 
     }
+
+    initializeSystemLock();
 
 
 testDebugMethod();

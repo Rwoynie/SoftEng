@@ -1497,6 +1497,96 @@ private function getWelcomeBackBody($name, $email, $role) {
         header("Location: $location");
         exit();
     }
+
+
+
+    /**
+     * Track login attempts and check if user is locked out
+     */
+    private function checkLoginAttempts($email) {
+        try {
+            require_once ROOT_DIR . '\app\Models\User.php';
+            $userModel = new User();
+            $db = $userModel->getDb();
+            
+            // Check if user has 3 or more failed attempts in the last 5 minutes
+            $db->query('SELECT COUNT(*) as attempt_count FROM LOGIN_ATTEMPTS 
+                    WHERE email = :email AND success = 0 
+                    AND attempt_time >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)');
+            $db->bind(':email', $email);
+            $result = $db->single();
+            
+            $attemptCount = $result ? $result->attempt_count : 0;
+            
+            error_log("Login attempts for {$email}: {$attemptCount} in last 5 minutes");
+            
+            return $attemptCount >= 3;
+            
+        } catch (Exception $e) {
+            error_log("Check login attempts error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get remaining login attempts
+     */
+    private function getRemainingAttempts($email) {
+        try {
+            require_once ROOT_DIR . '\app\Models\User.php';
+            $userModel = new User();
+            $db = $userModel->getDb();
+            
+            $db->query('SELECT COUNT(*) as attempt_count FROM LOGIN_ATTEMPTS 
+                    WHERE email = :email AND success = 0 
+                    AND attempt_time >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)');
+            $db->bind(':email', $email);
+            $result = $db->single();
+            
+            $attemptCount = $result ? $result->attempt_count : 0;
+            $remainingAttempts = 3 - $attemptCount;
+            
+            error_log("Remaining attempts for {$email}: {$remainingAttempts}");
+            
+            return max(0, $remainingAttempts);
+            
+        } catch (Exception $e) {
+            error_log("Get remaining attempts error: " . $e->getMessage());
+            return 3; 
+        }
+    }
+
+    /**
+     * Get lockout time remaining
+     */
+    private function getLockoutTimeRemaining($email) {
+        try {
+            require_once ROOT_DIR . '\app\Models\User.php';
+            $userModel = new User();
+            $db = $userModel->getDb();
+            
+            // Get the time of the 3rd failed attempt
+            $db->query('SELECT attempt_time FROM LOGIN_ATTEMPTS 
+                    WHERE email = :email AND success = 0 
+                    ORDER BY attempt_time DESC LIMIT 1 OFFSET 2');
+            $db->bind(':email', $email);
+            $result = $db->single();
+            
+            if ($result) {
+                $lockoutTime = strtotime($result->attempt_time);
+                $currentTime = time();
+                $timeRemaining = 300 - ($currentTime - $lockoutTime); // 5 minutes in seconds
+                
+                return max(0, $timeRemaining);
+            }
+            
+            return 0;
+            
+        } catch (Exception $e) {
+            error_log("Get lockout time error: " . $e->getMessage());
+            return 0;
+        }
+    }
 }
 
 // Instantiate and handle the request if this file is accessed directly

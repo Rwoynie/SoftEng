@@ -1114,6 +1114,30 @@ hr {
     color: #ffc107;
 }
 
+.attempts-warning {
+    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+    border: 1px solid #ffc107;
+    border-radius: 8px;
+    padding: 12px;
+    font-weight: 500;
+}
+
+.swal2-popup .attempts-warning {
+    margin: 15px 0;
+}
+
+.password-strength {
+    height: 5px;
+    border-radius: 3px;
+    margin-top: 5px;
+    transition: all 0.3s ease;
+}
+
+.password-strength.strength-weak { background-color: #dc3545; width: 25%; }
+.password-strength.strength-fair { background-color: #fd7e14; width: 50%; }
+.password-strength.strength-good { background-color: #ffc107; width: 75%; }
+.password-strength.strength-strong { background-color: #20c997; width: 100%; }
+
 /* More dramatic tint effect */
 body.forgot-password-open #loginModal,
 body.forgot-password-open #studentRegisterModal, 
