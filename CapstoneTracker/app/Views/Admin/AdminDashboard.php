@@ -1241,7 +1241,7 @@ $displayUserData = [
                                 <h3>Differential Backup</h3>
                                 <p>Create a backup from the last transaction</p>
                                 <button class="btn btn-tertiary backup-action-btn" id="createDiffBackupBtn">
-                                    <i class="fas fa-file-import"></i> Create Differential Backup
+                                    <i class="fa-solid fa-cloud-arrow-down"></i> Create Differential Backup
                                 </button>
                             </div>
                         </div>
