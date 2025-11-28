@@ -512,6 +512,27 @@ body {
     background: #a8a8a8;
 }
 
+
+/* custom for allLogs*/
+#allLogs-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+#allLogs-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+#allLogs-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+#allLogs-container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+
 /* Custom scrollbar for system logs container */
 .logs-table-container::-webkit-scrollbar {
     width: 8px;
