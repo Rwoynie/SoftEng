@@ -441,9 +441,9 @@ private function storeVerificationCode($userId, $code) {
         $db->bind(':user_id', $userId);
         $db->execute();
         
-        // Use database's NOW() function to avoid timezone issues
+        // CHANGED: Use database's NOW() function with 2 MINUTE expiry
         $db->query('INSERT INTO PASSWORD_RESET_TOKENS (user_id, token, expires_at) 
-                   VALUES (:user_id, :token, DATE_ADD(NOW(), INTERVAL 15 MINUTE))');
+                   VALUES (:user_id, :token, DATE_ADD(NOW(), INTERVAL 2 MINUTE))'); // Changed from 15 to 2
         $db->bind(':user_id', $userId);
         $db->bind(':token', $code);
         
@@ -463,6 +463,7 @@ private function storeVerificationCode($userId, $code) {
             error_log("   Code: " . $storedCode);
             error_log("   Created: " . $createdAt);
             error_log("   Expires: " . $expiresAt);
+            error_log("   NOTE: Token expires in 2 minutes");
         }
         
         return $result;
@@ -494,7 +495,7 @@ private function validateVerificationCode($email, $code) {
             WHERE ui.Email = :email 
             AND prt.token = :code
             AND prt.is_used = FALSE
-            -- AND prt.expires_at > NOW()  -- Temporarily commented out
+            AND prt.expires_at > NOW()
             LIMIT 1
         ');
         $db->bind(':email', $email);
