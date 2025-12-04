@@ -595,7 +595,7 @@ try {
         /**
          * Validate CSRF token
          */
-        private function validateCsrfToken($token) {
+        public function validateCsrfToken($token) {
             return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
         }
     }
@@ -640,6 +640,43 @@ try {
                 echo json_encode($response);
                 break;
                 
+            case 'update_full_profile':
+                // Handle full profile update (first, middle, last name, department, course)
+                $valid = $controller->validateCsrfToken($_POST['csrf_token'] ?? '');
+                if (!$valid) {
+                    echo json_encode(['success' => false, 'message' => 'Invalid CSRF token']);
+                    break;
+                }
+                $firstName = trim($_POST['first_name'] ?? '');
+                $middleName = trim($_POST['middle_name'] ?? '');
+                $lastName = trim($_POST['last_name'] ?? '');
+                $department = trim($_POST['department'] ?? '');
+                $course = trim($_POST['course'] ?? '');
+                // Build query
+                $fields = [];
+                $params = [];
+                if ($firstName !== '') { $fields[] = 'First_Name = :first_name'; $params[':first_name'] = $firstName; }
+                if ($middleName !== '') { $fields[] = 'Middle_Name = :middle_name'; $params[':middle_name'] = $middleName; }
+                if ($lastName !== '') { $fields[] = 'Last_Name = :last_name'; $params[':last_name'] = $lastName; }
+                if ($department !== '') { $fields[] = 'Department = :department'; $params[':department'] = $department; }
+                if ($course !== '') { $fields[] = 'Course = :course'; $params[':course'] = $course; }
+                if (empty($fields)) {
+                    echo json_encode(['success' => false, 'message' => 'No fields to update']);
+                    break;
+                }
+                $query = 'UPDATE USER_INFORMATION SET ' . implode(', ', $fields) . ' WHERE ID = :user_id';
+                $params[':user_id'] = $userId;
+                $stmt = $db->getPDO()->prepare($query);
+                foreach ($params as $key => $val) {
+                    $stmt->bindValue($key, $val);
+                }
+                $success = $stmt->execute();
+                if ($success) {
+                    echo json_encode(['success' => true, 'message' => 'Profile updated successfully']);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Failed to update profile']);
+                }
+                break;
             default:
                 $response = [
                     'success' => false,

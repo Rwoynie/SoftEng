@@ -1,5 +1,73 @@
 
 class ProfileManager {
+    getCurrentProfileData() {
+        // Try to extract from DOM
+        return {
+            firstName: document.querySelector('[data-value="FullName"]')?.textContent.split(' ')[0] || '',
+            middleName: '', // Not available in DOM, backend should provide if needed
+            lastName: document.querySelector('[data-value="FullName"]')?.textContent.split(' ').slice(-1)[0] || '',
+            department: document.getElementById('departmentSelect')?.value || document.querySelector('[data-value="department"]')?.textContent || '',
+            course: document.getElementById('courseSelect')?.value || document.querySelector('[data-value="course"]')?.textContent || ''
+        };
+    }
+    async updateProfileModalFields(formValues) {
+        try {
+            const formData = new FormData();
+            formData.append('csrf_token', this.csrfToken);
+            formData.append('first_name', formValues.firstName);
+            formData.append('middle_name', formValues.middleName);
+            formData.append('last_name', formValues.lastName);
+            formData.append('department', formValues.department);
+            formData.append('course', formValues.course);
+
+            const response = await fetch('../../../app/Controllers/ProfileController.php?action=update_full_profile', {
+                method: 'POST',
+                body: formData
+            });
+            const responseText = await response.text();
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (err) {
+                throw new Error('Server returned invalid response: ' + responseText);
+            }
+            if (data.success) {
+                Swal.fire('Saved!', 'Profile updated successfully.', 'success');
+                // Update DOM for immediate feedback
+                const fullName = [formValues.firstName, formValues.middleName, formValues.lastName].filter(Boolean).join(' ');
+                const fullNameElem = document.querySelector('[data-value="FullName"]');
+                if (fullNameElem) fullNameElem.textContent = fullName;
+                if (formValues.department) {
+                    const deptElem = document.querySelector('[data-value="department"]');
+                    if (deptElem) deptElem.textContent = formValues.department;
+                }
+                if (formValues.course) {
+                    const courseElem = document.querySelector('[data-value="course"]');
+                    if (courseElem) courseElem.textContent = formValues.course;
+                }
+            } else {
+                Swal.fire('Error', data.message || 'Failed to update profile.', 'error');
+            }
+        } catch (error) {
+            Swal.fire('Error', error.message || 'Failed to update profile.', 'error');
+        }
+    }
+    startEditProfile() {
+        // Enable course select and show save button
+        const courseSelect = document.getElementById('courseSelect');
+        const saveCourseBtn = document.getElementById('saveCourseBtn');
+        if (courseSelect && saveCourseBtn) {
+            courseSelect.disabled = false;
+            saveCourseBtn.style.display = 'inline-block';
+        }
+        // Enable department select and show save button
+        const departmentSelect = document.getElementById('departmentSelect');
+        const saveDepartmentBtn = document.getElementById('saveDepartmentBtn');
+        if (departmentSelect && saveDepartmentBtn) {
+            departmentSelect.disabled = false;
+            saveDepartmentBtn.style.display = 'inline-block';
+        }
+    }
     constructor() {
         this.profileContainer = document.getElementById('profileContainer');
         this.csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -325,6 +393,19 @@ async handleImageUpload(file) {
      * Populate profile data in the UI
      */
     populateProfileData(profileData) {
+        // Disable editing by default
+        const courseSelectProfile = document.getElementById('courseSelect');
+        const saveCourseBtnProfile = document.getElementById('saveCourseBtn');
+        if (courseSelectProfile && saveCourseBtnProfile) {
+            courseSelectProfile.disabled = true;
+            saveCourseBtnProfile.style.display = 'none';
+        }
+        const departmentSelectProfile = document.getElementById('departmentSelect');
+        const saveDepartmentBtnProfile = document.getElementById('saveDepartmentBtn');
+        if (departmentSelectProfile && saveDepartmentBtnProfile) {
+            departmentSelectProfile.disabled = true;
+            saveDepartmentBtnProfile.style.display = 'none';
+        }
         console.log('Profile data received:', profileData);
         
         if (!profileData) {
@@ -1005,6 +1086,6 @@ async handleImageUpload(file) {
 document.addEventListener('DOMContentLoaded', function() {
     // Only initialize if we're on a page with profile container
     if (document.getElementById('profileContainer')) {
-        new ProfileManager();
+        window.ProfileManagerInstance = new ProfileManager();
     }
 });

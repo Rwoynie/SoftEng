@@ -203,6 +203,11 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <link rel="stylesheet" href="../../../Resources/css/User/userViewPage.css">
+    <script>
+        // Set global variables for JavaScript role detection
+        window.isStudent = <?php echo $isStudent ? 'true' : 'false'; ?>;
+        window.isGoogleUser = <?php echo $isGoogleUser ? 'true' : 'false'; ?>;
+    </script>
     <script type="text/javascript" src="../../../resources/js/User/userViewPage.js"></script>
     <script type="text/javascript" src="../../../resources/js/User/Profile.js"></script>
     
@@ -220,6 +225,11 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
                 <li id="profileSidebarIcon"> <i class="fa fa-user-o icon" aria-hidden="true"></i> </li>
             </ul>
         </nav>
+        <div class="sidebar-bottom">
+            <button id="logoutSidebarBtn" class="sidebar-logout-btn">
+    <i class="fa fa-sign-out" aria-hidden="true"></i>
+</button>
+        </div>
     </section>
 
     <section class="main-content">
@@ -283,24 +293,10 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
                                     <span data-value="department" class="info-value"></span>
                                 <?php endif; ?>
                             </div>
-                            <?php else: // Show course for students ?>
+                            <?php else: ?>
                             <div class="info-item">
                                 <span class="info-label"><i class="fa fa-graduation-cap"></i> Course:</span>
-                                <?php if ($isGoogleUser): ?>
-                                    <select id="courseSelect" class="form-select info-value editable-input" style="width: auto; display: inline-block; margin-left: 10px;">
-                                        <option value="" selected disabled>Select your program</option>
-                                        <option value="Bachelor of Technical-Vocational Teacher Education">Bachelor of Technical-Vocational Teacher Education</option>
-                                        <option value="Bachelor of Special Needs Education">Bachelor of Special Needs Education</option>
-                                        <option value="Bachelor of Early Childhood Education">Bachelor of Early Childhood Education</option>
-                                        <option value="Bachelor of Secondary Education">Bachelor of Secondary Education</option>
-                                        <option value="Bachelor of Science in Information Technology">Bachelor of Science in Information Technology</option>
-                                        <option value="Bachelor of Elementary Education">Bachelor of Elementary Education</option>
-                                        <option value="Bachelor of Science in Agricultural and Biosystems Engineering">Bachelor of Science in Agricultural and Biosystems Engineering</option>
-                                    </select>
-                                    <button id="saveCourseBtn" class="btn btn-sm btn-primary save-btn" style="display: none;"><i class="fa fa-save"></i> Save</button>
-                                <?php else: ?>
-                                    <span data-value="course" class="info-value"></span>
-                                <?php endif; ?>
+                                <span data-value="course" class="info-value"></span>
                             </div>
                             <?php endif; ?>
                         </div>
@@ -332,13 +328,13 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
                         </div>
                         
                         <div class="action-buttons">
+                        <button class="btn btn-primary" id="editProfileBtn">
+                            <i class="fa fa-edit" aria-hidden="true"></i>
+                            Edit Profile
+                        </button>
                         <button class="btn btn-primary" id="changePasswordBtn">
                             <i class="fa fa-key" aria-hidden="true"></i>
                             Change Password
-                        </button>
-                        <button class="btn btn-secondary" id="logoutHeaderIcon">
-                            <i class="fa fa-sign-out" aria-hidden="true"></i>
-                            Logout
                         </button>
                         </div>
                     </div>
