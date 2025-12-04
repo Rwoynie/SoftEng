@@ -650,33 +650,25 @@ $nonPinnedAnnouncements = array_filter($announcements, function($ann) {
                                   <div class="template-item">
                                       <h4>Thesis Template (Word Document)</h4>
                                       <p>Complete template with proper formatting, styles, and sections.</p>
-                                      <button class="premium-btn primary" onclick="downloadTemplate('thesis_word')">
-                                          <i class="fas fa-download"></i> Download
-                                      </button>
+                                      
                                   </div>
                                   
                                   <div class="template-item">
                                       <h4>Thesis Template (LaTeX)</h4>
                                       <p>For researchers preferring LaTeX typesetting.</p>
-                                      <button class="premium-btn primary" onclick="downloadTemplate('thesis_latex')">
-                                          <i class="fas fa-download"></i> Download
-                                      </button>
+                                      
                                   </div>
                                   
                                   <div class="template-item">
                                       <h4>Title Page Template</h4>
                                       <p>Standardized title page format.</p>
-                                      <button class="premium-btn primary" onclick="downloadTemplate('title_page')">
-                                          <i class="fas fa-download"></i> Download
-                                      </button>
+                                      
                                   </div>
                                   
                                   <div class="template-item">
                                       <h4>Citation Template</h4>
                                       <p>Examples of proper citation formats.</p>
-                                      <button class="premium-btn primary" onclick="downloadTemplate('citation')">
-                                          <i class="fas fa-download"></i> Download
-                                      </button>
+                                      
                                   </div>
                               </div>
                               
@@ -753,9 +745,7 @@ $nonPinnedAnnouncements = array_filter($announcements, function($ann) {
                                   <h4>Example Citation:</h4>
                                   <div class="citation-box">
                                       <p id="citationExample">Dela Cruz, J. M., & Santos, M. P. (2023). <em>Impact of digital learning tools on student engagement in higher education</em>. University of Southeastern Philippines.</p>
-                                      <button class="premium-btn primary" onclick="copyCitation()">
-                                          <i class="fas fa-copy"></i> Copy Citation
-                                      </button>
+                                      
                                   </div>
                               </div>
                               
@@ -934,9 +924,7 @@ $nonPinnedAnnouncements = array_filter($announcements, function($ann) {
                                   <div class="support-option">
                                       <h3><i class="fas fa-calendar"></i> Appointment</h3>
                                       <p>Schedule a one-on-one consultation with our technical support staff.</p>
-                                      <button class="premium-btn primary" onclick="scheduleAppointment()">
-                                          Schedule Appointment
-                                      </button>
+                                      
                                   </div>
                               </div>
                               
@@ -1160,8 +1148,9 @@ $nonPinnedAnnouncements = array_filter($announcements, function($ann) {
       <div class="footer-content">
         <div class="footer-section">
           <div>
-            <img class="logo" src="../../../resources/images/ThesisCompLogo.png" alt="Logo" />
             <img class="logo" src="../../../resources/images/CTET_LOGO.png" alt="Logo" />
+            <img class="logo" src="../../../resources/images/ThesisCompLogo.png" alt="Logo" />
+            
             <h3>Thesis Compendium System</h3>
           </div>
           <p class="footer-description">A comprehensive digital repository for thesis papers and capstone projects.</p>
