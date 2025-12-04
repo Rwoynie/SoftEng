@@ -400,6 +400,102 @@ body {
     border-radius: 0 8px 8px 0;
 }
 
+/* Responsive enhancements (preserve original layout, colors and spacing) */
+/* General fluid behavior */
+.dashboard-container, .main-content, .app-content {
+    box-sizing: border-box;
+}
+
+/* Make the searchbox and controls flexible */
+.searchbox { min-width: 220px; max-width: 100%; }
+.searchbox input.search-text { font-size: 0.95rem; }
+
+/* Projects list: use responsive grid so items wrap and scale */
+.projects-container { width: 100%; }
+.projects, .all-projects {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.project-item {
+    background: var(--color-white);
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.project-item .logo-row img { max-width: 48px; width: 100%; height: auto; }
+
+/* Make modals and preview iframe responsive */
+.preview-modal-content { max-width: 100%; width: 100%; margin: 1rem; }
+.modal.preview-modal-content .modal-body iframe,
+.modal.preview-modal-content #pdf-viewer { height: 60vh; max-height: 800px; }
+
+/* Sidebar -> top bar on small screens but preserve icons and spacing */
+@media (max-width: 992px) {
+    .sidebar {
+        position: relative;
+        width: 100%;
+        height: auto;
+        flex-direction: row;
+        padding: 8px 12px;
+        align-items: center;
+        justify-content: flex-start;
+    }
+    .sidebar .logo { margin-right: 12px; margin-bottom: 0; }
+    .sidebar nav .menu-options { flex-direction: row; }
+    .sidebar nav .menu-options li { margin: 0 6px; width: 42px; height: 42px; padding: 8px; }
+
+    .main-content {
+        margin-left: 0; /* remove left space used by sidebar */
+        margin-top: calc(80px + 12px); /* keep header space + sidebar height */
+        width: 100%;
+        height: auto;
+    }
+    .header { left: 0; top: 0; right: 0; }
+}
+
+/* Tablet and phones: tighten paddings and stack elements */
+@media (max-width: 768px) {
+    .header { padding: 0 12px; height: 64px; }
+    .header .title { font-size: 1.15rem; }
+    .app-content { padding: 16px; }
+    .app-content-header { flex-direction: column; align-items: stretch; gap: 12px; }
+    .searchbox { width: 100%; }
+    .app-list-options { justify-content: space-between; width: 100%; }
+
+    .projects, .all-projects { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+    .project-item { padding: 0.9rem; }
+    .available { font-size: 0.95rem; }
+}
+
+@media (max-width: 480px) {
+    body { font-size: 15px; }
+    .header { height: 56px; padding: 0 10px; }
+    .header .menu button { padding: 8px 10px; font-size: 0.75rem; }
+    .searchbox { padding: 8px; }
+    .searchbox input.search-text { font-size: 0.95rem; }
+
+    .projects, .all-projects { grid-template-columns: 1fr; }
+    .project-item { padding: 0.75rem; }
+
+    .profile-container .profile-card { padding: 0.75rem; }
+    .profile-avatar img.profile-image { width: 64px; height: 64px; }
+
+    .modal.preview-modal-content .modal-body iframe,
+    .modal.preview-modal-content #pdf-viewer { height: 50vh; }
+}
+
+/* Keep interactive elements accessible */
+.project-item button, .project-item a, .app-list-options .icon { touch-action: manipulation; }
+
+/* end responsive additions */
+
 /* Projects Container for scrolling */
 .projects-container {
     overflow-y: auto;
