@@ -1177,7 +1177,7 @@ $nonPinnedAnnouncements = array_filter($announcements, function($ann) {
           <h4>Quick Links</h4>
           <ul>
               <li><a href="javascript:window.location.reload(true)">Home</a></li>
-              <li><a href="/browse">Browse</a></li>
+              <li><a href="search.php">Browse</a></li>
               <li><a href="#" onclick="openModal('guidelinesModal')">Guidelines</a></li>
               <li><a href="../../../app/Views/User/indexLogin.php">Login</a></li>
           </ul>
