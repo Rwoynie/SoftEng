@@ -1170,3 +1170,128 @@ body.forgot-password-open .modal-backdrop {
     padding: var(--bs-modal-padding);
     padding-bottom: 0vw;
 }
+
+/* Responsive enhancement: keep original design but make it adapt cleanly */
+/* General fluid rules */
+.container1, .container2, .center, .form-container {
+    box-sizing: border-box;
+    max-width: 100%;
+}
+
+.center, .container2 {
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* Make images scale without changing aspect or visual placement */
+.sysLogo, #loginModal .sysLogo, #adminLoginModal .sysLogo {
+    max-width: 90%;
+    width: auto;
+    height: auto;
+}
+
+.mySlides img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+}
+
+/* Make inputs and buttons flex to available width but keep original paddings */
+.form-group input, .form-control, .btn-login, .btn-signup, .btn-google {
+    width: 100% !important;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.btn-login, .btn-signup {
+    min-height: 44px; /* tappable target */
+    padding: 0.6rem 1rem;
+}
+
+/* Tweak modal layout for small screens */
+#loginModal .modal-dialog, #adminLoginModal .modal-dialog, #forgotPasswordModal .modal-dialog {
+    margin: 1.25rem;
+}
+
+/* BREAKPOINT: Large tablets and small desktops */
+@media (max-width: 1024px) {
+    .loginForm, .signupForm {
+        width: 85% !important;
+        padding: 0 1rem;
+    }
+
+    .form-container {
+        width: 85% !important;
+        height: auto;
+        padding: 1rem;
+    }
+
+    .container2 h1 {
+        font-size: 1.9rem;
+    }
+}
+
+/* BREAKPOINT: Tablets and large phones */
+@media (max-width: 768px) {
+    /* Stack grid fields into single column */
+    .name-fields, .account-fields {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem;
+    }
+
+    /* Reduce heavy artwork sizes so content is prominent */
+    .top:before, .top:after, .bottom:before, .bottom:after {
+        width: 80vmax;
+        height: 80vmax;
+        margin-top: -40vmax;
+    }
+
+    .center {
+        width: auto !important;
+        left: 50%;
+        right: 0;
+        margin-left: 0;
+        padding: 1.25rem;
+    }
+
+    h2, .container2 h1 {
+        font-size: 1.6rem;
+    }
+
+    .login-description {
+        font-size: 0.95rem;
+    }
+
+    /* Make sure footer doesn't overlay content on very small screens */
+    .login-footer p { font-size: 0.8rem; }
+}
+
+/* BREAKPOINT: Small phones */
+@media (max-width: 480px) {
+    body { padding: 0 0.25rem; }
+
+    .sysLogo { width: 28vw; }
+
+    .container2 h1 { font-size: 1.5rem; }
+
+    /* Ensure inputs and labels remain readable */
+    .form-group label { font-size: 0.95rem; }
+    .form-group input { font-size: 0.95rem; padding: 0.6rem; }
+
+    /* Increase spacing for touch targets */
+    .btn-login, .btn-signup, .btn-google { font-size: 0.98rem; padding: 0.7rem 0.9rem; }
+
+    /* Ensure modals are full width but with comfortable margins */
+    #loginModal .modal-dialog, #adminLoginModal .modal-dialog, #forgotPasswordModal .modal-dialog {
+        max-width: 100%;
+        margin: 0.5rem;
+    }
+
+    /* Keep decorative shapes from covering form controls on tiny screens */
+    .top:before, .top:after, .bottom:before, .bottom:after { opacity: 0.5; }
+}
+
+/* Accessibility and interaction safety */
+button, .btn-google { touch-action: manipulation; }
+
+/* End responsive enhancements */
