@@ -1295,3 +1295,65 @@ body.forgot-password-open .modal-backdrop {
 button, .btn-google { touch-action: manipulation; }
 
 /* End responsive enhancements */
+
+/* Additional small-component responsive tweaks for card/form pages (resetPassword, login) */
+/* Keeps all visual styles; only adjusts sizing and spacing for small screens */
+.container-fluid.vh-100 {
+    padding: 1rem 0;
+}
+
+.container-fluid.vh-100 .row {
+    margin: 0;
+}
+
+.container-fluid.vh-100 .col-md-5.col-lg-4,
+.container-fluid.vh-100 .col-md-5 {
+    margin: 0 auto;
+    width: 100%;
+    max-width: 520px; /* reasonable max for forms on desktop */
+    padding: 0 1rem;
+    box-sizing: border-box;
+}
+
+.card {
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 0.75rem;
+}
+
+.card-body {
+    padding: 1.25rem;
+}
+
+.card .mb-3 img {
+    max-width: 80px;
+    width: auto;
+    height: auto;
+}
+
+/* Ensure the form's inputs and button stack and remain tappable */
+@media (max-width: 768px) {
+    .container-fluid.vh-100 .col-md-5.col-lg-4,
+    .container-fluid.vh-100 .col-md-5 { max-width: 420px; }
+
+    .card-body { padding: 1rem; }
+    .card-title { font-size: 1.25rem; }
+    .text-muted { font-size: 0.95rem; }
+    .password-strength { height: 6px; }
+
+    /* Make sure the back/return links are visible and not overlapped */
+    .text-center.mt-4 { margin-top: 1rem !important; }
+}
+
+@media (max-width: 480px) {
+    .container-fluid.vh-100 { padding-left: 0.5rem; padding-right: 0.5rem; }
+    .container-fluid.vh-100 .col-md-5.col-lg-4,
+    .container-fluid.vh-100 .col-md-5 { max-width: 360px; }
+
+    .card-body { padding: 0.85rem; }
+    .card-title { font-size: 1.1rem; }
+    .mb-3 p.text-muted { font-size: 0. ninerem; }
+
+    /* Slightly increase button height for touch */
+    .btn { padding-top: .55rem; padding-bottom: .55rem; }
+}
