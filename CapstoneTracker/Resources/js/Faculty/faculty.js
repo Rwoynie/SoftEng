@@ -56,6 +56,12 @@ document.addEventListener('DOMContentLoaded', function() {
         projectsContainer.style.display = 'none';
         approvalContainer.style.display = 'none';
         appContentHeader.style.display = 'none';
+        
+        // Hide the main header with "Thesis Repository" title and buttons
+        const mainHeader = document.querySelector('.main-content .header');
+        if (mainHeader) {
+            mainHeader.style.display = 'none';
+        }
 
         // Update active states
         document.querySelectorAll('.menu-options li').forEach(item => {
@@ -70,6 +76,12 @@ document.addEventListener('DOMContentLoaded', function() {
         projectsContainer.style.display = 'grid';
         approvalContainer.style.display = 'none';
         appContentHeader.style.display = 'flex';
+        
+        // Show the main header with "Thesis Repository" title and buttons
+        const mainHeader = document.querySelector('.main-content .header');
+        if (mainHeader) {
+            mainHeader.style.display = 'flex';
+        }
 
         // Reset active states
         document.querySelectorAll('.menu-options li').forEach(item => {

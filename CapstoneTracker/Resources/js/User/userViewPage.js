@@ -1247,6 +1247,12 @@ document.addEventListener('DOMContentLoaded', function() {
         allView.style.display = 'none';
         recentView.style.display = 'none';
         appContentHeader.style.display = 'none';
+        
+        // Hide the main header with "Thesis Repository" title and buttons
+        const mainHeader = document.querySelector('.main-content .header');
+        if (mainHeader) {
+            mainHeader.style.display = 'none';
+        }
     
         // Update active states - ensure only profile icon is selected
         document.querySelectorAll('.menu-options li').forEach(item => {
@@ -1261,6 +1267,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function hideProfile() {
         profileContainer.style.display = 'none';
         appContentHeader.style.display = 'flex';
+        
+        // Show the main header with "Thesis Repository" title and buttons
+        const mainHeader = document.querySelector('.main-content .header');
+        if (mainHeader) {
+            mainHeader.style.display = 'flex';
+        }
         
         // Show the appropriate view based on which button is selected
         if (allButton.classList.contains('selected')) {
