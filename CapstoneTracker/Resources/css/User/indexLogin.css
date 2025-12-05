@@ -125,6 +125,7 @@ body {
 }
 
 @keyframes popOut {
+    
     0% {
         opacity: 0;
         transform: scale(0.8) translateY(20px);
@@ -137,6 +138,7 @@ body {
         transform: scale(1) translateY(0);
     }
 }
+
 
 
 
@@ -339,6 +341,14 @@ h2 {
 
 
 @media (min-width: 768px) {
+
+    
+    .container1 {
+        opacity: 1 !important;
+        transform: scale(1) !important;
+        animation: popOut 0.8s ease-in-out !important;
+        animation-delay: 0.1s !important;
+    }
     .name-fields {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -376,6 +386,14 @@ h2 {
 }
 
 @media (max-width: 768px) {
+    
+    .container1 {
+        opacity: 1 !important;
+        transform: scale(1) !important;
+        animation: popOut 0.8s ease-in-out !important;
+        animation-delay: 0.1s !important;
+    }
+    
     .loginForm {
         width: 80vw;
     }
@@ -706,6 +724,13 @@ h2 {
 }
 
 @media (min-width: 768px) {
+    .container1 {
+        opacity: 1 !important;
+        transform: scale(1) !important;
+        animation: popOut 0.8s ease-in-out !important;
+        animation-delay: 0.1s !important;
+    }
+
     .name-fields {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -743,6 +768,26 @@ h2 {
 }
 
 @media (max-width: 768px) {
+    .container .top:before, 
+    .container .bottom:before, 
+    .container .top:after, 
+    .container .bottom:after {
+        margin-left: 300px !important;
+        transform-origin: -300px 50% !important;
+        transition-delay: 0s !important;
+    }
+
+    .container .center {
+        opacity: 1 !important;
+        transition-delay: 0s !important;
+    }
+    .container1 {
+        opacity: 1 !important;
+        transform: scale(1) !important;
+        animation: popOut 0.8s ease-in-out !important;
+        animation-delay: 0.1s !important;
+    }
+
     .loginForm {
         width: 80vw;
     }
