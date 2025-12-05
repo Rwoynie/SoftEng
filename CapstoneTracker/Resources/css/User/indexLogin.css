@@ -223,6 +223,16 @@ body {
     margin-top: 0.8rem !important;
 }
 
+/* Fix password field and forgot password link spacing */
+.password-field {
+    margin-bottom: 0.5rem !important;
+}
+
+.forgot-password-container {
+    margin-top: 0.5rem !important;
+    margin-bottom: 1rem !important;
+}
+
 .accountCreate {
     margin-top: 2vw;
     margin-bottom: 0vw;

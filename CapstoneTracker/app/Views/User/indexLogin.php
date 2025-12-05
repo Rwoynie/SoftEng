@@ -170,7 +170,7 @@ unset($_SESSION['login_email']);
             <label for="email" class="form-label">Email</label>
             <input type="text" id="username" name="email" class="form-control" placeholder="Enter USeP email" required>
           </div>
-          <div class="mb-3">
+          <div class="mb-3 password-field">
             <label for="password" class="form-label">Password</label>
             <div class="input-group">
               <input type="password" id="password" name="password" class="form-control" placeholder="Enter password" required>
@@ -178,10 +178,10 @@ unset($_SESSION['login_email']);
                 <i class="far fa-eye"></i>
               </button>
             </div>
-
-            <div class="text-center mt-5">
-            <a href="#" id="forgotPasswordLink" class="text-decoration-none">Forgot password?</a>
           </div>
+
+          <div class="text-center forgot-password-container">
+            <a href="#" id="forgotPasswordLink" class="text-decoration-none">Forgot password?</a>
           </div>
           <button type="submit" class="btn btn-success w-100 mb-2">Login</button>
           
@@ -442,7 +442,7 @@ unset($_SESSION['login_email']);
                 <label for="adminUsername" class="form-label">User ID</label>
                 <input type="text" id="adminUsername" name="admin_username" class="form-control" placeholder="Enter admin ID" required>
               </div>
-              <div class="mb-3">
+              <div class="mb-3 password-field">
                 <label for="adminPassword" class="form-label">Password</label>
                 <div class="input-group">
                   <input type="password" id="adminPassword" name="admin_password" class="form-control" placeholder="Enter admin password" required>
@@ -451,7 +451,7 @@ unset($_SESSION['login_email']);
                   </button>
                 </div>
               </div>
-              <div class="text-center mt-5">
+              <div class="text-center forgot-password-container">
                 <a href="#" id="forgotPasswordLinkAdmin" class="text-decoration-none">Forgot password?</a>
               </div>
               <br>
