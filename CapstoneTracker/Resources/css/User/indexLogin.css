@@ -401,15 +401,20 @@ h2 {
     .signupForm {
         width: 90vw;
     }
+
+    #forgotPasswordLink {
+        
+        width: auto;
+    }
+
     
     .form-group input {
         width: 60vw;
     }
+
     
-    #userID, #password {
-        width: 70vw;
-    }
     
+  
     .btn-signup {
         width: 70%;
     }
@@ -800,10 +805,7 @@ h2 {
         width: 60vw;
     }
     
-    #userID, #password {
-        width: 70vw;
-    }
-    
+   
     .btn-signup {
         width: 70%;
     }
