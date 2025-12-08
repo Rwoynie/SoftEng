@@ -24,14 +24,14 @@ class DatabaseSchema {
         Middle_Name VARCHAR(50),
         Last_Name VARCHAR(50) NOT NULL,
         Extension VARCHAR(20),
-        Email VARCHAR(255) UNIQUE NOT NULL, -- Stores HASHED emails
-        User_ID VARCHAR(255) UNIQUE NOT NULL, -- Stores HASHED user_ids
-        Student_ID VARCHAR(255) UNIQUE, -- Stores HASHED student_ids
-        Employee_ID VARCHAR(255) UNIQUE, -- Stores HASHED employee_ids
+        Email VARCHAR(255) UNIQUE NOT NULL,
+        User_ID VARCHAR(255) UNIQUE NOT NULL,
+        Student_ID VARCHAR(255) UNIQUE,
+        Employee_ID VARCHAR(255) UNIQUE, 
         Email_Hash VARCHAR(255),
         User_ID_Hash VARCHAR(255),
         Student_ID_Hash VARCHAR(255),
-        Employee_ID_Hash VARCHAR(255), -- Changed semicolon to comma here
+        Employee_ID_Hash VARCHAR(255),s
         User_Role ENUM('student', 'faculty', 'SubAdmin', 'superAdmin') NOT NULL,
         Acc_Status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
         Login_Method ENUM('manual', 'google') DEFAULT 'manual',
@@ -699,8 +699,7 @@ class DatabaseSchema {
                     SET changes = JSON_SET(changes, '$.status_changed', JSON_OBJECT('old', OLD.Acc_Status, 'new', NEW.Acc_Status));
                 END IF;
                 
-                -- Note: We can't compare Email_Hash changes directly since they're hashed
-                -- But we can track when User_Role or Acc_Status changes
+                
                 
                 IF JSON_LENGTH(changes) > 0 THEN
                     INSERT INTO AUDIT_LOGS (table_name, record_id, action, old_values, new_values, user_id)
@@ -885,7 +884,6 @@ class DatabaseSchema {
         $salt = bin2hex(random_bytes(16));
         $hashedPassword = password_hash($password . $salt, PASSWORD_DEFAULT);
         
-        // Hash the identifiers for storage
         $email = 'admin@usep.edu.ph';
         $userId = 'ADMIN001';
         
@@ -899,8 +897,8 @@ class DatabaseSchema {
             'Middle_Name' => 'Admin',
             'Last_Name' => 'Admin',
             'Extension' => null,
-            'Email' => $email, // Store hashed value in Email column
-            'User_ID' => $userId, // Store hashed value in User_ID column
+            'Email' => $email, 
+            'User_ID' => $userId, 
             'Email_Hash' => $emailHash,
             'User_ID_Hash' => $userIdHash,
             'User_Role' => 'superAdmin',
@@ -908,7 +906,7 @@ class DatabaseSchema {
             'Department' => 'Administration',
             'Course' => 'Administration',
             'Profile_Pic' => null
-            // Note: The hash columns will use the same values as Email and User_ID
+            
         ];
     }
     
@@ -1166,13 +1164,13 @@ class DatabaseSchema {
         try {
             $adminData = self::getDefaultAdminData();
             
-            // Check if admin already exists using hashed email
+     
             $this->db->query("SELECT ID FROM USER_INFORMATION WHERE Email = :email");
             $this->db->bind(':email', $adminData['Email']);
             $this->db->execute();
             
             if ($this->db->rowCount() == 0) {
-                // Build the query with all required columns including the new hash columns
+         
                 $this->db->query("INSERT INTO USER_INFORMATION 
                     (pswrd, Salt, First_Name, Middle_Name, Last_Name, Extension, Email, User_ID, 
                      Email_Hash, User_ID_Hash, Student_ID_Hash, Employee_ID_Hash,
@@ -1182,21 +1180,21 @@ class DatabaseSchema {
                      :email, :user_id, :email_hash, :user_id_hash, :student_id_hash, :employee_id_hash,
                      :user_role, :acc_status, :department, :course, :profile_pic)");
     
-                // Bind all parameters - using hashed values for Email and User_ID
+          
                 $this->db->bind(':password', $adminData['pswrd']);
                 $this->db->bind(':salt', $adminData['Salt']);
                 $this->db->bind(':first_name', $adminData['First_Name']);
                 $this->db->bind(':middle_name', $adminData['Middle_Name']);
                 $this->db->bind(':last_name', $adminData['Last_Name']);
                 $this->db->bind(':extension', $adminData['Extension']);
-                $this->db->bind(':email', $adminData['Email']); // Hashed email
-                $this->db->bind(':user_id', $adminData['User_ID']); // Hashed user_id
+                $this->db->bind(':email', $adminData['Email']); 
+                $this->db->bind(':user_id', $adminData['User_ID']);
                 
-                // Bind the hash columns (for admin, we only need email and user_id hashes)
-                $this->db->bind(':email_hash', $adminData['Email_Hash']); // Same as email column
-                $this->db->bind(':user_id_hash', $adminData['User_ID_Hash']); // Same as user_id column
-                $this->db->bind(':student_id_hash', null); // Null for admin
-                $this->db->bind(':employee_id_hash', null); // Null for admin
+       
+                $this->db->bind(':email_hash', $adminData['Email_Hash']);
+                $this->db->bind(':user_id_hash', $adminData['User_ID_Hash']);
+                $this->db->bind(':student_id_hash', null);
+                $this->db->bind(':employee_id_hash', null); 
                 
                 $this->db->bind(':user_role', $adminData['User_Role']);
                 $this->db->bind(':acc_status', $adminData['Acc_Status']);

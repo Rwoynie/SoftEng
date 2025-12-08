@@ -1,11 +1,10 @@
 <?php
 // config/email_config.php
 class EmailConfig {
-    // Gmail SMTP Configuration (Recommended)
     const SMTP_HOST = 'smtp.gmail.com';
     const SMTP_PORT = 587;
-    const SMTP_USERNAME = 'rltiempo25@gmail.com'; // Your Gmail or USeP email
-    const SMTP_PASSWORD = 'xttm zepv gfex dndo'; // Gmail app password
+    const SMTP_USERNAME = 'rltiempo25@gmail.com'; 
+    const SMTP_PASSWORD = 'xttm zepv gfex dndo'; 
     
     
     
@@ -17,7 +16,7 @@ class EmailConfig {
     const MANUAL_REGISTRATION_SUBJECT = 'Welcome to Compendium System - Account Registration Complete';
     
     /**
-     * Welcome email for MANUAL registration (email/password)
+     * Welcome email for MANUAL registration
      */
     public static function getManualWelcomeBody($name, $email, $role, $userIdentifier) {
         return "
@@ -167,7 +166,7 @@ class EmailConfig {
     }
 
     /**
-     * Backward compatibility method (uses manual template by default)
+     * Backward compatibility method 
      */
     public static function getWelcomeBody($name, $email, $password, $role, $userIdentifier) {
         if (empty($password)) {

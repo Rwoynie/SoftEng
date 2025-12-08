@@ -532,7 +532,6 @@ class AdminDashboardModel {
             error_log("Database execute failed for announcement creation");
             error_log("SQL: " . $sql);
             error_log("Data: " . print_r($data, true));
-            // If your database class has error info, log it:
             if (method_exists($this->db, 'getError')) {
                 error_log("DB Error: " . $this->db->getError());
             }
@@ -552,7 +551,6 @@ class AdminDashboardModel {
  */
 public function updateAnnouncement($id, $data) {
     try {
-        // Debug: Log the data being received
         error_log("Updating announcement ID: " . $id);
         error_log("Update data: " . print_r($data, true));
         

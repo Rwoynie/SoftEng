@@ -694,7 +694,7 @@ private function markVerificationCodeAsUsed($email, $code) {
                         <p><strong>Important Information:</strong></p>
                         <ul>
                             <li>Enter this 6-digit code in the verification form</li>
-                            <li>This code will expire in 15 minutes</li>
+                            <li>This code will expire in 5 minutes</li>
                             <li>You will be able to set your new password after verification</li>
                             <li>If you didn't request this reset, please ignore this email</li>
                         </ul>
@@ -717,7 +717,7 @@ private function markVerificationCodeAsUsed($email, $code) {
  * Debug method to check database state
  */
 public function debugDatabaseState() {
-    // Clear output buffers
+ 
     while (ob_get_level() > 0) {
         ob_end_clean();
     }
@@ -739,7 +739,7 @@ public function debugDatabaseState() {
         $userModel = new User();
         $db = $userModel->getDb();
         
-        // 1. Check if user exists
+
         $db->query('SELECT ID, Email, First_Name, Last_Name FROM USER_INFORMATION WHERE Email = :email');
         $db->bind(':email', $email);
         $user = $db->single();
@@ -753,7 +753,7 @@ public function debugDatabaseState() {
         if ($user) {
             $userId = is_object($user) ? $user->ID : $user['ID'];
             
-            // 2. Check all tokens for this user
+       
             $db->query('SELECT * FROM PASSWORD_RESET_TOKENS WHERE user_id = :user_id ORDER BY created_at DESC');
             $db->bind(':user_id', $userId);
             $tokens = $db->resultSet();
@@ -790,7 +790,7 @@ public function debugDatabaseState() {
 
 
 public function googleLogin() {
-    // Start output buffering
+ 
     while (ob_get_level() > 0) {
         ob_end_clean();
     }
@@ -798,7 +798,7 @@ public function googleLogin() {
     try {
         error_log("=== GOOGLE LOGIN - PROPER EXISTING USER HANDLING ===");
         
-        // Set header for JSON response
+ 
         header('Content-Type: application/json');
         
         $credential = $_POST['credential'] ?? '';
@@ -806,11 +806,11 @@ public function googleLogin() {
         $name = $_POST['name'] ?? '';
         $selectedRole = $_POST['role'] ?? 'student';
 
-        // Get client information for logging
+    
         $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
         $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown';
 
-        // Log Google login attempt
+     
         $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Google login attempt started');
     
         // Basic validation
@@ -821,7 +821,7 @@ public function googleLogin() {
     
         error_log("=== DEBUGGING USER EXISTENCE CHECK ===");
 
-        // Check if user exists in database FIRST
+ 
         $user = $this->findByEmail($email);
 
         error_log("findByEmail result: " . ($user ? 'USER FOUND' : 'USER NOT FOUND'));
@@ -830,12 +830,12 @@ public function googleLogin() {
         
         if ($user) {
             error_log("✅ SHOULD GO TO LOGIN FLOW");
-            // Convert user to array if it's an object
+    
             if (is_object($user)) {
                 $user = (array)$user;
             }
             
-            // Safely get user properties
+    
             $accStatus = $user['Acc_Status'] ?? 'unknown';
             $userId = $user['ID'] ?? null;
             $userEmail = $user['Email'] ?? '';
@@ -845,11 +845,11 @@ public function googleLogin() {
             
             error_log("User details - ID: $userId, Status: $accStatus, Role: $userRole");
             
-            // ✅ ROLE VALIDATION
+   
             $normalizedUserRole = strtolower($userRole);
             $normalizedSelectedRole = strtolower($selectedRole);
 
-            // Map role names for compatibility
+    
             if ($normalizedSelectedRole === 'researcher') {
                 $normalizedSelectedRole = 'student';
             }
@@ -860,7 +860,7 @@ public function googleLogin() {
                 throw new Exception("This account is registered as a " . ucfirst($normalizedUserRole) . ". Please use the " . ucfirst($normalizedUserRole) . " login option.");
             }
             
-            // ✅ Check account status
+    
             if ($accStatus === 'pending') {
                 $this->logLoginAttempt($email, $userId, $ipAddress, $userAgent, false, 'Account pending approval');
                 throw new Exception('Your account is pending approval. Please wait for administrator approval.');
@@ -868,7 +868,7 @@ public function googleLogin() {
                 $this->logLoginAttempt($email, $userId, $ipAddress, $userAgent, false, 'Account rejected');
                 throw new Exception('Your account registration was rejected. Please contact the administrator.');
             } else if ($accStatus === 'approved') {
-                // ✅ EXISTING APPROVED USER: Log them in
+   
                 error_log("✅ Account approved - logging in existing user");
                 
                 $this->createUserSession([
@@ -878,7 +878,7 @@ public function googleLogin() {
                     'role' => $userRole
                 ]);
                 
-                // Log successful Google login
+
                 $this->logLoginAttempt($email, $userId, $ipAddress, $userAgent, true, 'Google login successful');
                 $this->logUserAction($userId, 'google_login', 'User logged in via Google');
                 
@@ -904,7 +904,7 @@ public function googleLogin() {
                 $userId = $registrationResult['user_id'] ?? null;
                 
                 if ($userId) {
-                    // Log the user in after registration
+          
                     $this->createUserSession([
                         'id' => $userId,
                         'email' => $email,
@@ -912,7 +912,6 @@ public function googleLogin() {
                         'role' => $selectedRole
                     ]);
                     
-                    // Log successful Google registration and login
                     $this->logLoginAttempt($email, $userId, $ipAddress, $userAgent, true, 'Google registration and login successful');
                     $this->logUserAction($userId, 'google_register', 'User registered and logged in via Google');
                     
@@ -954,7 +953,7 @@ private function getRedirectUrlByRole($userRole) {
             return '../../Views/User/userViewPage.php';
             
         case 'faculty':
-            return '../../Views/User/userViewPage.php'; // Adjust path as needed
+            return '../../Views/User/userViewPage.php'; 
             
         case 'superadmin':
         case 'subadmin':
@@ -963,7 +962,7 @@ private function getRedirectUrlByRole($userRole) {
             
         default:
             error_log("Unknown role for redirect: " . $userRole);
-            return '../../Views/User/userViewPage.php'; // Default fallback
+            return '../../Views/User/userViewPage.php'; 
     }
 }
 
@@ -976,20 +975,17 @@ private function validateAndFormatName($name, $fieldName) {
         return $name;
     }
     
-    // Remove extra whitespace
+
     $name = trim($name);
-    
-    // Check if name contains only letters, spaces, hyphens, and apostrophes
+
     if (!preg_match('/^[a-zA-Z\s\-\'\.]+$/', $name)) {
         throw new Exception("$fieldName can only contain letters, spaces, hyphens (-), apostrophes ('), and periods (.)");
     }
     
-    // Check for consecutive special characters
     if (preg_match('/[\-\'\\.]{2,}/', $name)) {
         throw new Exception("$fieldName cannot have consecutive special characters");
     }
     
-    // Capitalize first letter of each word
     $formattedName = $this->properCaseName($name);
     
     return $formattedName;
@@ -1003,7 +999,6 @@ private function properCaseName($name) {
     $properWords = [];
     
     foreach ($words as $word) {
-        // Handle hyphenated names (like Mary-Ann)
         if (strpos($word, '-') !== false) {
             $hyphenated = explode('-', $word);
             $properHyphenated = [];
@@ -1012,7 +1007,6 @@ private function properCaseName($name) {
             }
             $properWords[] = implode('-', $properHyphenated);
         }
-        // Handle apostrophe names (like O'Connor)
         elseif (strpos($word, "'") !== false) {
             $apostropheParts = explode("'", $word);
             $properApostrophe = [];
@@ -1021,7 +1015,6 @@ private function properCaseName($name) {
             }
             $properWords[] = implode("'", $properApostrophe);
         }
-        // Normal case - capitalize first letter, lowercase the rest
         else {
             $properWords[] = ucfirst(strtolower($word));
         }
@@ -1041,14 +1034,12 @@ public function autoRegisterGoogleUser($email, $name, $selectedRole) {
     try {
         $userModel = new User();
         
-        // DOUBLE CHECK - user should not exist at this point, but check anyway
         $existingUser = $this->findByEmail($email);
         if ($existingUser) {
             error_log("⚠️ USER ALREADY EXISTS - this should not happen here!");
             throw new Exception("User already exists. Please try logging in instead.");
         }
         
-        // Proceed with new user registration
         $autoPassword = $this->generateAutoPassword();
         $nameParts = $this->parseName($name);
         $firstName = $nameParts['first_name'];
@@ -1066,7 +1057,6 @@ public function autoRegisterGoogleUser($email, $name, $selectedRole) {
             'profile_pic' => base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')
         ];
         
-        // Pass empty IDs so the model generates them
         if ($userRole === 'student') {
             $userData['student_id'] = '';
         } else if ($userRole === 'faculty') {
@@ -1078,13 +1068,13 @@ public function autoRegisterGoogleUser($email, $name, $selectedRole) {
         
         if ($result && isset($result['db_id'])) {
             $userId = $result['db_id'];
-            $userIdentifier = $result['user_identifier']; // This is the original unhashed User_ID
+            $userIdentifier = $result['user_identifier']; 
             
             error_log("✅ User registered successfully:");
             error_log("   - Database ID: " . $userId);
             error_log("   - User_ID for email: " . $userIdentifier);
             
-            // ✅ SEND WELCOME EMAIL WITH ACTUAL UNHASHED USER_ID
+          
             $this->sendWelcomeEmail($email, $name, $autoPassword, $userRole, $userIdentifier);
             
             return [
@@ -1115,10 +1105,10 @@ private function restoreDeletedUser($email) {
         require_once ROOT_DIR . '\app\Models\User.php';
         $userModel = new User();
         
-        // Update the user status to approved and clear deletion flags
+   
         $db = $userModel->getDb();
         
-        // Build update query based on your database structure
+      
         $updateData = [
             'Acc_Status' => 'approved',
             'is_deleted' => 0,

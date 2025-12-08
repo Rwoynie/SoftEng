@@ -362,7 +362,7 @@ class DatabaseSeeder {
                 $this->db->execute();
                 
                 if ($this->db->rowCount() > 0) {
-                    continue; // Skip if already exists
+                    continue; 
                 }
                 
                 $salt = bin2hex(random_bytes(16));
@@ -435,7 +435,7 @@ class DatabaseSeeder {
                 $this->db->execute();
                 
                 if ($this->db->rowCount() > 0) {
-                    continue; // Skip if already exists
+                    continue; 
                 }
                 
                 $salt = bin2hex(random_bytes(16));
@@ -559,6 +559,6 @@ class DatabaseSeeder {
     }
 }
 
-// Uncomment the line below to run the seeder manually
+
 DatabaseSeeder::manualSeed();
 ?>
