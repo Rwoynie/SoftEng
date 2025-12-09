@@ -803,6 +803,26 @@ h2 {
         animation-delay: 0.1s !important;
     }
 
+    #forgotPasswordLink {
+        display: block !important;
+        width: 100% !important; /* Changed from 40vw to 100% */
+        text-align: right !important;
+        margin: 1rem auto !important;
+        text-decoration: none !important;
+        color: #272727 !important;
+        font-family: Quicksand !important;
+    }
+
+    #forgotPasswordLinkAdmin {
+        display: block !important;
+        width: 100% !important; /* Changed from 40vw to 100% */
+        text-align: right !important;
+        margin: 1rem auto !important;
+        text-decoration: none !important;
+        color: #272727 !important;
+        font-family: Quicksand !important;
+    }
+
     .loginForm {
         width: 80vw;
     }

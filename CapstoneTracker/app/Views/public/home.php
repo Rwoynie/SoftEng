@@ -139,7 +139,6 @@ $nonPinnedAnnouncements = array_filter($announcements, function($ann) {
                       <div class="announcement-cards">
                           <?php foreach ($pinnedAnnouncements as $index => $announcement): ?>
                               <?php 
-                              // Use actual ID or create a unique identifier
                               $announcementId = $announcement['id'] ?? 'pinned_' . $index;
                               ?>
                               <div class="announcement-card pinned" 
