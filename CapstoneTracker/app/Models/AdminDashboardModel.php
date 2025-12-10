@@ -414,11 +414,11 @@ class AdminDashboardModel {
     }
 
     /**
-     * Get activity logs (simplified - you might want to create a separate logs table)
+     * Get activity logs 
      */
     public function getRecentActivity($limit = 20) {
         try {
-            // This is a simplified version - in production, you'd have a dedicated activity log table
+            
             $this->db->query("
                 (SELECT 
                     'thesis_upload' as activity_type,
@@ -700,8 +700,7 @@ public function getAuditLogs($limit, $table = null) {
         
         $this->db->query($sql);
         
-        // Bind parameters
-        // Cast limit to integer to prevent SQL injection or type errors with LIMIT clause
+        
         $this->db->bind(':limit', (int)$limit); 
         if (!empty($table)) {
             $this->db->bind(':table', $table);
@@ -716,7 +715,7 @@ public function getAuditLogs($limit, $table = null) {
 
 public function getLoginAttempts($limit) {
     try {
-        // This query is based on the successful debug query found in the controller
+       
         $this->db->query("
             SELECT * FROM LOGIN_ATTEMPTS 
             ORDER BY attempt_time DESC 
@@ -777,7 +776,7 @@ public function getLoginAttempts($limit) {
     
 
     /**
-     * Get security alerts (failed login attempts, suspicious activities)
+     * Get security alerts 
      */
     public function getSecurityAlerts($limit = 10) {
         try {
@@ -1064,7 +1063,7 @@ public function getThesisCountsByProgram($department = 'all', $course = 'all') {
 
         $params = [];
         
-        // Apply department filtering
+       
         if ($department !== 'all') {
             $courseCodes = $this->getCourseCodesByDepartment($department);
             if (!empty($courseCodes)) {
@@ -1074,7 +1073,7 @@ public function getThesisCountsByProgram($department = 'all', $course = 'all') {
             }
         }
 
-        // Apply specific course filtering
+       
         if ($course !== 'all' && !empty($course)) {
             $sql .= " AND Thesis_Course = ?";
             $params[] = $course;
@@ -1123,7 +1122,7 @@ public function getThesisCountsByProgram($department = 'all', $course = 'all') {
     }
 
     /**
-     * Get course distribution for reports (counts by course instead of department)
+     * Get course distribution for reports 
      */
     public function getCourseDistribution($department = 'all') {
     try {
@@ -1201,7 +1200,7 @@ public function getThesisCountsByProgram($department = 'all', $course = 'all') {
         
         $results = $this->db->resultSet();
         
-        // Ensure all 12 months are represented
+       
         $months = [
             'Jan' => 'January', 'Feb' => 'February', 'Mar' => 'March', 
             'Apr' => 'April', 'May' => 'May', 'Jun' => 'June',
@@ -1278,7 +1277,7 @@ public function getUserDistributionByRole($department = 'all', $course = 'all') 
         
         $params = [];
         
-        // Apply department filtering
+        
         if ($department !== 'all') {
             $courseCodes = $this->getCourseCodesByDepartment($department);
             if (!empty($courseCodes)) {
@@ -1288,7 +1287,7 @@ public function getUserDistributionByRole($department = 'all', $course = 'all') 
             }
         }
 
-        // Apply specific course filtering
+       
         if ($course !== 'all' && !empty($course)) {
             $sql .= " AND Course = ?";
             $params[] = $course;
@@ -1326,7 +1325,7 @@ public function getThesisPerProgram($department = 'all', $course = 'all') {
         
         $params = [];
         
-        // Apply department filtering
+        
         if ($department !== 'all') {
             $courseCodes = $this->getCourseCodesByDepartment($department);
             if (!empty($courseCodes)) {
@@ -1336,7 +1335,6 @@ public function getThesisPerProgram($department = 'all', $course = 'all') {
             }
         }
 
-        // Apply specific course filtering
         if ($course !== 'all' && !empty($course)) {
             $sql .= " AND Thesis_Course = ?";
             $params[] = $course;
@@ -1388,31 +1386,31 @@ public function getProgramThesisCounts() {
  */
 public function getReportsStats($department = 'all', $course = 'all') {
     try {
-        // Base queries
+    
         $userSql = "SELECT COUNT(*) as total FROM USER_INFORMATION WHERE Acc_Status = 'approved' AND User_Role = 'student' OR User_Role = 'faculty' OR User_Role = 'SubAdmin'";
         $thesisSql = "SELECT COUNT(*) as total FROM THESIS WHERE 1=1";
         
         $userParams = [];
         $thesisParams = [];
 
-        // Apply department filtering
+    
         if ($department !== 'all' && !empty($department)) {
             $courseCodes = $this->getCourseCodesByDepartment($department);
             
             if (!empty($courseCodes)) {
                 $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
                 
-                // For users: filter by Course field
+               
                 $userSql .= " AND Course IN ($placeholders)";
                 $userParams = array_merge($userParams, $courseCodes);
                 
-                // For theses: filter by Thesis_Course field  
+                
                 $thesisSql .= " AND Thesis_Course IN ($placeholders)";
                 $thesisParams = array_merge($thesisParams, $courseCodes);
             }
         }
 
-        // Apply specific course filtering
+   
         if ($course !== 'all' && !empty($course)) {
             $userSql .= " AND Course = ?";
             $userParams[] = $course;
@@ -1421,14 +1419,14 @@ public function getReportsStats($department = 'all', $course = 'all') {
             $thesisParams[] = $course;
         }
 
-        // Get total approved users
+     
         $this->db->query($userSql);
         foreach ($userParams as $index => $value) {
             $this->db->bind($index + 1, $value);
         }
         $totalApprovedUsers = (int)($this->db->single()->total ?? 0);
 
-        // Get total theses
+      
         $this->db->query($thesisSql);
         foreach ($thesisParams as $index => $value) {
             $this->db->bind($index + 1, $value);
