@@ -88,6 +88,10 @@ $nonPinnedAnnouncements = array_filter($announcements, function($ann) {
               <span class="stat-label">Departments</span>
             </div>
           </div>
+          <!-- Mobile Get Started Button -->
+          <div class="mobile-get-started">
+            <a href="../User/indexLogin.php" class="btn-get-started">Get Started</a>
+          </div>
         </div>
       </section>
 
