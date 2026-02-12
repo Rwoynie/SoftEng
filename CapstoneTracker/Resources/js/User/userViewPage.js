@@ -7,6 +7,99 @@ document.addEventListener('DOMContentLoaded', function() {
     const appContentHeader = document.querySelector('.app-content-header');
     const logoutBtn = document.getElementById('logoutHeaderIcon');
 
+    // Edit Profile button functionality
+    const editProfileBtn = document.getElementById('editProfileBtn');
+    // PHP-injected JS variables for role logic
+    const isStudent = typeof window.isStudent !== 'undefined' ? window.isStudent : false;
+    const isGoogleUser = typeof window.isGoogleUser !== 'undefined' ? window.isGoogleUser : false;
+
+    if (editProfileBtn) {
+        editProfileBtn.addEventListener('click', async function() {
+            let profileData = window.ProfileManagerInstance && typeof window.ProfileManagerInstance.getCurrentProfileData === 'function'
+                ? window.ProfileManagerInstance.getCurrentProfileData()
+                : null;
+            if (!profileData) {
+                profileData = {
+                    firstName: document.querySelector('[data-value="FullName"]').textContent.split(' ')[0] || '',
+                    middleName: '',
+                    lastName: '',
+                    department: document.getElementById('departmentSelect')?.value || '',
+                    course: document.getElementById('courseSelect')?.value || ''
+                };
+            }
+
+            // Build dropdowns
+            let departmentDropdown = `<select id='swal-input-dept' class='swal2-input' style='width: 100%;'>
+                <option value='' disabled ${!profileData.department ? 'selected' : ''}>Select department</option>
+                <option value='CTET' ${profileData.department === 'CTET' ? 'selected' : ''}>CTET</option>
+                <option value='COE' ${profileData.department === 'COE' ? 'selected' : ''}>COE</option>
+            </select>`;
+            let courseDropdown = `<select id='swal-input-course' class='swal2-input' style='width: 100%;'>
+                <option value='' disabled ${!profileData.course ? 'selected' : ''}>Select course</option>
+                <option value='Bachelor of Science in Information Technology' ${profileData.course === 'Bachelor of Science in Information Technology' ? 'selected' : ''}>Bachelor of Science in Information Technology</option>
+                <option value='Bachelor of Early Childhood Education' ${profileData.course === 'Bachelor of Early Childhood Education' ? 'selected' : ''}>Bachelor of Early Childhood Education</option>
+                <option value='Bachelor of Secondary Education' ${profileData.course === 'Bachelor of Secondary Education' ? 'selected' : ''}>Bachelor of Secondary Education</option>
+                <option value='Bachelor of Technical-Vocational Teacher Education' ${profileData.course === 'Bachelor of Technical-Vocational Teacher Education' ? 'selected' : ''}>Bachelor of Technical-Vocational Teacher Education</option>
+                <option value='Bachelor of Elementary Education' ${profileData.course === 'Bachelor of Elementary Education' ? 'selected' : ''}>Bachelor of Elementary Education</option>
+                <option value='Bachelor of Special Needs Education' ${profileData.course === 'Bachelor of Special Needs Education' ? 'selected' : ''}>Bachelor of Special Needs Education</option>
+                <option value='Bachelor of Science in Agricultural and Biosystems Engineering' ${profileData.course === 'Bachelor of Science in Agricultural and Biosystems Engineering' ? 'selected' : ''}>Bachelor of Science in Agricultural and Biosystems Engineering</option>
+            </select>`;
+
+            // Modal HTML with proper alignment and no scrolling
+            let modalHtml = `
+                <div style='text-align: left; max-height: 60vh; overflow-y: auto; padding: 0;'>
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #2c3e50;">First Name</label>
+                        <input id="swal-input-first" class="swal2-input" placeholder="First Name" value="${profileData.firstName || ''}" style="width: 100%; box-sizing: border-box;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #2c3e50;">Middle Name</label>
+                        <input id="swal-input-middle" class="swal2-input" placeholder="Middle Name" value="${profileData.middleName || ''}" style="width: 100%; box-sizing: border-box;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #2c3e50;">Last Name</label>
+                        <input id="swal-input-last" class="swal2-input" placeholder="Last Name" value="${profileData.lastName || ''}" style="width: 100%; box-sizing: border-box;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #2c3e50;">${isStudent ? 'Course' : 'Department'}</label>
+                        ${isStudent ? courseDropdown : ''}
+                        ${!isStudent ? departmentDropdown : ''}
+                    </div>
+                </div>
+            `;
+
+            const { value: formValues } = await Swal.fire({
+                title: '<h3 style="color: #2c3e50; margin: 0;">Edit Profile</h3>',
+                html: modalHtml,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa fa-save" style="margin-right: 5px;"></i> Save',
+                cancelButtonText: '<i class="fa fa-times" style="margin-right: 5px;"></i> Cancel',
+                confirmButtonColor: '#3498db',
+                cancelButtonColor: '#6c757d',
+                preConfirm: () => {
+                    return {
+                        firstName: document.getElementById('swal-input-first').value,
+                        middleName: document.getElementById('swal-input-middle').value,
+                        lastName: document.getElementById('swal-input-last').value,
+                        department: !isStudent ? document.getElementById('swal-input-dept').value : '',
+                        course: isStudent ? document.getElementById('swal-input-course').value : ''
+                    };
+                },
+                width: '500px',
+                padding: '2rem'
+            });
+            if (formValues) {
+                if (window.ProfileManagerInstance && typeof window.ProfileManagerInstance.updateProfileModalFields === 'function') {
+                    window.ProfileManagerInstance.updateProfileModalFields(formValues);
+                } else {
+                    Swal.fire('Saved!', 'Profile updated (simulate backend update).', 'success');
+                }
+            }
+        });
+    }
+
+
     const fabIcon = document.querySelector('.fab-icon');
     const uploadModal = document.getElementById('uploadModal');
     const previewModal = document.getElementById('previewModal');
@@ -301,13 +394,13 @@ document.addEventListener('DOMContentLoaded', function() {
     function getCourseCodesForDepartment(departmentValue) {
         // Updated to match the new descriptive department values from PHP
         const departmentMap = {
-            'beced': ['Bachelor of Early Childhood Education'],
-            'bsed': ['Bachelor of Secondary Education'],
-            'btvted': ['Bachelor of Technical-Vocational Teacher Education'],
-            'beed': ['Bachelor of Elementary Education'],
-            'bsned': ['Bachelor of Special Needs Education'],
-            'bsabe': ['Bachelor of Science in Agriculture and Biosystems Engineering'],
-            'bsit': ['Bachelor of Science in Information Technology']
+            'Bachelor of Early Childhood Education': ['Bachelor of Early Childhood Education'],
+            'Bachelor of Secondary Education': ['Bachelor of Secondary Education'],
+            'Bachelor of Technical-Vocational Teacher Education': ['Bachelor of Technical-Vocational Teacher Education'],
+            'Bachelor of Elementary Education': ['Bachelor of Elementary Education'],
+            'Bachelor of Special Needs Education': ['Bachelor of Special Needs Education'],
+            'Bachelor of Science in Agriculture and Biosystems Engineering': ['Bachelor of Science in Agriculture and Biosystems Engineering'],
+            'Bachelor of Science in Information Technology': ['Bachelor of Science in Information Technology']
         };
         
         return departmentMap[departmentValue] || [];
@@ -683,6 +776,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // VIEW ABSTRACT
     function showProjectPreview(thesisId, title, uploadedDate, authors, adviser) {
         const modalTitle = document.querySelector('.preview-modal .modal-title');
         if (modalTitle) {
@@ -755,6 +849,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // FOR ABSTRACT
     async function fetchThesisFile(thesisId, title) {
         try {
             // Show loading state
@@ -1108,27 +1203,56 @@ document.addEventListener('DOMContentLoaded', function() {
                 cancelButtonText: 'Cancel'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Redirect to logout page or perform logout action
                     Swal.fire(
                         'Logged out!',
                         'You have been successfully logged out.',
                         'success'
                     ).then(() => {
-                        // Redirect to login page after successful logout
-                        window.location.href = 'publicView.php'; // Change to your actual login page
+                        window.location.href = 'indexLogin.php'; // Change to your actual login page
+                    });
+                }
+            });
+        });
+    }
+    // Sidebar logout button
+    const logoutSidebarBtn = document.getElementById('logoutSidebarBtn');
+    if (logoutSidebarBtn) {
+        logoutSidebarBtn.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You will be logged out of your account",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, logout!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire(
+                        'Logged out!',
+                        'You have been successfully logged out.',
+                        'success'
+                    ).then(() => {
+                        window.location.href = 'indexLogin.php'; // Change to your actual login page
                     });
                 }
             });
         });
     }
 
-    // Function to show profile and hide projects
     function showProfile() {
         profileContainer.style.display = 'block';
         // Hide all project views
         allView.style.display = 'none';
         recentView.style.display = 'none';
         appContentHeader.style.display = 'none';
+        
+        // Hide the main header with "Thesis Repository" title and buttons
+        const mainHeader = document.querySelector('.main-content .header');
+        if (mainHeader) {
+            mainHeader.style.display = 'none';
+        }
     
         // Update active states - ensure only profile icon is selected
         document.querySelectorAll('.menu-options li').forEach(item => {
@@ -1143,6 +1267,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function hideProfile() {
         profileContainer.style.display = 'none';
         appContentHeader.style.display = 'flex';
+        
+        // Show the main header with "Thesis Repository" title and buttons
+        const mainHeader = document.querySelector('.main-content .header');
+        if (mainHeader) {
+            mainHeader.style.display = 'flex';
+        }
         
         // Show the appropriate view based on which button is selected
         if (allButton.classList.contains('selected')) {

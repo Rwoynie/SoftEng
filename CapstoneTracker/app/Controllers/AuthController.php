@@ -3,7 +3,7 @@
 
 
 if (!defined('ROOT_DIR')) {
-    define('ROOT_DIR', dirname(__DIR__, 2)); // Adjust based on your directory structure
+    define('ROOT_DIR', dirname(__DIR__, 2));
 }
 
 require_once __DIR__ . '/Controller.php';
@@ -37,108 +37,170 @@ class AuthController extends Controller {
     return true;
 }
 
-    public function handleRequest() {
-        // Start session at the beginning
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-            
-            // Generate CSRF token if it doesn't exist
-            $this->generateCsrfToken();
-        }
-        
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $action = $_POST['action'] ?? ($_GET['action'] ?? '');
-            
-            error_log("AuthController - Action received: " . $action);
-            
-            if ($action === 'login') {
-                $this->processLogin();
-            } elseif ($action === 'googleLogin') {
-                $this->googleLogin();
-            } elseif ($action === 'adminGoogleLogin') {
-                // REMOVED: Admin Google login is now handled by AdminController
-                error_log("Admin Google login redirected to AdminController");
-                $_SESSION['error_message'] = "Admin Google login is handled separately.";
-                header('Location: ../../app/Views/User/indexLogin.php');
-                exit();
-            } elseif ($action === 'sendVerificationCode') {
-                $this->sendVerificationCode();
-            } elseif ($action === 'verifyResetCode') {
-                $this->verifyResetCode();
-            } elseif ($action === 'debugCurrentTokens') {
-                $this->debugCurrentTokens();
-            } elseif ($action === 'debugDatabaseState') {
-                $this->debugDatabaseState();
-            } else {
-                // Handle unknown action
-                error_log("Invalid action: " . $action);
-                $_SESSION['error_message'] = "Invalid action: " . $action;
-                header('Location: ../../app/Views/User/indexLogin.php');
-                exit();
-            }
-        } elseif ($_SERVER['REQUEST_METHOD'] == 'GET') {
-            $action = $_GET['action'] ?? '';
-            
-            if ($action === 'logout') {
-                $this->logout();
-            }
-        }
+public function handleRequest() {
+    // Start session at the beginning
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+        $this->generateCsrfToken();
     }
     
-    public function processLogin() {
-        // Get form data
-        error_log("=== LOGIN ATTEMPT DEBUG ===");
-        error_log("Login attempt - Email: " . ($_POST['email'] ?? 'empty'));
-        error_log("Login attempt - Password: " . (($_POST['password'] ?? 'empty') ? '***' : 'empty'));
-        error_log("Login attempt - Role: " . ($_POST['role'] ?? 'empty'));
+    error_log("=== AUTH CONTROLLER HANDLE REQUEST ===");
+    error_log("POST DATA: " . print_r($_POST, true));
     
-        // Validate CSRF token first
-        $csrfToken = $_POST['csrf_token'] ?? '';
-        if (!$this->validateCsrfToken($csrfToken)) {
-            $this->redirectWithError('Invalid security token. Please try again.');
+    if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+        $action = $_POST['action'] ?? '';
+        
+        error_log("ACTION DETECTED: " . $action);
+        
+        // Google Login (multiple ways it can be triggered)
+        if ($action === 'googleLogin' || 
+            $action === 'google_login' || 
+            (isset($_POST['credential']) && isset($_POST['email']))) {
+            
+            error_log("GOOGLE LOGIN DETECTED - Calling googleLogin()");
+            $this->googleLogin();
             return;
         }
-    
-        $username = $_POST['email'] ?? '';
-        $password = $_POST['password'] ?? '';
-        $role = $_POST['role'] ?? '';
-        
-        // Validate input
-        if (empty($username) || empty($password)) {
-            $this->redirectWithError('All fields are required.');
+        // Normal Email/Password Login
+        elseif ($action === 'login') {
+            error_log("Calling processLogin()");
+            $this->processLogin();
             return;
         }
-        
-        // Clear any existing error message
-        if (isset($_SESSION['error_message'])) {
-            unset($_SESSION['error_message']);
+        // Forgot Password: Send Verification Code
+        elseif ($action === 'send_verification_code') {
+            error_log("Calling sendVerificationCode()");
+            $this->sendVerificationCode();
+            return;
         }
-        
-        error_log("Attempting to authenticate user: " . $username);
-        
-        // Authenticate user
-        $user = $this->authenticateUser($username, $password, $role);
-        
-        if ($user) {
-            error_log("✅ Login SUCCESS for: " . $username);
-            // Create session and redirect
-            $this->createUserSession($user);
-            $this->redirect('../../app/Views/User/userViewPage.php');
-        } else {
-            // Debug: Log the error message that was set
-            $errorMsg = $_SESSION['error_message'] ?? 'No error message set';
-            error_log("❌ Login FAILED for: " . $username);
-            error_log("Error message: " . $errorMsg);
-            
-            // Ensure we have an error message
-            if (!isset($_SESSION['error_message']) || empty($_SESSION['error_message'])) {
-                $_SESSION['error_message'] = 'Invalid credentials. Please try again.';
-            }
-            
+        // Forgot Password: Verify Code & Reset Password
+        elseif ($action === 'verify_reset_code') {
+            error_log("Calling verifyResetCode()");
+            $this->verifyResetCode();
+            return;
+        }
+        // Unknown action → reject
+        else {
+            error_log("UNKNOWN ACTION: " . $action);
+            $_SESSION['error_message'] = "Invalid request.";
             header('Location: ../../app/Views/User/indexLogin.php');
             exit();
         }
+    } 
+    elseif ($_SERVER['REQUEST_METHOD'] == 'GET') {
+        $action = $_GET['action'] ?? '';
+        
+        if ($action === 'logout') {
+            $this->logout();
+        }
     }
+}
+    
+public function processLogin() {
+    // Get form data
+    error_log("=== LOGIN ATTEMPT DEBUG ===");
+    error_log("Login attempt - Email: " . ($_POST['email'] ?? 'empty'));
+    error_log("Login attempt - Password: " . (($_POST['password'] ?? 'empty') ? '***' : 'empty'));
+    error_log("Login attempt - Role: " . ($_POST['role'] ?? 'empty'));
+
+    // Get client information for logging
+    $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
+    $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown';
+    $email = $_POST['email'] ?? '';
+
+    // Log login attempt (initially as failed)
+    $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Login attempt started');
+
+    // Validate CSRF token first
+    $csrfToken = $_POST['csrf_token'] ?? '';
+    if (!$this->validateCsrfToken($csrfToken)) {
+        $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Invalid CSRF token');
+        $this->redirectWithError('Invalid security token. Please try again.');
+        return;
+    }
+
+    $username = $_POST['email'] ?? '';
+    $password = $_POST['password'] ?? '';
+    $role = $_POST['role'] ?? '';
+    
+    // Validate input
+    if (empty($username) || empty($password)) {
+        $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Missing email or password');
+        $this->redirectWithError('All fields are required.');
+        return;
+    }
+    
+    // Clear any existing error message
+    if (isset($_SESSION['error_message'])) {
+        unset($_SESSION['error_message']);
+    }
+    
+    error_log("Attempting to authenticate user: " . $username);
+    
+    // Authenticate user
+    $user = $this->authenticateUser($username, $password, $role);
+    
+    if ($user) {
+        error_log("✅ Login SUCCESS for: " . $username);
+        
+        // Log successful login
+        $this->logLoginAttempt($email, $user['id'], $ipAddress, $userAgent, true, 'Login successful');
+        
+        // Log user action for audit
+        $this->logUserAction($user['id'], 'login', 'User logged in successfully');
+        
+        // Create session and redirect DIRECTLY without showing success message
+        $this->createUserSession($user);
+        $this->redirect('../../app/Views/User/userViewPage.php');
+    } else {
+        // Log failed login
+        $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Invalid credentials');
+        
+        // Debug: Log the error message that was set
+        $errorMsg = $_SESSION['error_message'] ?? 'No error message set';
+        error_log("❌ Login FAILED for: " . $username);
+        error_log("Error message: " . $errorMsg);
+        
+        // Ensure we have an error message
+        if (!isset($_SESSION['error_message']) || empty($_SESSION['error_message'])) {
+            $_SESSION['error_message'] = 'Invalid credentials. Please try again.';
+        }
+        
+        header('Location: ../../app/Views/User/indexLogin.php');
+        exit();
+    }
+}
+
+    /**
+     * Log login attempts
+     */
+    private function logLoginAttempt($email, $userId = null, $ipAddress = null, $userAgent = null, $success = false, $notes = '') {
+        try {
+            require_once ROOT_DIR . '\app\Models\User.php';
+            $userModel = new User();
+            $userModel->logLoginAttempt($email, $userId, $ipAddress, $userAgent, $success, $notes);
+        } catch (Exception $e) {
+            // Log error but don't break login process
+            error_log("Failed to log login attempt: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Log user actions for audit
+     */
+    private function logUserAction($userId, $action, $description) {
+        try {
+            require_once ROOT_DIR . '\app\Models\User.php';
+            $userModel = new User();
+            $userModel->logUserAction($userId, $action, $description);
+        } catch (Exception $e) {
+            error_log("Failed to log user action: " . $e->getMessage());
+        }
+    }
+
+
+
+    
 
    /**
  * Send verification code for password reset - NO AUTO PASSWORD
@@ -227,77 +289,58 @@ public function sendVerificationCode() {
  * Verify reset code and update password
  */
 public function verifyResetCode() {
-    // Clear output buffers
-    while (ob_get_level() > 0) {
-        ob_end_clean();
-    }
-    
-    header('Content-Type: application/json');
-    
+    if (ob_get_level()) ob_end_clean();
+    header('Content-Type: application/json; charset=utf-8');
+
     try {
-        $email = $_POST['email'] ?? '';
-        $verificationCode = $_POST['verification_code'] ?? '';
-        $newPassword = $_POST['new_password'] ?? ''; // User's chosen password
-        
-        error_log("Verify reset code with user's password");
-        error_log("Email: " . $email);
-        error_log("Code: " . $verificationCode);
-        
-        if (empty($email) || empty($verificationCode) || empty($newPassword)) {
-            throw new Exception('All fields are required.');
+        $email = trim($_POST['email'] ?? '');
+        $code  = $_POST['verification_code'] ?? '';
+        $pass  = $_POST['new_password'] ?? '';
+
+        if (empty($email) || empty($code) || empty($pass)) {
+            echo json_encode(['success' => false, 'message' => 'Missing data']);
+            exit;
         }
-        
-        if (strlen($verificationCode) !== 6 || !is_numeric($verificationCode)) {
-            throw new Exception('Invalid verification code format.');
-        }
-        
-        if (strlen($newPassword) < 8) {
-            throw new Exception('Password must be at least 8 characters long.');
-        }
-        
-        // Validate verification code (simpler now - just check the code)
-        $isValid = $this->validateVerificationCode($email, $verificationCode);
-        
-        if (!$isValid) {
-            throw new Exception('Invalid verification code. Please check the code and try again.');
-        }
-        
-        // Get user
+
         $user = $this->findByEmail($email);
-        if (!$user) {
-            throw new Exception('User not found.');
+        if (!$user || !isset($user->ID)) {
+            echo json_encode(['success' => false, 'message' => 'User not found']);
+            exit;
         }
-        
-        if (is_object($user)) {
-            $user = (array)$user;
+
+        if (!$this->validateVerificationCode($email, $code)) {
+            echo json_encode(['success' => false, 'message' => 'Invalid or expired code']);
+            exit;
         }
-        
-        $userId = $user['ID'] ?? null;
-        
-        // Update user password with user's chosen password
-        $passwordUpdated = $this->updateUserPassword($userId, $newPassword);
-        
-        if ($passwordUpdated) {
-            // Mark code as used
-            $this->markVerificationCodeAsUsed($email, $verificationCode);
-            
-            error_log("Password reset successful for: " . $email);
-            echo json_encode([
-                'success' => true,
-                'message' => 'Password has been reset successfully.'
-            ]);
+
+        // Generate new salt + hash
+        $newSalt = bin2hex(random_bytes(16));
+        $hashed = password_hash($pass . $newSalt, PASSWORD_DEFAULT);
+
+        // USE YOUR DATABASE CLASS STYLE — bind() instead of execute([array])
+        require_once ROOT_DIR . '\app\Models\User.php';
+        $userModel = new User();
+        $db = $userModel->getDb();
+
+        $db->query("UPDATE USER_INFORMATION SET pswrd = :hash, Salt = :salt WHERE ID = :id");
+        $db->bind(':hash', $hashed);
+        $db->bind(':salt', $newSalt);
+        $db->bind(':id', $user->ID);
+
+        $db->execute();
+
+        if ($db->rowCount() > 0) {
+            $this->markVerificationCodeAsUsed($email, $code);
+            echo json_encode(['success' => true, 'message' => 'Password reset successfully!']);
         } else {
-            throw new Exception('Failed to reset password. Please try again.');
+            echo json_encode(['success' => false, 'message' => 'No changes made (possible duplicate)']);
         }
-        
+
     } catch (Exception $e) {
-        error_log("Verify reset code error: " . $e->getMessage());
-        echo json_encode([
-            'success' => false,
-            'message' => $e->getMessage()
-        ]);
-        exit();
+        error_log("verifyResetCode ERROR: " . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Server error']);
     }
+    exit;
 }
 
 
@@ -398,9 +441,9 @@ private function storeVerificationCode($userId, $code) {
         $db->bind(':user_id', $userId);
         $db->execute();
         
-        // Use database's NOW() function to avoid timezone issues
+        // CHANGED: Use database's NOW() function with 2 MINUTE expiry
         $db->query('INSERT INTO PASSWORD_RESET_TOKENS (user_id, token, expires_at) 
-                   VALUES (:user_id, :token, DATE_ADD(NOW(), INTERVAL 15 MINUTE))');
+                   VALUES (:user_id, :token, DATE_ADD(NOW(), INTERVAL 2 MINUTE))'); // Changed from 15 to 2
         $db->bind(':user_id', $userId);
         $db->bind(':token', $code);
         
@@ -420,6 +463,7 @@ private function storeVerificationCode($userId, $code) {
             error_log("   Code: " . $storedCode);
             error_log("   Created: " . $createdAt);
             error_log("   Expires: " . $expiresAt);
+            error_log("   NOTE: Token expires in 2 minutes");
         }
         
         return $result;
@@ -451,7 +495,7 @@ private function validateVerificationCode($email, $code) {
             WHERE ui.Email = :email 
             AND prt.token = :code
             AND prt.is_used = FALSE
-            -- AND prt.expires_at > NOW()  -- Temporarily commented out
+            AND prt.expires_at > NOW()
             LIMIT 1
         ');
         $db->bind(':email', $email);
@@ -650,7 +694,7 @@ private function markVerificationCodeAsUsed($email, $code) {
                         <p><strong>Important Information:</strong></p>
                         <ul>
                             <li>Enter this 6-digit code in the verification form</li>
-                            <li>This code will expire in 15 minutes</li>
+                            <li>This code will expire in 5 minutes</li>
                             <li>You will be able to set your new password after verification</li>
                             <li>If you didn't request this reset, please ignore this email</li>
                         </ul>
@@ -668,79 +712,12 @@ private function markVerificationCodeAsUsed($email, $code) {
     }
     
 
-    /**
- * Update user password - WITH DETAILED DEBUGGING
- */
-private function updateUserPassword($userId, $newPassword) {
-    try {
-        require_once ROOT_DIR . '\app\Models\User.php';
-        $userModel = new User();
-        $db = $userModel->getDb();
-        
-        error_log("=== UPDATE USER PASSWORD DEBUG ===");
-        error_log("User ID: " . $userId);
-        error_log("New Password (plain): " . $newPassword);
-        
-        // Hash the new password
-        $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
-        error_log("Hashed Password: " . $hashedPassword);
-        
-        // Check if password is valid
-        if (empty($hashedPassword)) {
-            error_log("❌ Password hashing failed!");
-            return false;
-        }
-        
-        error_log("Executing UPDATE query with column 'pswrd'...");
-        
-        // FIXED: Using correct column name 'pswrd'
-        $db->query('UPDATE USER_INFORMATION SET pswrd = :password WHERE ID = :user_id');
-        $db->bind(':password', $hashedPassword);
-        $db->bind(':user_id', $userId);
-        
-        $result = $db->execute();
-        
-        error_log("Update result: " . ($result ? 'SUCCESS' : 'FAILED'));
-        
-        // Check how many rows were affected
-        $rowCount = $db->rowCount();
-        error_log("Rows affected: " . $rowCount);
-        
-        if ($result && $rowCount > 0) {
-            error_log("✅ Password update confirmed - row modified");
-            
-            // Verify the update worked by reading back the password
-            $db->query('SELECT pswrd FROM USER_INFORMATION WHERE ID = :user_id'); // FIXED: pswrd
-            $db->bind(':user_id', $userId);
-            $updatedUser = $db->single();
-            
-            if ($updatedUser) {
-                $storedPassword = is_object($updatedUser) ? $updatedUser->pswrd : $updatedUser['pswrd']; // FIXED: pswrd
-                error_log("Stored password after update: " . $storedPassword);
-                
-                // Verify the hash
-                $passwordMatches = password_verify($newPassword, $storedPassword);
-                error_log("Password verification: " . ($passwordMatches ? 'SUCCESS' : 'FAILED'));
-            }
-        } else {
-            error_log("❌ No rows affected by update");
-        }
-        
-        return $result && $rowCount > 0;
-        
-    } catch (Exception $e) {
-        error_log("💥 Error updating user password: " . $e->getMessage());
-        return false;
-    }
-}
-
-
 
     /**
  * Debug method to check database state
  */
 public function debugDatabaseState() {
-    // Clear output buffers
+ 
     while (ob_get_level() > 0) {
         ob_end_clean();
     }
@@ -762,7 +739,7 @@ public function debugDatabaseState() {
         $userModel = new User();
         $db = $userModel->getDb();
         
-        // 1. Check if user exists
+
         $db->query('SELECT ID, Email, First_Name, Last_Name FROM USER_INFORMATION WHERE Email = :email');
         $db->bind(':email', $email);
         $user = $db->single();
@@ -776,7 +753,7 @@ public function debugDatabaseState() {
         if ($user) {
             $userId = is_object($user) ? $user->ID : $user['ID'];
             
-            // 2. Check all tokens for this user
+       
             $db->query('SELECT * FROM PASSWORD_RESET_TOKENS WHERE user_id = :user_id ORDER BY created_at DESC');
             $db->bind(':user_id', $userId);
             $tokens = $db->resultSet();
@@ -813,115 +790,87 @@ public function debugDatabaseState() {
 
 
 public function googleLogin() {
-    // Start output buffering to catch any errors
-    ob_start();
+ 
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
     
     try {
-        error_log("=== GOOGLE LOGIN DEBUG WITH ROLE VALIDATION ===");
-        error_log("POST data: " . print_r($_POST, true));
+        error_log("=== GOOGLE LOGIN - PROPER EXISTING USER HANDLING ===");
         
-        // Clear any previous output
-        while (ob_get_level() > 1) {
-            ob_end_clean();
-        }
-        
-        // Set header first to ensure clean JSON
+ 
         header('Content-Type: application/json');
-        
         
         $credential = $_POST['credential'] ?? '';
         $email = $_POST['email'] ?? '';
         $name = $_POST['name'] ?? '';
-        $selectedRole = $_POST['role'] ?? 'student'; // Get the selected role
+        $selectedRole = $_POST['role'] ?? 'student';
+
+    
+        $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown';
+
+     
+        $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Google login attempt started');
     
         // Basic validation
         if (empty($credential) || empty($email)) {
+            $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Missing Google authentication data');
             throw new Exception('Missing required Google authentication data.');
         }
     
-        error_log("Email: " . $email);
-        error_log("Name: " . $name);
-        error_log("Selected Role: " . $selectedRole);
-    
-        // TEMPORARY: Skip Google token validation during development
-        $isValidToken = true;
-        error_log("Google token validation SKIPPED for development");
-    
-        // Check if user exists in your database
-        error_log("Checking if user exists in database...");
+        error_log("=== DEBUGGING USER EXISTENCE CHECK ===");
+
+ 
         $user = $this->findByEmail($email);
-        
+
+        error_log("findByEmail result: " . ($user ? 'USER FOUND' : 'USER NOT FOUND'));
+        error_log("findByEmail return type: " . gettype($user));
+        error_log("findByEmail return value: " . print_r($user, true));
         
         if ($user) {
-            // Convert user to array if it's an object
+            error_log("✅ SHOULD GO TO LOGIN FLOW");
+    
             if (is_object($user)) {
                 $user = (array)$user;
             }
             
-            // Safely get user properties
-            $accStatus = $user['Acc_Status'] ?? $user->Acc_Status ?? 'unknown';
-            $userId = $user['ID'] ?? $user->ID ?? null;
-            $userEmail = $user['Email'] ?? $user->Email ?? '';
-            $firstName = $user['First_Name'] ?? $user->First_Name ?? '';
-            $lastName = $user['Last_Name'] ?? $user->Last_Name ?? '';
-            $userRole = $user['User_Role'] ?? $user->User_Role ?? '';
+    
+            $accStatus = $user['Acc_Status'] ?? 'unknown';
+            $userId = $user['ID'] ?? null;
+            $userEmail = $user['Email'] ?? '';
+            $firstName = $user['First_Name'] ?? '';
+            $lastName = $user['Last_Name'] ?? '';
+            $userRole = $user['User_Role'] ?? '';
             
-            error_log("User found in database. Account status: " . $accStatus);
-            error_log("User ID: " . $userId);
-            error_log("User Role: " . $userRole);
-            error_log("Selected Role: " . $selectedRole);
+            error_log("User details - ID: $userId, Status: $accStatus, Role: $userRole");
             
-            // ✅ ROLE VALIDATION: Check if user role matches selected role
+   
             $normalizedUserRole = strtolower($userRole);
             $normalizedSelectedRole = strtolower($selectedRole);
 
-            // Map role names for compatibility - FIXED for student/researcher
+    
             if ($normalizedSelectedRole === 'researcher') {
-                $normalizedSelectedRole = 'student'; // Treat researcher as student
+                $normalizedSelectedRole = 'student';
             }
-
-            error_log("Normalized User Role: " . $normalizedUserRole);
-            error_log("Normalized Selected Role: " . $normalizedSelectedRole);
 
             if ($normalizedUserRole !== $normalizedSelectedRole) {
-                error_log("❌ ROLE MISMATCH: User role ($normalizedUserRole) does not match selected role ($normalizedSelectedRole)");
+                $this->logLoginAttempt($email, $userId, $ipAddress, $userAgent, false, "Role mismatch: $normalizedUserRole vs $normalizedSelectedRole");
+                error_log("❌ ROLE MISMATCH: User role ($normalizedUserRole) vs selected role ($normalizedSelectedRole)");
                 throw new Exception("This account is registered as a " . ucfirst($normalizedUserRole) . ". Please use the " . ucfirst($normalizedUserRole) . " login option.");
             }
             
-            // Map role names for compatibility
-            $roleMapping = [
-                'researcher' => 'student',  // Map 'researcher' to 'student' for validation
-                'student' => 'student',     // Add direct mapping
-                'faculty' => 'faculty'      // Add direct mapping
-            ];
-            
-            $mappedSelectedRole = $roleMapping[$normalizedSelectedRole] ?? $normalizedSelectedRole;
-            
-            error_log("Normalized User Role: " . $normalizedUserRole);
-            error_log("Mapped Selected Role: " . $mappedSelectedRole);
-            
-            if ($normalizedUserRole !== $mappedSelectedRole) {
-                error_log("❌ ROLE MISMATCH: User role ($normalizedUserRole) does not match selected role ($mappedSelectedRole)");
-                throw new Exception("This account is registered as a " . ucfirst($normalizedUserRole) . ". Please use the " . ucfirst($normalizedUserRole) . " login option.");
-            }
-            
-            // Check for admin roles (they have special handling)
-            if ($userRole === 'superAdmin' || $userRole === 'SubAdmin') {
-                // Add additional admin validation here if needed
-                $isAuthorizedAdmin = $this->isAuthorizedAdminEmail($email);
-                if (!$isAuthorizedAdmin) {
-                    throw new Exception('This Google account is not authorized for admin access.');
-                }
-            }
-
-            // ✅ EXISTING USER: Check if account is approved
+    
             if ($accStatus === 'pending') {
+                $this->logLoginAttempt($email, $userId, $ipAddress, $userAgent, false, 'Account pending approval');
                 throw new Exception('Your account is pending approval. Please wait for administrator approval.');
             } else if ($accStatus === 'rejected') {
+                $this->logLoginAttempt($email, $userId, $ipAddress, $userAgent, false, 'Account rejected');
                 throw new Exception('Your account registration was rejected. Please contact the administrator.');
             } else if ($accStatus === 'approved') {
-                // ✅ EXISTING APPROVED USER: Log them in
-                error_log("User account approved, creating session...");
+   
+                error_log("✅ Account approved - logging in existing user");
+                
                 $this->createUserSession([
                     'id' => $userId,
                     'email' => $userEmail,
@@ -929,72 +878,69 @@ public function googleLogin() {
                     'role' => $userRole
                 ]);
                 
-                error_log("Session created successfully");
+
+                $this->logLoginAttempt($email, $userId, $ipAddress, $userAgent, true, 'Google login successful');
+                $this->logUserAction($userId, 'google_login', 'User logged in via Google');
                 
-                // Determine redirect URL based on role
+                error_log("✅ Session created successfully for existing user ID: $userId");
+                
                 $redirectUrl = $this->getRedirectUrlByRole($userRole);
-                error_log("Redirecting to: " . $redirectUrl);
                 
                 echo json_encode([
                     'success' => true,
-                    'message' => 'Login successful',
+                    'message' => 'Login successful!',
                     'redirect_url' => $redirectUrl
                 ]);
                 exit();
             } else {
+                $this->logLoginAttempt($email, $userId, $ipAddress, $userAgent, false, 'Invalid account status');
                 throw new Exception('Your account status is invalid. Please contact administrator.');
             }
         } else {
-            error_log("User not found in database, starting auto-registration...");
-            // ❌ NEW USER: Auto-register them with the selected role
+            error_log("❌ GOING TO REGISTRATION FLOW (THIS SHOULD NOT HAPPEN FOR EXISTING USERS)");
             $registrationResult = $this->autoRegisterGoogleUser($email, $name, $selectedRole);
-            error_log("Auto-registration result: " . print_r($registrationResult, true));
-            
+
             if ($registrationResult['success']) {
-                error_log("Auto-registration successful, creating session...");
-                // Log the user in after registration
-                $this->createUserSession([
-                    'id' => $registrationResult['user_id'],
-                    'email' => $email,
-                    'name' => $name,
-                    'role' => $selectedRole
-                ]);
+                $userId = $registrationResult['user_id'] ?? null;
                 
-                error_log("Session created for new user");
-                
-                // Determine redirect URL based on role
-                $redirectUrl = $this->getRedirectUrlByRole($selectedRole);
-                error_log("Redirecting to: " . $redirectUrl);
-                
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'Account created, check your email for further instruction.',
-                    'redirect_url' => $redirectUrl
-                ]);
-                exit();
+                if ($userId) {
+          
+                    $this->createUserSession([
+                        'id' => $userId,
+                        'email' => $email,
+                        'name' => $name,
+                        'role' => $selectedRole
+                    ]);
+                    
+                    $this->logLoginAttempt($email, $userId, $ipAddress, $userAgent, true, 'Google registration and login successful');
+                    $this->logUserAction($userId, 'google_register', 'User registered and logged in via Google');
+                    
+                    $redirectUrl = $this->getRedirectUrlByRole($selectedRole);
+                    
+                    echo json_encode([
+                        'success' => true,
+                        'message' => 'Check your email for further information.',
+                        'redirect_url' => $redirectUrl
+                    ]);
+                    exit();
+                } else {
+                    $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Account created but login failed');
+                    throw new Exception('Account created but login failed. Please try logging in manually.');
+                }
             } else {
+                $this->logLoginAttempt($email, null, $ipAddress, $userAgent, false, 'Google registration failed: ' . $registrationResult['message']);
                 throw new Exception($registrationResult['message']);
             }
         }
-    
+
     } catch (Exception $e) {
-        // Clear any output that might have been generated
-        while (ob_get_level() > 0) {
-            ob_end_clean();
-        }
-        
-        header('Content-Type: application/json');
         error_log("Google login exception: " . $e->getMessage());
+        
         echo json_encode([
             'success' => false,
             'message' => $e->getMessage()
         ]);
         exit();
-    } finally {
-        // Ensure no extra output
-        if (ob_get_length()) {
-            ob_end_clean();
-        }
     }
 }
 
@@ -1007,7 +953,7 @@ private function getRedirectUrlByRole($userRole) {
             return '../../Views/User/userViewPage.php';
             
         case 'faculty':
-            return '../../Views/User/userViewPage.php'; // Adjust path as needed
+            return '../../Views/User/userViewPage.php'; 
             
         case 'superadmin':
         case 'subadmin':
@@ -1016,7 +962,7 @@ private function getRedirectUrlByRole($userRole) {
             
         default:
             error_log("Unknown role for redirect: " . $userRole);
-            return '../../Views/User/userViewPage.php'; // Default fallback
+            return '../../Views/User/userViewPage.php'; 
     }
 }
 
@@ -1029,20 +975,17 @@ private function validateAndFormatName($name, $fieldName) {
         return $name;
     }
     
-    // Remove extra whitespace
+
     $name = trim($name);
-    
-    // Check if name contains only letters, spaces, hyphens, and apostrophes
+
     if (!preg_match('/^[a-zA-Z\s\-\'\.]+$/', $name)) {
         throw new Exception("$fieldName can only contain letters, spaces, hyphens (-), apostrophes ('), and periods (.)");
     }
     
-    // Check for consecutive special characters
     if (preg_match('/[\-\'\\.]{2,}/', $name)) {
         throw new Exception("$fieldName cannot have consecutive special characters");
     }
     
-    // Capitalize first letter of each word
     $formattedName = $this->properCaseName($name);
     
     return $formattedName;
@@ -1056,7 +999,6 @@ private function properCaseName($name) {
     $properWords = [];
     
     foreach ($words as $word) {
-        // Handle hyphenated names (like Mary-Ann)
         if (strpos($word, '-') !== false) {
             $hyphenated = explode('-', $word);
             $properHyphenated = [];
@@ -1065,7 +1007,6 @@ private function properCaseName($name) {
             }
             $properWords[] = implode('-', $properHyphenated);
         }
-        // Handle apostrophe names (like O'Connor)
         elseif (strpos($word, "'") !== false) {
             $apostropheParts = explode("'", $word);
             $properApostrophe = [];
@@ -1074,7 +1015,6 @@ private function properCaseName($name) {
             }
             $properWords[] = implode("'", $properApostrophe);
         }
-        // Normal case - capitalize first letter, lowercase the rest
         else {
             $properWords[] = ucfirst(strtolower($word));
         }
@@ -1086,173 +1026,73 @@ private function properCaseName($name) {
    /**
  * Auto-register a user from Google Sign-In - WITH PROPER ROLE ASSIGNMENT
  */
-private function autoRegisterGoogleUser($email, $name, $selectedRole) {
-    error_log("=== AUTO REGISTRATION DEBUG WITH ROLE ===");
-    error_log("Email: $email, Name: $name, Selected Role: $selectedRole");
+public function autoRegisterGoogleUser($email, $name, $selectedRole) {
+    error_log("=== AUTO REGISTRATION CALLED ===");
     
     require_once ROOT_DIR . '\app\Models\User.php';
     
     try {
         $userModel = new User();
         
-        // Check database connection first
-        $db = $userModel->getDb();
-        if (!$db) {
-            throw new Exception('Database connection failed');
-        }
-        
-        // Test the connection
-        try {
-            $db->query('SELECT 1');
-            $db->execute();
-        } catch (Exception $e) {
-            throw new Exception('Database connection test failed: ' . $e->getMessage());
-        }
-        
-        // First, check if user exists but was soft/hard deleted
         $existingUser = $this->findByEmail($email);
         if ($existingUser) {
-            error_log("User already exists in database: " . print_r($existingUser, true));
-            
-            // Check if user is soft deleted
-            $isDeleted = isset($existingUser['is_deleted']) && $existingUser['is_deleted'] == 1;
-            $isDeleted = $isDeleted || (isset($existingUser['deleted_at']) && !empty($existingUser['deleted_at']));
-            
-            if ($isDeleted) {
-                error_log("User was previously deleted. Attempting to restore...");
-                
-                // Restore the user account
-                $restoreResult = $this->restoreDeletedUser($email);
-                if ($restoreResult) {
-                    error_log("User restored successfully");
-                    
-                    // Send welcome back email
-                    $this->sendWelcomeBackEmail($email, $name, $selectedRole);
-                    
-                    return [
-                        'success' => true,
-                        'user_id' => $existingUser['ID'] ?? $existingUser->ID,
-                        'message' => 'Account restored successfully'
-                    ];
-                } else {
-                    throw new Exception("Failed to restore previously deleted account");
-                }
-            } else {
-                // User exists and is not deleted - just return success
-                error_log("User already exists and is active");
-                return [
-                    'success' => true,
-                    'user_id' => $existingUser['ID'] ?? $existingUser->ID,
-                    'message' => 'Account already exists'
-                ];
-            }
+            error_log("⚠️ USER ALREADY EXISTS - this should not happen here!");
+            throw new Exception("User already exists. Please try logging in instead.");
         }
         
-        // Generate auto password
         $autoPassword = $this->generateAutoPassword();
-        error_log("Generated auto password: " . $autoPassword);
-        
-        // Parse name into first and last name
         $nameParts = $this->parseName($name);
         $firstName = $nameParts['first_name'];
         $lastName = $nameParts['last_name'];
-        error_log("Parsed and formatted name - First: $firstName, Last: $lastName");
         
-        // ✅ FIXED: Handle role mapping properly for auto-registration
-        if ($selectedRole === 'student' || $selectedRole === 'researcher') {
-            $userRole = 'student'; // Force to 'student' for both student and researcher selections
-        } else {
-            $userRole = $selectedRole; // Keep faculty as is
-        }
-        
-        
-        error_log("Final user role for registration: $userRole");
-        
-        // Generate student/employee ID based on role
-        $nameParts = $this->parseName($name);
-        $firstName = $nameParts['first_name'];
-        $lastName = $nameParts['last_name'];
+        $userRole = ($selectedRole === 'student' || $selectedRole === 'researcher') ? 'student' : $selectedRole;
 
-        // Prepare user data for Google registration
         $userData = [
             'password' => $autoPassword,
             'first_name' => $firstName,
             'last_name' => $lastName,
             'email' => $email,
-            'user_role' => $userRole, // This will now be 'student' for students
+            'user_role' => $userRole,
             'acc_status' => 'approved',
-            'profile_pic' => base64_decode('R0lGODlhAQABAIAAAAAA/P///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')
+            'profile_pic' => base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')
         ];
         
-        // Add role-specific fields
         if ($userRole === 'student') {
-            $userData['course'] = 'Not Specified';
-            
-            error_log("Setting student-specific fields");
+            $userData['student_id'] = '';
         } else if ($userRole === 'faculty') {
-            $userData['department'] = 'Not Specified';
-            
-            error_log("Setting faculty-specific fields");
+            $userData['employee_id'] = '';
         }
         
-        // Debug the final user data
-        error_log("FINAL USER DATA FOR GOOGLE REGISTRATION:");
-        foreach ($userData as $key => $value) {
-            if ($key !== 'password') {
-                error_log("  $key: $value");
-            }
-        }
-        
-        // Register the user using the Google-specific method
-        error_log("Calling userModel->registerGoogleUser() with role: $userRole");
+        error_log("Calling userModel->registerGoogleUser()");
         $result = $userModel->registerGoogleUser($userData);
-        error_log("Google register result: " . ($result ? 'SUCCESS' : 'FAILED'));
         
-        if ($result) {
-            // Get the newly created user ID
-            error_log("Getting newly created user...");
-            $newUser = $this->findByEmail($email);
+        if ($result && isset($result['db_id'])) {
+            $userId = $result['db_id'];
+            $userIdentifier = $result['user_identifier']; 
             
-            if ($newUser) {
-                $userId = $newUser['ID'] ?? $newUser->ID ?? null;
-                $userIdentifier = $newUser['User_ID'] ?? $newUser->User_ID ?? null; // This is what you want!
-                $actualRole = $newUser['User_Role'] ?? $newUser->User_Role ?? 'unknown';
-                
-                error_log("New user found with ID: " . $userId);
-                error_log("User Identifier (User_ID): " . $userIdentifier);
-                error_log("Actual role in database: " . $actualRole);
-                
-                // ✅ FIXED: Pass the User_ID column value, not the primary key ID
-                $emailSent = $this->sendWelcomeEmail($email, $name, $autoPassword, $userRole, $userIdentifier);
-                
-                error_log("=== AUTO REGISTRATION DEBUG END - SUCCESS ===");
-                return [
-                    'success' => true,
-                    'user_id' => $userId,
-                    'message' => 'Account created successfully as ' . ucfirst($userRole) . ($emailSent ? ' and welcome email sent' : '')
-                ];
-            } else {
-                error_log("New user not found after registration");
-                return [
-                    'success' => false,
-                    'message' => 'Account created but could not retrieve user ID'
-                ];
-            }
-        } else {
-            $modelError = $userModel->getError();
-            error_log("Google registration failed. Model error: " . $modelError);
+            error_log("✅ User registered successfully:");
+            error_log("   - Database ID: " . $userId);
+            error_log("   - User_ID for email: " . $userIdentifier);
+            
+          
+            $this->sendWelcomeEmail($email, $name, $autoPassword, $userRole, $userIdentifier);
             
             return [
-                'success' => false,
-                'message' => $modelError ?: 'Failed to create account. Please try again.'
+                'success' => true,
+                'user_id' => $userId,
+                'message' => 'Account created successfully as ' . ucfirst($userRole)
             ];
+        } else {
+            $modelError = $userModel->getError();
+            error_log("❌ Registration failed: " . $modelError);
+            throw new Exception($modelError ?: 'Failed to create account.');
         }
         
     } catch (Exception $e) {
         error_log("Auto-registration exception: " . $e->getMessage());
         return [
             'success' => false,
-            'message' => 'Registration error: ' . $e->getMessage()
+            'message' => $e->getMessage()
         ];
     }
 }
@@ -1265,10 +1105,10 @@ private function restoreDeletedUser($email) {
         require_once ROOT_DIR . '\app\Models\User.php';
         $userModel = new User();
         
-        // Update the user status to approved and clear deletion flags
+   
         $db = $userModel->getDb();
         
-        // Build update query based on your database structure
+      
         $updateData = [
             'Acc_Status' => 'approved',
             'is_deleted' => 0,
@@ -1464,28 +1304,44 @@ private function getWelcomeBackBody($name, $email, $role) {
 	/**
      * Find user by email for Google login flow
      */
-    private function findByEmail($email) {
+    public function findByEmail($email) {
         require_once ROOT_DIR . '\app\Models\User.php';
         $userModel = new User();
-        $db = $userModel->getDb();
         
-        // Query to find user including soft-deleted ones
-        $db->query('SELECT * FROM USER_INFORMATION WHERE Email = :email LIMIT 1');
-        $db->bind(':email', $email);
-        $result = $db->single();
+        error_log("=== AUTH CONTROLLER FIND BY EMAIL ===");
+        error_log("Looking for: " . $email);
         
-        // Convert object to array if needed
-        if (is_object($result)) {
-            $result = (array)$result;
+        // Method 1: Use the User model's method (with hashing)
+        $user = $userModel->findByEmail($email);
+        
+        if ($user) {
+            error_log("✅ User found via User model");
+            return $user;
         }
         
-        error_log("findByEmail result for $email: " . ($result ? 'FOUND' : 'NOT FOUND'));
-        if ($result) {
-            error_log("User status: " . ($result['Acc_Status'] ?? 'unknown'));
-            error_log("Is deleted: " . (isset($result['is_deleted']) ? $result['is_deleted'] : 'not set'));
+        error_log("❌ User not found via User model, trying direct lookup...");
+        
+        // Method 2: Try direct database lookup (without hashing) for debugging
+        try {
+            $db = $userModel->getDb();
+            
+            // Look for any user with similar email pattern
+            $db->query('SELECT * FROM USER_INFORMATION WHERE Email LIKE :pattern LIMIT 5');
+            $db->bind(':pattern', '%' . $email . '%');
+            $similarUsers = $db->resultSet();
+            
+            error_log("Similar users found: " . count($similarUsers));
+            foreach ($similarUsers as $index => $similarUser) {
+                $userEmail = is_object($similarUser) ? $similarUser->Email : $similarUser['Email'];
+                $userId = is_object($similarUser) ? $similarUser->ID : $similarUser['ID'];
+                error_log("  User $index - ID: $userId, Email: $userEmail");
+            }
+            
+        } catch (Exception $e) {
+            error_log("Direct lookup error: " . $e->getMessage());
         }
         
-        return $result;
+        return null;
     }
 
    
@@ -1504,7 +1360,6 @@ private function getWelcomeBackBody($name, $email, $role) {
     }
 
     private function authenticateUser($username, $password, $role) {
-        // Use your User model for authentication
         require_once ROOT_DIR . '\app\Models\User.php';
         
         try {
@@ -1514,15 +1369,24 @@ private function getWelcomeBackBody($name, $email, $role) {
             error_log("Username: " . $username);
             error_log("Role: " . $role);
             
-            // MODIFIED: Use loginByEmail which now returns user regardless of status
-            $user = $userModel->loginByEmail($username, $password);
+            // First, check if user exists regardless of status
+            $userExists = $userModel->findByEmail($username);
             
-            if ($user) {
+            if ($userExists) {
                 error_log("✅ User found in database");
                 
-                // Check if user role matches the selected role
-                $userRole = strtolower($user->User_Role ?? '');
+                // Convert to array if object
+                if (is_object($userExists)) {
+                    $userExists = (array)$userExists;
+                }
+                
+                $userRole = strtolower($userExists['User_Role'] ?? '');
                 $selectedRole = strtolower($role);
+                $accStatus = $userExists['Acc_Status'] ?? 'unknown';
+                
+                error_log("User role: " . $userRole);
+                error_log("Selected role: " . $selectedRole);
+                error_log("Account status: " . $accStatus);
                 
                 // Map role names for compatibility
                 $roleMapping = [
@@ -1532,60 +1396,55 @@ private function getWelcomeBackBody($name, $email, $role) {
                 
                 $mappedRole = $roleMapping[$selectedRole] ?? $selectedRole;
                 
-                error_log("User role: " . $userRole);
-                error_log("Selected role: " . $mappedRole);
-                error_log("Account status: " . ($user->Acc_Status ?? 'unknown'));
-                
-                if ($userRole === $mappedRole) {
-                    // Check account status before allowing login
-                    if ($user->Acc_Status === 'pending') {
-                        error_log("❌ Account pending approval");
-                        $_SESSION['error_message'] = "Your account is pending approval. Please wait for administrator approval before logging in.";
-                        return false;
-                    } else if ($user->Acc_Status === 'rejected') {
-                        error_log("❌ Account rejected");
-                        $_SESSION['error_message'] = "Your account registration was rejected. Please contact the administrator for more information.";
-                        return false;
-                    } else if ($user->Acc_Status === 'approved') {
-                        // Account is approved - allow login
-                        error_log("✅ Account approved - login allowed");
-                        return [
-                            'id' => $user->ID,
-                            'username' => $user->Email,
-                            'email' => $user->Email,
-                            'name' => $user->First_Name . ' ' . $user->Last_Name,
-                            'role' => $user->User_Role
-                        ];
-                    } else {
-                        // Unknown status
-                        error_log("❌ Unknown account status: " . ($user->Acc_Status ?? 'unknown'));
-                        $_SESSION['error_message'] = 'Your account status is invalid. Please contact administrator.';
-                        return false;
-                    }
-                } else {
-                    error_log("❌ Role mismatch: User role is $userRole, but selected role is $selectedRole");
+                // Check role match first
+                if ($userRole !== $mappedRole) {
+                    error_log("❌ Role mismatch: User role is $userRole, but selected role is $mappedRole");
                     $_SESSION['error_message'] = 'Invalid credentials for the selected role.';
                     return false;
                 }
-            } else {
-                // No user found or password incorrect
-                error_log("❌ No user found or password incorrect");
                 
-                // Debug: Check if user exists but password is wrong
-                $userExists = $userModel->findByEmail($username);
-                if ($userExists) {
-                    error_log("⚠️ User exists but password verification failed");
-                    error_log("Stored password hash: " . ($userExists->pswrd ?? 'not found'));
-                    
-                    // Test password verification
-                    $storedPassword = $userExists->pswrd ?? '';
-                    $passwordValid = password_verify($password, $storedPassword);
-                    error_log("Password verification result: " . ($passwordValid ? 'VALID' : 'INVALID'));
-                } else {
-                    error_log("⚠️ User not found with email: " . $username);
+                // Check account status before password verification
+                if ($accStatus === 'pending') {
+                    error_log("❌ Account pending approval");
+                    $_SESSION['error_message'] = "Your account is pending approval. Please wait for administrator approval before logging in.";
+                    return false;
+                } else if ($accStatus === 'rejected') {
+                    error_log("❌ Account rejected");
+                    $_SESSION['error_message'] = "Your account registration was rejected. Please contact the administrator for more information.";
+                    return false;
+                } else if ($accStatus === 'suspended') {
+                    error_log("❌ Account suspended");
+                    $_SESSION['error_message'] = "Your account has been suspended. Please contact the administrator.";
+                    return false;
+                } else if ($accStatus !== 'approved') {
+                    error_log("❌ Unknown account status: " . $accStatus);
+                    $_SESSION['error_message'] = 'Your account status is invalid. Please contact administrator.';
+                    return false;
                 }
                 
-                $_SESSION['error_message'] = 'Invalid credentials. Please try again.';
+                // Now verify password for approved accounts
+                error_log("✅ Account approved - verifying password");
+                $user = $userModel->loginByEmail($username, $password);
+                
+                if ($user) {
+                    error_log("✅ Password verification successful");
+                    return [
+                        'id' => $user->ID,
+                        'username' => $user->Email,
+                        'email' => $user->Email,
+                        'name' => $user->First_Name . ' ' . $user->Last_Name,
+                        'role' => $user->User_Role
+                    ];
+                } else {
+                    error_log("❌ Password verification failed");
+                    $_SESSION['error_message'] = 'Invalid password. Please try again.';
+                    return false;
+                }
+                
+            } else {
+                // No user found with this email
+                error_log("❌ User not found with email: " . $username);
+                $_SESSION['error_message'] = 'No account found with this email address.';
                 return false;
             }
             
@@ -1607,14 +1466,15 @@ private function getWelcomeBackBody($name, $email, $role) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
     
-    public function logout() {
-        // Unset all session variables
+     public function logout() {
+        if (isset($_SESSION['user_id'])) {
+            $this->logUserAction($_SESSION['user_id'], 'logout', 'User logged out');
+        }
+
         $_SESSION = array();
-        
-        // Destroy the session
+
         session_destroy();
-        
-        // Redirect to login page
+
         $this->redirect('../../app/Views/User/indexLogin.php');
     }
 
@@ -1627,6 +1487,96 @@ private function getWelcomeBackBody($name, $email, $role) {
     protected function redirect($location) {
         header("Location: $location");
         exit();
+    }
+
+
+
+    /**
+     * Track login attempts and check if user is locked out
+     */
+    private function checkLoginAttempts($email) {
+        try {
+            require_once ROOT_DIR . '\app\Models\User.php';
+            $userModel = new User();
+            $db = $userModel->getDb();
+            
+            // Check if user has 3 or more failed attempts in the last 5 minutes
+            $db->query('SELECT COUNT(*) as attempt_count FROM LOGIN_ATTEMPTS 
+                    WHERE email = :email AND success = 0 
+                    AND attempt_time >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)');
+            $db->bind(':email', $email);
+            $result = $db->single();
+            
+            $attemptCount = $result ? $result->attempt_count : 0;
+            
+            error_log("Login attempts for {$email}: {$attemptCount} in last 5 minutes");
+            
+            return $attemptCount >= 3;
+            
+        } catch (Exception $e) {
+            error_log("Check login attempts error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get remaining login attempts
+     */
+    private function getRemainingAttempts($email) {
+        try {
+            require_once ROOT_DIR . '\app\Models\User.php';
+            $userModel = new User();
+            $db = $userModel->getDb();
+            
+            $db->query('SELECT COUNT(*) as attempt_count FROM LOGIN_ATTEMPTS 
+                    WHERE email = :email AND success = 0 
+                    AND attempt_time >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)');
+            $db->bind(':email', $email);
+            $result = $db->single();
+            
+            $attemptCount = $result ? $result->attempt_count : 0;
+            $remainingAttempts = 3 - $attemptCount;
+            
+            error_log("Remaining attempts for {$email}: {$remainingAttempts}");
+            
+            return max(0, $remainingAttempts);
+            
+        } catch (Exception $e) {
+            error_log("Get remaining attempts error: " . $e->getMessage());
+            return 3; 
+        }
+    }
+
+    /**
+     * Get lockout time remaining
+     */
+    private function getLockoutTimeRemaining($email) {
+        try {
+            require_once ROOT_DIR . '\app\Models\User.php';
+            $userModel = new User();
+            $db = $userModel->getDb();
+            
+            // Get the time of the 3rd failed attempt
+            $db->query('SELECT attempt_time FROM LOGIN_ATTEMPTS 
+                    WHERE email = :email AND success = 0 
+                    ORDER BY attempt_time DESC LIMIT 1 OFFSET 2');
+            $db->bind(':email', $email);
+            $result = $db->single();
+            
+            if ($result) {
+                $lockoutTime = strtotime($result->attempt_time);
+                $currentTime = time();
+                $timeRemaining = 300 - ($currentTime - $lockoutTime); // 5 minutes in seconds
+                
+                return max(0, $timeRemaining);
+            }
+            
+            return 0;
+            
+        } catch (Exception $e) {
+            error_log("Get lockout time error: " . $e->getMessage());
+            return 0;
+        }
     }
 }
 

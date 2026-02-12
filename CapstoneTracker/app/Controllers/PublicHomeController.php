@@ -54,37 +54,42 @@ class PublicHomeController extends Controller{
      * Handle search requests (always load view, no AJAX)
      */
     public function search() {
-    if ($_SERVER['REQUEST_METHOD'] === 'GET') { 
-        $query = trim($_GET['query'] ?? '');
-        $department = $_GET['department'] ?? 'all';
-        $sort = $_GET['sort'] ?? 'recent';
-        $page = max(1, intval($_GET['page'] ?? 1));
-        $limit = 8;
-        $offset = ($page - 1) * $limit;
+    // Use $_REQUEST to handle both GET and POST for now
+    $query = trim($_REQUEST['query'] ?? '');
+    $department = $_REQUEST['department'] ?? 'all';
+    $sort = $_REQUEST['sort'] ?? 'recent';
+    $page = max(1, intval($_REQUEST['page'] ?? 1));
+    $limit = 8;
+    $offset = ($page - 1) * $limit;
+    
+    if (!empty($query)) {
+        $results = $this->model->searchThesis($query, $department, $sort, $limit, $offset);
+        $total = $this->model->getSearchCount($query, $department);
+        $totalPages = ceil($total / $limit);
         
-        if (!empty($query)) {
-            $results = $this->model->searchThesis($query, $department, $sort, $limit, $offset);
-            $total = $this->model->getSearchCount($query, $department);
-            $totalPages = ceil($total / $limit);
-            
-            $data = [
-                'query' => $query,
-                'results' => $results,
-                'department' => $department,
-                'sort' => $sort,
-                'currentPage' => $page,
-                'totalPages' => $totalPages,
-                'totalPapers' => $total
-            ];
-            
-            $this->loadView('Public/search', $data);
-        } else {
-            header('Location: /search.php');
-            exit;
-        }
+        $data = [
+            'query' => $query,
+            'results' => $results,
+            'department' => $department,
+            'sort' => $sort,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+            'totalPapers' => $total
+        ];
+        
+        $this->loadView('Public/search', $data);
     } else {
-        header('Location: /search.php');
-        exit;
+        // If no query, show empty search page
+        $data = [
+            'query' => '',
+            'results' => [],
+            'department' => 'all',
+            'sort' => 'recent',
+            'currentPage' => 1,
+            'totalPages' => 1,
+            'totalPapers' => 0
+        ];
+        $this->loadView('Public/search', $data);
     }
 }
     

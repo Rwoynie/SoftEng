@@ -6,6 +6,26 @@ require_once '../../Models/Thesis.php';
 require_once '../../Models/PublicHomeModel.php'; 
 
 $model = new PublicHomeModel();
+
+try {
+    $debugDb = new Database();
+    $debugDb->query("SELECT DISTINCT Thesis_Course, COUNT(*) as count FROM thesis GROUP BY Thesis_Course");
+    $actualCourses = $debugDb->resultSet();
+    echo "<!-- DEBUG - ACTUAL COURSES IN DATABASE: " . print_r($actualCourses, true) . " -->";
+} catch (Exception $e) {
+    echo "<!-- DEBUG ERROR: " . $e->getMessage() . " -->";
+}
+
+$courseMap = [
+    'BSIT'   => 'SITS',
+    'BSABE'  => 'SABES',
+    'BECED'  => 'AECES',
+    'BSNED'  => 'OFSET',
+    'BTVTED' => 'FTVETS',
+    'BEED'   => 'OFEE',
+    'BSED'   => 'AFSET'
+];
+
 $query = trim($_POST['query'] ?? '');
 $department = $_POST['department'] ?? 'all';
 $sort = $_POST['sort'] ?? 'recent';
@@ -13,18 +33,13 @@ $page = max(1, intval($_POST['page'] ?? 1));
 $limit = 8;
 $offset = ($page - 1) * $limit;
 
-if (!empty($query)) {
-    $results = $model->searchThesis($query, $department, $sort, $limit, $offset);
-    $total = $model->getSearchCount($query, $department);
-    $totalPapers = $total;
-    $totalPages = ceil($total / $limit);
-    $currentPage = $page;
-} else {
-    $results = [];
-    $totalPapers = 0;
-    $totalPages = 1;
-    $currentPage = 1;
-}
+
+
+$results = $model->searchThesis($query, $department, $sort, $limit, $offset);
+$total = $model->getSearchCount($query, $department);
+$totalPapers = $total;
+$totalPages = ceil($total / $limit);
+$currentPage = $page;
 
 $data = [
     'query' => $query,
@@ -36,6 +51,9 @@ $data = [
     'totalPapers' => $totalPapers
 ];
 extract($data);
+
+$courseCounts = $model->getCourseThesisCounts();
+$totalAllcourse = array_sum($courseCounts);
 ?>
 
 <!DOCTYPE html>
@@ -52,6 +70,8 @@ extract($data);
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Quicksand">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  
 </head>
 <body>
 
@@ -59,11 +79,11 @@ extract($data);
     <!-- Header -->
     <header class="main-header">
       <div class="logo">
-        <img href="javascript:window.location.reload(true)" src="../../../resources/images/ThesisCompLogo.png" alt="Logo" />
-        <div>
+        <a class="homeImage" href="home.php"><img src="../../../resources/images/ThesisCompLogo.png" alt="Logo" /></a>
+        <a href="home.php" style="text-decoration: none">
           <h1>Thesis Compendium System</h1>
           <h3>University of Southeastern Philippines</h3>
-        </div>
+        </a>
       </div>
       <nav class="tabs">
         <a href="../User/indexLogin.php" class="btn-login">Login</a>
@@ -77,7 +97,7 @@ extract($data);
           <div class="searchbox">
             <form id="search-form" method="POST" action="search.php">
               <div class="icon"> <i class="fa fa-search" aria-hidden="true"></i> </div>
-              <input type="text" id="results-search-input" name="query" placeholder="Search thesis..." value="<?php echo htmlspecialchars($query); ?>">
+              <input type="text" id="results-search-input" name="query" placeholder="Search thesis keywords, title, author, or adviser..." value="<?php echo htmlspecialchars($query); ?>">
               <input type="hidden" name="department" id="hidden-department" value="<?php echo htmlspecialchars($department); ?>">
               <input type="hidden" name="sort" id="hidden-sort" value="<?php echo htmlspecialchars($sort); ?>">
               <input type="hidden" name="page" value="1">
@@ -87,34 +107,54 @@ extract($data);
           
           <div class="filter-controls">
             <div class="select" id="filterDropdown">
-              <div class="selected">
-                <span><?php echo $department === 'all' ? 'All Departments' : strtoupper($department); ?></span>
-                <i class="fa fa-chevron-down" aria-hidden="true"></i>
-              </div>
-              <div class="options">
-                <div data-value="all">All Departments</div>
-                <div data-value="BSIT">BSIT | SITS</div>
-                <div data-value="BSABE">BSABE | SABES</div>
-                <div data-value="BECED">BECED | AECES</div>
-                <div data-value="BSNED">BSNED | OFSET</div>
-                <div data-value="BTVTED">BTVTED | FTVETS</div>
-                <div data-value="BEED">BEED | OFEE</div>
-                <div data-value="BSED">BSED | AFSET</div>
-              </div>
+                <div class="selected">
+                    <span>
+                        <?php 
+                        if ($department === 'all') {
+                            echo 'All Courses';
+                        } elseif (isset($courseMap[$department])) {
+                            echo htmlspecialchars($department) . ' | ' . $courseMap[$department];
+                        } else {
+                            echo 'All Courses';
+                        }
+                        ?>
+                    </span>
+                    <i class="fa fa-chevron-down" aria-hidden="true"></i>
+                </div>
+                <div class="options">
+                      <div data-value="all">All Courses (<?php echo $totalAllcourse; ?>)</div>
+                      <?php foreach ($courseMap as $code => $name): ?>
+                          <?php $count = $courseCounts[$code] ?? 0; ?>
+                          <div data-value="<?php echo $code; ?>">
+                              <?php echo $code; ?> | <?php echo $name; ?> (<?php echo $count; ?>)
+                          </div>
+                      <?php endforeach; ?>
+                  </div>
             </div>
             
             <div class="select" id="sortDropdown">
               <div class="selected">
-                <span>Sort by: <?php echo ucfirst($sort); ?></span>
-                <i class="fa fa-chevron-down" aria-hidden="true"></i>
+                  <span>
+                      <?php
+                      if ($sort === 'recent') {
+                          echo 'Most Recent';
+                      } elseif ($sort === 'title') {
+                          echo 'Title (A-Z)';
+                      } elseif ($sort === 'department') {
+                          echo 'Department';
+                      } else {
+                          echo 'Most Recent';
+                      }
+                      ?>
+                  </span>
+                  <i class="fa fa-chevron-down" aria-hidden="true"></i>
               </div>
               <div class="options">
-                <div data-value="recent">Most Recent</div>
-                <div data-value="popular">Most Viewed</div>
-                <div data-value="title">Title (A-Z)</div>
-                <div data-value="department">Department</div>
+                  <div data-value="recent">Most Recent</div>
+                  <div data-value="title">Title (A-Z)</div>
+                  <div data-value="department">Department</div>
               </div>
-            </div>
+          </div>
             
             <div class="display-group">
               <div class="icon" id="listViewIcon"> <i class="fa fa-bars" aria-hidden="true"></i> </div>
@@ -141,9 +181,14 @@ extract($data);
 
               <div class="thesis-card" data-thesis-id="<?php echo $paper['id']; ?>">
                 <div class="card-header">
+                  <div class="card-icons">
                     <div class="card-logo">
-                        <img src="<?php echo htmlspecialchars($paper['logo']); ?>" alt="<?php echo htmlspecialchars($paper['department']); ?>">
+                          <img src="../../../resources/images/usep-logo-small.png" alt="<?php echo htmlspecialchars($paper['department']); ?>">
+                      </div>
+                      <div class="card-logo">
+                          <img src="<?php echo htmlspecialchars($paper['logo']); ?>" alt="<?php echo htmlspecialchars($paper['department']); ?>">
                     </div>
+                  </div>
                     <button class="citation-btn" onclick="copyCitation(event, <?php echo $paper['id']; ?>, '<?php echo addslashes($paper['title']); ?>', '<?php echo addslashes($paper['authors']); ?>', '<?php echo $year; ?>')">
                         <i class="fas fa-quote-right"></i>
                         Cite
@@ -153,7 +198,10 @@ extract($data);
                 <h3><?php echo htmlspecialchars($paper['title']); ?></h3>
                 
                 <div class="department-badge">
-                    <?php echo htmlspecialchars($paper['department']); ?>
+                    <?php 
+                   
+                    echo htmlspecialchars($paper['department']); 
+                    ?>
                 </div>
 
                 <div class="authors">
@@ -282,10 +330,7 @@ extract($data);
               Copy APA Citation
           </button>
           <div class="modal-footer-actions">
-              <button id="viewFullThesis" class="btn-primary">
-                  <i class="fas fa-external-link-alt"></i>
-                  View Full Thesis
-              </button>
+              
               <button class="btn-secondary close-modal">Close</button>
           </div>
       </div>

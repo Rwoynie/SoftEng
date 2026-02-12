@@ -378,39 +378,30 @@ class AdminDashboardModel {
         $stats = [];
 
         try {
-            // Total users
             $this->db->query("SELECT COUNT(*) as total FROM USER_INFORMATION");
             $stats['total_users'] = $this->db->single()->total;
 
-            // Total approved users
             $this->db->query("SELECT COUNT(*) as total FROM USER_INFORMATION WHERE Acc_Status = 'approved'");
             $stats['approved_users'] = $this->db->single()->total;
 
-            // Total pending users
             $this->db->query("SELECT COUNT(*) as total FROM USER_INFORMATION WHERE Acc_Status = 'pending'");
             $stats['pending_users'] = $this->db->single()->total;
 
-            // Total theses
             $this->db->query("SELECT COUNT(*) as total FROM THESIS");
             $stats['total_theses'] = $this->db->single()->total;
 
-            // Total reviews
             $this->db->query("SELECT COUNT(*) as total FROM THESIS_REVIEWS");
             $stats['total_reviews'] = $this->db->single()->total;
 
-            // Recent theses count (last 7 days)
             $this->db->query("SELECT COUNT(*) as total FROM THESIS WHERE uploaded_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
             $stats['recent_theses'] = $this->db->single()->total;
 
-            // Failed login attempts (last 24 hours)
             $this->db->query("SELECT COUNT(*) as total FROM LOGIN_ATTEMPTS WHERE success = FALSE AND attempt_time >= DATE_SUB(NOW(), INTERVAL 24 HOUR)");
             $stats['failed_logins_24h'] = $this->db->single()->total;
 
-            // Audit logs count (last 7 days)
             $this->db->query("SELECT COUNT(*) as total FROM AUDIT_LOGS WHERE changed_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
             $stats['audit_logs_7d'] = $this->db->single()->total;
 
-            // Unread notifications count
             $this->db->query("SELECT COUNT(*) as total FROM NOTIFICATIONS WHERE is_read = FALSE");
             $stats['unread_notifications'] = $this->db->single()->total;
 
@@ -423,11 +414,11 @@ class AdminDashboardModel {
     }
 
     /**
-     * Get activity logs (simplified - you might want to create a separate logs table)
+     * Get activity logs 
      */
     public function getRecentActivity($limit = 20) {
         try {
-            // This is a simplified version - in production, you'd have a dedicated activity log table
+            
             $this->db->query("
                 (SELECT 
                     'thesis_upload' as activity_type,
@@ -541,7 +532,6 @@ class AdminDashboardModel {
             error_log("Database execute failed for announcement creation");
             error_log("SQL: " . $sql);
             error_log("Data: " . print_r($data, true));
-            // If your database class has error info, log it:
             if (method_exists($this->db, 'getError')) {
                 error_log("DB Error: " . $this->db->getError());
             }
@@ -561,7 +551,6 @@ class AdminDashboardModel {
  */
 public function updateAnnouncement($id, $data) {
     try {
-        // Debug: Log the data being received
         error_log("Updating announcement ID: " . $id);
         error_log("Update data: " . print_r($data, true));
         
@@ -698,11 +687,10 @@ public function getAuditLogs($limit, $table = null) {
                     u.Last_Name, 
                     u.User_Role
                 FROM AUDIT_LOGS a
-                LEFT JOIN USER_INFORMATION u ON a.user_id = u.ID"; // Use LEFT JOIN for user info
+                LEFT JOIN USER_INFORMATION u ON a.user_id = u.ID"; 
         
         $params = [];
 
-        // This conditional logic handles the optional $table parameter correctly.
         if (!empty($table)) {
             $sql .= " WHERE a.changed_table = :table";
             $params[':table'] = $table;
@@ -712,8 +700,7 @@ public function getAuditLogs($limit, $table = null) {
         
         $this->db->query($sql);
         
-        // Bind parameters
-        // Cast limit to integer to prevent SQL injection or type errors with LIMIT clause
+        
         $this->db->bind(':limit', (int)$limit); 
         if (!empty($table)) {
             $this->db->bind(':table', $table);
@@ -728,7 +715,7 @@ public function getAuditLogs($limit, $table = null) {
 
 public function getLoginAttempts($limit) {
     try {
-        // This query is based on the successful debug query found in the controller
+       
         $this->db->query("
             SELECT * FROM LOGIN_ATTEMPTS 
             ORDER BY attempt_time DESC 
@@ -789,7 +776,7 @@ public function getLoginAttempts($limit) {
     
 
     /**
-     * Get security alerts (failed login attempts, suspicious activities)
+     * Get security alerts 
      */
     public function getSecurityAlerts($limit = 10) {
         try {
@@ -1059,6 +1046,54 @@ public function getLoginAttempts($limit) {
         }
     }
 
+
+/**
+ * Get thesis counts by program with course filtering
+ */
+public function getThesisCountsByProgram($department = 'all', $course = 'all') {
+    try {
+        $sql = "
+            SELECT 
+                Thesis_Course as program,
+                COUNT(*) as thesis_count
+            FROM THESIS 
+            WHERE Thesis_Course IS NOT NULL 
+              AND Thesis_Course != ''
+        ";
+
+        $params = [];
+        
+       
+        if ($department !== 'all') {
+            $courseCodes = $this->getCourseCodesByDepartment($department);
+            if (!empty($courseCodes)) {
+                $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
+                $sql .= " AND Thesis_Course IN ($placeholders)";
+                $params = array_merge($params, $courseCodes);
+            }
+        }
+
+       
+        if ($course !== 'all' && !empty($course)) {
+            $sql .= " AND Thesis_Course = ?";
+            $params[] = $course;
+        }
+
+        $sql .= " GROUP BY Thesis_Course ORDER BY thesis_count DESC";
+
+        $this->db->query($sql);
+        foreach ($params as $i => $val) {
+            $this->db->bind($i + 1, $val);
+        }
+
+        return $this->db->resultSet();
+    } catch (Exception $e) {
+        error_log("Error in getThesisCountsByProgram: " . $e->getMessage());
+        return [];
+    }
+}
+
+
     /**
      * Get department statistics for specific department
      */
@@ -1087,7 +1122,7 @@ public function getLoginAttempts($limit) {
     }
 
     /**
-     * Get course distribution for reports (counts by course instead of department)
+     * Get course distribution for reports 
      */
     public function getCourseDistribution($department = 'all') {
     try {
@@ -1165,7 +1200,7 @@ public function getLoginAttempts($limit) {
         
         $results = $this->db->resultSet();
         
-        // Ensure all 12 months are represented
+       
         $months = [
             'Jan' => 'January', 'Feb' => 'February', 'Mar' => 'March', 
             'Apr' => 'April', 'May' => 'May', 'Jun' => 'June',
@@ -1226,6 +1261,100 @@ private function getEmptyMonthlyData() {
     return $months;
 }
 
+/**
+ * Get user distribution by role with course filtering
+ */
+public function getUserDistributionByRole($department = 'all', $course = 'all') {
+    try {
+        $sql = "
+            SELECT 
+                User_Role,
+                COUNT(*) as user_count
+            FROM USER_INFORMATION
+            WHERE Acc_Status = 'approved'
+            AND User_Role IS NOT NULL
+        ";
+        
+        $params = [];
+        
+        
+        if ($department !== 'all') {
+            $courseCodes = $this->getCourseCodesByDepartment($department);
+            if (!empty($courseCodes)) {
+                $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
+                $sql .= " AND Course IN ($placeholders)";
+                $params = array_merge($params, $courseCodes);
+            }
+        }
+
+       
+        if ($course !== 'all' && !empty($course)) {
+            $sql .= " AND Course = ?";
+            $params[] = $course;
+        }
+        
+        $sql .= " GROUP BY User_Role ORDER BY user_count DESC";
+        
+        $this->db->query($sql);
+        foreach ($params as $index => $value) {
+            $this->db->bind($index + 1, $value);
+        }
+        
+        return $this->db->resultSet();
+        
+    } catch (Exception $e) {
+        error_log("Error getting user distribution by role: " . $e->getMessage());
+        return [];
+    }
+}
+
+
+/**
+ * Get thesis per program with course filtering
+ */
+public function getThesisPerProgram($department = 'all', $course = 'all') {
+    try {
+        $sql = "
+            SELECT 
+                Thesis_Course as program,
+                COUNT(*) as thesis_count
+            FROM THESIS 
+            WHERE Thesis_Course IS NOT NULL 
+            AND Thesis_Course != ''
+        ";
+        
+        $params = [];
+        
+        
+        if ($department !== 'all') {
+            $courseCodes = $this->getCourseCodesByDepartment($department);
+            if (!empty($courseCodes)) {
+                $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
+                $sql .= " AND Thesis_Course IN ($placeholders)";
+                $params = array_merge($params, $courseCodes);
+            }
+        }
+
+        if ($course !== 'all' && !empty($course)) {
+            $sql .= " AND Thesis_Course = ?";
+            $params[] = $course;
+        }
+        
+        $sql .= " GROUP BY Thesis_Course ORDER BY thesis_count DESC";
+        
+        $this->db->query($sql);
+        foreach ($params as $index => $value) {
+            $this->db->bind($index + 1, $value);
+        }
+        
+        return $this->db->resultSet();
+        
+    } catch (Exception $e) {
+        error_log("Error getting thesis per program: " . $e->getMessage());
+        return [];
+    }
+}
+
 
 /**
  * Get program counts for department cards 
@@ -1252,67 +1381,70 @@ public function getProgramThesisCounts() {
     }
 }
 
-    /**
-     * Get reports statistics for cards
-     */
-    public function getReportsStats($department = 'all') {
+/**
+ * Get reports statistics with course filtering
+ */
+public function getReportsStats($department = 'all', $course = 'all') {
     try {
-        $stats = [];
+    
+        $userSql = "SELECT COUNT(*) as total FROM USER_INFORMATION WHERE Acc_Status = 'approved' AND User_Role = 'student' OR User_Role = 'faculty' OR User_Role = 'SubAdmin'";
+        $thesisSql = "SELECT COUNT(*) as total FROM THESIS WHERE 1=1";
         
-        $courseCodes = $this->getCourseCodesByDepartment($department);
-        $useCourses = !empty($courseCodes) && $department !== 'all';
-        
-        $sqlTheses = "SELECT COUNT(*) as total FROM THESIS WHERE 1=1";
-        if ($useCourses) {
-            $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
-            $sqlTheses .= " AND Thesis_Course IN ($placeholders)";
-        }
-        
-        $this->db->query($sqlTheses);
-        if ($useCourses) {
-            foreach ($courseCodes as $index => $code) {
-                $this->db->bind($index + 1, $code);
-            }
-        }
-        $stats['total_theses'] = $this->db->single()->total;
-        
-        $sqlStudents = "SELECT COUNT(*) as total FROM USER_INFORMATION WHERE Acc_Status = 'approved' AND User_Role = 'student'";
-        if ($useCourses) {
-            $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
-            $sqlStudents .= " AND Course IN ($placeholders)";
-        }
-        
-        $this->db->query($sqlStudents);
-        if ($useCourses) {
-            foreach ($courseCodes as $index => $code) {
-                $this->db->bind($index + 1, $code);
-            }
-        }
-        $stats['total_students'] = $this->db->single()->total;
-        
+        $userParams = [];
+        $thesisParams = [];
 
-        $sqlRecent = "SELECT COUNT(*) as total FROM THESIS WHERE uploaded_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
-        if ($useCourses) {
-            $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
-            $sqlRecent .= " AND Thesis_Course IN ($placeholders)";
-        }
-        
-        $this->db->query($sqlRecent);
-        if ($useCourses) {
-            foreach ($courseCodes as $index => $code) {
-                $this->db->bind($index + 1, $code);
+    
+        if ($department !== 'all' && !empty($department)) {
+            $courseCodes = $this->getCourseCodesByDepartment($department);
+            
+            if (!empty($courseCodes)) {
+                $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
+                
+               
+                $userSql .= " AND Course IN ($placeholders)";
+                $userParams = array_merge($userParams, $courseCodes);
+                
+                
+                $thesisSql .= " AND Thesis_Course IN ($placeholders)";
+                $thesisParams = array_merge($thesisParams, $courseCodes);
             }
         }
-        $stats['recent_theses'] = $this->db->single()->total;
-        
-        return $stats;
-        
+
+   
+        if ($course !== 'all' && !empty($course)) {
+            $userSql .= " AND Course = ?";
+            $userParams[] = $course;
+            
+            $thesisSql .= " AND Thesis_Course = ?";
+            $thesisParams[] = $course;
+        }
+
+     
+        $this->db->query($userSql);
+        foreach ($userParams as $index => $value) {
+            $this->db->bind($index + 1, $value);
+        }
+        $totalApprovedUsers = (int)($this->db->single()->total ?? 0);
+
+      
+        $this->db->query($thesisSql);
+        foreach ($thesisParams as $index => $value) {
+            $this->db->bind($index + 1, $value);
+        }
+        $totalTheses = (int)($this->db->single()->total ?? 0);
+
+        return [
+            'total_theses' => $totalTheses,
+            'total_students' => $totalApprovedUsers,
+            'total_users' => $totalApprovedUsers
+        ];
+
     } catch (Exception $e) {
-        error_log("Error getting reports stats: " . $e->getMessage());
+        error_log("getReportsStats error: " . $e->getMessage());
         return [
             'total_theses' => 0,
             'total_students' => 0,
-            'recent_theses' => 0
+            'total_users' => 0
         ];
     }
 }
@@ -1451,72 +1583,257 @@ public function getProgramThesisCounts() {
     }
 }
 
+    /**
+ * Get course codes by department with proper mapping
+ */
     private function getCourseCodesByDepartment($department) {
-        $departmentMap = [
-            'beced' => ['Bachelor of Early Childhood Education'],
-            'bsed' => ['Bachelor of Secondary Education'],
-            'btvted' => ['Bachelor of Technical-Vocational Teacher Education'],
-            'beed' => ['Bachelor of Elementary Education'],
-            'bsned' => ['Bachelor of Special Needs Education'],
-            'bsabe' => [
-                'Bachelor of Science in Agricultural and Biosystems Engineering',
-                'Bachelor of Science in Agriculture and Biosystems Engineering'
-            ],
-            'bsit' => ['Bachelor of Science in Information Technology']
-        ];
+        $department = strtolower(trim($department));
         
-        return $departmentMap[$department] ?? [];
+        $map = [
+            'all'    => [],
+            'bsit'   => ['Bachelor of Science in Information Technology', 'BSIT'],
+            'beced'  => ['Bachelor of Early Childhood Education', 'BECED'],
+            'bsed'   => ['Bachelor of Secondary Education', 'BSED'],
+            'btvted' => ['Bachelor of Technical-Vocational Teacher Education', 'BTVTED'],
+            'beed'   => ['Bachelor of Elementary Education', 'BEED'],
+            'bsned'  => ['Bachelor of Special Needs Education', 'BSNED'],
+            'bsabe'  => [
+                'Bachelor of Science in Agricultural and Biosystems Engineering',
+                'Bachelor of Science in Agriculture and Biosystems Engineering',
+                'BSABE'
+            ],
+        ];
+
+        return $map[$department] ?? [];
     }
 
 
-
-    ## Add to AdminDashboardModel.php (at the end, before closing }):
-public function getDepartmentThesisCounts() {
+/**
+ * Get all available courses from database
+ */
+public function getAllCourses() {
     try {
-        $departmentMap = [
-            'beced' => ['Bachelor of Early Childhood Education'],
-            'bsed' => ['Bachelor of Secondary Education'],
-            'btvted' => ['Bachelor of Technical-Vocational Teacher Education'],
-            'beed' => ['Bachelor of Elementary Education'],
-            'bsned' => ['Bachelor of Special Needs Education'],
-            'bsabe' => [
-                'Bachelor of Science in Agricultural and Biosystems Engineering',
-                'Bachelor of Science in Agriculture and Biosystems Engineering'
-            ],
-            'bsit' => ['Bachelor of Science in Information Technology']
-        ];
-        
-        $counts = [];
-        
-        // All
-        $this->db->query("SELECT COUNT(*) as count FROM thesis");
-        $counts['all'] = $this->db->single()->count ?? 0;
-        
-        // Per department
-        foreach ($departmentMap as $dept => $courses) {
-            if (empty($courses)) {
-                $counts[$dept] = 0;
-                continue;
-            }
-            
-            $placeholders = str_repeat('?,', count($courses) - 1) . '?';
-            $sql = "SELECT COUNT(*) as count FROM thesis WHERE Thesis_Course IN ($placeholders)";
-            
-            $this->db->query($sql);
-            foreach ($courses as $index => $course) {
-                $this->db->bind($index + 1, $course);
-            }
-            
-            $counts[$dept] = $this->db->single()->count ?? 0;
-        }
-        
-        return $counts;
-        
+        $this->db->query("
+            SELECT DISTINCT Course 
+            FROM USER_INFORMATION 
+            WHERE Course IS NOT NULL AND Course != ''
+            ORDER BY Course
+        ");
+        return $this->db->resultSet();
     } catch (Exception $e) {
-        error_log("Error getting department thesis counts: " . $e->getMessage());
+        error_log("Error getting all courses: " . $e->getMessage());
         return [];
     }
 }
+
+/**
+ * Get courses by department
+ */
+public function getCoursesByDepartment($department) {
+    try {
+        if ($department === 'all') {
+            return $this->getAllCourses();
+        }
+        
+        $courseCodes = $this->getCourseCodesByDepartment($department);
+        if (empty($courseCodes)) {
+            return [];
+        }
+        
+        $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
+        $this->db->query("
+            SELECT DISTINCT Course 
+            FROM USER_INFORMATION 
+            WHERE Course IN ($placeholders)
+            ORDER BY Course
+        ");
+        
+        foreach ($courseCodes as $index => $course) {
+            $this->db->bind($index + 1, $course);
+        }
+        
+        return $this->db->resultSet();
+    } catch (Exception $e) {
+        error_log("Error getting courses by department: " . $e->getMessage());
+        return [];
+    }
+}
+
+
+    public function getDepartmentThesisCounts() {
+        try {
+            $counts = [];
+            
+
+            $this->db->query("SELECT COUNT(*) as count FROM thesis");
+            $counts['all'] = $this->db->single()->count ?? 0;
+            
+        
+            $departmentMapping = [
+                'bsit' => ['Bachelor of Science in Information Technology', 'BSIT'],
+                'beced' => ['Bachelor of Early Childhood Education', 'BECED'],
+                'bsed' => ['Bachelor of Secondary Education', 'BSED'],
+                'btvted' => ['Bachelor of Technical-Vocational Teacher Education', 'BTVTED'],
+                'beed' => ['Bachelor of Elementary Education', 'BEED'],
+                'bsned' => ['Bachelor of Special Needs Education', 'BSNED'],
+                'bsabe' => [
+                    'Bachelor of Science in Agricultural and Biosystems Engineering',
+                    'Bachelor of Science in Agriculture and Biosystems Engineering',
+                    'BSABE'
+                ],
+            ];
+            
+            foreach ($departmentMapping as $deptCode => $courseNames) {
+                $placeholders = str_repeat('?,', count($courseNames) - 1) . '?';
+                $sql = "SELECT COUNT(*) as count FROM thesis WHERE Thesis_Course IN ($placeholders)";
+                
+                $this->db->query($sql);
+                foreach ($courseNames as $i => $courseName) {
+                    $this->db->bind($i + 1, $courseName);
+                }
+                $result = $this->db->single();
+                $counts[$deptCode] = $result->count ?? 0;
+            }
+            
+            return $counts;
+            
+        } catch (Exception $e) {
+            error_log("Error in getDepartmentThesisCounts: " . $e->getMessage());
+            // Return default counts
+            return array_fill_keys(['all', 'bsit', 'beced', 'bsed', 'btvted', 'beed', 'bsned', 'bsabe'], 0);
+        }
+    }
+
+
+/**
+ * Get login attempts with enhanced trigger data
+ */
+public function getLoginAttemptsWithTriggers($limit = 100) {
+    try {
+        $this->db->query("
+            SELECT 
+                la.*,
+                ui.First_Name,
+                ui.Last_Name,
+                ui.User_Role,
+                ui.Email,
+                la.notes,
+                la.attempt_time,
+                la.ip_address,
+                la.success,
+                la.user_agent
+            FROM LOGIN_ATTEMPTS la
+            LEFT JOIN USER_INFORMATION ui ON la.user_id = ui.ID
+            ORDER BY la.attempt_time DESC
+            LIMIT :limit
+        ");
+        $this->db->bind(':limit', $limit);
+        
+        return $this->db->resultSet();
+    } catch (Exception $e) {
+        error_log("Error getting login attempts with triggers: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get audit logs with trigger data
+ */
+public function getAuditLogsWithTriggers($limit = 100, $table = null) {
+    try {
+        $sql = "SELECT 
+                    al.*,
+                    ui.First_Name,
+                    ui.Last_Name,
+                    ui.User_Role,
+                    ui.Email,
+                    al.ip_address,
+                    al.changed_at,
+                    al.action,
+                    al.table_name,
+                    al.old_values,
+                    al.new_values
+                FROM AUDIT_LOGS al
+                LEFT JOIN USER_INFORMATION ui ON al.user_id = ui.ID";
+        
+        $params = [];
+
+        if (!empty($table)) {
+            $sql .= " WHERE al.table_name = :table";
+            $params[':table'] = $table;
+        }
+
+        $sql .= " ORDER BY al.changed_at DESC LIMIT :limit";
+        
+        $this->db->query($sql);
+        $this->db->bind(':limit', (int)$limit);
+        
+        if (!empty($table)) {
+            $this->db->bind(':table', $table);
+        }
+        
+        return $this->db->resultSet();
+    } catch (Exception $e) {
+        error_log("Error getting audit logs with triggers: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get suspicious login activities detected by triggers
+ */
+public function getSuspiciousActivities($limit = 50) {
+    try {
+        $this->db->query("
+            SELECT 
+                la.*,
+                ui.First_Name,
+                ui.Last_Name,
+                ui.User_Role,
+                COUNT(*) as attempt_count
+            FROM LOGIN_ATTEMPTS la
+            LEFT JOIN USER_INFORMATION ui ON la.user_id = ui.ID
+            WHERE la.success = FALSE
+            AND la.attempt_time >= DATE_SUB(NOW(), INTERVAL 1 HOUR)
+            GROUP BY la.ip_address
+            HAVING attempt_count >= 3
+            ORDER BY attempt_count DESC
+            LIMIT :limit
+        ");
+        $this->db->bind(':limit', $limit);
+        
+        return $this->db->resultSet();
+    } catch (Exception $e) {
+        error_log("Error getting suspicious activities: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get login statistics for dashboard
+ */
+public function getLoginStatistics($hours = 24) {
+    try {
+        $this->db->query("
+            SELECT 
+                COUNT(*) as total_attempts,
+                SUM(CASE WHEN success = TRUE THEN 1 ELSE 0 END) as successful_logins,
+                SUM(CASE WHEN success = FALSE THEN 1 ELSE 0 END) as failed_logins,
+                COUNT(DISTINCT ip_address) as unique_ips,
+                COUNT(DISTINCT user_id) as unique_users
+            FROM LOGIN_ATTEMPTS 
+            WHERE attempt_time >= DATE_SUB(NOW(), INTERVAL ? HOUR)
+        ");
+        $this->db->bind(1, $hours);
+        
+        return $this->db->single();
+    } catch (Exception $e) {
+        error_log("Error getting login statistics: " . $e->getMessage());
+        return null;
+    }
+}
+
+
 
 
 

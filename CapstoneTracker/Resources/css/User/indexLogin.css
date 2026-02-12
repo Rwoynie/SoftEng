@@ -125,6 +125,7 @@ body {
 }
 
 @keyframes popOut {
+    
     0% {
         opacity: 0;
         transform: scale(0.8) translateY(20px);
@@ -137,6 +138,7 @@ body {
         transform: scale(1) translateY(0);
     }
 }
+
 
 
 
@@ -221,6 +223,16 @@ body {
     margin-top: 0.8rem !important;
 }
 
+/* Fix password field and forgot password link spacing */
+.password-field {
+    margin-bottom: 0.5rem !important;
+}
+
+.forgot-password-container {
+    margin-top: 0.5rem !important;
+    margin-bottom: 1rem !important;
+}
+
 .accountCreate {
     margin-top: 2vw;
     margin-bottom: 0vw;
@@ -234,6 +246,20 @@ body {
 }
 
 #forgotPasswordLink:hover {
+    
+    text-decoration: underline !important;
+    
+
+}
+
+#forgotPasswordLinkAdmin {
+    
+    font-family: Quicksand;
+    color: #272727;
+    transition: all 0.15s ease;
+}
+
+#forgotPasswordLinkAdmin:hover {
     
     text-decoration: underline !important;
     
@@ -325,6 +351,14 @@ h2 {
 
 
 @media (min-width: 768px) {
+
+    
+    .container1 {
+        opacity: 1 !important;
+        transform: scale(1) !important;
+        animation: popOut 0.8s ease-in-out !important;
+        animation-delay: 0.1s !important;
+    }
     .name-fields {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -362,6 +396,14 @@ h2 {
 }
 
 @media (max-width: 768px) {
+    
+    .container1 {
+        opacity: 1 !important;
+        transform: scale(1) !important;
+        animation: popOut 0.8s ease-in-out !important;
+        animation-delay: 0.1s !important;
+    }
+    
     .loginForm {
         width: 80vw;
     }
@@ -369,15 +411,20 @@ h2 {
     .signupForm {
         width: 90vw;
     }
+
+    #forgotPasswordLink {
+        
+        width: auto;
+    }
+
     
     .form-group input {
         width: 60vw;
     }
+
     
-    #userID, #password {
-        width: 70vw;
-    }
     
+  
     .btn-signup {
         width: 70%;
     }
@@ -692,6 +739,13 @@ h2 {
 }
 
 @media (min-width: 768px) {
+    .container1 {
+        opacity: 1 !important;
+        transform: scale(1) !important;
+        animation: popOut 0.8s ease-in-out !important;
+        animation-delay: 0.1s !important;
+    }
+
     .name-fields {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -729,6 +783,46 @@ h2 {
 }
 
 @media (max-width: 768px) {
+    .container .top:before, 
+    .container .bottom:before, 
+    .container .top:after, 
+    .container .bottom:after {
+        margin-left: 300px !important;
+        transform-origin: -300px 50% !important;
+        transition-delay: 0s !important;
+    }
+
+    .container .center {
+        opacity: 1 !important;
+        transition-delay: 0s !important;
+    }
+    .container1 {
+        opacity: 1 !important;
+        transform: scale(1) !important;
+        animation: popOut 0.8s ease-in-out !important;
+        animation-delay: 0.1s !important;
+    }
+
+    #forgotPasswordLink {
+        display: block !important;
+        width: 100% !important; /* Changed from 40vw to 100% */
+        text-align: right !important;
+        margin: 1rem auto !important;
+        text-decoration: none !important;
+        color: #272727 !important;
+        font-family: Quicksand !important;
+    }
+
+    #forgotPasswordLinkAdmin {
+        display: block !important;
+        width: 100% !important; /* Changed from 40vw to 100% */
+        text-align: right !important;
+        margin: 1rem auto !important;
+        text-decoration: none !important;
+        color: #272727 !important;
+        font-family: Quicksand !important;
+    }
+
     .loginForm {
         width: 80vw;
     }
@@ -741,10 +835,7 @@ h2 {
         width: 60vw;
     }
     
-    #userID, #password {
-        width: 70vw;
-    }
-    
+   
     .btn-signup {
         width: 70%;
     }
@@ -940,6 +1031,7 @@ hr {
 /* ADMIN LOGIN MODAL STYLES */
 #adminLoginModal .modal-content {
     border-radius: 15px;
+    
     box-shadow: 0 6px 25px rgba(0,0,0,0.3);
     font-family: 'Poppins', sans-serif;
     border: 2px solid #dc3545;
@@ -996,6 +1088,7 @@ hr {
 }
 
 #adminLoginModal .btn-danger {
+    margin-top: -1.5vw;
     border-radius: 10px;
     font-weight: 600;
     background: #dc3545;
@@ -1096,4 +1189,61 @@ hr {
 
 .sequence-error-notification .fa-exclamation-triangle {
     color: #ffc107;
+}
+
+.attempts-warning {
+    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+    border: 1px solid #ffc107;
+    border-radius: 8px;
+    padding: 12px;
+    font-weight: 500;
+}
+
+.swal2-popup .attempts-warning {
+    margin: 15px 0;
+}
+
+.password-strength {
+    height: 5px;
+    border-radius: 3px;
+    margin-top: 5px;
+    transition: all 0.3s ease;
+}
+
+.password-strength.strength-weak { background-color: #dc3545; width: 25%; }
+.password-strength.strength-fair { background-color: #fd7e14; width: 50%; }
+.password-strength.strength-good { background-color: #ffc107; width: 75%; }
+.password-strength.strength-strong { background-color: #20c997; width: 100%; }
+
+/* More dramatic tint effect */
+body.forgot-password-open #loginModal,
+body.forgot-password-open #studentRegisterModal, 
+body.forgot-password-open #facultyRegisterModal,
+body.forgot-password-open #adminLoginModal {
+    opacity: 0.3 !important;
+    filter: brightness(0.3) grayscale(0.8);
+    transition: all 0.3s ease;
+}
+
+body.forgot-password-open .modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(3px);
+}
+
+/* Ensure forgot password modal stays on top and clear */
+#forgotPasswordModal {
+    z-index: 9999 !important;
+}
+
+#forgotPasswordModal .modal-content {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.modal-body {
+    position: relative;
+    flex: 1 1 auto;
+    padding: var(--bs-modal-padding);
+    padding-bottom: 0vw;
 }

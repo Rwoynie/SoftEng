@@ -7,7 +7,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 if (!isset($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));  // Secure random token
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));  
 }
 
 
@@ -72,6 +72,19 @@ if ($setupError) {
   // Also log the detailed error
   error_log("Database setup error details: " . $setupError);
 }
+
+
+// Store login attempt information
+$loginAttemptsRemaining = $_SESSION['login_attempts_remaining'] ?? 3;
+$accountLocked = $_SESSION['account_locked'] ?? false;
+$lockoutTime = $_SESSION['lockout_time'] ?? 0;
+$loginEmail = $_SESSION['login_email'] ?? '';
+
+// Clear these after use to prevent showing on page refresh
+unset($_SESSION['login_attempts_remaining']);
+unset($_SESSION['account_locked']);
+unset($_SESSION['lockout_time']);
+unset($_SESSION['login_email']);
 ?> 
 
 <!DOCTYPE html>
@@ -96,11 +109,16 @@ if ($setupError) {
     
 
     <script>
-        const errorMessage = "<?php echo addslashes($errorMessage); ?>";
-        const errorModal = "<?php echo addslashes($errorModal); ?>";
-        const showModal = <?php echo $showModal ? 'true' : 'false'; ?>;
-        const successMessage = "<?php echo addslashes($successMessage); ?>";
-        const adminErrorMessage = "<?php echo addslashes($adminErrorMessage); ?>";
+      const errorMessage = "<?php echo addslashes($errorMessage); ?>";
+      const errorModal = "<?php echo addslashes($errorModal); ?>";
+      const showModal = <?php echo $showModal ? 'true' : 'false'; ?>;
+      const successMessage = "<?php echo addslashes($successMessage); ?>";
+      const adminErrorMessage = "<?php echo addslashes($adminErrorMessage); ?>";
+
+      const loginAttemptsRemaining = <?php echo (int)($loginAttemptsRemaining ?? 3); ?>;
+      const accountLocked = <?php echo isset($accountLocked) && $accountLocked ? 'true' : 'false'; ?>;
+      const lockoutTime = <?php echo (int)($lockoutTime ?? 0); ?>;
+      const loginEmail = "<?php echo addslashes($loginEmail ?? ''); ?>";
     </script>
 </head> 
 <body>
@@ -147,12 +165,12 @@ if ($setupError) {
         <form method="POST" action="../../Controllers/AuthController.php" enctype="multipart/form-data">
           <input type="hidden" name="action" value="login">
           <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
-          <input type="hidden" id="roleField" name="role">
+          <input type="hidden" id="roleField" name="role" value="student">
           <div class="mb-3">
             <label for="email" class="form-label">Email</label>
             <input type="text" id="username" name="email" class="form-control" placeholder="Enter USeP email" required>
           </div>
-          <div class="mb-3">
+          <div class="mb-3 password-field">
             <label for="password" class="form-label">Password</label>
             <div class="input-group">
               <input type="password" id="password" name="password" class="form-control" placeholder="Enter password" required>
@@ -160,10 +178,10 @@ if ($setupError) {
                 <i class="far fa-eye"></i>
               </button>
             </div>
-
-            <div class="text-center mt-5">
-            <a href="#" id="forgotPasswordLink" class="text-decoration-none">Forgot password?</a>
           </div>
+
+          <div class="text-center forgot-password-container">
+            <a href="#" id="forgotPasswordLink" class="text-decoration-none">Forgot password?</a>
           </div>
           <button type="submit" class="btn btn-success w-100 mb-2">Login</button>
           
@@ -207,7 +225,6 @@ if ($setupError) {
         <input type="hidden" name="action" value="student_register">
         <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
           <div class="row g-3">
-            <!-- Separate Name Fields -->
             <div class="col-md-4">
               <label for="regFirstName" class="form-label">First Name</label>
               <input type="text" id="regFirstName" name="firstName" class="form-control" placeholder="Juan" required>
@@ -228,7 +245,7 @@ if ($setupError) {
             
             
             <div class="col-12">
-              <label for="regCourse" class="form-label">Course / Program</label>
+              <label for="regCourse" class="form-label">Course</label>
               <select id="regCourse" name="course" class="form-select" required>
                 <option value="" selected disabled>Select your program</option>
                 <option>Bachelor of Technical-Vocational Teacher Education</option>
@@ -248,22 +265,34 @@ if ($setupError) {
               </div>
               <small class="text-muted">Use your university email (@usep.edu.ph)</small>
             </div>
-            <div class="col-md-6">
+            <div class="col-12">
               <label for="regPassword" class="form-label">Password</label>
               <div class="input-group">
-                <input type="password" id="regPassword" name="password" class="form-control" required>
+                <input type="password" id="regPassword" name="password" class="form-control" required
+                       pattern="^(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$"
+                       oninput="validatePassword(this)">
                 <button class="btn btn-outline-secondary" type="button" id="regTogglePassword" aria-label="Show password">
                   <i class="far fa-eye"></i>
                 </button>
               </div>
+              <small id="passwordHelp" class="form-text text-muted">
+                Password must be at least 8 characters long, include 1 uppercase letter and 1 number.
+              </small>
+              <div id="passwordError" class="invalid-feedback">
+                Please enter a valid password (min 8 chars, 1 uppercase, 1 number)
+              </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-12">
               <label for="regConfirmPassword" class="form-label">Confirm Password</label>
               <div class="input-group">
-                <input type="password" id="regConfirmPassword" name="confirmPassword" class="form-control" required>
+                <input type="password" id="regConfirmPassword" name="confirmPassword" class="form-control" required
+                       oninput="checkPasswordMatch()">
                 <button class="btn btn-outline-secondary" type="button" id="regToggleConfirm" aria-label="Show password">
                   <i class="far fa-eye"></i>
                 </button>
+              </div>
+              <div id="confirmPasswordError" class="invalid-feedback">
+                Passwords do not match
               </div>
             </div>
             <div class="col-12">
@@ -273,7 +302,9 @@ if ($setupError) {
             </div>
             <div class="col-12 d-grid gap-2">
               <button type="submit" class="btn btn-primary">Create account</button>
-              <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="modal">Back to login</button>
+              <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="modal">
+                <i class="fas fa-arrow-left me-2"></i> Back to login
+              </button>
             </div>
           </div>
         </form>
@@ -316,8 +347,8 @@ if ($setupError) {
             </div>
             
             
-            <div class="col-md-6">
-              <label for="facDepartment" class="form-label">Department / College</label>
+            <div class="col-12">
+              <label for="facDepartment" class="form-label">Department</label>
               <select id="facDepartment" name="department" class="form-select" required>
                 <option value="" selected disabled>Select department</option>
                 <option>CTET</option>
@@ -333,22 +364,34 @@ if ($setupError) {
               </div>
               <small class="text-muted">Use your university email (@usep.edu.ph)</small>
             </div>
-            <div class="col-md-6">
+            <div class="col-12">
               <label for="facPassword" class="form-label">Password</label>
               <div class="input-group">
-                <input type="password" id="facPassword" name="password" class="form-control" required>
+                <input type="password" id="facPassword" name="password" class="form-control" required
+                       pattern="^(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$"
+                       oninput="validatePassword(this)">
                 <button class="btn btn-outline-secondary" type="button" id="facTogglePassword" aria-label="Show password">
                   <i class="far fa-eye"></i>
                 </button>
               </div>
+              <small id="facPasswordHelp" class="form-text text-muted">
+                Password must be at least 8 characters long, include 1 uppercase letter and 1 number.
+              </small>
+              <div id="facPasswordError" class="invalid-feedback">
+                Please enter a valid password (min 8 chars, 1 uppercase, 1 number)
+              </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-12">
               <label for="facConfirmPassword" class="form-label">Confirm Password</label>
               <div class="input-group">
-                <input type="password" id="facConfirmPassword" name="confirmPassword" class="form-control" required>
+                <input type="password" id="facConfirmPassword" name="confirmPassword" class="form-control" required
+                       oninput="checkPasswordMatch()">
                 <button class="btn btn-outline-secondary" type="button" id="facToggleConfirm" aria-label="Show password">
                   <i class="far fa-eye"></i>
                 </button>
+              </div>
+              <div id="facConfirmPasswordError" class="invalid-feedback">
+                Passwords do not match
               </div>
             </div>
             <div class="col-12">
@@ -358,7 +401,9 @@ if ($setupError) {
             </div>
             <div class="col-12 d-grid gap-2">
               <button type="submit" class="btn btn-primary">Create account</button>
-              <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="modal">Back to login</button>
+              <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="modal">
+                <i class="fas fa-arrow-left me-2"></i> Back to login
+              </button>
             </div>
           </div>
         </form>
@@ -378,7 +423,7 @@ if ($setupError) {
           <div class="modal-header text-center w-100 d-block position-relative">
             <img src="../../../resources/Images/ThesisCompLogo.png" class="sysLogo mb-2" alt="Logo" style="width:80px;">
             <h5 class="modal-title">
-                <i class="fas fa-shield-alt admin-icon"></i>
+                
                 Admin Login
             </h5>
             <button type="button" class="btn btn-link text-white position-absolute" style="top:8px; right:10px; font-size:24px; text-decoration:none;" data-bs-dismiss="modal" aria-label="Close">&times;</button>
@@ -394,10 +439,10 @@ if ($setupError) {
               <input type="hidden" name="action" value="login">
               <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
               <div class="mb-3">
-                <label for="adminUsername" class="form-label">Admin ID</label>
+                <label for="adminUsername" class="form-label">User ID</label>
                 <input type="text" id="adminUsername" name="admin_username" class="form-control" placeholder="Enter admin ID" required>
               </div>
-              <div class="mb-3">
+              <div class="mb-3 password-field">
                 <label for="adminPassword" class="form-label">Password</label>
                 <div class="input-group">
                   <input type="password" id="adminPassword" name="admin_password" class="form-control" placeholder="Enter admin password" required>
@@ -406,7 +451,9 @@ if ($setupError) {
                   </button>
                 </div>
               </div>
-              
+              <div class="text-center forgot-password-container">
+                <a href="#" id="forgotPasswordLinkAdmin" class="text-decoration-none">Forgot password?</a>
+              </div>
               <br>
               <button type="submit" class="btn btn-danger w-100 mb-2">
                 <i class="fas fa-sign-in-alt me-2"></i>Admin Login
@@ -444,8 +491,7 @@ if ($setupError) {
       <div class="modal-header border-0 text-center w-100 d-block position-relative">
         <img src="../../../resources/Images/ThesisCompLogo.png" class="sysLogo mb-2" alt="Logo" style="width:80px;">
         <h5 class="modal-title">Reset Password</h5>
-        <button type="button" class="btn btn-link text-muted position-absolute" style="top:8px; right:10px; font-size:24px; text-decoration:none;" data-bs-dismiss="modal" aria-label="Close">&times;</button>
-      </div>
+        </div>
       <div class="modal-body">
         <p class="text-muted mb-4">Enter your email address and we'll send you a verification code to reset your password.</p>
         <form id="forgotPasswordForm">
@@ -462,7 +508,9 @@ if ($setupError) {
             <button type="submit" class="btn btn-primary" id="sendCodeBtn">
               <i class="fas fa-paper-plane me-2"></i>Send Verification Code
             </button>
-            <button type="button" class="btn btn-link" data-bs-dismiss="modal">Back to Login</button>
+            <button type="button" class="btn btn-outline-danger w-100" id="backToLoginFromForgot" data-bs-dismiss="modal">
+              <i class="fas fa-arrow-left me-2"></i> Back to login
+          </button>
           </div>
         </form>
       </div>
@@ -546,8 +594,8 @@ if ($setupError) {
               <strong>Success!</strong> You can now use your new password to login.
             </div>
             
-            <button type="button" class="btn btn-primary mt-3" data-bs-dismiss="modal">
-              <i class="fas fa-sign-in-alt me-2"></i>Return to Login
+            <button type="button" class="btn btn-outline-danger w-100" data-bs-dismiss="modal">
+              <i class="fas fa-arrow-left me-2"></i>Return to Login
             </button>
           </div>
         </div>
@@ -559,11 +607,112 @@ if ($setupError) {
 </body>
 
     <script>
+        // Password validation functions
+        function validatePassword(input) {
+            const password = input.value;
+            const formId = input.closest('form').id;
+            const isStudentForm = formId === 'studentRegisterForm';
+            
+            const passwordHelp = document.getElementById(isStudentForm ? 'passwordHelp' : 'facPasswordHelp');
+            const passwordError = document.getElementById(isStudentForm ? 'passwordError' : 'facPasswordError');
+            
+            // Check if password meets requirements
+            const hasMinLength = password.length >= 8;
+            const hasUppercase = /[A-Z]/.test(password);
+            const hasNumber = /\d/.test(password);
+            
+            // Toggle error state
+            if (!hasMinLength || !hasUppercase || !hasNumber) {
+                input.classList.add('is-invalid');
+                if (passwordError) passwordError.style.display = 'block';
+            } else {
+                input.classList.remove('is-invalid');
+                if (passwordError) passwordError.style.display = 'none';
+            }
+            
+            // Update password help text with current status
+            const status = [];
+            if (!hasMinLength) status.push('at least 8 characters');
+            if (!hasUppercase) status.push('1 uppercase letter');
+            if (!hasNumber) status.push('1 number');
+            
+            if (passwordHelp) {
+                if (status.length > 0) {
+                    passwordHelp.innerHTML = `Password needs: ${status.join(', ')}.`;
+                    passwordHelp.className = 'form-text text-danger';
+                } else {
+                    passwordHelp.innerHTML = 'Password meets all requirements.';
+                    passwordHelp.className = 'form-text text-success';
+                }
+            }
+            
+            // Trigger password match check if confirm password is not empty
+            const confirmPasswordId = isStudentForm ? 'regConfirmPassword' : 'facConfirmPassword';
+            if (document.getElementById(confirmPasswordId).value) {
+                checkPasswordMatch();
+            }
+        }
         
+        function checkPasswordMatch() {
+            const formId = event ? event.target.closest('form').id : 
+                         (document.activeElement ? document.activeElement.closest('form').id : 'studentRegisterForm');
+            const isStudentForm = formId === 'studentRegisterForm';
+            
+            const passwordId = isStudentForm ? 'regPassword' : 'facPassword';
+            const confirmPasswordId = isStudentForm ? 'regConfirmPassword' : 'facConfirmPassword';
+            const confirmErrorId = isStudentForm ? 'confirmPasswordError' : 'facConfirmPasswordError';
+            
+            const password = document.getElementById(passwordId);
+            const confirmPassword = document.getElementById(confirmPasswordId);
+            const confirmError = document.getElementById(confirmErrorId);
+            
+            if (!password || !confirmPassword) return;
+            
+            if (password.value !== confirmPassword.value) {
+                confirmPassword.classList.add('is-invalid');
+                if (confirmError) confirmError.style.display = 'block';
+                return false;
+            } else {
+                confirmPassword.classList.remove('is-invalid');
+                if (confirmError) confirmError.style.display = 'none';
+                return true;
+            }
+        }
+        
+        // Form submission validation
+        const forms = document.querySelectorAll('#studentRegisterForm, #facultyRegisterForm');
+        forms.forEach(form => {
+            form.addEventListener('submit', function(e) {
+                const isStudentForm = form.id === 'studentRegisterForm';
+                const passwordId = isStudentForm ? 'regPassword' : 'facPassword';
+                
+                const password = document.getElementById(passwordId).value;
+                const hasMinLength = password.length >= 8;
+                const hasUppercase = /[A-Z]/.test(password);
+                const hasNumber = /\d/.test(password);
+                
+                if (!hasMinLength || !hasUppercase || !hasNumber || !checkPasswordMatch()) {
+                    e.preventDefault();
+                    
+                    // Validate password
+                    const passwordInput = document.getElementById(passwordId);
+                    if (passwordInput) validatePassword(passwordInput);
+                    
+                    // Check password match
+                    checkPasswordMatch();
+                    
+                    // Scroll to first error
+                    const firstError = form.querySelector('.is-invalid');
+                    if (firstError) {
+                        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            });
+        });
 
+        
         // Debug output
-    console.log('PHP errorMessage:', errorMessage);
-    
+        console.log('PHP errorMessage:', errorMessage);
     </script>
 
 </html>

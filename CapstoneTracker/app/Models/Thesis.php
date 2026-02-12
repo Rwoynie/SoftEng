@@ -137,40 +137,35 @@ class Thesis extends Model {
             }
 
             foreach ($adviserEmails as $Aemail) {
-                if (!empty($Aemail)) {
-                    // Find user by email
-                    $adviser = $this->userModel->findByEmail($Aemail);
-                    if ($adviser) {
-                        // Check if user has pending status
-                        if ($adviser->Acc_Status === 'pending') {
-                            $pendingAdvisers[] = $Aemail;
-                            continue; // Skip pending users
-                        }
-                        
-                        // Check if user has faculty role
-                        if ($adviser->User_Role !== 'faculty') {
-                            $nonFacultyAdvisers[] = $Aemail;
-                            continue; // Skip non-faculty users as advisers
-                        }
-                        
-                        // Build adviser name
-                        $adviserName = $adviser->First_Name;  
-                        if (!empty($adviser->Middle_Name)) { 
-                            $adviserName .= ' ' . $adviser->Middle_Name;
-                        }
-                        $adviserName .= ' ' . $adviser->Last_Name; 
-                        if (!empty($adviser->Extension)) { 
-                            $adviserName .= ' ' . $adviser->Extension;
-                        }
-                        
-                        $adviserNames[] = $adviserName;
-                        $adviserIds[] = $adviser->ID; 
-                    } else {
-                        // If user not found, add to non-faculty list
-                        $nonFacultyAdvisers[] = $Aemail;
-                    }
-                }
+            $Aemail = trim($Aemail);
+            if (empty($Aemail)) continue;
+
+            $adviser = $this->userModel->findByEmail($Aemail);
+
+            if (!$adviser) {
+                $nonFacultyAdvisers[] = $Aemail;
+                continue;
             }
+
+            if ($adviser->Acc_Status === 'pending') {
+                $pendingAdvisers[] = $Aemail;
+                continue;
+            }
+
+            if ($adviser->User_Role !== 'faculty') {
+                $nonFacultyAdvisers[] = $Aemail;
+                continue;
+            }
+
+            // Valid faculty adviser
+            $adviserName = trim("{$adviser->First_Name} " . 
+                    ($adviser->Middle_Name ? $adviser->Middle_Name . ' ' : '') . 
+                    $adviser->Last_Name . 
+                    ($adviser->Extension ? ' ' . $adviser->Extension : ''));
+
+            $adviserNames[] = $adviserName;
+            $adviserIds[] = $adviser->ID;
+        }
 
             // Check if any pending accounts were found in advisers
             if (!empty($pendingAdvisers)) {
@@ -181,8 +176,8 @@ class Thesis extends Model {
 
             // Check if any non-faculty users were found in advisers
             if (!empty($nonFacultyAdvisers)) {
-                $nonFacultyEmails = implode(', ', $nonFacultyAdvisers);
-                $this->error = "Only faculty users can be assigned as advisers. Please remove the following non-faculty emails: " . $nonFacultyEmails;
+                $this->error = "Only registered faculty members can be advisers. The following emails are either not found or not faculty: " . 
+                            implode(', ', $nonFacultyAdvisers);
                 return false;
             }
 

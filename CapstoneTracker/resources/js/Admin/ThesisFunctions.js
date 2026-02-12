@@ -1,3 +1,5 @@
+
+// FOR FULL VIEW THESIS
 function handleViewThesis(thesisId, title) {
     if (!thesisId) {
         Swal.fire({
@@ -24,39 +26,36 @@ function handleViewThesis(thesisId, title) {
 }
 
 
-
+// FOR FULL VIEW THESIS
 // Function to fetch the full thesis file (not just abstract)
 async function fetchThesisFileForView(thesisId, title) {
     try {
         if (!thesisId || isNaN(thesisId)) {
             throw new Error('Invalid thesis ID');
         }
-        // Show loading state
-        Swal.fire({
-            title: 'Loading Thesis...',
-            text: 'Please wait while we load the thesis file',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
 
         console.log('Fetching thesis with ID:', thesisId);
 
-        // Use the viewThesis endpoint (not downloadThesis)
-        const response = await fetch(`/CapstoneTracker/app/Controllers/ThesisController.php?action=viewThesis&id=${thesisId}`);
+        // Use the viewThesis endpoint with proper encoding
+        const response = await fetch(`/CapstoneTracker/app/Controllers/ThesisController.php?action=viewThesis&id=${encodeURIComponent(thesisId)}`);
         
         console.log('Response status:', response.status);
 
         if (!response.ok) {
-            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+            // Try to get error message from response
+            const errorText = await response.text();
+            throw new Error(`Server returned ${response.status}: ${errorText}`);
         }
         
         // Check if response is PDF
         const contentType = response.headers.get('content-type');
+        console.log('Content-Type:', contentType);
+        
         if (!contentType || !contentType.includes('pdf')) {
+            // If not PDF, it might be an error message
             const text = await response.text();
-            throw new Error('Thesis file is not a valid PDF');
+            console.error('Non-PDF response:', text);
+            throw new Error('Thesis file is not available or not a valid PDF');
         }
         
         // Get the thesis as blob

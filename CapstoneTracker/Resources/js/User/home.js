@@ -7,6 +7,9 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeCarousels();
     initializeEventListeners();
     initializeAnnouncementModals();
+    initializeProgramClicks(); 
+     initializePolicyModals();
+
     
     // Initialize search page if we're on search page
     if (document.getElementById('results-page')) {
@@ -298,142 +301,367 @@ class FlickityCarousel {
 }
 
 function initializeCarousels() {
-    // ---------- ANNOUNCEMENTS CAROUSEL ----------
-    const announcementCarousels = document.querySelectorAll('.announcements-carousel');
-    announcementCarousels.forEach(carousel => {
-        const instance = new FlickityCarousel(carousel, {
-            wrapAround: true,
-            cellAlign: 'left',
-            autoPlay: false,
-            centered: false
-        });
-        carouselInstances.push(instance);
-    });
+    // ---------- PINNED ANNOUNCEMENTS CAROUSEL 
+        const pinnedCarousels = document.querySelectorAll('.pinned-announcements-carousel');
+        pinnedCarousels.forEach(carousel => {
+            const container = carousel.querySelector('.carousel-container');
+            const cardsWrap = carousel.querySelector('.announcement-cards');
+            const cards = cardsWrap.querySelectorAll('.announcement-card');
+            const prevBtn = carousel.querySelector('.carousel-control.prev');
+            const nextBtn = carousel.querySelector('.carousel-control.next');
+            const indicators = carousel.querySelectorAll('.indicator');
 
-    // ---------- PROGRAMS CAROUSEL (IMPROVED SEAMLESS LOOPING IN BOTH DIRECTIONS) ----------
-    // ---------- PROGRAMS CAROUSEL (SEAMLESS LOOP + NO BLUR) ----------
-const programCarousels = document.querySelectorAll('.logo-carousel');
-programCarousels.forEach(carousel => {
-    const container   = carousel.querySelector('.carousel-container');
-    const cardsWrap   = carousel.querySelector('.logo-cards');
-    const cards       = cardsWrap.querySelectorAll('.logo-card');
-    const prevBtn     = carousel.querySelector('.carousel-control.prev');
-    const nextBtn     = carousel.querySelector('.carousel-control.next');
-    const indicators  = carousel.querySelectorAll('.indicator');
+            if (!cards.length) return;
 
-    if (!cards.length) return;
+            const CARD_GAP = 24;
+            const cardWidth = cards[0].offsetWidth + CARD_GAP;
+            const originalCnt = cards.length;
 
-    const CARD_GAP    = 24;
-    const cardWidth   = cards[0].offsetWidth + CARD_GAP;
-    const original    = Array.from(cards);
-    const originalCnt = original.length;
-
-    // ---- clone for infinite scroll (prepend + append) ----
-    // prepend reversed clones
-    for (let i = originalCnt - 1; i >= 0; i--) {
-        cardsWrap.insertBefore(original[i].cloneNode(true), cardsWrap.firstChild);
-    }
-    // append normal clones
-    original.forEach(c => cardsWrap.appendChild(c.cloneNode(true)));
-
-    const allCards = cardsWrap.querySelectorAll('.logo-card');   // 3×original
-    const total    = allCards.length;
-
-    // start in the *middle* block (original cards)
-    let currentIdx = originalCnt;          // points to first original
-    let autoPlayId = null;
-
-    // ---- helper: move to any index (smooth = true/false) ----
-    const goTo = (idx, smooth = true) => {
-        currentIdx = idx;
-
-        const offset = currentIdx * cardWidth -
-                      (container.offsetWidth - cardWidth) / 2;
-
-        cardsWrap.style.transition = smooth ? 'transform 0.4s ease' : 'none';
-        cardsWrap.style.transform   = `translateX(${-offset}px)`;
-
-        // ----- indicators (original index) -----
-        const origIdx = (currentIdx - originalCnt) % originalCnt;
-        indicators.forEach((ind, i) => ind.classList.toggle('active', i === origIdx));
-
-        // ----- visual active state (ALL clones that match the original index) -----
-        allCards.forEach((c, i) => {
-            const isActive = (i - originalCnt) % originalCnt === origIdx;
-            c.classList.toggle('active', isActive);
-            c.style.transform = isActive ? 'scale(1)' : 'scale(0.9)';
-            c.style.opacity   = isActive ? '1'     : '0.7';
-            c.style.filter    = isActive ? 'blur(0)' : 'blur(2px)';
-            c.style.zIndex    = isActive ? '2' : '1';
-        });
-    };
-
-    // ---- seamless reset after transition (no flicker) ----
-    cardsWrap.addEventListener('transitionend', () => {
-        let shifted = false;
-
-        if (currentIdx < originalCnt) {                 // went too far left
-            currentIdx += originalCnt;
-            shifted = true;
-        } else if (currentIdx >= originalCnt * 2) {     // went too far right
-            currentIdx -= originalCnt;
-            shifted = true;
-        }
-
-        if (shifted) {
-            const offset = currentIdx * cardWidth -
-                          (container.offsetWidth - cardWidth) / 2;
-            cardsWrap.style.transition = 'none';
-            cardsWrap.style.transform   = `translateX(${-offset}px)`;
-            // force reflow so the next smooth transition works
-            void cardsWrap.offsetHeight;
-        }
-    });
-
-    // ---- navigation ----
-    prevBtn?.addEventListener('click', () => { goTo(currentIdx - 1); resetAuto(); });
-    nextBtn?.addEventListener('click', () => { goTo(currentIdx + 1); resetAuto(); });
-
-    indicators.forEach((ind, i) => ind.addEventListener('click', () => {
-        const targetOriginal = i;
-        const currentOriginal = (currentIdx - originalCnt) % originalCnt;
-        const diff = targetOriginal - currentOriginal;
-        goTo(currentIdx + diff);
-        resetAuto();
-    }));
-
-    // ---- auto-play ----
-    const startAuto = () => {
-        autoPlayId = setInterval(() => goTo(currentIdx + 1), 4000);
-    };
-    const stopAuto  = () => clearInterval(autoPlayId);
-    const resetAuto = () => { stopAuto(); startAuto(); };
-
-    if (originalCnt > 1) {
-        startAuto();
-        carousel.addEventListener('mouseenter', stopAuto);
-        carousel.addEventListener('mouseleave', startAuto);
-    } else {
-        prevBtn && (prevBtn.style.display = 'none');
-        nextBtn && (nextBtn.style.display = 'none');
-        indicators[0] && (indicators[0].parentElement.style.display = 'none');
-    }
-
-    // ---- init ----
-    goTo(currentIdx, false);
-
-    // ---- cleanup ----
-    carouselInstances.push({
-        destroy: () => {
-            stopAuto();
-            // remove all clones
-            while (cardsWrap.children.length > originalCnt) {
-                cardsWrap.removeChild(cardsWrap.firstChild);
-                cardsWrap.removeChild(cardsWrap.lastChild);
+            // If only one pinned card, center it and hide controls
+            if (originalCnt <= 1) {
+                prevBtn && (prevBtn.style.display = 'none');
+                nextBtn && (nextBtn.style.display = 'none');
+                indicators[0] && (indicators[0].parentElement.style.display = 'none');
+                
+                // Center the single card
+                cardsWrap.style.display = 'flex';
+                cardsWrap.style.justifyContent = 'center';
+                cardsWrap.style.width = '100%';
+                
+                // Make single card active
+                cards[0].classList.add('active');
+                cards[0].style.transform = 'scale(1)';
+                cards[0].style.opacity = '1';
+                cards[0].style.filter = 'none';
+                cards[0].style.zIndex = '2';
+                
+                return;
             }
+
+            // For multiple cards, create seamless loop
+            const original = Array.from(cards);
+            
+            // Clone for infinite scroll
+            for (let i = originalCnt - 1; i >= 0; i--) {
+                cardsWrap.insertBefore(original[i].cloneNode(true), cardsWrap.firstChild);
+            }
+            original.forEach(c => cardsWrap.appendChild(c.cloneNode(true)));
+
+            const allCards = cardsWrap.querySelectorAll('.announcement-card');
+            const total = allCards.length;
+
+            let currentIdx = originalCnt;
+            let autoPlayId = null;
+
+            const goTo = (idx, smooth = true) => {
+                currentIdx = idx;
+                const offset = currentIdx * cardWidth - (container.offsetWidth - cardWidth) / 2;
+
+                cardsWrap.style.transition = smooth ? 'transform 0.4s ease' : 'none';
+                cardsWrap.style.transform = `translateX(${-offset}px)`;
+
+                const origIdx = (currentIdx - originalCnt) % originalCnt;
+                indicators.forEach((ind, i) => ind.classList.toggle('active', i === origIdx));
+
+                allCards.forEach((c, i) => {
+                    const isActive = (i - originalCnt) % originalCnt === origIdx;
+                    c.classList.toggle('active', isActive);
+                    c.style.transform = isActive ? 'scale(1)' : 'scale(0.9)';
+                    c.style.opacity = isActive ? '1' : '0.7';
+                    c.style.filter = 'none'; // Remove blur
+                    c.style.zIndex = isActive ? '2' : '1';
+                });
+            };
+
+            cardsWrap.addEventListener('transitionend', () => {
+                let shifted = false;
+
+                if (currentIdx < originalCnt) {
+                    currentIdx += originalCnt;
+                    shifted = true;
+                } else if (currentIdx >= originalCnt * 2) {
+                    currentIdx -= originalCnt;
+                    shifted = true;
+                }
+
+                if (shifted) {
+                    const offset = currentIdx * cardWidth - (container.offsetWidth - cardWidth) / 2;
+                    cardsWrap.style.transition = 'none';
+                    cardsWrap.style.transform = `translateX(${-offset}px)`;
+                    void cardsWrap.offsetHeight;
+                }
+            });
+
+            prevBtn?.addEventListener('click', () => { goTo(currentIdx - 1); resetAuto(); });
+            nextBtn?.addEventListener('click', () => { goTo(currentIdx + 1); resetAuto(); });
+
+            indicators.forEach((ind, i) => ind.addEventListener('click', () => {
+                const targetOriginal = i;
+                const currentOriginal = (currentIdx - originalCnt) % originalCnt;
+                const diff = targetOriginal - currentOriginal;
+                goTo(currentIdx + diff);
+                resetAuto();
+            }));
+
+            const startAuto = () => {
+                autoPlayId = setInterval(() => goTo(currentIdx + 1), 4000);
+            };
+            const stopAuto = () => clearInterval(autoPlayId);
+            const resetAuto = () => { stopAuto(); startAuto(); };
+
+            if (originalCnt > 1) {
+                startAuto();
+                carousel.addEventListener('mouseenter', stopAuto);
+                carousel.addEventListener('mouseleave', startAuto);
+            }
+
+            goTo(currentIdx, false);
+
+            carouselInstances.push({
+                destroy: () => {
+                    stopAuto();
+                    while (cardsWrap.children.length > originalCnt) {
+                        cardsWrap.removeChild(cardsWrap.firstChild);
+                        cardsWrap.removeChild(cardsWrap.lastChild);
+                    }
+                }
+            });
+        });
+
+    // ---------- NON-PINNED ANNOUNCEMENTS CAROUSEL (SEAMLESS LOOP, NO CLONING FOR SINGLE ITEMS) ----------
+            const nonPinnedCarousels = document.querySelectorAll('.non-pinned-announcements-carousel');
+            nonPinnedCarousels.forEach(carousel => {
+                const container = carousel.querySelector('.carousel-container');
+                const cardsWrap = carousel.querySelector('.announcement-cards');
+                const cards = cardsWrap.querySelectorAll('.announcement-card');
+                const prevBtn = carousel.querySelector('.carousel-control.prev');
+                const nextBtn = carousel.querySelector('.carousel-control.next');
+                const indicators = carousel.querySelectorAll('.indicator');
+
+                if (!cards.length) return;
+
+                const CARD_GAP = 24;
+                const cardWidth = cards[0].offsetWidth + CARD_GAP;
+                const originalCnt = cards.length;
+
+                // If only one card, center it and hide controls
+                if (originalCnt <= 1) {
+                    prevBtn && (prevBtn.style.display = 'none');
+                    nextBtn && (nextBtn.style.display = 'none');
+                    indicators[0] && (indicators[0].parentElement.style.display = 'none');
+                    
+                    // Center the single card
+                    cardsWrap.style.display = 'flex';
+                    cardsWrap.style.justifyContent = 'center';
+                    cardsWrap.style.width = '100%';
+                    
+                    // Make single card active
+                    cards[0].classList.add('active');
+                    cards[0].style.transform = 'scale(1)';
+                    cards[0].style.opacity = '1';
+                    cards[0].style.filter = 'none';
+                    cards[0].style.zIndex = '2';
+                    
+                    return;
+                }
+
+                // For multiple cards, create seamless loop
+                const original = Array.from(cards);
+                
+                for (let i = originalCnt - 1; i >= 0; i--) {
+                    cardsWrap.insertBefore(original[i].cloneNode(true), cardsWrap.firstChild);
+                }
+                original.forEach(c => cardsWrap.appendChild(c.cloneNode(true)));
+
+                const allCards = cardsWrap.querySelectorAll('.announcement-card');
+                const total = allCards.length;
+
+                let currentIdx = originalCnt;
+                let autoPlayId = null;
+
+                const goTo = (idx, smooth = true) => {
+                    currentIdx = idx;
+                    const offset = currentIdx * cardWidth - (container.offsetWidth - cardWidth) / 2;
+
+                    cardsWrap.style.transition = smooth ? 'transform 0.4s ease' : 'none';
+                    cardsWrap.style.transform = `translateX(${-offset}px)`;
+
+                    const origIdx = (currentIdx - originalCnt) % originalCnt;
+                    indicators.forEach((ind, i) => ind.classList.toggle('active', i === origIdx));
+
+                    allCards.forEach((c, i) => {
+                        const isActive = (i - originalCnt) % originalCnt === origIdx;
+                        c.classList.toggle('active', isActive);
+                        c.style.transform = isActive ? 'scale(1)' : 'scale(0.9)';
+                        c.style.opacity = isActive ? '1' : '0.7';
+                        c.style.filter = 'none'; // Remove blur
+                        c.style.zIndex = isActive ? '2' : '1';
+                    });
+                };
+
+                cardsWrap.addEventListener('transitionend', () => {
+                    let shifted = false;
+
+                    if (currentIdx < originalCnt) {
+                        currentIdx += originalCnt;
+                        shifted = true;
+                    } else if (currentIdx >= originalCnt * 2) {
+                        currentIdx -= originalCnt;
+                        shifted = true;
+                    }
+
+                    if (shifted) {
+                        const offset = currentIdx * cardWidth - (container.offsetWidth - cardWidth) / 2;
+                        cardsWrap.style.transition = 'none';
+                        cardsWrap.style.transform = `translateX(${-offset}px)`;
+                        void cardsWrap.offsetHeight;
+                    }
+                });
+
+                prevBtn?.addEventListener('click', () => { goTo(currentIdx - 1); resetAuto(); });
+                nextBtn?.addEventListener('click', () => { goTo(currentIdx + 1); resetAuto(); });
+
+                indicators.forEach((ind, i) => ind.addEventListener('click', () => {
+                    const targetOriginal = i;
+                    const currentOriginal = (currentIdx - originalCnt) % originalCnt;
+                    const diff = targetOriginal - currentOriginal;
+                    goTo(currentIdx + diff);
+                    resetAuto();
+                }));
+
+                const startAuto = () => {
+                    autoPlayId = setInterval(() => goTo(currentIdx + 1), 4000);
+                };
+                const stopAuto = () => clearInterval(autoPlayId);
+                const resetAuto = () => { stopAuto(); startAuto(); };
+
+                if (originalCnt > 1) {
+                    startAuto();
+                    carousel.addEventListener('mouseenter', stopAuto);
+                    carousel.addEventListener('mouseleave', startAuto);
+                }
+
+                goTo(currentIdx, false);
+
+                carouselInstances.push({
+                    destroy: () => {
+                        stopAuto();
+                        while (cardsWrap.children.length > originalCnt) {
+                            cardsWrap.removeChild(cardsWrap.firstChild);
+                            cardsWrap.removeChild(cardsWrap.lastChild);
+                        }
+                    }
+                });
+            });
+
+    // ---------- PROGRAMS CAROUSEL (SEAMLESS LOOP) ----------
+    const programCarousels = document.querySelectorAll('.logo-carousel');
+    programCarousels.forEach(carousel => {
+        // ... (keep the existing program carousel code exactly as it was)
+        const container = carousel.querySelector('.carousel-container');
+        const cardsWrap = carousel.querySelector('.logo-cards');
+        const cards = cardsWrap.querySelectorAll('.logo-card');
+        const prevBtn = carousel.querySelector('.carousel-control.prev');
+        const nextBtn = carousel.querySelector('.carousel-control.next');
+        const indicators = carousel.querySelectorAll('.indicator');
+
+        if (!cards.length) return;
+
+        const CARD_GAP = 24;
+        const cardWidth = cards[0].offsetWidth + CARD_GAP;
+        const original = Array.from(cards);
+        const originalCnt = original.length;
+
+        // Clone for infinite scroll
+        for (let i = originalCnt - 1; i >= 0; i--) {
+            cardsWrap.insertBefore(original[i].cloneNode(true), cardsWrap.firstChild);
         }
+        original.forEach(c => cardsWrap.appendChild(c.cloneNode(true)));
+
+        const allCards = cardsWrap.querySelectorAll('.logo-card');
+        const total = allCards.length;
+
+        let currentIdx = originalCnt;
+        let autoPlayId = null;
+
+        const goTo = (idx, smooth = true) => {
+            currentIdx = idx;
+            const offset = currentIdx * cardWidth - (container.offsetWidth - cardWidth) / 2;
+
+            cardsWrap.style.transition = smooth ? 'transform 0.4s ease' : 'none';
+            cardsWrap.style.transform = `translateX(${-offset}px)`;
+
+            const origIdx = (currentIdx - originalCnt) % originalCnt;
+            indicators.forEach((ind, i) => ind.classList.toggle('active', i === origIdx));
+
+            allCards.forEach((c, i) => {
+                const isActive = (i - originalCnt) % originalCnt === origIdx;
+                c.classList.toggle('active', isActive);
+                c.style.transform = isActive ? 'scale(1)' : 'scale(0.9)';
+                c.style.opacity = isActive ? '1' : '0.7';
+                c.style.filter = isActive ? 'blur(0)' : 'blur(2px)';
+                c.style.zIndex = isActive ? '2' : '1';
+            });
+        };
+
+        cardsWrap.addEventListener('transitionend', () => {
+            let shifted = false;
+
+            if (currentIdx < originalCnt) {
+                currentIdx += originalCnt;
+                shifted = true;
+            } else if (currentIdx >= originalCnt * 2) {
+                currentIdx -= originalCnt;
+                shifted = true;
+            }
+
+            if (shifted) {
+                const offset = currentIdx * cardWidth - (container.offsetWidth - cardWidth) / 2;
+                cardsWrap.style.transition = 'none';
+                cardsWrap.style.transform = `translateX(${-offset}px)`;
+                void cardsWrap.offsetHeight;
+            }
+        });
+
+        prevBtn?.addEventListener('click', () => { goTo(currentIdx - 1); resetAuto(); });
+        nextBtn?.addEventListener('click', () => { goTo(currentIdx + 1); resetAuto(); });
+
+        indicators.forEach((ind, i) => ind.addEventListener('click', () => {
+            const targetOriginal = i;
+            const currentOriginal = (currentIdx - originalCnt) % originalCnt;
+            const diff = targetOriginal - currentOriginal;
+            goTo(currentIdx + diff);
+            resetAuto();
+        }));
+
+        const startAuto = () => {
+            autoPlayId = setInterval(() => goTo(currentIdx + 1), 4000);
+        };
+        const stopAuto = () => clearInterval(autoPlayId);
+        const resetAuto = () => { stopAuto(); startAuto(); };
+
+        if (originalCnt > 1) {
+            startAuto();
+            carousel.addEventListener('mouseenter', stopAuto);
+            carousel.addEventListener('mouseleave', startAuto);
+        } else {
+            prevBtn && (prevBtn.style.display = 'none');
+            nextBtn && (nextBtn.style.display = 'none');
+            indicators[0] && (indicators[0].parentElement.style.display = 'none');
+        }
+
+        goTo(currentIdx, false);
+
+        carouselInstances.push({
+            destroy: () => {
+                stopAuto();
+                while (cardsWrap.children.length > originalCnt) {
+                    cardsWrap.removeChild(cardsWrap.firstChild);
+                    cardsWrap.removeChild(cardsWrap.lastChild);
+                }
+            }
+        });
     });
-});
 }
 
 // === SEARCH PAGE FUNCTIONALITY ===
@@ -821,3 +1049,162 @@ window.addEventListener('beforeunload', () => {
     });
     carouselInstances = [];
 });
+
+
+function initializeProgramClicks() {
+    const programCards = document.querySelectorAll('.logo-card[data-program-code]');
+    
+    programCards.forEach(card => {
+        card.addEventListener('click', function(e) {
+            if (e.target.closest('.carousel-control') || e.target.closest('.carousel-indicators')) {
+                return;
+            }
+            
+            const programCode = this.getAttribute('data-program-code').trim();
+            console.log('Clicked program code:', programCode); 
+
+            const reverseCourseMap = {
+                'SITS': 'BSIT',
+                'SABES': 'BSABE',
+                'AECES': 'BECED',
+                'OFSET': 'BSNED',
+                'FTVETS': 'BTVTED',
+                'OFEE': 'BEED',
+                'AFSET': 'BSED'
+            };
+
+     
+            const departmentCode = reverseCourseMap[programCode] || programCode || 'all';
+            console.log('Mapped department code:', departmentCode);
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'search.php';
+
+            const queryInput = document.createElement('input');
+            queryInput.type = 'hidden';
+            queryInput.name = 'query';
+            queryInput.value = '';
+            form.appendChild(queryInput);
+
+            const deptInput = document.createElement('input');
+            deptInput.type = 'hidden';
+            deptInput.name = 'department';
+            deptInput.value = departmentCode; 
+            form.appendChild(deptInput);
+
+            const sortInput = document.createElement('input');
+            sortInput.type = 'hidden';
+            sortInput.name = 'sort';
+            sortInput.value = 'recent';
+            form.appendChild(sortInput);
+
+            const pageInput = document.createElement('input');
+            pageInput.type = 'hidden';
+            pageInput.name = 'page';
+            pageInput.value = '1';
+            form.appendChild(pageInput);
+
+            document.body.appendChild(form);
+            console.log('Submitting form with department:', departmentCode); 
+            form.submit();
+        });
+        
+    
+        card.style.cursor = 'pointer';
+        card.addEventListener('mouseenter', function() {
+            if (!this.style.transform || !this.style.transform.includes('scale')) {
+                this.style.transform = 'translateY(-8px) scale(1.02)';
+            }
+        });
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+        });
+    });
+}
+
+// Modal Functions
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    
+    // Trigger animations
+    setTimeout(() => {
+        const modalContent = modal.querySelector('.premium-modal-content');
+        const backdrop = modal.querySelector('.premium-modal-backdrop');
+        
+        modalContent.style.animation = 'premiumModalIn 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+        backdrop.style.animation = 'premiumBackdropIn 0.4s ease';
+    }, 50);
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    
+    const modalContent = modal.querySelector('.premium-modal-content');
+    const backdrop = modal.querySelector('.premium-modal-backdrop');
+    
+    // Add closing animations
+    modalContent.style.animation = 'premiumModalIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) reverse';
+    backdrop.style.animation = 'premiumBackdropIn 0.3s ease reverse';
+    
+    setTimeout(() => {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        
+        // Reset animations
+        modalContent.style.animation = '';
+        backdrop.style.animation = '';
+    }, 250);
+}
+
+// Template download function
+function downloadTemplate(templateType) {
+    // In a real implementation, this would link to actual template files
+    alert(`Downloading ${templateType} template. In a real implementation, this would download the actual file.`);
+}
+
+// Citation copy function
+function copyCitation() {
+    const citationText = document.getElementById('citationExample').textContent;
+    
+    navigator.clipboard.writeText(citationText).then(() => {
+        alert('Citation copied to clipboard!');
+    }).catch(err => {
+        console.error('Failed to copy citation: ', err);
+        alert('Failed to copy citation. Please select and copy the text manually.');
+    });
+}
+
+// Schedule appointment function
+function scheduleAppointment() {
+    alert('In a real implementation, this would open a scheduling system. For now, please contact support directly to schedule an appointment.');
+}
+
+// Initialize modal event listeners
+function initializePolicyModals() {
+    // Close modals with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const openModals = document.querySelectorAll('.premium-modal[style*="display: block"]');
+            openModals.forEach(modal => {
+                closeModal(modal.id);
+            });
+        }
+    });
+    
+    // Close modals when clicking outside content
+    document.querySelectorAll('.premium-modal-backdrop').forEach(backdrop => {
+        backdrop.addEventListener('click', function() {
+            const modal = this.closest('.premium-modal');
+            if (modal) {
+                closeModal(modal.id);
+            }
+        });
+    });
+}
+

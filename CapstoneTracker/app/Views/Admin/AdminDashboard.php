@@ -3,45 +3,25 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
 
-// AdminDashboard.php - At the VERY TOP of the file
 require_once '../../../Database/config.php';
 require_once '../../../app/Controllers/AdminDashboardController.php';
 require_once '../../../app/Models/Thesis.php';
 require_once '../../../app/Controllers/RolesController.php';
+require_once '../../../app/Controllers/BackupController.php';
 
+// Start session
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$session_timeout = 10 * 60; 
-
-if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > $session_timeout)) {
-
-    $session_expired = true;
-    
-  
-    session_unset();
-    session_destroy();
-    session_write_close();
-    
-   
-    if (ini_get("session.use_cookies")) {
-        $params = session_get_cookie_params();
-        setcookie(session_name(), '', time() - 42000,
-            $params["path"], $params["domain"],
-            $params["secure"], $params["httponly"]
-        );
-    }
-    
-   
-    session_start();
-    $_SESSION['session_expired'] = true;
-    session_write_close();
-    
-    header('Location: ../User/indexLogin.php');
-    exit();
+if (!isset($_SESSION['system_locked'])) {
+    $_SESSION['system_locked'] = false;
 }
 
+if ($_SESSION['system_locked'] === true && basename($_SERVER['PHP_SELF']) !== 'AdminLockScreen.php') {
+    header('Location: AdminLockScreen.php');
+    exit();
+}
 
 $_SESSION['LAST_ACTIVITY'] = time();
 
@@ -62,12 +42,9 @@ try {
         $theses->is_recent = $interval->days <= 7;
     }
 } catch (Exception $e) {
-    // error_log("Error loading theses: " . $e->getMessage()); // Removed
     $thesis = [];
 }
 
-// Department Manager Class for handling department counts
-// Updated Department Manager Class for handling department counts
 class DepartmentManager
 {
     private $departments = [];
@@ -165,6 +142,8 @@ class DepartmentManager
 
         return []; // Return empty array if department not found
     }
+
+    
 
     // Method to get all departments with their counts (useful for debugging)
     public function getDepartmentsWithCounts()
@@ -284,8 +263,9 @@ $displayUserData = [
       <script type="text/javascript" src="../../../resources/js/Admin/AdminDashboardAnnouncement.js"></script>
     <script type="text/javascript" src="../../../resources/js/Admin/AdminDashboard.js"></script>
     <script type="text/javascript" src="../../../resources/js/Admin/RoleAccess.js"></script>
-  
+    
     <script type="text/javascript" src="../../../resources/js/Admin/AccountPagination.js"></script>
+    <script type="text/javascript" src="../../../resources/js/Admin/Backup.js"></script>
     <script>
         const userDisplayData = <?php echo json_encode($displayUserData); ?>;
     </script>
@@ -346,10 +326,9 @@ $displayUserData = [
 
                     <div class="app-list-options">
                         <!-- Department Filter Dropdown -->
-                        <div class="select" id="departmentFilterDropdown">
+                        <div class="select" id="thesisDepartmentFilterDropdown">
                             <div class="selected">
                                 <span>All Courses</span>
-
                                 <svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 512 512" class="arrow">
                                     <path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path>
                                 </svg>
@@ -527,20 +506,20 @@ $displayUserData = [
                             </div>
 
                             <div class="app-list-options">
-                                <div class="select" id="accountFilterDropdown">
-                                    <div class="selected">
-                                        <span>Recently Joined</span>
-                                        <svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 512 512" class="arrow">
-                                            <path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="options">
-                                        <div data-value="recent">Recently Joined</div>
-                                        <div data-value="admin">Administrator</div>
-                                        <div data-value="faculty">Faculty</div>
-                                        <div data-value="student">Student</div>
-                                    </div>
+                            <div class="select" id="accountManagementFilterDropdown">
+                                <div class="selected">
+                                    <span>Recently Joined</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 512 512" class="arrow">
+                                        <path d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z"></path>
+                                    </svg>
                                 </div>
+                                <div class="options">
+                                    <div data-value="recent">Recently Joined</div>
+                                    <div data-value="admin">Administrator</div>
+                                    <div data-value="faculty">Faculty</div>
+                                    <div data-value="student">Student</div>
+                                </div>
+                            </div>
                             </div>
                         </div>
 
@@ -571,6 +550,11 @@ $displayUserData = [
 
                                         if (count($users) > 0) {
                                             foreach ($users as $user) {
+                                                // Add this constraint: Skip if user is superAdmin
+                                                if ($user->User_Role === 'superAdmin') {
+                                                    continue;
+                                                }
+                                        
                                                 // Format full name
                                                 $fullName = htmlspecialchars($user->First_Name);
                                                 if (!empty($user->Middle_Name)) {
@@ -580,10 +564,10 @@ $displayUserData = [
                                                 if (!empty($user->Extension)) {
                                                     $fullName .= ' ' . htmlspecialchars($user->Extension);
                                                 }
-
+                                        
                                                 // Format email
                                                 $email = htmlspecialchars($user->Email);
-
+                                        
                                                 // Determine status badge class
                                                 $statusClass = 'status-pending';
                                                 $statusText = 'Pending';
@@ -594,7 +578,7 @@ $displayUserData = [
                                                     $statusClass = 'status-rejected';
                                                     $statusText = 'Rejected';
                                                 }
-
+                                        
                                                 // Determine role badge class and display text
                                                 $roleClass = 'role-student';
                                                 $roleText = 'Student';
@@ -605,15 +589,15 @@ $displayUserData = [
                                                     $roleClass = 'role-faculty';
                                                     $roleText = 'Faculty';
                                                 }
-
+                                        
                                                 // Format join date
                                                 $joinDate = date('M j, Y', strtotime($user->created_at));
-
+                                        
                                                 // Determine if approve button should be disabled
                                                 $approveDisabled = $user->Acc_Status === 'approved' ? 'disabled' : '';
                                                 $approveClass = $user->Acc_Status === 'approved' ? 'disabled' : '';
-
-                                    ?>
+                                        
+                                        ?>
                                                 <tr data-status="<?php echo strtolower($user->Acc_Status); ?>">
                                                     <td><?php echo $fullName; ?></td>
                                                     <td><?php echo $email; ?></td>
@@ -636,11 +620,11 @@ $displayUserData = [
                                                         </button>
                                                     </td>
                                                 </tr>
-                                            <?php
+                                        <?php
                                             }
                                         } else {
                                             // No users found
-                                            ?>
+                                        ?>
                                             <tr>
                                                 <td colspan="6" style="text-align: center; padding: 20px;">
                                                     <div class="no-accounts-found">
@@ -710,6 +694,10 @@ $displayUserData = [
                 <div id="logs-container" class="content-container" style="display: none;">
                     <header class="logHeader" id="logHeader">
                         <div class="title">System Logs</div>
+                                <button class="log-download-btn2">
+                                    <i class="fas fa-download me-2"></i>
+                                    
+                                </button>
                         <div class="logMenu">
                             <button class="selected" id="allLogsButton">All</button>
                             <button id="userLogsButton">User</button>
@@ -717,7 +705,7 @@ $displayUserData = [
                         </div>
                     </header>
 
-                    <!-- All Logs Container -->
+                   <!-- All Logs Container -->
                     <div id="allLogs-container" class="log-content active">
                         <div class="log-filter-bar">
                             <div class="search-download-container">
@@ -725,10 +713,7 @@ $displayUserData = [
                                     <i class="fas fa-search"></i>
                                     <input type="text" placeholder="Search all logs..." id="allLogSearchInput">
                                 </div>
-                                <button class="log-download-btn2">
-                                    <i class="fas fa-download me-2"></i>
-                                    Download System Logs
-                                </button>
+                                
                             </div>
                             
                             <div class="log-filter-options">
@@ -737,6 +722,7 @@ $displayUserData = [
                                 <button class="log-filter-btn" data-filter="user">User Management</button>
                                 <button class="log-filter-btn" data-filter="thesis">Thesis</button>
                                 <button class="log-filter-btn" data-filter="announcement">Announcements</button>
+                                <button class="log-filter-btn" data-filter="backup">Backup</button>
                             </div>
                         </div>
 
@@ -760,9 +746,12 @@ $displayUserData = [
                     <!-- User Log Container -->
                     <div id="userLogs-container" class="log-content" style="display: none;">
                         <div class="log-filter-bar">
-                            <div class="log-search-box">
-                                <i class="fas fa-search"></i>
-                                <input type="text" placeholder="Search user logs..." id="userLogSearchInput">
+                            <div class="search-download-container">
+                                <div class="log-search-box">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" placeholder="Search user logs..." id="userLogSearchInput">
+                                </div>
+                                
                             </div>
                             <div class="log-filter-options">
                                 <button class="log-filter-btn active" data-filter="all">All Activities</button>
@@ -791,15 +780,20 @@ $displayUserData = [
                     <!-- Admin Log Container -->
                     <div id="adminLogs-container" class="log-content" style="display: none;">
                         <div class="log-filter-bar">
-                            <div class="log-search-box">
-                                <i class="fas fa-search"></i>
-                                <input type="text" placeholder="Search admin logs..." id="adminLogSearchInput">
+                            <div class="search-download-container">
+                                <div class="log-search-box">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" placeholder="Search admin logs..." id="adminLogSearchInput">
+                                </div>
+                                
                             </div>
                             <div class="log-filter-options">
                                 <button class="log-filter-btn active" data-filter="all">All Activities</button>
-                                <button class="log-filter-btn" data-filter="system">System</button>
-                                <button class="log-filter-btn" data-filter="management">Management</button>
-                                <button class="log-filter-btn" data-filter="security">Security</button>
+                                <button class="log-filter-btn" data-filter="login">Logins</button>
+                                <button class="log-filter-btn" data-filter="user">User Management</button>
+                                <button class="log-filter-btn" data-filter="thesis">Thesis</button>
+                                <button class="log-filter-btn" data-filter="announcement">Announcements</button>
+                                <button class="log-filter-btn" data-filter="backup">Backup</button>
                             </div>
                         </div>
 
@@ -814,8 +808,7 @@ $displayUserData = [
                                     </tr>
                                 </thead>
                                 <tbody id="adminLogsTableBody">
-                                    
-                                
+                                    <!-- Admin logs will be populated here -->
                                 </tbody>
                             </table>
                         </div>
@@ -1100,19 +1093,12 @@ $displayUserData = [
                             <div class="stat-icon"><i class="fas fa-users"></i></div>
                             <div class="stat-info">
                                 <h3 id="totalStudents">0</h3>
-                                <p>Total Students</p>
-                            </div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-icon"><i class="fas fa-calendar"></i></div>
-                            <div class="stat-info">
-                                <h3 id="recentTheses">0</h3>
-                                <p>This Month</p>
+                                <p>Total Users</p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Department Reports -->
+                    <!-- Program Reports -->
                     <div class="reports-card" id="reports-card">
                         <div class="content-header">
                             <h3>Program Reports</h3>
@@ -1122,60 +1108,60 @@ $displayUserData = [
                             <div class="access-item accessCard active" id="allReportsBtn">
                                 <div class="access-info">
                                     <h4>All Programs</h4>
-                                    <p>Total thesis count across all programs</p>
+                                    <p>Total thesis across all programs</p>
                                     </div>
                                 <div class="access-count" id="allCount">0</div>
                                  </div>
                             <div class="access-item accessCard" id="bsitReports">
                                 <div class="access-info">
-                                    <h4>BSIT | SITS</h4>
-                                    <p>Information Technology</p>
+                                    <h4>BSIT</h4>
+                                    <p>Bachelor of Science in Information Technology</p>
                                      </div>
-                                <div class="access-count">0</div>
+                                <div class="access-count" id="bsitCount">0</div>
                                  </div>
                             <div class="access-item accessCard" id="becedReports">
                                 <div class="access-info">
-                                    <h4>BECED | AECES</h4>
-                                    <p>Early Childhood Education</p>
+                                    <h4>BECED</h4>
+                                    <p>Bachelor of Early Childhood Education</p>
 
                                     </div>
-                                <div class="access-count">0</div>
+                                <div class="access-count" id="becedCount">0</div>
                                  </div>
                             <div class="access-item accessCard" id="bsedReports">
                                 <div class="access-info">
-                                    <h4>BSED | AFSET</h4>
-                                    <p>Secondary Education</p>
+                                    <h4>BSED</h4>
+                                    <p>Bachelor of Secondary Education</p>
                                      </div>
-                                <div class="access-count">0</div>
+                                <div class="access-count" id="bsedCount">0</div>
                             </div>
                             <div class="access-item accessCard" id="btvtedReports">
                                 <div class="access-info">
-                                    <h4>BTVTED | FTVETS</h4>
-                                    <p>Technical-Vocational</p>
+                                    <h4>BTVTED</h4>
+                                    <p>Bachelor of Technical-Vocational Teacher Education</p>
                                     </div>
-                                <div class="access-count">0</div>
+                                <div class="access-count" id="btvtedCount">0</div>
                             </div>
                             <div class="access-item accessCard" id="beedReports">
-                                <div class="access-info">
-                                    <h4>BEED | OFEE</h4>
-                                    <p>Elementary Education</p>
+                                <div class="access-info" >
+                                    <h4>BEED</h4>
+                                    <p>Bachelor of Elementary Education</p>
 
                                      </div>
-                                <div class="access-count">0</div>
+                                <div class="access-count" id="beedCount">0</div>
                             </div>
                             <div class="access-item accessCard" id="bsnedReports">
                                 <div class="access-info">
-                                    <h4>BSNED | OFSET</h4>
-                                    <p>Special Needs Education</p>
+                                    <h4>BSNED</h4>
+                                    <p>Bachelor of Special Needs Education</p>
                                     </div>
-                                <div class="access-count">0</div>
+                                <div class="access-count" id="bsnedCount">0</div>
                             </div>
                             <div class="access-item accessCard" id="bsabeReports">
                                 <div class="access-info">
-                                    <h4>BSABE | SABES</h4>
-                                    <p>Agricultural Engineering</p>
+                                    <h4>BSABE</h4>
+                                    <p>Bachelor of Science in Agricultural and Biosystems Engineering</p>
                                 </div>
-                                <div class="access-count">0</div>
+                                <div class="access-count" id="bsabeCount">0</div>
                                  </div>
                         </div>
                     </div>
@@ -1185,10 +1171,9 @@ $displayUserData = [
                     <div class="charts-section">
                         <div class="chart-card">
                             <div class="chart-header">
-                                <h3>Student Distribution by Program</h3>
+                                <h3>User Distribution by Role</h3>
                                 <div class="chart-actions">
                                     <button class="chart-action-btn" title="refresh"><i class="fas fa-sync"></i></button>
-                                    <button class="chart-action-btn" title="download"><i class="fas fa-download"></i></button>
                                 </div>
                             </div>
                             <div class="chart-container">
@@ -1199,10 +1184,9 @@ $displayUserData = [
 
                         <div class="chart-card">
                             <div class="chart-header">
-                                <h3>Thesis Uploads (Last 12 Months)</h3>
+                                <h3>Total Thesis per Program</h3>
                                 <div class="chart-actions">
                                     <button class="chart-action-btn" title="refresh"><i class="fas fa-sync"></i></button>
-                                    <button class="chart-action-btn" title="download"><i class="fas fa-download"></i></button>
                                 </div>
                             </div>
                             <div class="chart-container">
@@ -1232,10 +1216,10 @@ $displayUserData = [
                                 <div class="backup-icon">
                                     <i class="fas fa-download"></i>
                                 </div>
-                                <h3>Create Backup</h3>
+                                <h3>Create Full Backup</h3>
                                 <p>Create a complete backup of the system database and files</p>
                                 <button class="btn btn-primary backup-action-btn" id="createBackupBtn">
-                                    <i class="fas fa-database"></i> Create System Backup
+                                    <i class="fas fa-database"></i> Create Full System Backup
                                 </button>
                             </div>
                             
@@ -1254,10 +1238,10 @@ $displayUserData = [
                                 <div class="backup-icon">
                                     <i class="fas fa-history"></i>
                                 </div>
-                                <h3>Backup History</h3>
-                                <p>View and manage previous system backups</p>
-                                <button class="btn btn-tertiary backup-action-btn" id="viewBackupHistoryBtn">
-                                    <i class="fas fa-list-alt"></i> View Backup History
+                                <h3>Differential Backup</h3>
+                                <p>Create a backup from the last transaction</p>
+                                <button class="btn btn-tertiary backup-action-btn" id="createDiffBackupBtn">
+                                    <i class="fa-solid fa-cloud-arrow-down"></i> Create Differential Backup
                                 </button>
                             </div>
                         </div>

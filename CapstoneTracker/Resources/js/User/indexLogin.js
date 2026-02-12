@@ -1,7 +1,6 @@
 
-// Show error message as SweetAlert and reopen modal if there is an error
 document.addEventListener('DOMContentLoaded', function() {
-    // Check if we should show the modal based on error message
+
     if (event.ShiftKey && event.key === 'h') {
         event.preventDefault();
         
@@ -67,12 +66,65 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 1000);
     }
 
+     
+
+        if (typeof accountLocked !== 'undefined' && accountLocked && accountLocked !== 'false') {
+            showLoginAttemptAlert(errorMessage, 0, true, lockoutTime);
+            
+
+            setTimeout(() => {
+                openLogin('Researcher');
+            }, 1500);
+        } else if (typeof loginAttemptsRemaining !== 'undefined' && loginAttemptsRemaining < 3) {
+            showLoginAttemptAlert(errorMessage, loginAttemptsRemaining, false, 0);
+            
+
+            setTimeout(() => {
+                openLogin('Researcher');
+            }, 1500);
+        }
+        
+
+    if (typeof errorMessage !== 'undefined' && errorMessage && errorMessage !== '') {
+            
+        if (!accountLocked && loginAttemptsRemaining >= 3) {
+                if (window.location.href.includes('AuthController') || 
+                    errorMessage.includes('login') || 
+                    errorMessage.includes('Login') ||
+                    errorMessage.includes('credentials') ||
+                    errorMessage.includes('pending') ||
+                    errorMessage.includes('rejected')) {
+                    showLoginErrorAlert(errorMessage);
+                } else {
+                    showErrorAlert(errorMessage);
+                }
+            }
+            
+            // Your existing modal opening code...
+            const modalType = typeof errorModal !== 'undefined' ? errorModal : '';
+            
+            if (modalType === 'student' || errorMessage.includes('Student') || errorMessage.includes('student')) {
+                setTimeout(() => {
+                    openStudentRegistration();
+                }, 1000);
+            } else if (modalType === 'faculty' || errorMessage.includes('Faculty') || errorMessage.includes('faculty')) {
+                setTimeout(() => {
+                    openFacultyRegistration();
+                }, 1000);
+            } else {
+                setTimeout(() => {
+                    openLogin('Researcher');
+                }, 1000);
+            }
+    }
+
     
     
     // Initialize the page functionality
     initializePage();
     setupAdminModal();
     setupAdminForm();
+    setupPasswordToggles(); // Add password toggles for all modals
 
 });
 
@@ -264,15 +316,27 @@ function showLoginErrorAlert(message) {
         // Customize based on message content
         if (msg.includes('pending') || msg.includes('approval')) {
             title = 'Account Pending';
-            icon = 'info'; // Change to info icon for pending accounts
+            icon = 'info';
         } else if (msg.includes('rejected')) {
             title = 'Account Rejected';
-            icon = 'warning'; // Change to warning icon for rejected accounts
+            icon = 'warning';
+        } else if (msg.includes('suspended')) {
+            title = 'Account Suspended';
+            icon = 'error';
+        } else if (msg.includes('Invalid password')) {
+            title = 'Invalid Password';
+            icon = 'error';
+        } else if (msg.includes('No account found')) {
+            title = 'Account Not Found';
+            icon = 'error';
+        } else if (msg.includes('Invalid credentials for the selected role')) {
+            title = 'Role Mismatch';
+            icon = 'warning';
         }
         
         Swal.fire({
             title: title,
-            html: msg, // Use html instead of text to render HTML tags
+            html: msg,
             icon: icon,
             confirmButtonText: 'OK'
         });
@@ -329,11 +393,27 @@ function setupFormHandlers() {
 // Forgot Password with Verification Code - USER CHOOSES PASSWORD
 function setupForgotPassword() {
     const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+    const forgotPasswordLinkAdmin = document.getElementById('forgotPasswordLinkAdmin');
     
     if (forgotPasswordLink) {
         forgotPasswordLink.addEventListener('click', function(e) {
             e.preventDefault();
             openForgotPasswordModal();
+        });
+    }
+
+    // ADD THIS - Reuse the same function for admin
+    if (forgotPasswordLinkAdmin) {
+        forgotPasswordLinkAdmin.addEventListener('click', function(e) {
+            e.preventDefault();
+            openForgotPasswordModal();
+        });
+    }
+
+    const backToLoginBtn = document.getElementById('backToLoginFromForgot');
+    if (backToLoginBtn) {
+        backToLoginBtn.addEventListener('click', function() {
+            document.body.classList.remove('forgot-password-open');
         });
     }
     
@@ -373,23 +453,163 @@ function setupForgotPassword() {
 }
 
 function setupPasswordToggles() {
-    // Toggle new password visibility
+    // Toggle new password visibility (password reset)
     const toggleNewPassword = document.getElementById('toggleNewPassword');
     const newPasswordInput = document.getElementById('newPassword');
     
     if (toggleNewPassword && newPasswordInput) {
-        toggleNewPassword.addEventListener('click', function() {
-            togglePasswordVisibility(newPasswordInput, this.querySelector('i'));
+        // Remove existing event listeners
+        const newToggle = toggleNewPassword.cloneNode(true);
+        toggleNewPassword.parentNode.replaceChild(newToggle, toggleNewPassword);
+        
+        newToggle.addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            const isHidden = newPasswordInput.type === 'password';
+            newPasswordInput.type = isHidden ? 'text' : 'password';
+            if (icon) {
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            }
         });
     }
     
-    // Toggle confirm password visibility
+    // Toggle confirm password visibility (password reset)
     const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
     const confirmPasswordInput = document.getElementById('confirmPassword');
     
     if (toggleConfirmPassword && confirmPasswordInput) {
-        toggleConfirmPassword.addEventListener('click', function() {
-            togglePasswordVisibility(confirmPasswordInput, this.querySelector('i'));
+        // Remove existing event listeners
+        const confirmToggle = toggleConfirmPassword.cloneNode(true);
+        toggleConfirmPassword.parentNode.replaceChild(confirmToggle, toggleConfirmPassword);
+        
+        confirmToggle.addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            const isHidden = confirmPasswordInput.type === 'password';
+            confirmPasswordInput.type = isHidden ? 'text' : 'password';
+            if (icon) {
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            }
+        });
+    }
+    
+    // Toggle login modal password visibility
+    const toggleLoginPassword = document.getElementById('togglePasswordBtn');
+    const loginPasswordInput = document.getElementById('password');
+    
+    if (toggleLoginPassword && loginPasswordInput) {
+        // Remove existing event listeners
+        const loginToggle = toggleLoginPassword.cloneNode(true);
+        toggleLoginPassword.parentNode.replaceChild(loginToggle, toggleLoginPassword);
+        
+        loginToggle.addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            const isHidden = loginPasswordInput.type === 'password';
+            loginPasswordInput.type = isHidden ? 'text' : 'password';
+            if (icon) {
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            }
+        });
+    }
+    
+    // Toggle admin modal password visibility
+    const toggleAdminPassword = document.getElementById('adminTogglePassword');
+    const adminPasswordInput = document.getElementById('adminPassword');
+    
+    if (toggleAdminPassword && adminPasswordInput) {
+        // Remove existing event listeners
+        const adminToggle = toggleAdminPassword.cloneNode(true);
+        toggleAdminPassword.parentNode.replaceChild(adminToggle, toggleAdminPassword);
+        
+        adminToggle.addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            const isHidden = adminPasswordInput.type === 'password';
+            adminPasswordInput.type = isHidden ? 'text' : 'password';
+            if (icon) {
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            }
+        });
+    }
+    
+    // Toggle student registration password visibility
+    const regTogglePassword = document.getElementById('regTogglePassword');
+    const regPassword = document.getElementById('regPassword');
+    
+    if (regTogglePassword && regPassword) {
+        // Remove existing event listeners
+        const regPassToggle = regTogglePassword.cloneNode(true);
+        regTogglePassword.parentNode.replaceChild(regPassToggle, regTogglePassword);
+        
+        regPassToggle.addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            const isHidden = regPassword.type === 'password';
+            regPassword.type = isHidden ? 'text' : 'password';
+            if (icon) {
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            }
+        });
+    }
+    
+    // Toggle student registration confirm password visibility
+    const regToggleConfirm = document.getElementById('regToggleConfirm');
+    const regConfirmPassword = document.getElementById('regConfirmPassword');
+    
+    if (regToggleConfirm && regConfirmPassword) {
+        // Remove existing event listeners
+        const regConfirmToggle = regToggleConfirm.cloneNode(true);
+        regToggleConfirm.parentNode.replaceChild(regConfirmToggle, regToggleConfirm);
+        
+        regConfirmToggle.addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            const isHidden = regConfirmPassword.type === 'password';
+            regConfirmPassword.type = isHidden ? 'text' : 'password';
+            if (icon) {
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            }
+        });
+    }
+    
+    // Toggle faculty registration password visibility
+    const facTogglePassword = document.getElementById('facTogglePassword');
+    const facPassword = document.getElementById('facPassword');
+    
+    if (facTogglePassword && facPassword) {
+        // Remove existing event listeners
+        const facPassToggle = facTogglePassword.cloneNode(true);
+        facTogglePassword.parentNode.replaceChild(facPassToggle, facTogglePassword);
+        
+        facPassToggle.addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            const isHidden = facPassword.type === 'password';
+            facPassword.type = isHidden ? 'text' : 'password';
+            if (icon) {
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            }
+        });
+    }
+    
+    // Toggle faculty registration confirm password visibility
+    const facToggleConfirm = document.getElementById('facToggleConfirm');
+    const facConfirmPassword = document.getElementById('facConfirmPassword');
+    
+    if (facToggleConfirm && facConfirmPassword) {
+        // Remove existing event listeners
+        const facConfirmToggle = facToggleConfirm.cloneNode(true);
+        facToggleConfirm.parentNode.replaceChild(facConfirmToggle, facToggleConfirm);
+        
+        facConfirmToggle.addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            const isHidden = facConfirmPassword.type === 'password';
+            facConfirmPassword.type = isHidden ? 'text' : 'password';
+            if (icon) {
+                icon.classList.toggle('fa-eye');
+                icon.classList.toggle('fa-eye-slash');
+            }
         });
     }
     
@@ -411,8 +631,10 @@ function setupPasswordToggles() {
 function togglePasswordVisibility(input, icon) {
     const isHidden = input.type === 'password';
     input.type = isHidden ? 'text' : 'password';
-    icon.classList.toggle('fa-eye');
-    icon.classList.toggle('fa-eye-slash');
+    if (icon) {
+        icon.classList.toggle('fa-eye');
+        icon.classList.toggle('fa-eye-slash');
+    }
 }
 
 function updatePasswordStrength(password) {
@@ -484,6 +706,13 @@ async function handleVerificationSubmit() {
     const newPassword = newPasswordInput.value;
     const confirmPassword = confirmPasswordInput.value;
     
+    // Check if this is an admin context by looking at modal title or stored flag
+    const modalTitle = document.querySelector('#passwordResetModal .modal-title');
+    const isAdminReset = modalTitle && (
+        modalTitle.innerHTML.includes('Admin') || 
+        modalTitle.textContent.includes('Admin')
+    );
+    
     // Validate inputs
     if (!verificationCode || verificationCode.length !== 6 || !/^\d+$/.test(verificationCode)) {
         Swal.fire('Error', 'Please enter a valid 6-digit code containing only numbers', 'error');
@@ -510,16 +739,18 @@ async function handleVerificationSubmit() {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
             body: new URLSearchParams({
-                'action': 'verifyResetCode',
+                'action': 'verify_reset_code',
                 'email': email,
                 'verification_code': verificationCode,
-                'new_password': newPassword, // Send user's chosen password
+                'new_password': newPassword,
+                'is_admin': isAdminReset ? '1' : '0', // Make sure this is sent
                 'csrf_token': getCsrfToken()
             })
         });
 
         const responseText = await response.text();
         console.log('Verify code response:', responseText);
+        console.log('Admin reset flag sent:', isAdminReset);
         
         let result;
         try {
@@ -634,14 +865,20 @@ function openForgotPasswordModal() {
             sendCodeBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Send Verification Code';
         }
         
+        // Add class to body to trigger the tint effect
+        document.body.classList.add('forgot-password-open');
+        
         // Show the modal
         const forgotPasswordModal = document.getElementById('forgotPasswordModal');
         if (forgotPasswordModal) {
             const modal = new bootstrap.Modal(forgotPasswordModal);
+            
+            // Remove the tint when forgot password modal is closed
+            forgotPasswordModal.addEventListener('hidden.bs.modal', function() {
+                document.body.classList.remove('forgot-password-open');
+            });
+            
             modal.show();
-        } else {
-            console.error('Forgot password modal not found');
-            Swal.fire('Error', 'Password reset functionality is currently unavailable.', 'error');
         }
     } catch (error) {
         console.error('Error opening forgot password modal:', error);
@@ -752,7 +989,7 @@ async function sendVerificationCode(email, isResend = false) {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
             body: new URLSearchParams({
-                'action': 'sendVerificationCode',
+                'action': 'send_verification_code',
                 'email': email,
                 'csrf_token': getCsrfToken()
             })
@@ -1145,6 +1382,7 @@ async function sendGoogleCredentialToBackend(credential, userEmail, userName, se
         });
 
         console.log('Sending Google authentication with role:', selectedRole);
+        console.log('Action should be: googleLogin');
 
         // Send to AuthController
         const response = await fetch('../../Controllers/AuthController.php', {
@@ -1154,11 +1392,11 @@ async function sendGoogleCredentialToBackend(credential, userEmail, userName, se
             },
             credentials: 'include',
             body: new URLSearchParams({
-                'action': 'googleLogin',
+                'action': 'googleLogin', // ← MAKE SURE THIS IS CORRECT
                 'credential': credential,
                 'email': userEmail,
                 'name': userName,
-                'role': selectedRole, // Include the selected role
+                'role': selectedRole,
                 'csrf_token': '<?php echo $_SESSION["csrf_token"] ?? ""; ?>'
             })
         });
@@ -1167,21 +1405,32 @@ async function sendGoogleCredentialToBackend(credential, userEmail, userName, se
         console.log('Raw response:', responseText);
         
         let result;
-        // Handle response
-        if (responseText.includes('PHPMailer:') || 
-            responseText.includes('<br>') ||
-            responseText.includes('SMTP') ||
-            responseText.trim().startsWith('PHPMailer:')) {
-            
-            const jsonMatch = responseText.match(/\{.*\}/s);
-            if (jsonMatch) {
-                result = JSON.parse(jsonMatch[0]);
-            } else {
-                throw new Error('Server returned debug output instead of JSON');
-            }
-        } else {
-            // Normal JSON response
+        
+        // Handle empty or malformed responses
+        if (!responseText || responseText.trim() === '') {
+            throw new Error('Server returned empty response');
+        }
+        
+        // Try to parse as JSON
+        try {
             result = JSON.parse(responseText);
+        } catch (parseError) {
+            console.error('JSON parse error:', parseError);
+            console.log('Raw response that failed to parse:', responseText);
+            
+            // Try to extract JSON from the response if there's extra output
+            const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                try {
+                    result = JSON.parse(jsonMatch[0]);
+                    console.log('Extracted JSON from response:', result);
+                } catch (extractError) {
+                    console.error('Could not extract JSON:', extractError);
+                    throw new Error('Server returned invalid response format');
+                }
+            } else {
+                throw new Error('Server returned non-JSON response: ' + responseText.substring(0, 100));
+            }
         }
         
         handleGoogleAuthResult(result);
@@ -1194,20 +1443,16 @@ async function sendGoogleCredentialToBackend(credential, userEmail, userName, se
             icon: 'error',
             confirmButtonText: 'OK'
         });
+        
+        // Reset Google button
+        resetGoogleButton();
     }
 }
 
 function handleGoogleAuthResult(result) {
     if (result.success) {
-        Swal.fire({
-            title: 'Success!',
-            text: result.message,
-            icon: 'success',
-            confirmButtonText: 'OK'
-        }).then(() => {
-            console.log('Redirecting to:', result.redirect_url);
-            window.location.href = result.redirect_url || '../../app/Views/User/userViewPage.php';
-        });
+        console.log('Google login successful, redirecting to:', result.redirect_url);
+        window.location.href = result.redirect_url || '../../app/Views/User/userViewPage.php';
     } else {
         // Show specific error message for role mismatch
         if (result.message.includes('registered as') && result.message.includes('Please use')) {
@@ -1456,23 +1701,16 @@ async function sendAdminGoogleCredentialToBackend(credential, userEmail, userNam
 
 function handleAdminAuthResult(result) {
     if (result.success) {
-        Swal.fire({
-            title: 'Admin Access Granted!',
-            text: result.message,
-            icon: 'success',
-            confirmButtonText: 'OK'
-        }).then(() => {
-            // Redirect to admin dashboard
-            window.location.href = result.redirect_url || '../../app/Views/Admin/adminDashboard.php';
-        });
+        // Redirect to admin dashboard immediately without showing success message
+        window.location.href = result.redirect_url || '../../app/Views/Admin/adminDashboard.php';
     } else {
+        // Only show SweetAlert for errors
         Swal.fire({
-            title: 'Admin Authentication Failed',
-            text: result.message || 'Authentication failed. Please try traditional admin login.',
+            title: 'Admin Access Denied',
+            text: result.message,
             icon: 'error',
             confirmButtonText: 'OK'
         });
-        resetAdminGoogleButton();
     }
 }
 
@@ -1927,7 +2165,7 @@ function setupAdminForm() {
         adminLoginForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const username = document.getElementById('adminUsername').value;
+            const username = document.getElementById('adminUsername').value.trim();
             const password = document.getElementById('adminPassword').value;
             
             if (!username || !password) {
@@ -1935,18 +2173,30 @@ function setupAdminForm() {
                 return;
             }
             
-            // Show loading state
             Swal.fire({
                 title: 'Authenticating...',
-                text: 'Please wait while we verify your credentials',
+                text: 'Please wait while we verify your admin credentials',
                 allowOutsideClick: false,
                 didOpen: () => {
                     Swal.showLoading();
                 }
             });
             
-            // Submit the form
-            this.submit();
+            const formData = new FormData(this);
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(data => {
+                console.log('Admin login response:', data);
+                this.submit();
+            })
+            .catch(error => {
+                console.error('Admin login error:', error);
+                this.submit();
+            });
         });
     }
 }
@@ -1971,5 +2221,59 @@ function showAdminErrorAlert(message) {
             icon: 'error',
             confirmButtonText: 'OK'
         });
+    }
+}
+
+function showLoginAttemptAlert(message, attemptsRemaining, isLocked, lockoutSeconds) {
+    if (isLocked) {
+        const minutes = Math.ceil(lockoutSeconds / 60);
+        Swal.fire({
+            title: 'Account Locked',
+            html: `
+                <div class="text-center">
+                    <i class="fas fa-lock fa-3x text-warning mb-3"></i>
+                    <p>${message}</p>
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-clock me-2"></i>
+                        <strong>Time remaining:</strong> ${minutes} minute(s)
+                    </div>
+                    <small class="text-muted">This is a security measure to protect your account.</small>
+                </div>
+            `,
+            icon: 'warning',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#ffc107'
+        });
+    } else if (attemptsRemaining < 3) {
+        Swal.fire({
+            title: 'Login Failed',
+            html: `
+                <div class="text-center">
+                    <i class="fas fa-exclamation-triangle fa-2x text-danger mb-3"></i>
+                    <p>${message}</p>
+                    <div class="attempts-warning mt-3">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        <strong>Attempts remaining:</strong> ${attemptsRemaining}
+                    </div>
+                    <small class="text-muted">After 3 failed attempts, your account will be locked for 5 minutes.</small>
+                </div>
+            `,
+            icon: 'error',
+            confirmButtonText: 'Try Again',
+            confirmButtonColor: '#dc3545'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                if (loginEmail) {
+                    const emailInput = document.getElementById('username');
+                    const passwordInput = document.getElementById('password');
+                    if (emailInput && passwordInput) {
+                        emailInput.value = loginEmail;
+                        passwordInput.focus();
+                    }
+                }
+            }
+        });
+    } else {
+        showLoginErrorAlert(message);
     }
 }

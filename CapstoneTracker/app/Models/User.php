@@ -15,6 +15,14 @@ class User extends Model {
     }
 
     /**
+     * Hash sensitive data using SHA-256
+     */
+    public function hashData($data) {
+        // Remove any trimming and case conversion that might be changing the input
+        return hash('sha256', $data);
+    }
+
+    /**
      * User registration method - IMPROVED VERSION with automatic role creation
      */
     public function register($data) {
@@ -23,30 +31,38 @@ class User extends Model {
             $salt = bin2hex(random_bytes(16));
             $hashedPassword = password_hash($data['password'] . $salt, PASSWORD_DEFAULT);
             
-            // Generate unique User_ID based on role - USING SAME LOGIC AS GOOGLE REGISTRATION
+            // Generate unique User_ID based on role
             $userRole = $data['user_role'] ?? 'student';
             $userId = $this->generateUserId($userRole, $data);
             
-            // Check if User_ID already exists
-            if ($this->userIdExists($userId)) {
-                throw new Exception("User ID '$userId' is already registered");
-            }
+            // Hash sensitive identifiers for security
+            $emailHash = $this->hashData($data['email']);
+            $userIdHash = $this->hashData($userId);
             
-            // Check if email already exists
-            if ($this->emailExists($data['email'])) {
-                throw new Exception("Email address '{$data['email']}' is already registered");
-            }
+            // Build the SQL query - store both plain and hashed values
+            $fields = [
+                'pswrd', 'Salt', 'First_Name', 'Last_Name', 
+                'Email', 'Email_Hash',           // Plain AND hashed email
+                'User_ID', 'User_ID_Hash',       // Plain AND hashed User_ID
+                'User_Role', 'Acc_Status', 'Profile_Pic'
+            ];
             
-            // Build the SQL query based on available data - USING SAME STRUCTURE AS GOOGLE REGISTRATION
-            $fields = ['pswrd', 'Salt', 'First_Name', 'Last_Name', 'Email', 'User_ID', 'User_Role', 'Acc_Status', 'Profile_Pic'];
-            $values = [':password', ':salt', ':first_name', ':last_name', ':email', ':user_id', ':user_role', ':acc_status', ':profile_pic'];
+            $values = [
+                ':password', ':salt', ':first_name', ':last_name',
+                ':email_plain', ':email_hash',
+                ':user_id_plain', ':user_id_hash',
+                ':user_role', ':acc_status', ':profile_pic'
+            ];
+            
             $bindings = [
                 ':password' => $hashedPassword,
                 ':salt' => $salt,
                 ':first_name' => $data['first_name'] ?? '',
                 ':last_name' => $data['last_name'] ?? '',
-                ':email' => $data['email'] ?? '',
-                ':user_id' => $userId, // Add the auto-generated User_ID
+                ':email_plain' => $data['email'],      // Store plain email
+                ':email_hash' => $emailHash,           // Store hashed email
+                ':user_id_plain' => $userId,           // Store plain User_ID
+                ':user_id_hash' => $userIdHash,        // Store hashed User_ID
                 ':user_role' => $userRole,
                 ':acc_status' => $data['acc_status'] ?? 'pending',
                 ':profile_pic' => $data['profile_pic'] ?? null
@@ -68,25 +84,35 @@ class User extends Model {
                 }
             }
             
-            // Add Student_ID or Employee_ID based on role - USING SAME LOGIC AS GOOGLE REGISTRATION
+            // Add both plain and hashed Student_ID or Employee_ID
             if (($userRole === 'student' || $userRole === 'researcher') && !empty($data['student_id'])) {
+                $studentIdHash = $this->hashData($data['student_id']);
+                
+                // Check if hashed value already exists
+                if ($this->valueExists('Student_ID_Hash', $studentIdHash)) {
+                    throw new Exception("Student ID is already registered");
+                }
+                
                 $fields[] = 'Student_ID';
-                $values[] = ':student_id';
-                $bindings[':student_id'] = $data['student_id'];
-                
-                // Check if Student_ID already exists
-                if ($this->studentIdExists($data['student_id'])) {
-                    throw new Exception("Student ID '{$data['student_id']}' is already registered");
-                }
+                $fields[] = 'Student_ID_Hash';
+                $values[] = ':student_id_plain';
+                $values[] = ':student_id_hash';
+                $bindings[':student_id_plain'] = $data['student_id'];  // Plain
+                $bindings[':student_id_hash'] = $studentIdHash;        // Hashed
             } elseif ($userRole === 'faculty' && !empty($data['employee_id'])) {
-                $fields[] = 'Employee_ID';
-                $values[] = ':employee_id';
-                $bindings[':employee_id'] = $data['employee_id'];
+                $employeeIdHash = $this->hashData($data['employee_id']);
                 
-                // Check if Employee_ID already exists
-                if ($this->employeeIdExists($data['employee_id'])) {
-                    throw new Exception("Employee ID '{$data['employee_id']}' is already registered");
+                // Check if hashed value already exists
+                if ($this->valueExists('Employee_ID_Hash', $employeeIdHash)) {
+                    throw new Exception("Employee ID is already registered");
                 }
+                
+                $fields[] = 'Employee_ID';
+                $fields[] = 'Employee_ID_Hash';
+                $values[] = ':employee_id_plain';
+                $values[] = ':employee_id_hash';
+                $bindings[':employee_id_plain'] = $data['employee_id'];  // Plain
+                $bindings[':employee_id_hash'] = $employeeIdHash;        // Hashed
             }
             
             // Build the final query
@@ -102,20 +128,40 @@ class User extends Model {
             
             // Execute the query
             $result = $this->db->execute();
-            
-            // If registration successful, create default role entry
+
             if ($result) {
                 $newUserId = $this->db->lastInsertId();
                 $this->createDefaultRole($newUserId, $userRole);
+                return $userId;        // MUST be this (NOT return true!)
             }
-            
-            return $result;
-            
+            return false;
+
+            $this->error = $this->db->getError() ?: "Unknown database error during registration";
+            error_log("MANUAL REGISTRATION FAILED: " . $this->error);
+            return false;
         } catch (Exception $e) {
-            error_log("User registration error: " . $e->getMessage());
-            throw $e; // Re-throw to let controller handle it
+            $this->error = $e->getMessage();
+            error_log("Registration Exception: " . $e->getMessage());
+            return false;
         }
     }
+
+    /**
+ * Find user by email - CASE-INSENSITIVE plain text lookup
+ */
+public function findByEmail($email) {
+    $query = "SELECT * FROM USER_INFORMATION WHERE LOWER(Email) = LOWER(:email) LIMIT 1";
+    $this->db->query($query);
+    $this->db->bind(':email', trim($email));
+    
+    $result = $this->db->single();
+    
+    error_log("findByEmail('$email') -> " . ($result ? 'FOUND (ID: ' . $result->ID . ')' : 'NOT FOUND'));
+    
+    return $result;
+}
+
+   
 
   
     /**
@@ -123,53 +169,77 @@ class User extends Model {
      */
     public function registerGoogleUser($data) {
         try {
-            error_log("=== GOOGLE REGISTRATION DEBUG ===");
-            error_log("Received user_role: " . ($data['user_role'] ?? 'NOT SET'));
-            error_log("All data keys: " . implode(', ', array_keys($data)));
+            error_log("=== USER MODEL GOOGLE REGISTRATION (DUAL STORAGE) ===");
+            error_log("Received data: " . print_r($data, true));
             
-            // Get user_role from data, with proper validation
-            $userRole = $data['user_role'] ?? '';
-            if (empty($userRole)) {
-                throw new Exception("User role is required for Google registration");
+            // Validate required fields
+            if (empty($data['email']) || empty($data['user_role'])) {
+                throw new Exception("Email and user role are required for Google registration");
             }
+            
+            // NEW: Restrict Google Sign-In to @usep.edu.ph domain only
+            if (!preg_match('/@usep\.edu\.ph$/i', $data['email'])) {
+                error_log("Google registration blocked: Non-USeP email attempted - " . $data['email']);
+                throw new Exception("Only USeP email addresses (@usep.edu.ph) are allowed for Google registration");
+            }
+            
+            $userRole = $data['user_role'];
             
             // Generate salt and hash password
             $salt = bin2hex(random_bytes(16));
             $hashedPassword = password_hash($data['password'] . $salt, PASSWORD_DEFAULT);
             
             // Generate unique User_ID based on role
-            $userId = $this->generateUserId($userRole, $data);
+            $originalUserId = $this->generateUserId($userRole, $data);
+            $userIdHash = $this->hashData($originalUserId);
             
-            // Check if User_ID already exists
-            if ($this->userIdExists($userId)) {
-                throw new Exception("User ID '$userId' is already registered");
+            // Hash sensitive identifiers for storage
+            $emailHash = $this->hashData($data['email']);
+            
+            // Check if hashed values already exist in hashed columns
+            if ($this->valueExists('Email_Hash', $emailHash)) {
+                throw new Exception("Email address is already registered");
             }
             
-            // Check if email already exists
-            if ($this->emailExists($data['email'])) {
-                throw new Exception("Email address '{$data['email']}' is already registered");
+            if ($this->valueExists('User_ID_Hash', $userIdHash)) {
+                throw new Exception("User ID is already registered");
             }
             
-            // Build the SQL query for Google registration
-            $fields = ['pswrd', 'Salt', 'First_Name', 'Last_Name', 'Email', 'User_ID', 'User_Role', 'Acc_Status', 'Profile_Pic'];
-            $values = [':password', ':salt', ':first_name', ':last_name', ':email', ':user_id', ':user_role', ':acc_status', ':profile_pic'];
+            // Build the SQL query with dual storage
+            $fields = [
+                'pswrd', 'Salt', 'First_Name', 'Last_Name', 
+                'Email', 'Email_Hash',           // Plain AND hashed email
+                'User_ID', 'User_ID_Hash',       // Plain AND hashed User_ID
+                'User_Role', 'Acc_Status', 'Login_Method'
+            ];
+            
+            $values = [
+                ':password', ':salt', ':first_name', ':last_name',
+                ':email_plain', ':email_hash',
+                ':user_id_plain', ':user_id_hash',
+                ':user_role', ':acc_status', ':login_method'
+            ];
+            
             $bindings = [
                 ':password' => $hashedPassword,
                 ':salt' => $salt,
                 ':first_name' => $data['first_name'] ?? '',
                 ':last_name' => $data['last_name'] ?? '',
-                ':email' => $data['email'] ?? '',
-                ':user_id' => $userId,
-                ':user_role' => $userRole, // Use the provided role
+                ':email_plain' => $data['email'],      // Store plain email
+                ':email_hash' => $emailHash,           // Store hashed email
+                ':user_id_plain' => $originalUserId,   // Store plain User_ID
+                ':user_id_hash' => $userIdHash,        // Store hashed User_ID
+                ':user_role' => $userRole,
                 ':acc_status' => 'approved', // Google users are auto-approved
-                ':profile_pic' => $data['profile_pic']
+                ':login_method' => 'google'
             ];
             
-            // Optional fields for Google registration
+            // Optional fields
             $optionalFields = [
+                'middle_name' => 'Middle_Name',
+                'extension' => 'Extension',
                 'course' => 'Course',
                 'department' => 'Department',
-                
             ];
             
             foreach ($optionalFields as $dataKey => $dbField) {
@@ -180,20 +250,41 @@ class User extends Model {
                 }
             }
             
-            // Add Student_ID or Employee_ID based on role - with fallbacks for Google
-            if (($userRole === 'student' || $userRole === 'researcher') && !empty($data['student_id'])) {
+            // Add both plain and hashed Student_ID or Employee_ID
+            if ($userRole === 'student' && !empty($data['student_id'])) {
+                $studentIdHash = $this->hashData($data['student_id']);
+                
+                if ($this->valueExists('Student_ID_Hash', $studentIdHash)) {
+                    throw new Exception("Student ID is already registered");
+                }
+                
                 $fields[] = 'Student_ID';
-                $values[] = ':student_id';
-                $bindings[':student_id'] = $data['student_id'];
+                $fields[] = 'Student_ID_Hash';
+                $values[] = ':student_id_plain';
+                $values[] = ':student_id_hash';
+                $bindings[':student_id_plain'] = $data['student_id'];  // Plain
+                $bindings[':student_id_hash'] = $studentIdHash;        // Hashed
             } elseif ($userRole === 'faculty' && !empty($data['employee_id'])) {
+                $employeeIdHash = $this->hashData($data['employee_id']);
+                
+                if ($this->valueExists('Employee_ID_Hash', $employeeIdHash)) {
+                    throw new Exception("Employee ID is already registered");
+                }
+                
                 $fields[] = 'Employee_ID';
-                $values[] = ':employee_id';
-                $bindings[':employee_id'] = $data['employee_id'];
+                $fields[] = 'Employee_ID_Hash';
+                $values[] = ':employee_id_plain';
+                $values[] = ':employee_id_hash';
+                $bindings[':employee_id_plain'] = $data['employee_id'];  // Plain
+                $bindings[':employee_id_hash'] = $employeeIdHash;        // Hashed
             }
             
             // Build the final query
             $sql = 'INSERT INTO ' . $this->tableName . ' (' . implode(', ', $fields) . ') 
                     VALUES (' . implode(', ', $values) . ')';
+            
+            error_log("Google registration SQL: " . $sql);
+            error_log("Google registration bindings: " . print_r($bindings, true));
             
             $this->db->query($sql);
             
@@ -209,10 +300,18 @@ class User extends Model {
             if ($result) {
                 $newUserId = $this->db->lastInsertId();
                 $this->createDefaultRole($newUserId, $userRole);
+                
+                error_log("Google registration SUCCESS - DB ID: " . $newUserId . ", Original User_ID: " . $originalUserId);
+                
+                // Return both the database ID and original User_ID
+                return [
+                    'db_id' => $newUserId,
+                    'user_identifier' => $originalUserId
+                ];
             }
             
             error_log("Google registration result: " . ($result ? 'SUCCESS' : 'FAILED'));
-            return $result;
+            return false;
             
         } catch (Exception $e) {
             error_log("Google user registration error: " . $e->getMessage());
@@ -268,47 +367,37 @@ class User extends Model {
     /**
  * Generate unique User_ID based on role - FIXED VERSION
  */
-private function generateUserId($role, $data) {
-    error_log("=== GENERATE USER ID DEBUG ===");
+public function generateUserId($role, $data) {
+    error_log("=== GENERATE USER ID ===");
     error_log("Role: " . $role);
-    error_log("Data keys: " . implode(', ', array_keys($data)));
     
-    // Convert role to lowercase for consistent comparison
     $role = strtolower($role);
     
-    // Handle student/researcher roles
     if ($role === 'student' || $role === 'researcher') {
         $studentId = $data['student_id'] ?? '';
         error_log("Student ID from data: " . $studentId);
         
         if (empty($studentId)) {
-            // Generate a fallback student ID if not provided
-            $studentId = 'STU' . date('Y') . '-' . random_int(1000, 9999);
-            error_log("Generated fallback Student ID: " . $studentId);
+            // Generate student ID: STU + Year + 5 random digits
+            $studentId = 'STU' . date('Y') . '-' . sprintf('%05d', random_int(0, 99999));
+            error_log("Generated Student ID: " . $studentId);
         }
-        return $studentId; // Just return the student_id without prefix
+        return $studentId;
         
     } elseif ($role === 'faculty') {
         $employeeId = $data['employee_id'] ?? '';
         error_log("Employee ID from data: " . $employeeId);
         
         if (empty($employeeId)) {
-            // Generate a fallback employee ID if not provided
-            $employeeId = 'FAC' . date('Y') . '-' . random_int(1000, 9999);
-            error_log("Generated fallback Employee ID: " . $employeeId);
+            // Generate faculty ID: FAC + Year + 5 random digits
+            $employeeId = 'FAC' . date('Y') . '-' . sprintf('%05d', random_int(0, 99999));
+            error_log("Generated Faculty ID: " . $employeeId);
         }
-        return $employeeId; // Just return the employee_id without prefix
+        return $employeeId;
         
-    } elseif ($role === 'admin' || $role === 'superadmin' || $role === 'subadmin') {
-        $employeeId = $data['employee_id'] ?? '';
-        if (!empty($employeeId)) {
-            return $employeeId;
-        } else {
-            return 'ADM' . date('Y') . '-' . random_int(1000, 9999);
-        }
     } else {
-        // For other unknown roles
-        $userId = $data['user_id'] ?? 'USR' . date('Y') . '-' . random_int(1000, 9999);
+        // For other roles: USR + Year + 5 random digits
+        $userId = $data['user_id'] ?? 'USR' . date('Y') . '-' . sprintf('%05d', random_int(0, 99999));
         error_log("Other role User ID: " . $userId);
         return $userId;
     }
@@ -320,33 +409,35 @@ private function generateUserId($role, $data) {
     public function login($identifier, $password) {
         try {
             error_log("=== LOGIN ATTEMPT ===");
-            error_log("Identifier: " . $identifier);
             
-            // Allow login by email, user_id, student_id, or employee_id
-            $this->db->query('SELECT * FROM USER_INFORMATION WHERE (Email = :identifier OR User_ID = :identifier OR Student_ID = :identifier OR Employee_ID = :identifier) AND Acc_Status = "approved"');
-            $this->db->bind(':identifier', $identifier);
+            // Hash the identifier for lookup
+            $identifierHash = $this->hashData($identifier);
+            
+            // Lookup by hashed values
+            $this->db->query('SELECT * FROM USER_INFORMATION WHERE 
+                Email = :identifier OR 
+                User_ID = :identifier OR 
+                Student_ID = :identifier OR 
+                Employee_ID = :identifier AND Acc_Status = "approved"');
+            $this->db->bind(':identifier', $identifierHash);
             $result = $this->db->single();
             
             if ($result) {
-                error_log("User found: " . $result->Email);
-                error_log("User Role: " . $result->User_Role);
+                error_log("User found with role: " . ($result->User_Role ?? 'Unknown'));
                 
-                // Use EXACTLY the same logic as registration
+                // Verify password
                 $hashedPassword = $result->pswrd;
                 $salt = $result->Salt;
-                
-                // This matches how passwords are hashed in register() method
                 $passwordWithSalt = $password . $salt;
                 
                 if (password_verify($passwordWithSalt, $hashedPassword)) {
-                    error_log("✅ Login SUCCESSFUL - password+salt verification");
+                    error_log("✅ Login SUCCESSFUL");
                     return $result;
                 } else {
                     error_log("❌ Password verification FAILED");
-                    error_log("Using password+salt method (same as registration)");
                 }
             } else {
-                error_log("❌ No approved user found with identifier: " . $identifier);
+                error_log("❌ No approved user found");
             }
             
             return false;
@@ -355,66 +446,38 @@ private function generateUserId($role, $data) {
             error_log("User login error: " . $e->getMessage());
             return false;
         }
-    }   
+    }
     
     /**
-     * Check if email already exists
+     * Check if email already exists - hashes input and checks plain column
      */
     public function emailExists($email) {
-        try {
-            $this->db->query('SELECT ID FROM USER_INFORMATION WHERE Email = :email');
-            $this->db->bind(':email', $email);
-            $this->db->execute();
-            return $this->db->rowCount() > 0;
-        } catch (Exception $e) {
-            error_log("Email exists check error: " . $e->getMessage());
-            return false;
-        }
+        $emailHash = $this->hashData($email);
+        return $this->valueExists('Email_Hash', $emailHash);
     }
-    
+
     /**
-     * Check if User_ID already exists
+     * Check if User_ID already exists - hashes input and checks plain column
      */
     public function userIdExists($userId) {
-        try {
-            $this->db->query('SELECT ID FROM USER_INFORMATION WHERE User_ID = :user_id');
-            $this->db->bind(':user_id', $userId);
-            $this->db->execute();
-            return $this->db->rowCount() > 0;
-        } catch (Exception $e) {
-            error_log("User ID exists check error: " . $e->getMessage());
-            return false;
-        }
+        $userIdHash = $this->hashData($userId);
+        return $this->valueExists('User_ID_Hash', $userIdHash);
     }
     
     /**
-     * Check if Student_ID already exists
+     * Check if Student_ID already exists - hashes input and checks hashed column
      */
     public function studentIdExists($studentId) {
-        try {
-            $this->db->query('SELECT ID FROM USER_INFORMATION WHERE Student_ID = :student_id');
-            $this->db->bind(':student_id', $studentId);
-            $this->db->execute();
-            return $this->db->rowCount() > 0;
-        } catch (Exception $e) {
-            error_log("Student ID exists check error: " . $e->getMessage());
-            return false;
-        }
+        $studentIdHash = $this->hashData($studentId);
+        return $this->valueExists('Student_ID_Hash', $studentIdHash);
     }
     
     /**
-     * Check if Employee_ID already exists
+     * Check if Employee_ID already exists - hashes input and checks hashed column
      */
     public function employeeIdExists($employeeId) {
-        try {
-            $this->db->query('SELECT ID FROM USER_INFORMATION WHERE Employee_ID = :employee_id');
-            $this->db->bind(':employee_id', $employeeId);
-            $this->db->execute();
-            return $this->db->rowCount() > 0;
-        } catch (Exception $e) {
-            error_log("Employee ID exists check error: " . $e->getMessage());
-            return false;
-        }
+        $employeeIdHash = $this->hashData($employeeId);
+        return $this->valueExists('Employee_ID_Hash', $employeeIdHash);
     }
     
     /**
@@ -425,12 +488,58 @@ private function generateUserId($role, $data) {
     }
 
     /**
+     * Update user profile (course/department)
+     */
+    public function updateUserProfile($userId, $course = null, $department = null) {
+        try {
+            $query = "UPDATE USER_INFORMATION SET ";
+            $params = [];
+            $bindings = [];
+            
+            if ($course !== null) {
+                $params[] = "Course = :course";
+                $bindings[':course'] = $course;
+            }
+            
+            if ($department !== null) {
+                $params[] = "Department = :department";
+                $bindings[':department'] = $department;
+            }
+            
+            if (empty($params)) {
+                return false; // Nothing to update
+            }
+            
+            $query .= implode(', ', $params) . " WHERE ID = :user_id";
+            $bindings[':user_id'] = $userId;
+            
+            $this->db->query($query);
+            
+            foreach ($bindings as $key => $value) {
+                $this->db->bind($key, $value);
+            }
+            
+            return $this->db->execute();
+            
+        } catch (Exception $e) {
+            error_log("Error updating user profile: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Check if a user exists (regardless of status)
      */
     public function checkUserExists($identifier) {
         try {
-            $this->db->query('SELECT ID FROM USER_INFORMATION WHERE Email = :identifier OR User_ID = :identifier OR Student_ID = :identifier OR Employee_ID = :identifier');
-            $this->db->bind(':identifier', $identifier);
+            $identifierHash = $this->hashData($identifier);
+            
+            $this->db->query('SELECT ID FROM USER_INFORMATION WHERE 
+                Email = :identifier OR 
+                User_ID = :identifier OR 
+                Student_ID = :identifier OR 
+                Employee_ID = :identifier');
+            $this->db->bind(':identifier', $identifierHash);
             $this->db->execute();
             return $this->db->rowCount() > 0;
         } catch (Exception $e) {
@@ -444,8 +553,14 @@ private function generateUserId($role, $data) {
      */
     public function getUserStatus($identifier) {
         try {
-            $this->db->query('SELECT Acc_Status FROM USER_INFORMATION WHERE Email = :identifier OR User_ID = :identifier OR Student_ID = :identifier OR Employee_ID = :identifier');
-            $this->db->bind(':identifier', $identifier);
+            $identifierHash = $this->hashData($identifier);
+            
+            $this->db->query('SELECT Acc_Status FROM USER_INFORMATION WHERE 
+                Email = :identifier OR 
+                User_ID = :identifier OR 
+                Student_ID = :identifier OR 
+                Employee_ID = :identifier');
+            $this->db->bind(':identifier', $identifierHash);
             $result = $this->db->single();
             
             if ($result) {
@@ -550,64 +665,101 @@ private function generateUserId($role, $data) {
      */
     public function loginAdmin($user_id, $password) {
         try {
-            // MODIFIED: Only allow login by User_ID for admin users
-            $this->db->query('SELECT * FROM USER_INFORMATION WHERE User_ID = :user_id AND Acc_Status = "approved"');
-            $this->db->bind(':user_id', $user_id);
+            error_log("=== USER MODEL loginAdmin (HASHED LOOKUP) ===");
+            error_log("User_ID provided: " . $user_id);
+            
+            // Hash the user_id for lookup
+            $userIdHash = $this->hashData($user_id);
+            error_log("Hashed User_ID for lookup: " . $userIdHash);
+            
+            // Query using hashed value in User_ID_Hash column
+            $this->db->query('SELECT * FROM USER_INFORMATION WHERE User_ID_Hash = :user_id AND Acc_Status = "approved"');
+            $this->db->bind(':user_id', $userIdHash); // Lookup hashed value in User_ID_Hash column
             $result = $this->db->single();
             
+            error_log("Database query result: " . ($result ? "USER FOUND" : "USER NOT FOUND"));
+            
             if ($result) {
+                error_log("User found - Role: " . ($result->User_Role ?? 'unknown'));
+                
                 // Verify password
                 $hashedPassword = $result->pswrd;
                 $salt = $result->Salt;
                 
-                if (password_verify($password . $salt, $hashedPassword)) {
+                $passwordWithSalt = $password . $salt;
+                $verificationResult = password_verify($passwordWithSalt, $hashedPassword);
+                
+                error_log("Password verification: " . ($verificationResult ? "SUCCESS" : "FAILED"));
+                
+                if ($verificationResult) {
+                    error_log("✅ PASSWORD VERIFICATION SUCCESS");
                     return $result;
+                } else {
+                    error_log("❌ PASSWORD VERIFICATION FAILED");
+                    return false;
                 }
+            } else {
+                error_log("❌ No approved user found with hashed User_ID: " . $userIdHash);
+                return false;
             }
             
-            return false;
-            
         } catch (Exception $e) {
-            error_log("Admin login error: " . $e->getMessage());
+            error_log("💥 Admin login error: " . $e->getMessage());
             return false;
         }
     }
+
+   
 
     /**
      * Student/Faculty login method - ONLY allows login by Email
      */
     public function loginByEmail($email, $password) {
-        error_log("=== USER MODEL loginByEmail ===");
-        error_log("Email: " . $email);
+        error_log("=== USER MODEL loginByEmail (HASHED LOOKUP) ===");
         
-        $this->db->query('SELECT * FROM USER_INFORMATION WHERE Email = :email AND Acc_Status = "approved"');
-        $this->db->bind(':email', $email);
+        $emailHash = $this->hashData($email);
+        error_log("Hashed email for lookup: " . $emailHash);
+        
+        // Use Email_Hash column for lookup - removed Acc_Status check since we handle that in controller
+        $this->db->query('SELECT * FROM USER_INFORMATION WHERE Email_Hash = :email');
+        $this->db->bind(':email', $emailHash);
         
         $row = $this->db->single();
         
         if ($row) {
-            error_log("User found in database: " . $row->Email);
+            error_log("User found - verifying password");
             
-            // Use EXACTLY the same logic as registration
             $hashedPassword = $row->pswrd;
             $salt = $row->Salt;
-            
-            // This matches how passwords are hashed in register() method
             $passwordWithSalt = $password . $salt;
             
             if (password_verify($passwordWithSalt, $hashedPassword)) {
-                error_log("✅ Password verification SUCCESS - password+salt method");
+                error_log("✅ Password verification SUCCESS");
                 return $row;
             } else {
                 error_log("❌ Password verification FAILED");
-                error_log("Using password+salt method (same as registration)");
             }
         } else {
-            error_log("❌ No approved user found with email: " . $email);
+            error_log("❌ No user found with hashed email: " . $emailHash);
         }
         
         return false;
     }
+
+    /**
+ * Check if plain text value already exists in database
+ */
+public function valueExists($field, $value) {
+    try {
+        $this->db->query("SELECT ID FROM USER_INFORMATION WHERE $field = :value");
+        $this->db->bind(':value', $value);
+        $this->db->execute();
+        return $this->db->rowCount() > 0;
+    } catch (Exception $e) {
+        error_log("Value exists check error: " . $e->getMessage());
+        return false;
+    }
+}
 
     /**
      * Get user by ID
@@ -622,5 +774,103 @@ private function generateUserId($role, $data) {
             return false;
         }
     }
+
+    /**
+     * Log login attempts
+     */
+    public function logLoginAttempt($email, $userId = null, $ipAddress = null, $userAgent = null, $success = false, $notes = '') {
+        try {
+            $query = "INSERT INTO LOGIN_ATTEMPTS (user_id, email, ip_address, user_agent, success, notes) 
+                    VALUES (:user_id, :email, :ip_address, :user_agent, :success, :notes)";
+            
+            $this->db->query($query);
+            $this->db->bind(':user_id', $userId);
+            $this->db->bind(':email', $email); // Store plain email for tracking
+            $this->db->bind(':ip_address', $ipAddress);
+            $this->db->bind(':user_agent', $userAgent);
+            $this->db->bind(':success', $success, PDO::PARAM_BOOL);
+            $this->db->bind(':notes', $notes);
+            
+            $result = $this->db->execute();
+            
+            if (!$result) {
+                error_log("Failed to log login attempt for email: " . $email);
+                return false;
+            }
+            
+            return true;
+            
+        } catch (Exception $e) {
+            error_log("Login attempt logging error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Log user actions for audit
+     */
+    public function logUserAction($userId, $action, $description) {
+        try {
+            $query = "INSERT INTO AUDIT_LOGS (table_name, record_id, action, new_values, user_id) 
+                      VALUES ('LOGIN', :user_id, :action, :description, :user_id)";
+            
+            $this->db->query($query);
+            $this->db->bind(':user_id', $userId);
+            $this->db->bind(':action', $action);
+            $this->db->bind(':description', json_encode(['description' => $description]));
+            
+            return $this->db->execute();
+        } catch (Exception $e) {
+            error_log("User action logging error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get recent login attempts for a user
+     */
+    public function getRecentLoginAttempts($userId, $limit = 10) {
+        try {
+            $query = "SELECT * FROM LOGIN_ATTEMPTS 
+                      WHERE user_id = :user_id 
+                      ORDER BY attempt_time DESC 
+                      LIMIT :limit";
+            
+            $this->db->query($query);
+            $this->db->bind(':user_id', $userId);
+            $this->db->bind(':limit', $limit);
+            
+            return $this->db->resultSet();
+        } catch (Exception $e) {
+            error_log("Get recent login attempts error: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Check for suspicious login activity
+     */
+    public function checkSuspiciousActivity($email, $ipAddress, $timeFrameMinutes = 15) {
+        try {
+            $query = "SELECT COUNT(*) as attempt_count 
+                      FROM LOGIN_ATTEMPTS 
+                      WHERE (email = :email OR ip_address = :ip_address) 
+                      AND success = 0 
+                      AND attempt_time >= DATE_SUB(NOW(), INTERVAL :timeframe MINUTE)";
+            
+            $this->db->query($query);
+            $this->db->bind(':email', $email);
+            $this->db->bind(':ip_address', $ipAddress);
+            $this->db->bind(':timeframe', $timeFrameMinutes);
+            
+            $result = $this->db->single();
+            return $result->attempt_count;
+        } catch (Exception $e) {
+            error_log("Suspicious activity check error: " . $e->getMessage());
+            return 0;
+        }
+    }
+
+
 }
 ?>

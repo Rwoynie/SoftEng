@@ -512,6 +512,27 @@ body {
     background: #a8a8a8;
 }
 
+
+/* custom for allLogs*/
+#allLogs-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+#allLogs-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+#allLogs-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+#allLogs-container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+
 /* Custom scrollbar for system logs container */
 .logs-table-container::-webkit-scrollbar {
     width: 8px;
@@ -3709,8 +3730,9 @@ body {
 
 .announcementHeader {
     margin-bottom: 20px;
-    padding-bottom: 15px;
+    padding: 15px;
     border-bottom: 1px solid #eee;
+    background-color: #f7f7f8;
 }
 
 .announcements-container {
@@ -5115,7 +5137,6 @@ body {
 .more-options-menu.active {
     display: block;
 }
-
 .menu-item {
     display: flex;
     align-items: center;
@@ -5123,10 +5144,27 @@ body {
     cursor: pointer;
     transition: all 0.2s ease;
     color: var(--color-dark-grey);
+    margin-bottom: 0.5vw;
 }
+
 
 .menu-item:hover {
     background-color: #f5f5f5;
+}
+
+/* Ensure hover effects work for all menu items including system lock */
+#systemLockOption.menu-item:hover,
+#colorSchemeToggle.menu-item:hover {
+    background-color: #f5f5f5;
+    
+}
+
+.menu-item:hover i {
+    color: var(--primary-color);
+}
+
+.menu-item:hover span {
+    color: var(--primary-color);
 }
 
 .menu-item i {
@@ -5235,22 +5273,25 @@ input:checked + .toggle-slider:before {
     flex-direction: column;
     gap: 25px;
     padding: 20px;
-    overflow-y: auto;}
+    overflow-y: auto;
+}
 
-    .reports-content.active {
-    display: flex;}
+.reports-content.active {
+    display: flex;
+}
 
-    .stats-cards {
-         display: grid;
-         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-           gap: 20px;
-    margin-bottom: 30px;
+.stats-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
     }
 
-    .stat-card {
-        background: white;
+.stat-card {
+    background: white;
     border-radius: 12px;
     padding: 25px;
+    
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     display: flex;
     align-items: center;
@@ -5511,7 +5552,7 @@ background: #f8f9fa;
     border: 2px solid var(--primary-color);
     background: linear-gradient(135deg, rgba(186, 30, 31, 0.05), rgba(186, 30, 31, 0.02));
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(186, 30, 31, 0.15);
+    
 }
 
 .accessCard.active .access-count {
@@ -5557,25 +5598,34 @@ background: #f8f9fa;
 }
 
 .log-download-btn2 {
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    display: flex;
+    background: var(--primary-color);
     color: white;
+    bottom: 30px;
+    right: 30px;
+    font-size: var(--size-xlarge);
     border: none;
     padding: 10px 20px;
-    border-radius: 25px;
+    border-radius: 50%;
     cursor: pointer;
     font-weight: 600;
-    display: flex;
+    width: 60px;
+    height: 60px;
     align-items: center;
+    text-align: center;
     gap: 8px;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(186, 30, 31, 0.3);
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(163, 21, 23, 0.5);
     white-space: nowrap;
-    position: static;
+    position: fixed;
+    transition: transform 0.2s, box-shadow 0.2s;
+    z-index: 1000;   
 }
 
 .log-download-btn2:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(186, 30, 31, 0.4);
+    transform: scale(1.1);
+    box-shadow: 0 6px 25px rgba(163, 21, 23, 0.6);
 }
 
 
@@ -5643,6 +5693,18 @@ background: #f8f9fa;
 .btn-retry:hover {
     background: var(--primary-color-dark);
 }
+
+#systemLockOption {
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#systemLockOption:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+
+
 
 @media (max-width: 1400px) {
     .reports-card .access-list {
@@ -5797,7 +5859,8 @@ background: #f8f9fa;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     flex-direction: column;
-    height: 20vw; /* Make all cards equal height */
+    height: 100%;
+    min-height: 20vw; /* Make all cards equal height */
     /* Set a minimum height */
 }
 
@@ -6093,3 +6156,203 @@ background: #f8f9fa;
         font-size: 36px;
     }
 }
+
+/* SweetAlert Custom Styles */
+.custom-swal-popup {
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e1e8ed;
+}
+
+.custom-swal-title {
+    font-size: 1.5rem !important;
+    font-weight: 600 !important;
+}
+
+.custom-swal-confirm-btn {
+    border-radius: 8px !important;
+    padding: 12px 24px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+}
+
+.custom-swal-confirm-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.custom-swal-cancel-btn {
+    border-radius: 8px !important;
+    padding: 12px 24px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+}
+
+.custom-swal-cancel-btn:hover {
+    background-color: #f8f9fa !important;
+    transform: translateY(-1px);
+}
+
+/* Form input animations */
+.swal2-input:focus {
+    border-color: #3498db !important;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1) !important;
+}
+
+/* Loading animation */
+.swal2-loader {
+    border-color: #3498db transparent #3498db transparent !important;
+}
+
+/* Success icon animation */
+.swal2-success-circular-line {
+    animation: success-anim 0.5s ease-in-out;
+}
+
+@keyframes success-anim {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Password Toggle Styles */
+.toggle-password {
+    transition: all 0.3s ease !important;
+    border-radius: 4px !important;
+}
+
+.toggle-password:hover {
+    background-color: #f8f9fa !important;
+    transform: scale(1.1);
+}
+
+.toggle-password:active {
+    transform: scale(0.95);
+}
+
+/* Password input with toggle */
+.password-input-container {
+    position: relative;
+}
+
+.password-input-container input {
+    padding-right: 45px !important;
+}
+
+/* SweetAlert input focus with toggle */
+.swal2-input:focus {
+    border-color: #3498db !important;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1) !important;
+}
+
+/* Animation for eye icon */
+.fa-eye, .fa-eye-slash {
+    transition: transform 0.3s ease;
+}
+
+.toggle-password:hover .fa-eye,
+.toggle-password:hover .fa-eye-slash {
+    transform: scale(1.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+    .password-input-container input {
+        padding-right: 40px !important;
+    }
+    
+    .toggle-password {
+        right: 8px !important;
+        padding: 2px !important;
+    }
+}
+
+/* Enhanced log styles for triggers */
+.log-action.action-login-success {
+    background-color: #d4edda;
+    color: #155724;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.log-action.action-login-failed {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.log-action.action-suspicious {
+    background-color: #fff3cd;
+    color: #856404;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    border: 1px solid #ffeaa7;
+}
+
+.log-notes {
+    font-size: 0.8em;
+    color: #6c757d;
+    margin-top: 4px;
+    font-style: italic;
+}
+
+.log-row:hover {
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+
+.log-row:hover td {
+    background-color: #f8f9fa;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.stat-card {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #ba1e1f;
+    margin: 10px 0;
+}
+
+.stat-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* 1 file upload only */
+.file-input.disabled {
+    cursor: not-allowed;
+    border: 2px dashed #d9d9d9;
+}
+
+.browse-btn.disabled {
+    cursor: not-allowed;
+    background-color: #e9ecef;
+    color: #adb5bd;
+}
+
+/* Optional: Style the entire drop area when disabled */
+.upload-area.disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
+

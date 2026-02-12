@@ -37,16 +37,26 @@ class AdminController extends Controller {
      * Validate CSRF token
      */
     private function validateCsrfToken($token) {
-    if (!isset($_SESSION['csrf_token']) || $token !== $_SESSION['csrf_token']) {
-        return false;
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        if (!isset($_SESSION['csrf_token']) || empty($token)) {
+            return false;
+        }
+        
+        $isValid = hash_equals($_SESSION['csrf_token'], $token);
+        
+        // Regenerate token after validation
+        if ($isValid) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        
+        return $isValid;
     }
-    // Regenerate after successful validation (one-time use)
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    return true;
-}
     
     public function login() {
-        // Start session if not already started - use consistent approach
+        // Start session once
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
@@ -64,73 +74,128 @@ class AdminController extends Controller {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $this->processAdminLogin();
         } else {
-            // Show admin login form
-            $this->showAdminLoginForm();
+            // Check if admin parameter is set in URL
+            if (isset($_GET['admin']) && $_GET['admin'] == '1') {
+                $this->showAdminLoginForm();
+            } else {
+                // Default to showing admin login form
+                $this->showAdminLoginForm();
+            }
         }
     }
     
     private function processAdminLogin() {
-
         error_log("=== PROCESS ADMIN LOGIN STARTED ===");
 
+        $identifier = $_POST['admin_username'] ?? '';
+    $password = $_POST['admin_password'] ?? '';
+    $this->debugAuthenticationFlow($identifier, $password);
+    
         usleep(100000); // 100ms delay
-
+    
         $csrfToken = $_POST['csrf_token'] ?? '';
-
         error_log("CSRF Token from form: " . $csrfToken);
         error_log("CSRF Token from session: " . ($_SESSION['csrf_token'] ?? 'NOT SET'));
-
+    
         if (!$this->validateCsrfToken($csrfToken)) {
-        error_log("CSRF TOKEN VALIDATION FAILED");
-        $_SESSION['admin_error_message'] = 'Invalid security token. Please try again.';
-        header('Location: ../../app/Views/User/indexLogin.php?admin=1');
-        exit();
-    }
+            error_log("CSRF TOKEN VALIDATION FAILED");
+            $_SESSION['admin_error_message'] = 'Invalid security token. Please try again.';
+            header('Location: ../../app/Views/User/indexLogin.php?admin=1');
+            exit();
+        }
+    
         // Get form data
         $identifier = $_POST['admin_username'] ?? '';
         $password = $_POST['admin_password'] ?? '';
-
-        error_log("Username: $identifier");
+    
+        error_log("=== ADMIN LOGIN CREDENTIALS DEBUG ===");
+        error_log("Username/Identifier: " . $identifier);
         error_log("Password: " . (!empty($password) ? "SET" : "EMPTY"));
         
         // Validate input
         if (empty($identifier) || empty($password)) {
+            error_log("❌ EMPTY IDENTIFIER OR PASSWORD");
             $this->redirectWithError('Admin ID and password are required.');
         }
         
         // Authenticate using AuthController logic
+        error_log("Calling authenticateAdmin...");
         $user = $this->authenticateAdmin($identifier, $password);
         
         if ($user) {
+            error_log("✅ AUTHENTICATE ADMIN SUCCESS");
             // Create admin session and redirect to dashboard
             $this->createAdminSession($user);
             $this->redirectToAdminDashboard();
         } else {
+            error_log("❌ AUTHENTICATE ADMIN FAILED");
             $this->redirectWithError('Invalid admin credentials or insufficient privileges.');
+        }
+    }
+
+    private function debugAuthenticationFlow($identifier, $password) {
+        error_log("=== DEBUG AUTHENTICATION FLOW ===");
+        
+        // Test the User model directly
+        require_once '../Models/User.php';
+        $userModel = new User();
+        
+        error_log("Testing User->loginAdmin directly...");
+        $user = $userModel->loginAdmin($identifier, $password);
+        
+        if ($user) {
+            error_log("✅ User model login SUCCESS");
+            error_log("User object type: " . gettype($user));
+            error_log("User properties:");
+            error_log("  ID: " . ($user->ID ?? 'NULL'));
+            error_log("  Role: " . ($user->User_Role ?? 'NULL'));
+            error_log("  Status: " . ($user->Acc_Status ?? 'NULL'));
+            
+            // Test role check
+            $userRole = strtolower($user->User_Role ?? '');
+            $adminRoles = ['superadmin', 'subadmin', 'admin'];
+            $isAdmin = in_array($userRole, $adminRoles);
+            error_log("Is admin role: " . ($isAdmin ? 'YES' : 'NO'));
+            
+        } else {
+            error_log("❌ User model login FAILED");
         }
     }
     
     private function authenticateAdmin($identifier, $password) {
         try {
+            error_log("=== AUTHENTICATE ADMIN DEBUG ===");
+            error_log("Identifier: " . $identifier);
+    
             require_once '../Models/User.php';
             
             $userModel = new User();
     
-            // MODIFIED: For admin login, only authenticate by User_ID
-            $user = $userModel->loginAdmin($identifier, $password); // We'll create this method
+            // Call loginAdmin which returns a User object or false
+            error_log("Calling loginAdmin with identifier: " . $identifier);
+            $user = $userModel->loginAdmin($identifier, $password);
             
-            if ($user) {
+            error_log("loginAdmin result: " . ($user ? "USER OBJECT" : "FALSE"));
+            
+            if ($user && is_object($user)) {
+                // Debug the returned user object
+                error_log("User found - ID: " . ($user->ID ?? 'NULL'));
+                error_log("User found - Role: " . ($user->User_Role ?? 'NULL'));
+                error_log("User found - Status: " . ($user->Acc_Status ?? 'NULL'));
+                
                 // Check if user has admin role
                 $userRole = strtolower($user->User_Role ?? '');
+                error_log("Normalized User Role: " . $userRole);
                 
-                if ($userRole === 'subadmin' || $userRole === 'superadmin' || $userRole === 'admin') {
-                    error_log("Admin user authenticated: " . $identifier . " (Role: " . $userRole . ")");
+                // Include all admin roles
+                $adminRoles = ['superadmin', 'subadmin', 'admin'];
+                if (in_array($userRole, $adminRoles)) {
+                    error_log("✅ Admin user authenticated: " . $identifier . " (Role: " . $userRole . ")");
                     
-                    // Return ALL user data from database
-                    return [
+                    // Convert User object to array for session creation
+                    $userData = [
                         'id' => $user->ID,
-                        'user_id' => $user->User_ID,
-                        'email' => $user->Email,
+                        'user_id' => $user->ID,
                         'first_name' => $user->First_Name,
                         'last_name' => $user->Last_Name,
                         'middle_name' => $user->Middle_Name ?? '',
@@ -138,58 +203,40 @@ class AdminController extends Controller {
                         'role' => $user->User_Role,
                         'course' => $user->Course ?? null,
                         'department' => $user->Department ?? null,
-                        'designation' => $user->Designation ?? null,
-                        'employee_id' => $user->Employee_ID ?? null,
-                        'student_id' => $user->Student_ID ?? null,
-                        'profile_pic' => $user->Profile_Pic ?? null,
-                        'date_created' => $user->Date_Created ?? null,
-                        'last_login' => $user->Last_Login ?? null
+                        'acc_status' => $user->Acc_Status
                     ];
+                    
+                    error_log("User data for session: " . print_r($userData, true));
+                    return $userData;
                 } else {
-                    error_log("Admin login attempt by non-admin user: $identifier (Role: $userRole)");
+                    error_log("❌ User found but not admin role: " . $userRole);
+                    return false;
                 }
             } else {
-                // If login failed, check if user exists but has different status
-                $userExists = $userModel->checkUserExists($identifier);
-                
-                if ($userExists) {
-                    $userStatus = $userModel->getUserStatus($identifier);
-                    error_log("Admin login failed - user exists but status: " . $userStatus);
-                    
-                    if ($userStatus === 'pending') {
-                        $this->redirectWithError('Your account is pending approval. Please wait for administrator approval.');
-                    } elseif ($userStatus === 'rejected') {
-                        $this->redirectWithError('Your account has been rejected. Please contact administrator.');
-                    }
-                }
-                
-                error_log("No approved admin user found with identifier: " . $identifier);
+                error_log("❌ loginAdmin returned false - invalid credentials");
+                return false;
             }
+            
         } catch (Exception $e) {
-            error_log("Admin authentication error: " . $e->getMessage());
+            error_log("💥 Admin authentication error: " . $e->getMessage());
+            return false;
         }
-        
-        return false;
     }
     
-    private function createAdminSession($user) {
-        // Store only what's needed for functionality and display
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['user_db_id'] = $user['user_id'];
-        $_SESSION['user_email'] = $user['email'];
-        $_SESSION['user_name'] = $user['first_name'] . ' ' . $user['last_name'];
-        $_SESSION['user_role'] = $user['role'];
-        $_SESSION['first_name'] = $user['first_name'];
-        $_SESSION['last_name'] = $user['last_name'];
+    private function createAdminSession($userData) {
+        // Store user data in session
+        $_SESSION['user_id'] = $userData['id'];
+        $_SESSION['user_db_id'] = $userData['user_id'];
+        $_SESSION['user_name'] = $userData['first_name'] . ' ' . $userData['last_name'];
+        $_SESSION['user_role'] = $userData['role'];
+        $_SESSION['first_name'] = $userData['first_name'];
+        $_SESSION['last_name'] = $userData['last_name'];
         $_SESSION['logged_in'] = true;
         $_SESSION['is_admin'] = true;
         
-        // Don't store sensitive or unnecessary data in session
-        // Remove these if they were previously stored:
-        unset($_SESSION['middle_name']);
-        unset($_SESSION['extension']);
-        unset($_SESSION['password_hash']);
-        // etc.
+        error_log("✅ Admin session created for: " . $_SESSION['user_name']);
+        error_log("Session user_id: " . $_SESSION['user_id']);
+        error_log("Session user_role: " . $_SESSION['user_role']);
     }
 
     /**
@@ -252,11 +299,7 @@ class AdminController extends Controller {
                 }
                 
                 // Check if account is approved
-                if ($accStatus === 'pending') {
-                    throw new Exception('Your admin account is pending approval.');
-                } else if ($accStatus === 'rejected') {
-                    throw new Exception('Your admin account was rejected. Please contact system administrator.');
-                } else if ($accStatus === 'approved') {
+                if ($accStatus === 'approved') {
                     // ✅ APPROVED ADMIN: Log them in
                     error_log("Admin account approved, creating session...");
                     
@@ -274,12 +317,11 @@ class AdminController extends Controller {
                     
                     error_log("Admin session created successfully");
                     
-                    // Clear buffer and send clean JSON
+                    // Clear buffer and send clean JSON - remove success message
                     ob_clean();
                     header('Content-Type: application/json');
                     echo json_encode([
                         'success' => true,
-                        'message' => 'Admin login successful',
                         'redirect_url' => '../../Views/Admin/AdminDashboard.php'
                     ]);
                     exit();
@@ -309,12 +351,14 @@ class AdminController extends Controller {
         }
     }
 
-    /**
+    
+        /**
      * Find admin by email
      */
     private function findAdminByEmail($email) {
         try {
-            error_log("findAdminByEmail called with: " . $email);
+            error_log("=== FIND ADMIN BY EMAIL DEBUG ===");
+            error_log("Original email: " . $email);
             
             // Check if ROOT_DIR is defined
             if (!defined('ROOT_DIR')) {
@@ -322,13 +366,9 @@ class AdminController extends Controller {
             }
             
             $userModelPath = ROOT_DIR . '/app/Models/User.php';
-            error_log("Looking for User model at: " . $userModelPath);
             
             if (!file_exists($userModelPath)) {
-                error_log("User model not found at: " . $userModelPath);
-                // Try alternative path
                 $userModelPath = __DIR__ . '/../Models/User.php';
-                error_log("Trying alternative path: " . $userModelPath);
             }
             
             if (!file_exists($userModelPath)) {
@@ -340,9 +380,10 @@ class AdminController extends Controller {
             $userModel = new User();
             $db = $userModel->getDb();
             
-            // Query to find admin user by email
+            // FIX: Query with the original email, NOT the hashed one
+            // The USER_INFORMATION table stores the actual email address
             $db->query('SELECT * FROM USER_INFORMATION WHERE Email = :email AND User_Role IN ("superAdmin", "SubAdmin", "admin") LIMIT 1');
-            $db->bind(':email', $email);
+            $db->bind(':email', $email); // Use original email, not hashed
             $result = $db->single();
             
             // Convert object to array if needed
@@ -350,18 +391,34 @@ class AdminController extends Controller {
                 $result = (array)$result;
             }
             
-            error_log("findAdminByEmail result for $email: " . ($result ? 'ADMIN FOUND' : 'NOT FOUND OR NOT ADMIN'));
+            error_log("Database query result: " . ($result ? 'ADMIN FOUND' : 'NOT FOUND OR NOT ADMIN'));
             if ($result) {
-                error_log("Admin ID: " . ($result['ID'] ?? 'unknown'));
-                error_log("Admin Email: " . ($result['Email'] ?? 'unknown'));
-                error_log("Admin Role: " . ($result['User_Role'] ?? 'unknown'));
-                error_log("Admin Status: " . ($result['Acc_Status'] ?? 'unknown'));
+                error_log("Admin details:");
+                error_log("  - ID: " . ($result['ID'] ?? 'unknown'));
+                error_log("  - Role: " . ($result['User_Role'] ?? 'unknown'));
+                error_log("  - Status: " . ($result['Acc_Status'] ?? 'unknown'));
+                error_log("  - First Name: " . ($result['First_Name'] ?? 'unknown'));
+                error_log("  - Last Name: " . ($result['Last_Name'] ?? 'unknown'));
+                error_log("  - Email: " . ($result['Email'] ?? 'unknown')); // Log the actual email
+            } else {
+                error_log("❌ No admin found with email: " . $email);
+                
+                // Debug: Check what users exist with admin roles
+                $db->query('SELECT ID, Email, User_Role, Acc_Status, First_Name, Last_Name FROM USER_INFORMATION WHERE User_Role IN ("superAdmin", "SubAdmin", "admin")');
+                $allAdmins = $db->resultSet();
+                error_log("All admin users in database: " . count($allAdmins));
+                foreach ($allAdmins as $admin) {
+                    error_log("  - ID: " . ($admin->ID ?? 'unknown') . 
+                            ", Email: " . ($admin->Email ?? 'unknown') . 
+                            ", Role: " . ($admin->User_Role ?? 'unknown') . 
+                            ", Status: " . ($admin->Acc_Status ?? 'unknown'));
+                }
             }
             
             return $result;
             
         } catch (Exception $e) {
-            error_log("Error in findAdminByEmail: " . $e->getMessage());
+            error_log("💥 Error in findAdminByEmail: " . $e->getMessage());
             error_log("Stack trace: " . $e->getTraceAsString());
             return false;
         }
@@ -370,27 +427,108 @@ class AdminController extends Controller {
     private function isAuthorizedAdminEmail($email) {
         // Define your authorized admin emails
         $authorizedAdmins = [
-            'superadmin@usep.edu.ph',
+            'admin@usep.edu.ph',
             // Add other authorized admin emails
         ];
         
         return in_array($email, $authorizedAdmins);
     }
 
+        public function lockSystem() {
+        try {
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            
+            if (!$this->isLoggedIn() || !$this->isAdmin()) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Unauthorized access'
+                ]);
+                exit;
+            }
+            
+            $_SESSION['system_locked'] = true;
+            
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'System locked successfully'
+            ]);
+            exit;
+            
+        } catch (Exception $e) {
+            error_log("Error locking system: " . $e->getMessage());
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'error' => 'Error locking system: ' . $e->getMessage()
+            ]);
+            exit;
+        }
+    }
+
+      /**
+     * Verify admin password for system unlock
+     */
+    public function verifyAdminPassword($user_id, $password) {
+        try {
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+
+            // Optional minimal logging (remove or comment in production if you want silence)
+            error_log("Unlock attempt for User ID (auto-inc): {$user_id}");
+
+            if (empty($user_id) || empty($password)) {
+                return ['success' => false, 'error' => 'Missing credentials'];
+            }
+
+            // Use relative path – works on every machine
+            require_once __DIR__ . '/../Models/User.php';
+            $userModel = new User();
+
+            $user = $userModel->getUserById($user_id);
+
+            if (!$user) {
+                error_log("Unlock failed – user not found (ID: {$user_id})");
+                return ['success' => false, 'error' => 'User not found'];
+            }
+
+            // Critical fixes: correct column names + salt concatenation
+            if (empty($user->pswrd) || empty($user->Salt)) {
+                return ['success' => false, 'error' => 'Password not configured'];
+            }
+
+            $verified = password_verify($password . $user->Salt, $user->pswrd);
+
+            if ($verified) {
+                $_SESSION['system_locked'] = false;
+                error_log("System unlocked successfully for {$_SESSION['user_name']}");
+                return ['success' => true, 'message' => 'System unlocked'];
+            } else {
+                error_log("Unlock failed – wrong password for {$_SESSION['user_name']}");
+                return ['success' => false, 'error' => 'Invalid password'];
+            }
+
+        } catch (Exception $e) {
+            error_log("verifyAdminPassword exception: " . $e->getMessage());
+            return ['success' => false, 'error' => 'Server error'];
+        }
+    }
+
     public function dashboard() {
-        // Start session if not already started
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
         
-        // Check if user is logged in and is admin
         if (!$this->isLoggedIn() || !$this->isAdmin()) {
             $this->redirectWithError('Access denied. Admin privileges required.');
             return;
         }
         
 
-        // Prepare COMPLETE data array with ALL session values
         $data = [
             'user_id' => $_SESSION['user_id'] ?? null,
             'user_db_id' => $_SESSION['user_db_id'] ?? null, 
@@ -503,5 +641,58 @@ if ($action === 'login') {
     $adminController->logout();
 } elseif ($action === 'adminGoogleLogin') {
     $adminController->adminGoogleLogin();
+} elseif ($action === 'lockSystem') {
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    ob_start();
+    
+    try {
+        $adminController->lockSystem();
+    } catch (Exception $e) {
+        ob_clean();
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'error' => $e->getMessage()
+        ]);
+        exit;
+    } finally {
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+    }
+} elseif ($action === 'verifyAdminPassword') {
+    if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        ob_start();
+
+        try {
+            $user_id  = $_SESSION['user_id'];           
+            $password = $_POST['password'] ?? '';     
+
+            if (empty($user_id) || empty($password)) {
+                throw new Exception('User ID and password are required');
+            }
+
+            $result = $adminController->verifyAdminPassword($user_id, $password);
+
+            ob_clean();
+            header('Content-Type: application/json');
+            echo json_encode($result);
+            exit;
+
+        } catch (Exception $e) {
+            ob_clean();
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]);
+            exit;
+        }
+    }
 }
 ?>

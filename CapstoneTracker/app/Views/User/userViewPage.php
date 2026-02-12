@@ -29,9 +29,34 @@ try {
     $db = new Database();
     $thesisModel = new Thesis($db);
     $thesis = $thesisModel->getAllTheses();
+
+    // Get user role information
+    $userId = $_SESSION['user_id'];
+    $rolesController = new RolesController($db);
     
-    // Debug: Check if we got any data
+    // ACTUALLY CALL THE METHOD TO GET THE DATA
+    $userRoleData = $rolesController->getUserRole($userId);
+    
+    // Extract the actual role string
+    $userRole = $userRoleData['User_Role'] ?? 'student'; // Default to student if not found
+    
+    // Determine if user is student
+    $isStudent = ($userRole === 'student');
+    
+    // Get full user data including Login_Method
+    require_once '../../../app/Models/User.php';
+    $userModel = new User($db);
+    $userData = $userModel->getUserById($userId);
+    $loginMethod = $userData ? ($userData->Login_Method ?? 'manual') : 'manual';
+    $isGoogleUser = ($loginMethod === 'google');
+    
+    // Debug information
     echo "<!-- Debug: Found " . count($thesis) . " theses -->";
+    echo "<!-- Debug: User role data: " . print_r($userRoleData, true) . " -->";
+    echo "<!-- Debug: User role: " . $userRole . " -->";
+    echo "<!-- Debug: Is student: " . ($isStudent ? 'true' : 'false') . " -->";
+    echo "<!-- Debug: Login method: " . $loginMethod . " -->";
+    echo "<!-- Debug: Is Google user: " . ($isGoogleUser ? 'true' : 'false') . " -->";
     
     foreach ($thesis as $theses) {
         $uploadDate = new DateTime($theses->uploaded_at);
@@ -45,6 +70,8 @@ try {
     error_log("Error loading theses: " . $e->getMessage());
     echo "<!-- Error: " . $e->getMessage() . " -->";
     $thesis = [];
+    $userRole = 'student'; // Default fallback
+    $isStudent = true;
 }
 
 class DepartmentManager {
@@ -156,16 +183,19 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
 
 
 
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?php echo $_SESSION['csrf_token']; ?>">
     <title>Compendium Dashboard</title>
     <link rel="icon" href="/CapstoneTracker/resources/Images/ThesisCompLogo.png" type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Quicksand">
@@ -173,6 +203,11 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <link rel="stylesheet" href="../../../Resources/css/User/userViewPage.css">
+    <script>
+        // Set global variables for JavaScript role detection
+        window.isStudent = <?php echo $isStudent ? 'true' : 'false'; ?>;
+        window.isGoogleUser = <?php echo $isGoogleUser ? 'true' : 'false'; ?>;
+    </script>
     <script type="text/javascript" src="../../../resources/js/User/userViewPage.js"></script>
     <script type="text/javascript" src="../../../resources/js/User/Profile.js"></script>
     
@@ -190,6 +225,11 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
                 <li id="profileSidebarIcon"> <i class="fa fa-user-o icon" aria-hidden="true"></i> </li>
             </ul>
         </nav>
+        <div class="sidebar-bottom">
+            <button id="logoutSidebarBtn" class="sidebar-logout-btn">
+    <i class="fa fa-sign-out" aria-hidden="true"></i>
+</button>
+        </div>
     </section>
 
     <section class="main-content">
@@ -209,13 +249,16 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
         </header>
             <div class="profile-card">
                 <div class="profile-header">
-                    <div class="profile-avatar">
-                        <img src="../../../resources/Images/profile.png" alt="Profile" class="profile-image">
-                        <div class="online-status"></div>
-                    </div>
+                <div class="profile-avatar">
+                    <label for="profileImage" style="cursor: pointer; display: block;">
+                        <input type="file" id="profileImage" name="profileImage" accept="image/*" hidden>
+                        <img src="../../../resources/Images/profile.png" data-value="profileImage" alt="Profile" class="profile-image"/>
+                    </label>
+                    <div class="online-status"></div>
+                </div>
                     <div class="profile-info">
                         <h2 data-value="FullName" class="profile-name"></h2>
-                        <p data-value="course" class="profile-title"></p>
+                        <p data-value="roleHeader" class="profile-title"></p>
                         
                     </div>
                 </div>
@@ -228,20 +271,36 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
                         </h3>
                         <div class="info-grid">
                             <div class="info-item">
-                                <span class="info-label">Full Name:</span>
-                                <span data-value="FullName" class="info-value"></span>
+                                <span class="info-label"><i class="fa fa-id-card"></i> User ID:</span>
+                                <span data-value="userID" class="info-value"></span>
                             </div>
+                            
                             <div class="info-item">
-                                <span class="info-label">Email:</span>
+                                <span class="info-label"><i class="fa fa-envelope"></i> Email:</span>
                                 <span data-value="email" class="info-value"></span>
                             </div>
-                            
-                            
+                            <?php if (!$isStudent): // Show department for non-students (faculty, admin, etc.) ?>
                             <div class="info-item">
-                                <span class="info-label">Course:</span>
+                                <span class="info-label"><i class="fa fa-building"></i> Department:</span>
+                                <?php if ($isGoogleUser): ?>
+                                    <select id="departmentSelect" class="form-select info-value editable-input" style="width: auto; display: inline-block; margin-left: 10px;">
+                                        <option value="" selected disabled>Select department</option>
+                                        <option value="CTET">CTET</option>
+                                        <option value="COE">COE</option>
+                                    </select>
+                                    <button id="saveDepartmentBtn" class="btn btn-sm btn-primary save-btn" style="display: none;"><i class="fa fa-save"></i> Save</button>
+                                <?php else: ?>
+                                    <span data-value="department" class="info-value"></span>
+                                <?php endif; ?>
+                            </div>
+                            <?php else: ?>
+                            <div class="info-item">
+                                <span class="info-label"><i class="fa fa-graduation-cap"></i> Course:</span>
                                 <span data-value="course" class="info-value"></span>
                             </div>
+                            <?php endif; ?>
                         </div>
+                        
                     </div>
 
                     <div class="profile-section">
@@ -251,32 +310,32 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
                         </h3>
                         <div class="info-grid">
                             <div class="info-item">
-                                <span class="info-label">Member Since:</span>
+                                <span class="info-label"><i class="fa fa-calendar-plus"></i> Member Since:</span>
                                 <span data-value="member" class="info-value"></span>
                             </div>
                             <div class="info-item">
-                                <span class="info-label">Last Login:</span>
+                                <span class="info-label"><i class="fa fa-clock"></i> Last Login:</span>
                                 <span data-value="lastlogin" class="info-value"></span>
                             </div>
                             <div class="info-item">
-                                <span class="info-label">Status:</span>
+                                <span class="info-label"><i class="fa fa-shield-alt"></i> Status:</span>
                                 <span data-value="acc_status" class="info-value status-active"></span>
                             </div>
                             <div class="info-item">
-                                <span class="info-label">Role:</span>
-                                <span data-value="role" class="info-value">Student</span>
+                                <span class="info-label"><i class="fa fa-user-tag"></i> Role:</span>
+                                <span data-value="role" class="info-value"></span>
                             </div>
                         </div>
                         
                         <div class="action-buttons">
-                            <button class="btn btn-primary">
-                                <i class="fa fa-pencil" aria-hidden="true"></i>
-                                Edit Profile
-                            </button>
-                            <button class="btn btn-secondary" id="logoutHeaderIcon">
-                                <i class="fa fa-sign-out" aria-hidden="true"></i>
-                                Logout
-                            </button>
+                        <button class="btn btn-primary" id="editProfileBtn">
+                            <i class="fa fa-edit" aria-hidden="true"></i>
+                            Edit Profile
+                        </button>
+                        <button class="btn btn-primary" id="changePasswordBtn">
+                            <i class="fa fa-key" aria-hidden="true"></i>
+                            Change Password
+                        </button>
                         </div>
                     </div>
                 </div>
@@ -414,6 +473,7 @@ $departmentManager->addDepartment('bsit', 'BSIT | SITS', ['Bachelor of Science i
 
 </body>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+
 </html>
 
 <?php

@@ -9,6 +9,7 @@ if (!defined('ROOT_DIR')) {
     define('ROOT_DIR', dirname(__DIR__, 2)); 
 }
  */
+require_once '../Utils/EmailSender.php';
 require_once '../Models/Database.php';
 require_once '../Models/Model.php';
 require_once '../Models/User.php';
@@ -41,8 +42,12 @@ class RegistrationController {
      * Validate CSRF token
      */
     private function validateCsrfToken($token) {
-    if (!isset($_SESSION['csrf_token']) || $token !== $_SESSION['csrf_token']) {
-        return false;
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        return isset($_SESSION['csrf_token']) && 
+            hash_equals($_SESSION['csrf_token'], $token);
     }
 
     /**
@@ -216,12 +221,27 @@ class RegistrationController {
             ];
             
             // Use the register function from User model
-            $result = $this->userModel->register($userData);
-            
-            if ($result) {
+            $userId = $this->userModel->register($userData);
+
+            if ($userId) {  // <-- CHANGED: Check if $userId is truthy (string or true)
+                // Send confirmation email WITH password for manual registration
+                $emailSender = new EmailSender();
+                $toName = trim($firstName . ' ' . $lastName);
+                $toEmail = $data['email'];
+                $password = $data[''];  // <-- CHANGED: Include password for manual registration
+                $role = 'student';
+                
+                $emailSent = $emailSender->sendWelcomeEmail($toEmail, $toName, $password, $role, $userId);
+                
+                if (!$emailSent) {
+                    error_log("Warning: Welcome email failed to send for student: " . $toEmail);
+                    // Don't throw exception - registration was successful, just email failed
+                }
+                
                 return true;
             } else {
-                throw new Exception("Registration failed. Please try again.");
+                $modelError = $this->userModel->getError();
+                throw new Exception($modelError ?: "Registration failed. Please try again.");
             }
             
         } catch (Exception $e) {
@@ -295,12 +315,25 @@ class RegistrationController {
             ];
             
             // Use the register function from User model
-            $result = $this->userModel->register($userData);
-            
-            if ($result) {
+            $userId = $this->userModel->register($userData);
+
+            if ($userId) {  // <-- CHANGED: Check if $userId is truthy
+                // Send confirmation email WITH password for manual registration
+                $emailSender = new EmailSender();
+                $toName = trim($firstName . ' ' . ($middleName ? $middleName . ' ' : '') . $lastName);
+                $toEmail = $data['email'];
+                $password = $data[''];  // <-- CHANGED: Include password for manual registration
+                $role = 'faculty';
+
+                $emailSent = $emailSender->sendWelcomeEmail($toEmail, $toName, $password, $role, $userId);
+
+                if (!$emailSent) {
+                    error_log("Warning: Welcome email failed to send for faculty: " . $toEmail);
+                    // Don't throw exception - registration was successful, just email failed
+                }
+
                 return true;
             } else {
-                // Get the specific error from the model if available
                 $modelError = $this->userModel->getError();
                 throw new Exception($modelError ?: "Registration failed. Please try again.");
             }
@@ -334,7 +367,7 @@ class RegistrationController {
                     $result = $this->registerStudent($_POST, $_FILES);
                     
                     if ($result) {
-                        $_SESSION['success_message'] = "Student registration successful! Your account is now pending for approval.";
+                        $_SESSION['success_message'] = "Your account is now pending for approval. Check your Email for further information.";
                         header('Location: ../../app/Views/User/indexLogin.php');
                         exit();
                     } else {
@@ -345,7 +378,7 @@ class RegistrationController {
                     $result = $this->registerFaculty($_POST, $_FILES);
                     
                     if ($result) {
-                        $_SESSION['success_message'] = "Faculty registration successful! Your account is now pending for approval.";
+                        $_SESSION['success_message'] = "Your account is now pending for approval. Check your Email for further information.";
                         header('Location: ../../app/Views/User/indexLogin.php');
                         exit();
                     } else {
@@ -442,6 +475,7 @@ class RegistrationController {
             'message' => $message ?: $this->error
         ];
     }
+    
 }
 
 // Handle direct access to this file for registration processing
@@ -453,5 +487,6 @@ if (basename(__FILE__) == basename($_SERVER['SCRIPT_FILENAME'])) {
     $registrationController = new RegistrationController();
     $registrationController->processRegistration();
 }
+
 
 ?>

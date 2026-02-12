@@ -91,27 +91,34 @@ class EmailSender {
     
     public function sendWelcomeEmail($toEmail, $toName, $password, $role, $userIdentifier) {
         try {
-            error_log("Sending welcome email to: " . $toEmail . " with User ID: " . $userIdentifier);
+            error_log("🚀 Sending welcome email:");
+            error_log("   To: " . $toEmail);
+            error_log("   Name: " . $toName);
+            error_log("   Role: " . $role);
+            error_log("   User ID: " . $userIdentifier);
+            error_log("   Registration Type: " . (empty($password) ? "MANUAL" : "GOOGLE"));
             
-            // Validate all required parameters
-            if (empty($toEmail) || empty($toName) || empty($password) || empty($role) || empty($userIdentifier)) {
-                error_log("Missing parameters for welcome email:");
-                error_log("Email: " . $toEmail);
-                error_log("Name: " . $toName);
-                error_log("Password: " . (!empty($password) ? "SET" : "MISSING"));
-                error_log("Role: " . $role);
-                error_log("User Identifier: " . $userIdentifier);
+            if (empty($toEmail) || empty($toName) || empty($role) || empty($userIdentifier)) {
+                error_log("❌ Missing parameters for welcome email");
                 return false;
             }
             
-            $subject = EmailConfig::WELCOME_SUBJECT;
-            $body = EmailConfig::getWelcomeBody($toName, $toEmail, $password, $role, $userIdentifier);
+            // Use separate subjects and templates for manual vs Google registration
+            if (empty($password)) {
+                $subject = EmailConfig::MANUAL_REGISTRATION_SUBJECT;
+                $body = EmailConfig::getManualWelcomeBody($toName, $toEmail, $role, $userIdentifier);
+            } else {
+                $subject = EmailConfig::WELCOME_SUBJECT;
+                $body = EmailConfig::getGoogleWelcomeBody($toName, $toEmail, $password, $role, $userIdentifier);
+            }
             
-            error_log("Calling sendEmailPHPMailer for welcome email to: " . $toEmail);
+            error_log("📝 Email subject: " . $subject);
+            error_log("📝 Email type: " . (empty($password) ? "MANUAL" : "GOOGLE"));
+            
             return $this->sendEmailPHPMailer($toEmail, $toName, $subject, $body);
             
         } catch (\Exception $e) {
-            error_log("Email sending error in sendWelcomeEmail: " . $e->getMessage());
+            error_log("❌ Email sending error in sendWelcomeEmail: " . $e->getMessage());
             return false;
         }
     }

@@ -1,8 +1,9 @@
-// Reports Manager Class with Fixed Data Connections
+// Reports Manager Class with Course Filtering
 class ReportsManager {
     constructor() {
         this.currentReportType = 'overview';
         this.currentDepartment = 'all';
+        this.currentCourse = 'all';
         this.charts = {};
         this.isInitialized = false;
     }
@@ -23,6 +24,14 @@ class ReportsManager {
                 this.handleDepartmentSelection(e.target.closest('.accessCard'));
             });
         });
+
+        // Course dropdown change event
+        const courseSelect = document.getElementById('courseFilter');
+        if (courseSelect) {
+            courseSelect.addEventListener('change', (e) => {
+                this.handleCourseSelection(e.target.value);
+            });
+        }
 
         const chartActions = document.querySelectorAll('.chart-action-btn');
         chartActions.forEach(btn => {
@@ -66,99 +75,158 @@ class ReportsManager {
         }
     }
 
-    async downloadReportAsPDF(downloadImmediately = false) {
-    try {
-        console.log('Download button clicked');
-        console.log('Current department:', this.currentDepartment);
-        
-        // Show loading state
-        const swalInstance = Swal.fire({
-            title: 'Generating Report',
-            text: 'Please wait while we generate your PDF report...',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
+    async handleDepartmentSelection(button) {
+        // Remove active class from all buttons
+        document.querySelectorAll('#reports-card .accessCard').forEach(btn => {
+            btn.classList.remove('active');
         });
-
-        console.log('Generating actual report...');
-        const reportUrl = `../../../app/Controllers/AdminDashboardController.php?action=generateReport&department=${this.currentDepartment}`;
-        console.log('Report URL:', reportUrl);
-
-        const response = await fetch(reportUrl, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/pdf',
-            }
-        });
-
-        console.log('Response status:', response.status);
-        console.log('Response ok:', response.ok);
-        console.log('Content-Type:', response.headers.get('content-type'));
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Server response error:', errorText);
-            
-            // Try to parse as JSON for better error message
-            try {
-                const errorJson = JSON.parse(errorText);
-                throw new Error(`HTTP error! status: ${response.status}. ${errorJson.error || errorJson.message || errorText}`);
-            } catch (e) {
-                throw new Error(`HTTP error! status: ${response.status}. Server says: ${errorText.substring(0, 200)}`);
-            }
-        }
-
-        const contentType = response.headers.get('content-type');
-        console.log('Final Content-Type:', contentType);
-
-        let blob;
-        if (contentType && contentType.includes('application/pdf')) {
-            blob = await response.blob();
-            console.log('PDF blob size:', blob.size);
-            
-            if (blob.size === 0) {
-                throw new Error('PDF blob is empty (0 bytes)');
-            }
-        } else {
-            // If not PDF, get as text to see what's returned
-            const textResponse = await response.text();
-            console.log('Non-PDF response (first 500 chars):', textResponse.substring(0, 500));
-            
-            // Try to parse as JSON for error details
-            try {
-                const errorData = JSON.parse(textResponse);
-                throw new Error(`Server returned ${contentType} instead of PDF. Error: ${errorData.error || errorData.message || 'Unknown error'}`);
-            } catch (e) {
-                throw new Error(`Server returned ${contentType} instead of PDF. Response: ${textResponse.substring(0, 200)}`);
-            }
-        }
         
-        // Close loading Swal
-        Swal.close();
-
-        if (downloadImmediately) {
-            this.downloadPDFFile(blob);
-        } else {
-            this.previewPDF(blob);
-        }
-
-    } catch (error) {
-        console.error('Error generating report:', error);
-        Swal.close();
+        // Add active class to selected button
+        button.classList.add('active');
         
-        Swal.fire({
-            title: 'Generation Failed',
-            html: `
-                <p>Failed to generate PDF report.</p>
-                <p><strong>Error:</strong> ${error.message}</p>
-                <p>Check the browser console for details.</p>
-            `,
-            icon: 'error',
-            confirmButtonColor: '#d33'
-        });
+        // Get department from button
+        const department = this.getDepartmentFromButton(button);
+        this.currentDepartment = department;
+        
+        // Reset course filter when department changes
+        this.currentCourse = 'all';
+        
+        // Update course dropdown
+        await this.updateCourseDropdown(department);
+        
+        // Reload reports data for selected department
+        await this.loadReportsData();
     }
-}
+
+    async handleCourseSelection(course) {
+        this.currentCourse = course;
+        await this.loadReportsData();
+    }
+
+    async updateCourseDropdown(department) {
+        const courseSelect = document.getElementById('courseFilter');
+        if (!courseSelect) return;
+
+        try {
+            // Show loading
+            courseSelect.innerHTML = '<option value="all">Loading courses...</option>';
+            
+            const response = await fetch(`../../../app/Controllers/AdminDashboardController.php?action=getReports&type=overview&department=${department}`);
+            const data = await response.json();
+            
+            if (data.success && data.data.available_courses) {
+                courseSelect.innerHTML = '<option value="all">All Courses</option>';
+                
+                data.data.available_courses.forEach(course => {
+                    const option = document.createElement('option');
+                    option.value = course.Course;
+                    option.textContent = course.Course;
+                    courseSelect.appendChild(option);
+                });
+                
+                // Reset to "All Courses"
+                courseSelect.value = 'all';
+            }
+        } catch (error) {
+            console.error('Error loading courses:', error);
+            courseSelect.innerHTML = '<option value="all">All Courses</option>';
+        }
+    }
+
+    async downloadReportAsPDF(downloadImmediately = false) {
+        try {
+            console.log('Download button clicked');
+            console.log('Current department:', this.currentDepartment);
+            console.log('Current course:', this.currentCourse);
+            
+            // Show loading state
+            const swalInstance = Swal.fire({
+                title: 'Generating Report',
+                text: 'Please wait while we generate your PDF report...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            console.log('Generating actual report...');
+            const reportUrl = `../../../app/Controllers/AdminDashboardController.php?action=generateReport&department=${this.currentDepartment}&course=${this.currentCourse}`;
+            console.log('Report URL:', reportUrl);
+
+            const response = await fetch(reportUrl, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/pdf',
+                }
+            });
+
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
+            console.log('Content-Type:', response.headers.get('content-type'));
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Server response error:', errorText);
+                
+                // Try to parse as JSON for better error message
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    throw new Error(`HTTP error! status: ${response.status}. ${errorJson.error || errorJson.message || errorText}`);
+                } catch (e) {
+                    throw new Error(`HTTP error! status: ${response.status}. Server says: ${errorText.substring(0, 200)}`);
+                }
+            }
+
+            const contentType = response.headers.get('content-type');
+            console.log('Final Content-Type:', contentType);
+
+            let blob;
+            if (contentType && contentType.includes('application/pdf')) {
+                blob = await response.blob();
+                console.log('PDF blob size:', blob.size);
+                
+                if (blob.size === 0) {
+                    throw new Error('PDF blob is empty (0 bytes)');
+                }
+            } else {
+                // If not PDF, get as text to see what's returned
+                const textResponse = await response.text();
+                console.log('Non-PDF response (first 500 chars):', textResponse.substring(0, 500));
+                
+                // Try to parse as JSON for error details
+                try {
+                    const errorData = JSON.parse(textResponse);
+                    throw new Error(`Server returned ${contentType} instead of PDF. Error: ${errorData.error || errorData.message || 'Unknown error'}`);
+                } catch (e) {
+                    throw new Error(`Server returned ${contentType} instead of PDF. Response: ${textResponse.substring(0, 200)}`);
+                }
+            }
+            
+            // Close loading Swal
+            Swal.close();
+
+            if (downloadImmediately) {
+                this.downloadPDFFile(blob);
+            } else {
+                this.previewPDF(blob);
+            }
+
+        } catch (error) {
+            console.error('Error generating report:', error);
+            Swal.close();
+            
+            Swal.fire({
+                title: 'Generation Failed',
+                html: `
+                    <p>Failed to generate PDF report.</p>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p>Check the browser console for details.</p>
+                `,
+                icon: 'error',
+                confirmButtonColor: '#d33'
+            });
+        }
+    }
 
     // Preview PDF in new tab
     previewPDF(blob) {
@@ -224,7 +292,8 @@ class ReportsManager {
         // Generate filename with timestamp
         const timestamp = new Date().toISOString().slice(0, 10);
         const deptName = this.getDepartmentDisplayName(this.currentDepartment);
-        a.download = `Thesis_Report_${deptName}_${timestamp}.pdf`;
+        const courseName = this.currentCourse === 'all' ? 'All_Courses' : this.currentCourse.replace(/[^a-zA-Z0-9]/g, '_');
+        a.download = `Thesis_Report_${deptName}_${courseName}_${timestamp}.pdf`;
         
         document.body.appendChild(a);
         a.click();
@@ -258,7 +327,8 @@ class ReportsManager {
         try {
             this.showLoadingState();
             
-            const response = await fetch(`../../../app/Controllers/AdminDashboardController.php?action=getReports&type=${this.currentReportType}&department=${this.currentDepartment}`);
+            const url = `../../../app/Controllers/AdminDashboardController.php?action=getReports&type=${this.currentReportType}&department=${this.currentDepartment}&course=${this.currentCourse}`;
+            const response = await fetch(url);
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -295,53 +365,51 @@ class ReportsManager {
         
         if (statCards[0]) {
             statCards[0].querySelector('h3').textContent = stats.total_theses || '0';
+            statCards[0].querySelector('p').textContent = 'Total Theses';
         }
         
         if (statCards[1]) {
             statCards[1].querySelector('h3').textContent = stats.total_students || '0';
-        }
-        
-        if (statCards[2]) {
-            statCards[2].querySelector('h3').textContent = stats.recent_theses || '0';
+            statCards[1].querySelector('p').textContent = 'Total Approved Users';
         }
     }
 
     updateDepartmentCounts(programCounts) {
-        // Update all programs count
-        const allCountElement = document.getElementById('allCount');
-        if (allCountElement && programCounts) {
-            const totalTheses = programCounts.reduce((sum, program) => sum + (parseInt(program.thesis_count) || 0), 0);
-            allCountElement.textContent = totalTheses;
-        }
+        console.log('Raw program counts:', programCounts); 
+        
+        const allEl = document.getElementById('allCount');
+        if (allEl) allEl.textContent = programCounts.all || 0;
 
-        // Update individual program counts
-        const programMap = {
-            'bsitReports': 'Bachelor of Science in Information Technology',
-            'becedReports': 'Bachelor of Early Childhood Education',
-            'bsedReports': 'Bachelor of Secondary Education',
-            'btvtedReports': 'Bachelor of Technical-Vocational Teacher Education',
-            'beedReports': 'Bachelor of Elementary Education',
-            'bsnedReports': 'Bachelor of Special Needs Education',
-            'bsabeReports': 'Bachelor of Science in Agricultural and Biosystems Engineering'
+        // Map department codes to their element IDs
+        const departmentMap = {
+            'bsitCount': 'bsit',
+            'becedCount': 'beced', 
+            'bsedCount': 'bsed',
+            'btvtedCount': 'btvted',
+            'beedCount': 'beed',
+            'bsnedCount': 'bsned',
+            'bsabeCount': 'bsabe'
         };
 
-        Object.keys(programMap).forEach(programId => {
-            const element = document.getElementById(programId);
-            if (element) {
-                const countElement = element.querySelector('.access-count');
-                const programName = programMap[programId];
-                const programData = programCounts.find(p => p.program === programName);
-                countElement.textContent = programData ? programData.thesis_count : '0';
+        Object.keys(departmentMap).forEach(id => {
+            const el = document.getElementById(id);
+            const deptCode = departmentMap[id];
+            if (el && programCounts[deptCode] !== undefined) {
+                el.textContent = programCounts[deptCode];
+                console.log(`Setting ${id} (${deptCode}) to:`, programCounts[deptCode]); // Debug
+            } else {
+                console.log(`Element ${id} not found or no data for ${deptCode}`); // Debug
+                if (el) el.textContent = '0';
             }
         });
     }
 
     updateCharts(data) {
-        this.createCourseDistributionChart(data.course_distribution);  
-        this.createThesisUploadsChart(data.monthly_uploads);  
+        this.createCourseDistributionChart(data.user_distribution);  
+        this.createThesisUploadsChart(data.program_thesis_counts);   
     }
 
-    createCourseDistributionChart(courseDistribution) {
+    createCourseDistributionChart(userDistribution) {
         const ctx = document.getElementById('studentPieChart');
         if (!ctx) {
             console.error('Student pie chart canvas not found');
@@ -353,40 +421,24 @@ class ReportsManager {
             this.charts.studentPie.destroy();
         }
 
-        // Process real data for chart
-        const chartData = this.processCourseDistributionData(courseDistribution);
+        // Process user distribution data for pie chart
+        const chartData = this.processUserDistributionData(userDistribution);
         
-        console.log('Course Distribution Data for Pie Chart:', chartData);
+        console.log('User Distribution Data for Pie Chart:', chartData);
 
-        // Color mapping for courses
-        const courseColors = {
-            'Bachelor of Science in Information Technology': '#FF6B6B',
-            'Bachelor of Early Childhood Education': '#4ECDC4',
-            'Bachelor of Secondary Education': '#45B7D1',
-            'Bachelor of Technical-Vocational Teacher Education': '#96CEB4',
-            'Bachelor of Elementary Education': '#FFEAA7',
-            'Bachelor of Special Needs Education': '#cd84cdff',
-            'Bachelor of Science in Agricultural and Biosystems Engineering': '#48ffd1ff',
-            'Bachelor of Science in Agriculture and Biosystems Engineering': '#48ffd1ff'
+        // Color mapping for user roles
+        const roleColors = {
+            'student': '#FF6B6B',
+            'faculty': '#4ECDC4',
+            'admin': '#45B7D1',
+            'superAdmin': '#96CEB4',
+            'SubAdmin': '#FFEAA7'
         };
 
         // Assign colors
         const backgroundColors = chartData.labels.map(label => {
-            // Try exact match first
-            if (courseColors[label]) {
-                return courseColors[label];
-            }
-            
-            // Try partial match
-            for (const [key, value] of Object.entries(courseColors)) {
-                if (label.toLowerCase().includes(key.toLowerCase()) || 
-                    key.toLowerCase().includes(label.toLowerCase())) {
-                    return value;
-                }
-            }
-            
-            // Fallback color
-            return '#CCCCCC';
+            const role = label.toLowerCase();
+            return roleColors[role] || '#CCCCCC';
         });
 
         this.charts.studentPie = new Chart(ctx, {
@@ -423,7 +475,7 @@ class ReportsManager {
                                 const value = context.raw || 0;
                                 const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                 const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-                                return `${label}: ${value} students (${percentage}%)`;
+                                return `${label}: ${value} users (${percentage}%)`;
                             }
                         }
                     }
@@ -432,29 +484,27 @@ class ReportsManager {
         });
     }
 
-    createThesisUploadsChart(monthlyUploads) {
+    createThesisUploadsChart(programThesisCounts) {
         const ctx = document.getElementById('thesisBarChart');
         if (!ctx) {
             console.error('Thesis bar chart canvas not found');
             return;
         }
 
-        // Destroy existing chart if it exists
         if (this.charts.thesisBar) {
             this.charts.thesisBar.destroy();
         }
 
-        // Process real data for chart
-        const chartData = this.processMonthlyUploadsData(monthlyUploads);
+        const chartData = this.processProgramThesisData(programThesisCounts);
         
-        console.log('Monthly Uploads Data for Bar Chart:', chartData);
+        console.log('Program Thesis Data for Bar Chart:', chartData);
 
         this.charts.thesisBar = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: chartData.labels,
                 datasets: [{
-                    label: 'Thesis Uploads',
+                    label: 'Thesis Count',
                     data: chartData.data,
                     backgroundColor: 'rgba(186, 30, 31, 0.8)',
                     borderColor: 'rgba(186, 30, 31, 1)',
@@ -475,6 +525,16 @@ class ReportsManager {
                         beginAtZero: true,
                         ticks: {
                             stepSize: 1
+                        },
+                        title: {
+                            display: true,
+                            text: 'Number of Theses'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Programs'
                         }
                     }
                 }
@@ -484,73 +544,82 @@ class ReportsManager {
         this.updateChartFooterStats(chartData);
     }
 
-    processCourseDistributionData(courseDistribution) {
-        if (!courseDistribution || courseDistribution.length === 0) {
+    processUserDistributionData(userDistribution) {
+        if (!userDistribution || userDistribution.length === 0) {
             return {
                 labels: ['No Data Available'],
                 data: [1]
             };
         }
 
-        // Use the actual data from database
-        const labels = courseDistribution.map(item => item.course);
-        const data = courseDistribution.map(item => parseInt(item.student_count) || 0);
+        const labels = userDistribution.map(item => {
+            const role = item.User_Role || item.user_role;
+
+            if (role === 'superAdmin') return 'Administrator';
+            if (role === 'SubAdmin') return 'Sub-Admin';
+            return role.charAt(0).toUpperCase() + role.slice(1);
+        });
+        const data = userDistribution.map(item => parseInt(item.user_count) || 0);
         
         return { labels, data };
     }
 
-    processMonthlyUploadsData(monthlyUploads) {
-        if (!monthlyUploads || monthlyUploads.length === 0) {
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    processProgramThesisData(programThesisCounts) {
+        if (!programThesisCounts || programThesisCounts.length === 0) {
+            console.log('No program thesis data available');
             return {
-                labels: months,
-                data: months.map(() => 0)
+                labels: ['No Data Available'],
+                data: [0]
             };
         }
 
-        // Use the actual data from database
-        const labels = monthlyUploads.map(item => item.month);
-        const data = monthlyUploads.map(item => parseInt(item.upload_count) || 0);
+        console.log('Raw program thesis data:', programThesisCounts);
+
+        const labels = programThesisCounts.map(item => {
+            const program = item.program || item.Thesis_Course;
+            console.log('Processing program:', program);
+
+            // Map full program names to short codes
+            const programMap = {
+                'Bachelor of Science in Information Technology': 'BSIT',
+                'Bachelor of Early Childhood Education': 'BECED', 
+                'Bachelor of Secondary Education': 'BSED',
+                'Bachelor of Technical-Vocational Teacher Education': 'BTVTED',
+                'Bachelor of Elementary Education': 'BEED',
+                'Bachelor of Special Needs Education': 'BSNED',
+                'Bachelor of Science in Agricultural and Biosystems Engineering': 'BSABE',
+                'Bachelor of Science in Agriculture and Biosystems Engineering': 'BSABE',
+                'BSIT': 'BSIT',
+                'BECED': 'BECED',
+                'BSED': 'BSED', 
+                'BTVTED': 'BTVTED',
+                'BEED': 'BEED',
+                'BSNED': 'BSNED',
+                'BSABE': 'BSABE'
+            };
+
+            return programMap[program] || program;
+        });
+
+        const data = programThesisCounts.map(item => parseInt(item.thesis_count) || 0);
+        
+        console.log('Processed chart data - Labels:', labels, 'Data:', data);
         
         return { labels, data };
     }
 
-    updateChartFooterStats(uploadData) {
+    updateChartFooterStats(chartData) {
         const chartFooter = document.querySelector('.chart-footer .chart-stats');
         if (!chartFooter) return;
-        
-        const maxUploads = Math.max(...uploadData.data);
-        const maxIndex = uploadData.data.indexOf(maxUploads);
-        const peakMonth = uploadData.labels[maxIndex] || 'No data';
-        const totalYear = uploadData.data.reduce((sum, count) => sum + count, 0);
+
+        const totalTheses = chartData.data.reduce((sum, count) => sum + count, 0);
         
         chartFooter.innerHTML = `
             <div class="chart-stat">
-                <span class="stat-label">Peak Month:</span>
-                <span class="stat-value">${peakMonth} (${maxUploads})</span>
-            </div>
-            <div class="chart-stat">
-                <span class="stat-label">Total This Year:</span>
-                <span class="stat-value">${totalYear}</span>
+                <span class="stat-label">Total Theses:</span>
+                <span class="stat-value">${totalTheses}</span>
             </div>
         `;
-    }
-
-    async handleDepartmentSelection(button) {
-        // Remove active class from all buttons
-        document.querySelectorAll('#reports-card .accessCard').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        
-        // Add active class to selected button
-        button.classList.add('active');
-        
-        // Get department from button
-        const department = this.getDepartmentFromButton(button);
-        this.currentDepartment = department;
-        
-        // Reload reports data for selected department
-        await this.loadReportsData();
     }
 
     getDepartmentFromButton(button) {
@@ -574,7 +643,6 @@ class ReportsManager {
         if (action === 'refresh') {
             this.refreshChart(button);
         }
-        // Remove download case
     }
 
     async refreshChart(button) {

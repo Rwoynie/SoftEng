@@ -164,6 +164,9 @@ class AdminDashboardController {
             case 'generateReport':
                 $this->generateReport();
                 break;
+            case 'generateLogsReport':
+                $this->generateLogsReport();
+                break;
 
           
 
@@ -858,54 +861,185 @@ private function updateAnnouncement() {
      */
 private function getAuditLogs() {
     try {
-        error_log("=== DIRECT CONTROLLER getAuditLogs ===");
-        
-        // Bypass the model and query directly
-        $limit = $_GET['limit'] ?? 100;
-        $tableName = $_GET['table'] ?? null;
-        $action = $_GET['action_type'] ?? null;
-        
-        $db = new Database();
-        
-        $sql = "SELECT * FROM AUDIT_LOGS WHERE 1=1";
-        $params = [];
-        
-        if ($tableName) {
-            $sql .= " AND table_name = :table_name";
-            $params[':table_name'] = $tableName;
-        }
-        
-        if ($action) {
-            $sql .= " AND action = :action";
-            $params[':action'] = $action;
-        }
-        
-        $sql .= " ORDER BY changed_at DESC LIMIT :limit";
-        $params[':limit'] = $limit;
-        
-        error_log("Direct controller SQL: " . $sql);
-        
-        $db->query($sql);
-        foreach ($params as $key => $value) {
-            $db->bind($key, $value);
-        }
-        
-        $logs = $db->resultSet();
-        error_log("Direct controller found: " . count($logs) . " logs");
+        $logs = $this->getDetailedAuditLogs();
         
         $this->jsonResponse([
             'success' => true,
             'logs' => $logs,
-            'total' => count($logs),
-            'debug' => [
-                'query_used' => $sql,
-                'parameters' => $params
-            ]
+            'total' => count($logs)
         ]);
         
     } catch (Exception $e) {
-        error_log("Direct controller error: " . $e->getMessage());
+        error_log("Error in getAuditLogs: " . $e->getMessage());
         $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
+    }
+}
+
+/**
+ * Get detailed audit logs with exact timestamps and full details
+ */
+private function getDetailedAuditLogs() {
+    try {
+        $limit = $_GET['limit'] ?? 100;
+        
+        $db = new Database();
+        
+        $sql = "SELECT 
+                    al.*,
+                    ui.First_Name,
+                    ui.Last_Name, 
+                    ui.Email,
+                    ui.User_Role,
+                    DATE_FORMAT(al.changed_at, '%Y-%m-%d %H:%i:%s') as exact_timestamp,
+                    al.ip_address
+                FROM AUDIT_LOGS al 
+                LEFT JOIN USER_INFORMATION ui ON al.user_id = ui.ID 
+                ORDER BY al.changed_at DESC 
+                LIMIT :limit";
+        
+        $db->query($sql);
+        $db->bind(':limit', $limit);
+        
+        $logs = $db->resultSet();
+        
+        // Format the logs with detailed information
+        $formattedLogs = [];
+        foreach ($logs as $log) {
+            $formattedLogs[] = [
+                'id' => $log->id,
+                'timestamp' => $log->exact_timestamp,
+                'ip_address' => $log->ip_address ?: 'N/A',
+                'user_name' => $log->First_Name && $log->Last_Name ? 
+                    $log->First_Name . ' ' . $log->Last_Name : 
+                    ($log->user_name ?: 'System'),
+                'user_role' => $log->User_Role ?: 'System',
+                'action' => $this->getDetailedAction($log),
+                'details' => $this->getFullDetails($log),
+                'table_name' => $log->table_name,
+                'old_values' => $log->old_values,
+                'new_values' => $log->new_values
+            ];
+        }
+        
+        return $formattedLogs;
+        
+    } catch (Exception $e) {
+        error_log("Error getting detailed audit logs: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get detailed action description
+ */
+private function getDetailedAction($log) {
+    $action = strtoupper($log->action);
+    $table = $log->table_name;
+    
+    switch ($action) {
+        case 'INSERT':
+            if ($table === 'ANNOUNCEMENTS') return 'Created Announcement';
+            if ($table === 'THESIS') return 'Uploaded Thesis';
+            if ($table === 'USER_INFORMATION') return 'Registered User';
+            return 'Created Record';
+            
+        case 'UPDATE':
+            if ($table === 'ANNOUNCEMENTS') return 'Updated Announcement';
+            if ($table === 'USER_INFORMATION') return 'Updated User Account';
+            if ($table === 'THESIS') return 'Updated Thesis';
+            return 'Updated Record';
+            
+        case 'DELETE':
+            if ($table === 'ANNOUNCEMENTS') return 'Deleted Announcement';
+            if ($table === 'USER_INFORMATION') return 'Deleted User Account';
+            if ($table === 'THESIS') return 'Deleted Thesis';
+            return 'Deleted Record';
+            
+        default:
+            return $log->action;
+    }
+}
+
+/**
+ * Get full detailed description
+ */
+private function getFullDetails($log) {
+    $action = strtoupper($log->action);
+    $table = $log->table_name;
+    
+    try {
+        $oldValues = $log->old_values ? json_decode($log->old_values, true) : [];
+        $newValues = $log->new_values ? json_decode($log->new_values, true) : [];
+        
+        switch ($table) {
+            case 'ANNOUNCEMENTS':
+                if ($action === 'INSERT') {
+                    $title = $newValues['title'] ?? 'Unknown Title';
+                    return "Created new announcement: '{$title}' with type: " . ($newValues['type'] ?? 'information');
+                }
+                if ($action === 'UPDATE') {
+                    $title = $newValues['title'] ?? $oldValues['title'] ?? 'Unknown Title';
+                    $changes = [];
+                    if (isset($newValues['title']) && isset($oldValues['title']) && $newValues['title'] !== $oldValues['title']) {
+                        $changes[] = "title from '{$oldValues['title']}' to '{$newValues['title']}'";
+                    }
+                    if (isset($newValues['content']) && isset($oldValues['content']) && $newValues['content'] !== $oldValues['content']) {
+                        $changes[] = "content updated";
+                    }
+                    if (isset($newValues['status']) && isset($oldValues['status']) && $newValues['status'] !== $oldValues['status']) {
+                        $changes[] = "status from {$oldValues['status']} to {$newValues['status']}";
+                    }
+                    return "Updated announcement '{$title}': " . implode(', ', $changes);
+                }
+                if ($action === 'DELETE') {
+                    $title = $oldValues['title'] ?? 'Unknown Title';
+                    return "Permanently deleted announcement: '{$title}'";
+                }
+                break;
+                
+            case 'USER_INFORMATION':
+                if ($action === 'INSERT') {
+                    $name = ($newValues['First_Name'] ?? '') . ' ' . ($newValues['Last_Name'] ?? '');
+                    return "Registered new user: {$name} with role: " . ($newValues['User_Role'] ?? 'student');
+                }
+                if ($action === 'UPDATE') {
+                    $name = ($newValues['First_Name'] ?? $oldValues['First_Name'] ?? '') . ' ' . ($newValues['Last_Name'] ?? $oldValues['Last_Name'] ?? '');
+                    $changes = [];
+                    if (isset($newValues['User_Role']) && isset($oldValues['User_Role']) && $newValues['User_Role'] !== $oldValues['User_Role']) {
+                        $changes[] = "role from {$oldValues['User_Role']} to {$newValues['User_Role']}";
+                    }
+                    if (isset($newValues['Acc_Status']) && isset($oldValues['Acc_Status']) && $newValues['Acc_Status'] !== $oldValues['Acc_Status']) {
+                        $changes[] = "status from {$oldValues['Acc_Status']} to {$newValues['Acc_Status']}";
+                    }
+                    return "Updated user {$name}: " . implode(', ', $changes);
+                }
+                if ($action === 'DELETE') {
+                    $name = ($oldValues['First_Name'] ?? '') . ' ' . ($oldValues['Last_Name'] ?? '');
+                    return "Permanently deleted user account: {$name}";
+                }
+                break;
+                
+            case 'THESIS':
+                if ($action === 'INSERT') {
+                    $title = $newValues['Title'] ?? 'Unknown Title';
+                    return "Uploaded new thesis: '{$title}' by " . ($newValues['Thesis_Email'] ?? 'unknown authors');
+                }
+                if ($action === 'UPDATE') {
+                    $title = $newValues['Title'] ?? $oldValues['Title'] ?? 'Unknown Title';
+                    return "Updated thesis details for: '{$title}'";
+                }
+                if ($action === 'DELETE') {
+                    $title = $oldValues['Title'] ?? 'Unknown Title';
+                    return "Permanently deleted thesis: '{$title}'";
+                }
+                break;
+        }
+        
+        // Generic fallback
+        return "Performed {$action} operation on {$table} table";
+        
+    } catch (Exception $e) {
+        return "Performed {$action} operation on {$table} table";
     }
 }
 
@@ -1086,53 +1220,59 @@ private function testAuditQuery() {
     /**
      * Get reports data for charts and statistics
      */
-    private function getReports() {
-        try {
-            $reportType = $_GET['type'] ?? 'overview';
-            $department = $_GET['department'] ?? 'all';
-            
-            switch ($reportType) {
-                case 'thesis':
-                    $data = $this->getThesisReports($department);
-                    break;
-                case 'users':
-                    $data = $this->getUserReports($department);
-                    break;
-                case 'department':
-                    $data = $this->getDepartmentReports($department);
-                    break;
-                case 'overview':
-                default:
-                    $data = $this->getOverviewReports($department);
-                    break;
-            }
-            
-            $this->jsonResponse([
-                'success' => true,
-                'data' => $data,
-                'report_type' => $reportType,
-                'department' => $department
-            ]);
-            
-        } catch (Exception $e) {
-            $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
+private function getReports() {
+    try {
+        $reportType = $_GET['type'] ?? 'overview';
+        $department = $_GET['department'] ?? 'all';
+        $course = $_GET['course'] ?? 'all'; // New course parameter
+        
+        switch ($reportType) {
+            case 'thesis':
+                $data = $this->getThesisReports($department, $course);
+                break;
+            case 'users':
+                $data = $this->getUserReports($department, $course);
+                break;
+            case 'department':
+                $data = $this->getDepartmentReports($department, $course);
+                break;
+            case 'overview':
+            default:
+                $data = $this->getOverviewReports($department, $course);
+                break;
         }
+        
+        $this->jsonResponse([
+            'success' => true,
+            'data' => $data,
+            'report_type' => $reportType,
+            'department' => $department,
+            'course' => $course
+        ]);
+        
+    } catch (Exception $e) {
+        $this->jsonResponse(['success' => false, 'error' => $e->getMessage()]);
     }
+}
 
 /**
  * Get overview reports data for charts
  */
-private function getOverviewReports($department = 'all') {
-    $stats = $this->model->getReportsStats($department);
-    $courseDistribution = $this->model->getCourseDistribution($department);
-    $monthlyUploads = $this->model->getMonthlyThesisUploads($department);
-    $programCounts = $this->model->getProgramThesisCounts();
+private function getOverviewReports($department = 'all', $course = 'all') {
+    $stats = $this->model->getReportsStats($department, $course);
+    $userDistribution = $this->model->getUserDistributionByRole($department, $course); 
+    $programThesisCounts = $this->model->getThesisPerProgram($department, $course);
+    $programCounts = $this->model->getDepartmentThesisCounts();
+
+    // Get available courses for the selected department
+    $availableCourses = $this->model->getCoursesByDepartment($department);
 
     return [
         'stats' => $stats,
-        'course_distribution' => $courseDistribution,
-        'monthly_uploads' => $monthlyUploads,
-        'program_counts' => $programCounts
+        'user_distribution' => $userDistribution, 
+        'program_thesis_counts' => $programThesisCounts,
+        'program_counts' => $programCounts,
+        'available_courses' => $availableCourses
     ];
 }
 
@@ -1144,6 +1284,24 @@ private function getCourseDistribution($department = 'all') {
         return $this->model->getCourseDistribution($department);
     } catch (Exception $e) {
         error_log("Error getting course distribution: " . $e->getMessage());
+        return [];
+    }
+}
+
+
+private function getUserCountsByRole() {
+    try {
+        $this->model->getDatabase()->query("
+            SELECT 
+                User_Role,
+                COUNT(*) as user_count
+            FROM USER_INFORMATION 
+            WHERE Acc_Status = 'approved'
+            GROUP BY User_Role
+        ");
+        return $this->model->getDatabase()->resultSet();
+    } catch (Exception $e) {
+        error_log("Error getting user counts by role: " . $e->getMessage());
         return [];
     }
 }
@@ -1161,22 +1319,6 @@ private function getCourseDistribution($department = 'all') {
         }
 
 
-    /**
-     * Get reports statistics
-     */
-
-    private function getReportsStats($department = 'all') {
-    try {
-        return $this->model->getReportsStats($department);
-    } catch (Exception $e) {
-        error_log("Error getting reports stats: " . $e->getMessage());
-        return [
-            'total_theses' => 0,
-            'total_students' => 0,
-            'recent_theses' => 0
-        ];
-    }
-}
 
     /**
      * Map department values to course codes
@@ -1276,442 +1418,377 @@ private function handleGetLoginAttempts() {
     $attempts = $this->model->getLoginAttempts($limit);
     $this->jsonResponse(['success' => true, 'attempts' => $attempts]);
 }
-
-    
-/**
- * Generate PDF report - WORKING VERSION
- */
 private function generateReport() {
+    // Add custom error handler to catch warnings
+    set_error_handler(function($errno, $errstr, $errfile, $errline) {
+        throw new Exception("Error in $errfile on line $errline: $errstr");
+    });
+
+    $department = $_GET['department'] ?? 'all';
+    $course = $_GET['course'] ?? 'all';
+
     try {
-        error_log("=== GENERATE REPORT METHOD CALLED ===");
+        error_log("=== STARTING PDF GENERATION ===");
+        error_log("Department: $department, Course: $course");
         
-        $department = $_GET['department'] ?? 'all';
-        error_log("Processing department: " . $department);
+        $stats = $this->model->getReportsStats($department, $course);
+        error_log("Stats received: " . print_r($stats, true));
         
-        // Get report data
-        $reportData = $this->getOverviewReports($department);
-        error_log("Report data retrieved successfully");
+        // Safely extract and convert to numbers
+        $totalTheses = 0;
+        $totalUsers = 0;
         
-        // Check if dompdf is available
-        if (!class_exists('Dompdf\Dompdf')) {
-            throw new Exception('Dompdf library not found. Please install via composer: composer require dompdf/dompdf');
+        if (is_object($stats)) {
+            $totalTheses = is_numeric($stats->total_theses ?? 0) ? (float)$stats->total_theses : 0;
+            $totalUsers = is_numeric($stats->total_students ?? $stats->total_users ?? 0) ? (float)($stats->total_students ?? $stats->total_users) : 0;
+        } elseif (is_array($stats)) {
+            $totalTheses = is_numeric($stats['total_theses'] ?? 0) ? (float)$stats['total_theses'] : 0;
+            $totalUsers = is_numeric($stats['total_students'] ?? $stats['total_users'] ?? 0) ? (float)($stats['total_students'] ?? $stats['total_users']) : 0;
+        } else {
+            error_log("Stats is not object or array: " . gettype($stats));
         }
         
-        // Generate HTML content
-        $html = $this->generateReportHTML($reportData, $department);
+        error_log("Total theses: $totalTheses (type: " . gettype($totalTheses) . ")");
+        error_log("Total users: $totalUsers (type: " . gettype($totalUsers) . ")");
+
+        error_log("Preparing pie chart data...");
+        $pieData = $this->preparePieChartData($department, $course);
+        error_log("Pie data prepared successfully");
         
-        // Configure dompdf
+        error_log("Preparing bar chart data...");
+        $barData = $this->prepareBarChartData($department, $course);
+        error_log("Bar data prepared successfully");
+
+        $currentDate = date('F j, Y');
+        $deptName = strtoupper($department) === 'ALL' ? 'All Programs' : strtoupper($department);
+        $courseName = $course === 'all' ? 'All Courses' : $course;
+
+        error_log("Generating HTML content...");
+        $html = $this->generateReportHTML($deptName, $courseName, $currentDate, $totalTheses, $totalUsers, $pieData, $barData);
+        
+        if (empty($html)) {
+            throw new Exception("HTML content generation failed");
+        }
+
+        error_log("HTML content generated successfully");
+
+        if (!class_exists('Dompdf\Dompdf')) {
+            throw new Exception('Dompdf library not found');
+        }
+
         $options = new Options();
-        $options->set('isHtml5ParserEnabled', true);
         $options->set('isRemoteEnabled', true);
-        $options->set('defaultFont', 'Arial');
-        
+        $options->set('defaultFont', 'DejaVu Sans');
+        $options->set('isHtml5ParserEnabled', true);
+
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
         
-        // Generate filename
-        $timestamp = date('Y-m-d');
-        $deptName = $this->getDepartmentDisplayName($department);
-        $filename = "Thesis_Report_{$deptName}_{$timestamp}.pdf";
+        error_log("PDF generation completed successfully");
+        $dompdf->stream("Thesis_Report_{$deptName}_" . date('Y-m-d') . ".pdf", ['Attachment' => true]);
         
-        // Output the PDF
-        header('Content-Type: application/pdf');
-        header('Content-Disposition: inline; filename="' . $filename . '"');
-        header('Content-Transfer-Encoding: binary');
-        header('Accept-Ranges: bytes');
-        
-        echo $dompdf->output();
         exit;
-        
+
     } catch (Exception $e) {
-        error_log("PDF Generation Error: " . $e->getMessage());
+        error_log("=== PDF GENERATION FAILED ===");
+        error_log("Error: " . $e->getMessage());
         error_log("Stack trace: " . $e->getTraceAsString());
         
-        // Return JSON error instead of dying
+        // Restore error handler
+        restore_error_handler();
+        
         $this->jsonResponse([
             'success' => false,
-            'error' => $e->getMessage(),
-            'message' => 'PDF generation failed'
+            'error' => 'Failed to generate PDF report: ' . $e->getMessage(),
+            'debug_info' => [
+                'department' => $department,
+                'course' => $course,
+                'stats_type' => gettype($stats),
+                'stats_value' => $stats
+            ]
         ], 500);
+    } finally {
+        // Ensure error handler is restored
+        restore_error_handler();
     }
 }
 
-/**
- * Generate HTML content for PDF report with charts - FIXED VERSION
- */
-private function generateReportHTML($reportData, $department) {
-    $deptName = $this->getDepartmentDisplayName($department);
-    $currentDate = date('F j, Y');
-    
-    // Safely extract data with proper object/array access
-    $stats = $reportData['stats'] ?? [];
-    $programCounts = $reportData['program_counts'] ?? [];
-    $courseDistribution = $reportData['course_distribution'] ?? [];
-    $monthlyUploads = $reportData['monthly_uploads'] ?? [];
-    
-    // Safely access stats with both object and array syntax
-    $totalTheses = 0;
-    $totalStudents = 0;
-    $recentTheses = 0;
-    
-    if (is_object($stats)) {
-        $totalTheses = $stats->total_theses ?? 0;
-        $totalStudents = $stats->total_students ?? 0;
-        $recentTheses = $stats->recent_theses ?? 0;
-    } else if (is_array($stats)) {
-        $totalTheses = $stats['total_theses'] ?? 0;
-        $totalStudents = $stats['total_students'] ?? 0;
-        $recentTheses = $stats['recent_theses'] ?? 0;
-    }
-    
-    // Prepare chart data
-    $pieChartData = $this->preparePieChartData($courseDistribution);
-    $barChartData = $this->prepareBarChartData($monthlyUploads);
-    
-    $html = '
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>Thesis Management System Report</title>
-        <style>
-            body { 
-                font-family: Arial, sans-serif; 
-                margin: 40px; 
-                color: #333;
-                line-height: 1.6;
-            }
-            .header { 
-                text-align: center; 
-                border-bottom: 3px solid #ba1e1f; 
-                padding-bottom: 20px;
-                margin-bottom: 30px;
-            }
-            .header h1 { 
-                color: #ba1e1f; 
-                margin: 0; 
-                font-size: 28px;
-            }
-            .header h2 { 
-                color: #666; 
-                margin: 10px 0; 
-                font-size: 20px;
-                font-weight: normal;
-            }
-            .stats-section { 
-                margin: 30px 0; 
-            }
-            .stats-grid {
-                display: flex;
-                justify-content: space-between;
-                margin: 20px 0;
-            }
-            .stat-card {
-                background: #f8f9fa;
-                border: 1px solid #dee2e6;
-                border-radius: 8px;
-                padding: 20px;
-                text-align: center;
-                flex: 1;
-                margin: 0 10px;
-            }
-            .stat-number {
-                font-size: 32px;
-                font-weight: bold;
-                color: #ba1e1f;
-                margin: 10px 0;
-            }
-            .stat-label {
-                color: #666;
-                font-size: 14px;
-                font-weight: bold;
-            }
-            .charts-section {
-                margin: 40px 0;
-            }
-            .chart-container {
-                background: #f8f9fa;
-                border: 1px solid #dee2e6;
-                border-radius: 8px;
-                padding: 20px;
-                margin-bottom: 30px;
-            }
-            .chart-title {
-                color: #ba1e1f;
-                border-bottom: 2px solid #ba1e1f;
-                padding-bottom: 10px;
-                margin-bottom: 20px;
-                font-size: 18px;
-            }
-            .table-section {
-                margin: 40px 0;
-            }
-            table {
-                width: 100%;
-                border-collapse: collapse;
-                margin: 20px 0;
-            }
-            th, td {
-                border: 1px solid #ddd;
-                padding: 12px;
-                text-align: left;
-            }
-            th {
-                background-color: #ba1e1f;
-                color: white;
-                font-weight: bold;
-            }
-            tr:nth-child(even) {
-                background-color: #f8f9fa;
-            }
-            .footer {
-                margin-top: 50px;
-                text-align: center;
-                color: #666;
-                font-size: 12px;
-                border-top: 1px solid #ddd;
-                padding-top: 20px;
-            }
-            .chart-table {
-                width: 100%;
-                margin: 20px 0;
-            }
-            .chart-table th {
-                background-color: #495057;
-            }
-            .color-swatch {
-                display: inline-block;
-                width: 12px;
-                height: 12px;
-                margin-right: 8px;
-                border-radius: 2px;
-            }
-            .program-stats {
-                background: #fff;
-                border-radius: 8px;
-                padding: 15px;
-                margin: 15px 0;
-            }
-            .section-title {
-                color: #ba1e1f;
-                border-bottom: 2px solid #ba1e1f;
-                padding-bottom: 10px;
-                margin-bottom: 20px;
-                font-size: 20px;
-            }
-            .charts-row {
-                display: flex;
-                gap: 30px;
-                margin: 30px 0;
-            }
-            .chart-half {
-                flex: 1;
-            }
-        </style>
-    </head>
-    <body>
+private function generateReportHTML($deptName, $courseName, $currentDate, $totalTheses, $totalUsers, $pieData, $barData) {
+    $pieTable = $this->generatePieChartTable($pieData);
+    $barTable = $this->generateBarChartTable($barData);
+
+    // Safely format numbers - ensure they are numeric
+    $formattedTheses = number_format((float)$totalTheses, 0);
+    $formattedUsers = number_format((float)$totalUsers, 0);
+
+    return '<!DOCTYPE html>
+    <html><head><meta charset="utf-8"><title>Report - ' . htmlspecialchars($deptName) . '</title>
+    <style>
+        body { font-family: DejaVu Sans, sans-serif; margin: 40px; color: #333; line-height: 1.6; }
+        .header { text-align: center; border-bottom: 5px double #ba1e1f; padding-bottom: 20px; }
+        .header h1 { margin: 10px 0; color: #ba1e1f; font-size: 30px; }
+        .header h2 { margin: 10px 0; font-size: 22px; color: #555; }
+        .stats-grid { display: flex; gap: 30px; margin: 40px 0; flex-wrap: wrap; justify-content: center; }
+        .stat-card { background: #ba1e1f; color: white; padding: 25px; border-radius: 12px; min-width: 200px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .stat-number { font-size: 42px; font-weight: bold; margin-bottom: 8px; }
+        .section-title { font-size: 24px; color: #ba1e1f; border-bottom: 3px solid #ba1e1f; padding-bottom: 10px; margin: 50px 0 25px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 15px; }
+        th { background: #ba1e1f; color: white; padding: 15px; text-align: left; }
+        td { padding: 12px 15px; border-bottom: 1px solid #ddd; }
+        tr:nth-child(even) { background: #f8f9fa; }
+        .color-swatch { display: inline-block; width: 16px; height: 16px; border-radius: 4px; margin-right: 10px; vertical-align: middle; }
+        .footer { margin-top: 80px; text-align: center; color: #777; font-size: 12px; padding-top: 20px; border-top: 1px solid #eee; }
+    </style></head><body>
         <div class="header">
-            <h1>Thesis Management System</h1>
-            <h2>Program Report - ' . htmlspecialchars($deptName) . '</h2>
+            <h1>Compendium System</h1>
+            <h2>System Report - ' . htmlspecialchars($deptName) . '</h2>
+            <p><strong>Course:</strong> ' . htmlspecialchars($courseName) . '</p>
             <p><strong>Generated on:</strong> ' . $currentDate . '</p>
         </div>
-        
-        <div class="stats-section">
-            <h3 class="section-title">Overview Statistics</h3>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-number">' . $totalTheses . '</div>
-                    <div class="stat-label">Total Theses</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">' . $totalStudents . '</div>
-                    <div class="stat-label">Total Students</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">' . $recentTheses . '</div>
-                    <div class="stat-label">Recent Theses</div>
-                </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">' . $formattedTheses . '</div>
+                <div class="stat-label">Total Theses Uploaded</div>
             </div>
-        </div>';
-        
-    // Add Charts Section
-    $html .= '
-        <div class="charts-section">
-            <h3 class="section-title">Data Visualizations</h3>
-            
-            <div class="charts-row">
-                <!-- Student Distribution Pie Chart -->
-                <div class="chart-half">
-                    <div class="chart-container">
-                        <h3 class="chart-title">Student Distribution by Program</h3>
-                        ' . $this->generatePieChartTable($pieChartData) . '
-                    </div>
-                </div>
-                
-                <!-- Thesis Uploads Bar Chart -->
-                <div class="chart-half">
-                    <div class="chart-container">
-                        <h3 class="chart-title">Thesis Uploads (Last 12 Months)</h3>
-                        ' . $this->generateBarChartTable($barChartData) . '
-                    </div>
-                </div>
+            <br>
+            <div class="stat-card">
+                <div class="stat-number">' . $formattedUsers . '</div>
+                <div class="stat-label">Registered & Approved Users</div>
             </div>
-        </div>';
-        
-    // Add program counts table if available
-    if (!empty($programCounts)) {
-        $html .= '
-        <div class="table-section">
-            <h3 class="section-title">Thesis Count by Program</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Program</th>
-                        <th>Thesis Count</th>
-                    </tr>
-                </thead>
-                <tbody>';
-        
-        $totalCount = 0;
-        foreach ($programCounts as $program) {
-            // Handle both object and array access
-            if (is_object($program)) {
-                $programName = $program->program ?? 'Unknown';
-                $count = $program->thesis_count ?? 0;
-            } else {
-                $programName = $program['program'] ?? 'Unknown';
-                $count = $program['thesis_count'] ?? 0;
-            }
-            $totalCount += $count;
-            $html .= '
-                    <tr>
-                        <td>' . htmlspecialchars($programName) . '</td>
-                        <td>' . $count . '</td>
-                    </tr>';
-        }
-        
-        $html .= '
-                    <tr style="font-weight: bold; background-color: #e9ecef;">
-                        <td><strong>Total</strong></td>
-                        <td><strong>' . $totalCount . '</strong></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>';
-    }
-    
-    $html .= '
-        <div class="footer">
-            <p><strong>Generated by Thesis Management System | University of Southeastern Philippines</strong></p>
-            <p>This is an automated report. For questions, contact system administrator.</p>
         </div>
-    </body>
-    </html>';
-    
-    return $html;
+        <br><br><br>
+        <h3 class="section-title">User Distribution by Role</h3>
+        ' . $pieTable . '
+
+        <h3 class="section-title">Total Thesis per Program</h3>
+        ' . $barTable . '
+
+        <div class="footer">
+            <p><strong>Compendium System • University of Southeastern Philippines</strong></p>
+            <p>Automated Report • ' . $currentDate . '</p>
+        </div>
+    </body></html>';
 }
 
-
 /**
- * Prepare pie chart data for PDF - FIXED VERSION
+ * Prepare pie chart data: User Distribution by Role (Approved Users Only)
  */
-private function preparePieChartData($courseDistribution) {
-    if (empty($courseDistribution)) {
-        return [
-            ['label' => 'No Data Available', 'value' => 100, 'color' => '#CCCCCC']
-        ];
-    }
+private function preparePieChartData($department = 'all', $course = 'all') {
+    try {
+        $sql = "SELECT User_Role, COUNT(*) as count 
+                FROM USER_INFORMATION 
+                WHERE Acc_Status = 'approved'";
 
-    $colors = [
-        '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', 
-        '#FFEAA7', '#cd84cd', '#48ffd1', '#FFA726',
-        '#AB47BC', '#26C6DA', '#D4E157', '#FF7043'
-    ];
-
-    $data = [];
-    $colorIndex = 0;
-    
-    foreach ($courseDistribution as $course) {
-        // Handle both object and array access
-        if (is_object($course)) {
-            $label = $course->course ?? 'Unknown';
-            $value = $course->student_count ?? 0;
-        } else {
-            $label = $course['course'] ?? 'Unknown';
-            $value = $course['student_count'] ?? 0;
-        }
+        $params = [];
         
-        $data[] = [
-            'label' => $label,
-            'value' => $value,
-            'color' => $colors[$colorIndex % count($colors)]
-        ];
-        $colorIndex++;
-    }
-    
-    return $data;
-}
+        if ($department !== 'all') {
+            $courseCodes = $this->getCourseCodesByDepartment($department);
+            if (!empty($courseCodes)) {
+                $placeholders = str_repeat('?,', count($courseCodes) - 1) . '?';
+                $sql .= " AND Course IN ($placeholders)";
+                $params = array_merge($params, $courseCodes);
+            }
+        }
 
-/**
- * Prepare bar chart data for PDF - FIXED VERSION
- */
-private function prepareBarChartData($monthlyUploads) {
-    if (empty($monthlyUploads)) {
-        // Return empty data for all months
-        $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        // Apply specific course filtering
+        if ($course !== 'all' && !empty($course)) {
+            $sql .= " AND Course = ?";
+            $params[] = $course;
+        }
+
+        $sql .= " GROUP BY User_Role ORDER BY count DESC";
+
+        $this->model->getDatabase()->query($sql);
+        foreach ($params as $i => $value) {
+            $this->model->getDatabase()->bind($i + 1, $value);
+        }
+
+        $results = $this->model->getDatabase()->resultSet();
+
+        // Debug: Check what results we're getting
+        error_log("Pie chart query results: " . print_r($results, true));
+        error_log("Results type: " . gettype($results));
+        error_log("Results count: " . count($results));
+
+        // Ensure results is an array
+        if (!is_array($results)) {
+            error_log("Results is not an array, converting...");
+            $results = [];
+        }
+
+        $colors = ['#ba1e1f', '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4'];
+        $roleLabels = [
+            'student' => 'Students',
+            'faculty' => 'Faculty',
+            'SubAdmin' => 'Sub-Admins',
+            'superAdmin' => 'Super Admins',
+            'admin' => 'Admins'
+        ];
+
         $data = [];
-        foreach ($months as $month) {
-            $data[] = [
-                'month' => $month,
-                'count' => 0
-            ];
-        }
-        return $data;
-    }
-    
-    $processedData = [];
-    foreach ($monthlyUploads as $upload) {
-        // Handle both object and array access
-        if (is_object($upload)) {
-            $month = $upload->month ?? 'Unknown';
-            $count = $upload->upload_count ?? $upload->count ?? 0;
-        } else {
-            $month = $upload['month'] ?? 'Unknown';
-            $count = $upload['upload_count'] ?? $upload['count'] ?? 0;
-        }
         
-        $processedData[] = [
-            'month' => $month,
-            'count' => $count
-        ];
+        // Safely iterate through results
+        if (is_array($results) && !empty($results)) {
+            foreach ($results as $idx => $row) {
+                // Handle both object and array formats safely
+                $role = '';
+                $count = 0;
+                
+                if (is_object($row)) {
+                    $role = $row->User_Role ?? 'unknown';
+                    $count = (int)($row->count ?? 0);
+                } elseif (is_array($row)) {
+                    $role = $row['User_Role'] ?? 'unknown';
+                    $count = (int)($row['count'] ?? 0);
+                }
+                
+                // Only add if we have valid data
+                if (!empty($role) && $count > 0) {
+                    $data[] = [
+                        'label' => $roleLabels[$role] ?? ucfirst($role),
+                        'value' => $count,
+                        'color' => $colors[$idx % count($colors)]
+                    ];
+                }
+            }
+        }
+
+        // Fallback if no users
+        if (empty($data)) {
+            error_log("No valid user data found, using fallback");
+            $data[] = ['label' => 'No Approved Users', 'value' => 1, 'color' => '#cccccc'];
+        }
+
+        error_log("Final pie chart data: " . print_r($data, true));
+        return $data;
+        
+    } catch (Exception $e) {
+        error_log("Pie chart error: " . $e->getMessage());
+        error_log("Stack trace: " . $e->getTraceAsString());
+        return [['label' => 'Error Loading Data', 'value' => 1, 'color' => '#ff0000']];
     }
-    
-    return $processedData;
+}
+
+/**
+ * Prepare bar chart data: Thesis Count per Program
+ */
+private function prepareBarChartData($department = 'all', $course = 'all') {
+    try {
+        $programCounts = $this->model->getThesisCountsByProgram($department, $course);
+
+        // Debug: Check what we're getting
+        error_log("Raw program counts: " . print_r($programCounts, true));
+        error_log("Program counts type: " . gettype($programCounts));
+
+        // Ensure programCounts is an array
+        if (!is_array($programCounts)) {
+            error_log("Program counts is not an array, converting to empty array");
+            $programCounts = [];
+        }
+
+        $shortNames = [
+            'Bachelor of Science in Information Technology' => 'BSIT',
+            'Bachelor of Early Childhood Education' => 'BECED',
+            'Bachelor of Secondary Education' => 'BSED',
+            'Bachelor of Technical-Vocational Teacher Education' => 'BTVTED',
+            'Bachelor of Elementary Education' => 'BEED',
+            'Bachelor of Special Needs Education' => 'BSNED',
+            'Bachelor of Science in Agricultural and Biosystems Engineering' => 'BSABE',
+            'Bachelor of Science in Agriculture and Biosystems Engineering' => 'BSABE',
+        ];
+
+        $data = [];
+        
+        // Safely iterate through programCounts
+        if (is_array($programCounts) && !empty($programCounts)) {
+            foreach ($programCounts as $row) {
+                // Handle both object and array formats safely
+                $fullName = '';
+                $count = 0;
+                
+                if (is_object($row)) {
+                    $fullName = $row->program ?? $row->Thesis_Course ?? 'Unknown';
+                    $count = (int)($row->thesis_count ?? 0);
+                } elseif (is_array($row)) {
+                    $fullName = $row['program'] ?? $row['Thesis_Course'] ?? 'Unknown';
+                    $count = (int)($row['thesis_count'] ?? 0);
+                }
+
+                $displayName = $shortNames[$fullName] ?? 'Other';
+
+                if ($count > 0) {
+                    $data[] = [
+                        'program' => $displayName,
+                        'thesis_count' => $count
+                    ];
+                }
+            }
+        }
+
+        // Sort by count descending
+        usort($data, function($a, $b) {
+            return ($b['thesis_count'] ?? 0) <=> ($a['thesis_count'] ?? 0);
+        });
+
+        // Fallback if no data
+        if (empty($data)) {
+            error_log("No thesis data found, using fallback");
+            $data[] = ['program' => 'No Theses', 'thesis_count' => 0];
+        }
+
+        error_log("Final bar chart data: " . print_r($data, true));
+        return $data;
+        
+    } catch (Exception $e) {
+        error_log("Bar chart error: " . $e->getMessage());
+        error_log("Stack trace: " . $e->getTraceAsString());
+        return [['program' => 'Error', 'thesis_count' => 0]];
+    }
 }
 
 /**
  * Generate pie chart as a table for PDF
  */
 private function generatePieChartTable($pieChartData) {
+    // Ensure pieChartData is an array
+    if (!is_array($pieChartData)) {
+        error_log("Pie chart table data is not array: " . gettype($pieChartData));
+        $pieChartData = [];
+    }
+    
     $html = '<table class="chart-table">';
-    $html .= '<thead><tr><th>Program</th><th>Students</th><th>Percentage</th></tr></thead><tbody>';
+    $html .= '<thead><tr><th>User Role</th><th>User Count</th><th>Percentage</th></tr></thead><tbody>';
     
-    $totalStudents = array_sum(array_column($pieChartData, 'value'));
+    $totalStudents = 0;
     
-    foreach ($pieChartData as $item) {
-        $percentage = $totalStudents > 0 ? round(($item['value'] / $totalStudents) * 100, 1) : 0;
-        $html .= '
-            <tr>
-                <td>
-                    <span class="color-swatch" style="background-color: ' . $item['color'] . '"></span>
-                    ' . htmlspecialchars($item['label']) . '
-                </td>
-                <td>' . $item['value'] . '</td>
-                <td>' . $percentage . '%</td>
-            </tr>';
+    // Safely calculate total
+    if (is_array($pieChartData)) {
+        foreach ($pieChartData as $item) {
+            if (is_array($item)) {
+                $totalStudents += $item['value'] ?? 0;
+            }
+        }
+    }
+    
+    // Safely generate rows
+    if (is_array($pieChartData)) {
+        foreach ($pieChartData as $item) {
+            if (!is_array($item)) continue;
+            
+            $percentage = $totalStudents > 0 ? round(($item['value'] / $totalStudents) * 100, 1) : 0;
+            $html .= '
+                <tr>
+                    <td>
+                        <span class="color-swatch" style="background-color: ' . ($item['color'] ?? '#cccccc') . '"></span>
+                        ' . htmlspecialchars($item['label'] ?? 'Unknown') . '
+                    </td>
+                    <td>' . ($item['value'] ?? 0) . '</td>
+                    <td>' . $percentage . '%</td>
+                </tr>';
+        }
     }
     
     $html .= '
@@ -1725,42 +1802,39 @@ private function generatePieChartTable($pieChartData) {
     return $html;
 }
 
-/**
- * Generate bar chart as a table for PDF
- */
 private function generateBarChartTable($barChartData) {
+    // Ensure barChartData is an array
+    if (!is_array($barChartData)) {
+        error_log("Bar chart table data is not array: " . gettype($barChartData));
+        $barChartData = [];
+    }
+    
     $html = '<table class="chart-table">';
-    $html .= '<thead><tr><th>Month</th><th>Thesis Uploads</th></tr></thead><tbody>';
+    $html .= '<thead><tr><th>Program</th><th>Thesis Count</th></tr></thead><tbody>';
     
-    $totalUploads = 0;
-    $maxUploads = 0;
-    $peakMonth = '';
+    $totalTheses = 0;
     
-    foreach ($barChartData as $item) {
-        $count = $item['upload_count'] ?? $item['count'] ?? 0;
-        $month = $item['month'] ?? 'Unknown';
-        $totalUploads += $count;
-        
-        if ($count > $maxUploads) {
-            $maxUploads = $count;
-            $peakMonth = $month;
+    // Safely generate rows
+    if (is_array($barChartData)) {
+        foreach ($barChartData as $item) {
+            if (!is_array($item)) continue;
+            
+            $count = (int)($item['thesis_count'] ?? 0);
+            $program = $item['program'] ?? 'Unknown';
+            $totalTheses += $count;
+            
+            $html .= '
+                <tr>
+                    <td>' . htmlspecialchars($program) . '</td>
+                    <td>' . $count . '</td>
+                </tr>';
         }
-        
-        $html .= '
-            <tr>
-                <td>' . htmlspecialchars($month) . '</td>
-                <td>' . $count . '</td>
-            </tr>';
     }
     
     $html .= '
         <tr style="font-weight: bold; background-color: #e9ecef;">
-            <td>Total Year</td>
-            <td>' . $totalUploads . '</td>
-        </tr>
-        <tr style="font-weight: bold; background-color: #d1ecf1;">
-            <td>Peak Month (' . htmlspecialchars($peakMonth) . ')</td>
-            <td>' . $maxUploads . '</td>
+            <td>Total Theses</td>
+            <td>' . $totalTheses . '</td>
         </tr>
     </tbody></table>';
     
@@ -1783,6 +1857,468 @@ private function getDepartmentDisplayName($department) {
     ];
     
     return $departmentMap[$department] ?? 'All Programs';
+}
+
+
+/**
+ * Generate PDF report for system logs
+ */
+private function generateLogsReport() {
+    try {
+        error_log("=== GENERATE LOGS REPORT METHOD CALLED ===");
+        
+        $logType = $_GET['log_type'] ?? 'all';
+        $filter = $_GET['filter'] ?? 'all';
+        $page = $_GET['page'] ?? 1;
+        
+        error_log("Processing log type: " . $logType . ", filter: " . $filter . ", page: " . $page);
+        
+        // Get log data based on type and filter
+        $logData = $this->getLogsForReport($logType, $filter, $page);
+        error_log("Log data retrieved successfully");
+        
+        // Check if dompdf is available
+        if (!class_exists('Dompdf\Dompdf')) {
+            throw new Exception('Dompdf library not found. Please install via composer: composer require dompdf/dompdf');
+        }
+        
+        // Generate HTML content
+        $html = $this->generateLogsReportHTML($logData, $logType, $filter, $page);
+        
+        // Configure dompdf
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+        $options->set('defaultFont', 'Arial');
+        
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+        
+        // Generate filename
+        $timestamp = date('Y-m-d_H-i-s');
+        $logTypeName = $this->getLogTypeDisplayName($logType);
+        $filename = "System_Logs_{$logTypeName}_{$timestamp}.pdf";
+        
+        // Output the PDF
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Transfer-Encoding: binary');
+        header('Accept-Ranges: bytes');
+        
+        echo $dompdf->output();
+        exit;
+        
+    } catch (Exception $e) {
+        error_log("PDF Logs Generation Error: " . $e->getMessage());
+        error_log("Stack trace: " . $e->getTraceAsString());
+        
+        $this->jsonResponse([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'message' => 'PDF logs generation failed'
+        ], 500);
+    }
+}
+
+/**
+ * Get logs data for PDF report
+ */
+private function getLogsForReport($logType, $filter, $page) {
+    $limit = 50;
+    $offset = ($page - 1) * $limit;
+    
+    try {
+        $db = new Database();
+        $logs = [];
+        $totalLogs = 0;
+        
+        // Build query based on log type and filter
+        $sql = "SELECT al.*, ui.First_Name, ui.Last_Name, ui.Email, ui.User_Role 
+                FROM AUDIT_LOGS al 
+                LEFT JOIN USER_INFORMATION ui ON al.user_id = ui.ID 
+                WHERE 1=1";
+        
+        $params = [];
+        
+        // Apply filters based on log type
+        switch($logType) {
+            case 'user':
+                $sql .= " AND al.table_name = 'USER_INFORMATION'";
+                break;
+            case 'admin':
+                $sql .= " AND (al.table_name IN ('ANNOUNCEMENTS', 'SYSTEM_LOGS', 'THESIS', 'BACKUP_LOGS') OR ui.User_Role IN ('admin', 'superAdmin', 'SubAdmin'))";
+                break;
+            case 'all':
+            default:
+                // No additional filters for 'all'
+                break;
+        }
+        
+        // Apply specific filters
+        if ($filter !== 'all') {
+            switch($filter) {
+                case 'login':
+                    $sql .= " AND al.table_name = 'LOGIN_ATTEMPTS'";
+                    break;
+                case 'user':
+                    $sql .= " AND al.table_name = 'USER_INFORMATION'";
+                    break;
+                case 'thesis':
+                    $sql .= " AND al.table_name = 'THESIS'";
+                    break;
+                case 'announcement':
+                    $sql .= " AND al.table_name = 'ANNOUNCEMENTS'";
+                    break;
+                case 'backup':
+                    $sql .= " AND al.table_name = 'BACKUP_LOGS'";
+                    break;
+                case 'management':
+                    $sql .= " AND al.table_name = 'USER_INFORMATION' AND al.action IN ('INSERT', 'UPDATE', 'DELETE')";
+                    break;
+            }
+        }
+        
+        // Count total logs
+        $countSql = "SELECT COUNT(*) as total FROM ($sql) as count_table";
+        $db->query($countSql);
+        foreach ($params as $key => $value) {
+            $db->bind($key, $value);
+        }
+        $countResult = $db->single();
+        $totalLogs = $countResult->total;
+        
+        // Get logs with pagination
+        $sql .= " ORDER BY al.changed_at DESC LIMIT :limit OFFSET :offset";
+        $params[':limit'] = $limit;
+        $params[':offset'] = $offset;
+        
+        $db->query($sql);
+        foreach ($params as $key => $value) {
+            $db->bind($key, $value);
+        }
+        
+        $logs = $db->resultSet();
+        
+        return [
+            'logs' => $logs,
+            'total_logs' => $totalLogs,
+            'current_page' => $page,
+            'total_pages' => ceil($totalLogs / $limit),
+            'logs_per_page' => $limit
+        ];
+        
+    } catch (Exception $e) {
+        error_log("Error getting logs for report: " . $e->getMessage());
+        return [
+            'logs' => [],
+            'total_logs' => 0,
+            'current_page' => $page,
+            'total_pages' => 0,
+            'logs_per_page' => $limit
+        ];
+    }
+}
+
+/**
+ * Generate HTML content for logs PDF report
+ */
+private function generateLogsReportHTML($logData, $logType, $filter, $page) {
+    $logTypeName = $this->getLogTypeDisplayName($logType);
+    $filterName = $this->getFilterDisplayName($filter);
+    $currentDate = date('F j, Y g:i A');
+    
+    $logs = $logData['logs'] ?? [];
+    $totalLogs = $logData['total_logs'] ?? 0;
+    $currentPage = $logData['current_page'] ?? 1;
+    $totalPages = $logData['total_pages'] ?? 1;
+    
+    $html = '
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>System Logs Report</title>
+        <style>
+            body { 
+                font-family: Arial, sans-serif; 
+                margin: 20px; 
+                color: #333;
+                line-height: 1.4;
+                font-size: 10px;
+            }
+            .header { 
+                text-align: center; 
+                border-bottom: 3px solid #ba1e1f; 
+                padding-bottom: 15px;
+                margin-bottom: 20px;
+            }
+            .header h1 { 
+                color: #ba1e1f; 
+                margin: 0; 
+                font-size: 20px;
+            }
+            .header h2 { 
+                color: #666; 
+                margin: 5px 0; 
+                font-size: 14px;
+                font-weight: normal;
+            }
+            .report-info {
+                display: flex;
+                justify-content: space-between;
+                margin: 15px 0;
+                padding: 10px;
+                background: #f8f9fa;
+                border-radius: 5px;
+            }
+            .info-item {
+                text-align: center;
+            }
+            .info-label {
+                font-size: 9px;
+                color: #666;
+                display: block;
+            }
+            .info-value {
+                font-size: 11px;
+                font-weight: bold;
+                color: #ba1e1f;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 15px 0;
+                font-size: 9px;
+            }
+            th, td {
+                border: 1px solid #ddd;
+                padding: 6px;
+                text-align: left;
+                word-wrap: break-word;
+            }
+            th {
+                background-color: #ba1e1f;
+                color: white;
+                font-weight: bold;
+                font-size: 8px;
+            }
+            tr:nth-child(even) {
+                background-color: #f8f9fa;
+            }
+            .timestamp {
+                font-size: 8px;
+                color: #666;
+            }
+            .user-info {
+                font-weight: bold;
+            }
+            .user-role {
+                font-size: 8px;
+                color: #666;
+            }
+            .action {
+                font-weight: bold;
+            }
+            .action-login { color: #28a745; }
+            .action-create { color: #007bff; }
+            .action-update { color: #ffc107; }
+            .action-delete { color: #dc3545; }
+            .footer {
+                margin-top: 20px;
+                text-align: center;
+                color: #666;
+                font-size: 8px;
+                border-top: 1px solid #ddd;
+                padding-top: 10px;
+            }
+            .page-info {
+                text-align: right;
+                font-size: 9px;
+                color: #666;
+                margin-bottom: 10px;
+            }
+            .no-logs {
+                text-align: center;
+                padding: 30px;
+                color: #666;
+                font-style: italic;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>System Logs Report</h1>
+            <h2>' . htmlspecialchars($logTypeName) . ' - ' . htmlspecialchars($filterName) . '</h2>
+            <p><strong>Generated on:</strong> ' . $currentDate . '</p>
+        </div>
+        
+        <div class="report-info">
+            <div class="info-item">
+                <span class="info-label">Total Logs</span>
+                <span class="info-value">' . $totalLogs . '</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Current Page</span>
+                <span class="info-value">' . $currentPage . ' of ' . $totalPages . '</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Logs Per Page</span>
+                <span class="info-value">50</span>
+            </div>
+        </div>
+        
+        <div class="page-info">
+            Page ' . $currentPage . ' of ' . $totalPages . '
+        </div>';
+        
+    if (empty($logs)) {
+        $html .= '
+        <div class="no-logs">
+            <h3>No Logs Found</h3>
+            <p>No system logs available for the selected criteria.</p>
+        </div>';
+    } else {
+        $html .= '
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 15%">Time & IP</th>
+                    <th style="width: 15%">User</th>
+                    <th style="width: 15%">Action</th>
+                    <th style="width: 55%">Details</th>
+                </tr>
+            </thead>
+            <tbody>';
+        
+        foreach ($logs as $log) {
+            $timestamp = date('M j, Y H:i:s', strtotime($log->changed_at));
+            $ip = $log->ip_address ?? 'N/A';
+            
+            $userName = 'System';
+            if ($log->First_Name && $log->Last_Name) {
+                $userName = $log->First_Name . ' ' . $log->Last_Name;
+            } elseif ($log->Email) {
+                $userName = $log->Email;
+            }
+            
+            $userRole = $this->formatUserRoleForReport($log->User_Role ?? 'System');
+            $action = $this->formatActionForReport($log->action ?? 'Unknown');
+            $details = $this->formatDetailsForReport($log);
+            
+            $actionClass = $this->getActionClassForReport($log->action);
+            
+            $html .= '
+                <tr>
+                    <td>
+                        <div class="timestamp">' . $timestamp . '</div>
+                        <strong>IP:</strong> ' . $ip . '
+                    </td>
+                    <td>
+                        <div class="user-info">' . htmlspecialchars($userName) . '</div>
+                        <div class="user-role">' . htmlspecialchars($userRole) . '</div>
+                    </td>
+                    <td>
+                        <span class="action ' . $actionClass . '">' . htmlspecialchars($action) . '</span>
+                    </td>
+                    <td>' . htmlspecialchars($details) . '</td>
+                </tr>';
+        }
+        
+        $html .= '
+            </tbody>
+        </table>';
+    }
+    
+    $html .= '
+        <div class="footer">
+            <p><strong>Generated by Compendium System | University of Southeastern Philippines</strong></p>
+            <p>This is an automated system logs report. For questions, contact system administrator.</p>
+        </div>
+    </body>
+    </html>';
+    
+    return $html;
+}
+
+/**
+ * Helper methods for report generation
+ */
+private function getLogTypeDisplayName($logType) {
+    $types = [
+        'all' => 'All Logs',
+        'user' => 'User Logs', 
+        'admin' => 'Admin Logs'
+    ];
+    return $types[$logType] ?? 'All Logs';
+}
+
+private function getFilterDisplayName($filter) {
+    $filters = [
+        'all' => 'All Activities',
+        'login' => 'Logins',
+        'user' => 'User Management',
+        'thesis' => 'Thesis',
+        'announcement' => 'Announcements',
+        'backup' => 'Backup',
+        'management' => 'Management'
+    ];
+    return $filters[$filter] ?? 'All Activities';
+}
+
+private function formatUserRoleForReport($role) {
+    $roleMap = [
+        'superAdmin' => 'Super Admin',
+        'admin' => 'Administrator',
+        'SubAdmin' => 'Sub-Admin',
+        'faculty' => 'Faculty',
+        'student' => 'Student'
+    ];
+    return $roleMap[$role] ?? $role;
+}
+
+private function formatActionForReport($action) {
+    $actionMap = [
+        'INSERT'  => 'Created',
+        'UPDATE'  => 'Updated',
+        'DELETE'  => 'Deleted',
+        'LOGIN'   => 'Login',
+        'LOGOUT'  => 'Logout',
+        'APPROVE' => 'Approved',
+        'REJECT'  => 'Rejected'
+    ];
+
+    return $actionMap[$action] ?? 'System Action';
+}
+
+private function formatDetailsForReport($log) {
+    if (!$log) return 'Unknown operation';
+
+    $table = $log->table_name ?? '';
+    $action = $log->action ?? '';
+
+    $user = trim(($log->First_Name ?? '') . ' ' . ($log->Last_Name ?? ''));
+    if (!$user || $user === ' ') $user = $log->Email ?? 'Unknown User';
+
+    $map = [
+        'USER_INFORMATION' => "User account '{$user}' was {$this->formatActionForReport($action)}",
+        'THESIS'           => "Thesis record was {$this->formatActionForReport($action)}",
+        'ANNOUNCEMENTS'    => "Announcement was {$this->formatActionForReport($action)}",
+        'LOGIN_ATTEMPTS'   => $action === 'LOGIN' ? 'User login attempt' : 'Authentication event'
+    ];
+
+    return $map[$table] ?? "Database operation on {$table}";
+}
+
+private function getActionClassForReport($action) {
+    $actionMap = [
+        'INSERT' => 'action-create',
+        'UPDATE' => 'action-update',
+        'DELETE' => 'action-delete',
+        'LOGIN' => 'action-login'
+    ];
+    return $actionMap[$action] ?? '';
 }
 
 
