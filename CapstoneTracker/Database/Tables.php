@@ -31,7 +31,7 @@ class DatabaseSchema {
         Email_Hash VARCHAR(255),
         User_ID_Hash VARCHAR(255),
         Student_ID_Hash VARCHAR(255),
-        Employee_ID_Hash VARCHAR(255),s
+        Employee_ID_Hash VARCHAR(255),
         User_Role ENUM('student', 'faculty', 'SubAdmin', 'superAdmin') NOT NULL,
         Acc_Status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
         Login_Method ENUM('manual', 'google') DEFAULT 'manual',
